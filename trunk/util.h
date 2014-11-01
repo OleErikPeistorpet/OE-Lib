@@ -8,7 +8,6 @@
 
 #include "basic_range_util.h"
 
-#include <boost/move/iterator.hpp>
 #include <algorithm>
 #include <memory>
 #include <cstring>
@@ -124,9 +123,9 @@ void erase_if(Container & ctr, UnaryPredicate && pred);
 
 
 
-/// Create a boost::move_iterator from InputIterator
+/// Create a std::move_iterator from InputIterator
 template<typename InputIterator> inline
-boost::move_iterator<InputIterator> make_move_iter(InputIterator it)  { return boost::make_move_iterator(it); }
+std::move_iterator<InputIterator> make_move_iter(InputIterator it)  { return std::make_move_iterator(it); }
 
 
 /**
@@ -254,18 +253,10 @@ struct is_byte : std::integral_constant< bool,
 		std::is_integral<T>::value && sizeof(T) == 1 > {};
 
 
-template<typename Iterator> inline
-auto to_ptr(boost::move_iterator<Iterator> it) NOEXCEPT
- -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
-
-
 namespace _detail
 {
 	template<class Container> inline
-	auto EraseSuccessiveDup(Container & ctr, int) -> decltype(ctr.unique())
-	{
-		return ctr.unique();
-	}
+	auto EraseSuccessiveDup(Container & ctr, int) -> decltype(ctr.unique()) { return ctr.unique(); }
 
 	template<class Container> inline
 	void EraseSuccessiveDup(Container & ctr, long)
@@ -274,10 +265,7 @@ namespace _detail
 	}
 
 	template<typename T, class Container> inline
-	auto EraseVal(Container & ctr, const T & val, int) -> decltype(ctr.remove(val))
-	{
-		return ctr.remove(val);
-	}
+	auto EraseVal(Container & ctr, const T & val, int) -> decltype(ctr.remove(val)) { return ctr.remove(val); }
 
 	template<typename T, class Container> inline
 	void EraseVal(Container & ctr, const T & val, long)
@@ -286,17 +274,15 @@ namespace _detail
 				 std::remove(ctr.begin(), ctr.end(), val));
 	}
 
-	template<class Container, typename UnaryPredicate> inline
-	auto EraseIf(Container & ctr, UnaryPredicate && pred, int) -> decltype(ctr.remove_if(std::forward<UnaryPredicate>(pred)))
-	{
-		return ctr.remove_if(std::forward<UnaryPredicate>(pred));
-	}
+	template<class Container, typename UnaryPred> inline
+	auto EraseIf(Container & ctr, UnaryPred && pred, int) -> decltype( ctr.remove_if(std::forward<UnaryPred>(pred)) )
+															  { return ctr.remove_if(std::forward<UnaryPred>(pred)); }
 
-	template<class Container, typename UnaryPredicate> inline
-	void EraseIf(Container & ctr, UnaryPredicate && pred, long)
+	template<class Container, typename UnaryPred> inline
+	void EraseIf(Container & ctr, UnaryPred && pred, long)
 	{
 		truncate( ctr,
-				  std::remove_if(ctr.begin(), ctr.end(), std::forward<UnaryPredicate>(pred)) );
+				  std::remove_if(ctr.begin(), ctr.end(), std::forward<UnaryPred>(pred)) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
