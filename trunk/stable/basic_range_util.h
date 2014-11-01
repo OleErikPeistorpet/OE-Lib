@@ -83,6 +83,10 @@ struct range_ends
 template<typename T>
 T * to_ptr(T * ptr)  { return ptr; }
 
+template<typename Iterator> inline
+auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
+ -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
+
 #if _MSC_VER
 	template<typename T, size_t S> inline
 	T *       to_ptr(std::_Array_iterator<T, S> it)        { return it._Unchecked(); }
@@ -96,7 +100,7 @@ T * to_ptr(T * ptr)  { return ptr; }
 namespace _detail
 {
 	template<typename T>    // (target, source)
-	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *)  { return {}; }
+	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
 }
 
 /// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
@@ -112,7 +116,7 @@ inline std::false_type can_memmove_ranges_with(...)  { return {}; }
 namespace _detail
 {
 	template<typename HasSizeRange> inline // pass dummy int to prefer this overload
-	auto Count(const HasSizeRange & r, int) -> decltype(r.size())  { return r.size(); }
+	auto Count(const HasSizeRange & r, int) -> decltype(r.size()) { return r.size(); }
 
 	template<typename Range> inline
 	auto Count(const Range & r, long) -> decltype( std::distance(begin(r), end(r)) )

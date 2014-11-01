@@ -65,7 +65,7 @@ struct range_ends
 // The rest are advanced utilities, not for users
 
 
-#if _MSC_VER >= 1800
+#if _MSC_VER
 	using std::is_trivially_copyable;
 #else
 	template<typename T>
@@ -78,6 +78,10 @@ struct range_ends
 /// Convert iterator to pointer. This is overloaded for each contiguous memory iterator class
 template<typename T>
 T * to_ptr(T * ptr)  { return ptr; }
+
+template<typename Iterator> inline
+auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
+ -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
 
 #if _MSC_VER
 	template<typename T, size_t S> inline
@@ -103,7 +107,7 @@ T * to_ptr(T * ptr)  { return ptr; }
 namespace _detail
 {
 	template<typename T>    // (target, source)
-	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *)  { return {}; }
+	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
 }
 
 /// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
@@ -118,8 +122,8 @@ inline std::false_type can_memmove_ranges_with(...)  { return {}; }
 
 namespace _detail
 {
-	template<typename Range> inline
-	auto Empty(const Range & r, int) -> decltype(r.empty())  { return r.empty(); }
+	template<typename Range> inline // pass dummy int to prefer this overload
+	auto Empty(const Range & r, int) -> decltype(r.empty()) { return r.empty(); }
 
 	template<typename Range> inline
 	bool Empty(const Range & r, long)
@@ -127,8 +131,8 @@ namespace _detail
 		return begin(r) == end(r);
 	}
 
-	template<typename HasSizeRange> inline // pass dummy int to prefer this overload
-	auto Count(const HasSizeRange & r, int) -> decltype(r.size())  { return r.size(); }
+	template<typename HasSizeRange> inline
+	auto Count(const HasSizeRange & r, int) -> decltype(r.size()) { return r.size(); }
 
 	template<typename Range> inline
 	auto Count(const Range & r, long) -> decltype( std::distance(begin(r), end(r)) )
@@ -146,5 +150,5 @@ inline bool oetl::empty(const Range & r)
 template<typename Range>
 inline auto oetl::count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
 {
-	return _detail::Count(r, int());
+	return _detail::Count(r, int{});
 }
