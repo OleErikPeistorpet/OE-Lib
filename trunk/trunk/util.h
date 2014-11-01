@@ -262,63 +262,41 @@ auto to_ptr(boost::move_iterator<Iterator> it) NOEXCEPT
 namespace _detail
 {
 	template<class Container> inline
-	auto eraseSuccessiveDup(Container & ctr, int) -> decltype(ctr.unique())
+	auto EraseSuccessiveDup(Container & ctr, int) -> decltype(ctr.unique())
 	{
 		return ctr.unique();
 	}
 
 	template<class Container> inline
-	void eraseSuccessiveDup(Container & ctr, long)
+	void EraseSuccessiveDup(Container & ctr, long)
 	{
 		truncate( ctr, std::unique(ctr.begin(), ctr.end()) );
 	}
 
 	template<typename T, class Container> inline
-	auto eraseVal(Container & ctr, const T & val, int) -> decltype(ctr.remove(val))
+	auto EraseVal(Container & ctr, const T & val, int) -> decltype(ctr.remove(val))
 	{
 		return ctr.remove(val);
 	}
 
 	template<typename T, class Container> inline
-	void eraseVal(Container & ctr, const T & val, long)
+	void EraseVal(Container & ctr, const T & val, long)
 	{
 		truncate(ctr,
 				 std::remove(ctr.begin(), ctr.end(), val));
 	}
 
 	template<class Container, typename UnaryPredicate> inline
-	auto eraseIf(Container & ctr, UnaryPredicate && pred, int) -> decltype(ctr.remove_if(std::forward<UnaryPredicate>(pred)))
+	auto EraseIf(Container & ctr, UnaryPredicate && pred, int) -> decltype(ctr.remove_if(std::forward<UnaryPredicate>(pred)))
 	{
 		return ctr.remove_if(std::forward<UnaryPredicate>(pred));
 	}
 
 	template<class Container, typename UnaryPredicate> inline
-	void eraseIf(Container & ctr, UnaryPredicate && pred, long)
+	void EraseIf(Container & ctr, UnaryPredicate && pred, long)
 	{
 		truncate( ctr,
 				  std::remove_if(ctr.begin(), ctr.end(), std::forward<UnaryPredicate>(pred)) );
-	}
-
-
-	template<typename Size, typename CntigusIter> inline
-	Size findIdx(CntigusIter first, Size count, int val, std::true_type)
-	{	// contiguous mem iterator with integral value_type of size 1
-		auto const pBuf = to_ptr(first);
-		auto found = static_cast<decltype(pBuf)>(memchr(pBuf, val, count));
-		return found ?
-		       static_cast<Size>(found - pBuf) :
-		       Size(-1);
-	}
-
-	template<typename Size, typename T, typename InputIter> inline
-	Size findIdx(InputIter first, Size count, const T & val, std::false_type)
-	{
-		for (Size i = 0; i < count; ++first, ++i)
-		{
-			if (*first == val)
-				return i;
-		}
-		return Size(-1);
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -421,19 +399,58 @@ inline OutputIterator  oetl::move(InputIterator first, InputIterator last, Outpu
 template<class Container>
 void oetl::erase_successive_dup(Container & ctr)
 {
-	_detail::eraseSuccessiveDup(ctr, int{});
+	_detail::EraseSuccessiveDup(ctr, int{});
 }
 
 template<typename T, class Container>
 void oetl::erase_val(Container & ctr, const T & val)
 {
-	_detail::eraseVal(ctr, val, int{});
+	_detail::EraseVal(ctr, val, int{});
 }
 
 template<class Container, typename UnaryPredicate>
 void oetl::erase_if(Container & ctr, UnaryPredicate && pred)
 {
-	_detail::eraseIf(ctr, std::forward<UnaryPredicate>(pred), int{});
+	_detail::EraseIf(ctr, std::forward<UnaryPredicate>(pred), int{});
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+namespace smsc
+{ namespace _detail
+  {
+	template<typename Size, typename CntigusIter> inline
+	Size FindIdx(CntigusIter first, Size count, int val, std::true_type)
+	{	// contiguous mem iterator with integral value_type of size 1
+		auto const pBuf = to_ptr(first);
+		auto found = static_cast<decltype(pBuf)>(memchr(pBuf, val, count));
+		return found ?
+		       static_cast<Size>(found - pBuf) :
+		       Size(-1);
+	}
+
+	template<typename Size, typename T, typename InputIter> inline
+	Size FindIdx(InputIter first, Size count, const T & val, std::false_type)
+	{
+		for (Size i = 0; i < count; ++first, ++i)
+		{
+			if (*first == val)
+				return i;
+		}
+		return Size(-1);
+	}
+  }
+}
+
+template<typename Count, typename T, typename InputIterator>
+inline Count oetl::find_idx(InputIterator first, Count count, const T & value)
+{
+	std::integral_constant< bool,
+			oetl::is_byte< typename std::iterator_traits<InputIterator>::value_type >::value
+			&& !std::is_same<T, bool>::value
+			&& is_contiguous_iterator<InputIterator>::value
+						  > canUseMemchr;
+	return _detail::FindIdx(first, count, value, canUseMemchr);
 }
 
 
@@ -454,18 +471,6 @@ inline auto oetl::find_sorted(ForwardRange & range, const T & val, Compare comp)
 		return it; // found
 	else
 		return last; // not found
-}
-
-
-template<typename Count, typename T, typename InputIterator>
-inline Count oetl::find_idx(InputIterator first, Count count, const T & value)
-{
-	std::integral_constant< bool,
-			oetl::is_byte< typename std::iterator_traits<InputIterator>::value_type >::value
-			&& !std::is_same<T, bool>::value
-			&& is_contiguous_iterator<InputIterator>::value
-						  > canUse_memchr;
-	return _detail::findIdx(first, count, value, canUse_memchr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

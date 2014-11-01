@@ -196,8 +196,8 @@ public:
 	pointer         data() NOEXCEPT        { return _data.get(); }
 	const_pointer   data() const NOEXCEPT  { return _data.get(); }
 
-	reference       front() NOEXCEPT;
-	const_reference front() const NOEXCEPT;
+	reference       front() NOEXCEPT        { return *begin(); }
+	const_reference front() const NOEXCEPT  { return *begin(); }
 
 	reference       back() NOEXCEPT;
 	const_reference back() const NOEXCEPT;
@@ -825,18 +825,6 @@ template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_iterator  dynarray<T, Alloc>::end() const NOEXCEPT
 {
 	return OEP_DYNARR_CONST_ITER(_end);
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::front() NOEXCEPT
-{
-	return *begin();
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::front() const NOEXCEPT
-{
-	return *begin();
 }
 
 template<typename T, typename Alloc>
