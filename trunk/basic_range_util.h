@@ -12,7 +12,7 @@
 #include <iterator>
 
 
-/// OETL
+/// Obscure Efficient Template Library
 namespace oetl
 {
 
