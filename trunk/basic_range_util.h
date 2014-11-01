@@ -41,9 +41,9 @@ auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
 #endif
 
 
-/// Returns true if range has zero elements
+/// Returns true if r has zero elements
 template<typename Range>
-bool empty(const Range & range);
+bool empty(const Range & r);
 
 /// Returns number of elements in r (array, container or iterator_range), signed type
 template<typename Range>
@@ -119,10 +119,10 @@ inline std::false_type can_memmove_ranges_with(...)  { return {}; }
 namespace _detail
 {
 	template<typename Range> inline
-	auto empty(const Range & r, int) -> decltype(r.empty())  { return r.empty(); }
+	auto Empty(const Range & r, int) -> decltype(r.empty())  { return r.empty(); }
 
 	template<typename Range> inline
-	bool empty(const Range & r, long)
+	bool Empty(const Range & r, long)
 	{
 		return begin(r) == end(r);
 	}
@@ -138,9 +138,9 @@ namespace _detail
 } // namespace oetl
 
 template<typename Range>
-inline bool oetl::empty(const Range & range)
+inline bool oetl::empty(const Range & r)
 {
-	return _detail::empty(range, int{});
+	return _detail::Empty(r, int{});
 }
 
 template<typename Range>
