@@ -4,17 +4,13 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include <boost/move/iterator.hpp>
+#include "util.h"
+
 #include <boost/range/iterator_range_core.hpp>
 
 
 namespace oetl
 {
-
-/// Create a boost::move_iterator from InputIterator
-template<typename InputIterator> inline
-boost::move_iterator<InputIterator> make_move_iter(InputIterator it)  { return boost::make_move_iterator(it); }
-
 
 /// Create an iterator_range from two iterators
 template<typename Iterator> inline
@@ -33,13 +29,5 @@ boost::iterator_range< boost::move_iterator<InputIterator> >  move_range(InputIt
 {
 	return oetl::make_range(make_move_iter(first), make_move_iter(last));
 }
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-template<typename Iterator> inline
-auto to_ptr(boost::move_iterator<Iterator> it) NOEXCEPT
- -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
 
 } // namespace oetl

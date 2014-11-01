@@ -13,7 +13,7 @@
 #include <cstdint>
 
 /**
-* @file stl_util.h
+* @file util.h
 * Utility functions designed for the STL interface
 */
 
