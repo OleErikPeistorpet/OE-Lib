@@ -8,11 +8,11 @@
 
 #include "basic_range_util.h"
 
+#include <boost/move/iterator.hpp>
 #include <algorithm>
 #include <memory>
 #include <cstring>
 #include <cstdint>
-#include <unordered_set>
 
 /**
 * @file util.h
@@ -44,22 +44,10 @@ bool index_valid(const Range & range, int64_t index);
 
 
 
-///
-template<typename Range> inline
-auto size0(const Range & r) -> decltype(r.size())  { return decltype(r.size()){}; }
-///
-template<typename T, size_t Size> inline
-size_t size0(const T (&)[Size])  { return size_t{}; }
-///
-template<typename T> inline
-auto val_def_no_cv(const T &) -> typename std::remove_cv<T>::type  { return std::remove_cv<T>::type{}; }
-
-
-
 #if CPP11_VARIADIC_TEMPL
 
 /// Calls new T using constructor syntax with args as the parameter list and wraps it in a std::unique_ptr.
-template<typename T, typename... Params, typename = enable_if_t<!std::is_array<T>::value> >
+template<typename T, typename... Params, typename = std::enable_if_t<!std::is_array<T>::value> >
 std::unique_ptr<T>  make_unique(Params &&... args);
 
 /** @brief Calls new T using uniform initialization syntax (args in braces) and wraps it in a std::unique_ptr.
@@ -80,7 +68,7 @@ std::unique_ptr<T> make_unique_default()
 }
 
 /// Calls new T[arraySize]() and wraps it in a std::unique_ptr. The array is value-initialized.
-template< typename T, typename = enable_if_t<std::is_array<T>::value> >
+template< typename T, typename = std::enable_if_t<std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(size_t arraySize);
 
 /** @brief Calls new T[arraySize] and wraps it in a std::unique_ptr. The array is default-initialized.
@@ -120,27 +108,9 @@ template<class Container> inline
 void truncate(Container & ctr, typename Container::iterator newEnd)  { ctr.erase(newEnd, ctr.end()); }
 
 /**
-* @brief Helper functor to erase duplicate elements in container.
+* @brief Erase consecutive duplicate elements in container.
 *
-* If container contents are sorted, use erase_successive_dup instead.
-* Will only compile if std::hash is specialized for value type of container (using default std::unordered_set).
-*/
-template<typename T, class Set = std::unordered_set<T> >
-class is_dupl
-{
-public:
-	typedef Set unique_container;
-
-	is_dupl(unique_container & workCtr)  : _seenElems(&workCtr) {}
-
-	/// Returns true if elem compares equal to any elem argument from previous calls
-	bool operator()(const T & elem);
-
-private:
-	unique_container * _seenElems;
-};
-
-/// Erase consecutive duplicate elements in container.
+* To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
 template<class Container>
 void erase_successive_dup(Container & ctr);
 
@@ -153,11 +123,17 @@ template<class Container, typename UnaryPredicate>
 void erase_if(Container & ctr, UnaryPredicate && pred);
 
 
+
+/// Create a boost::move_iterator from InputIterator
+template<typename InputIterator> inline
+boost::move_iterator<InputIterator> make_move_iter(InputIterator it)  { return boost::make_move_iterator(it); }
+
+
 /**
 * @brief Copies the elements in source into the range beginning at dest
 * @return an iterator to the end of the destination range
 *
-* The ranges shall not overlap. To move instead of copy, pass move_range(source)  */
+* The ranges shall not overlap. To move instead of copy, include iterator_range.h and pass move_range(source)  */
 template<typename InputRange, typename OutputIterator>
 OutputIterator copy_nonoverlap(const InputRange & source, OutputIterator dest);
 /**
@@ -184,13 +160,6 @@ OutputIterator move(InputIterator first, InputIterator last, OutputIterator dest
 template<typename InputIterator, typename Count, typename OutputIterator>
 range_ends<InputIterator, OutputIterator> copy_n(InputIterator first, Count count, OutputIterator dest);
 
-/// Same as std::copy_backward, but much faster for arrays/vectors of simple structs/classes than VC++ version
-template<typename BidirectionIter1, typename BidirectionIter2>
-BidirectionIter2 copy_backward(BidirectionIter1 first, BidirectionIter1 last, BidirectionIter2 dest_end);
-
-/// move_iterator wrapping of copy_backward
-template<typename BidirectionIter1, typename BidirectionIter2>
-BidirectionIter2 move_backward(BidirectionIter1 first, BidirectionIter1 last, BidirectionIter2 dest_end);
 
 
 ///
@@ -285,12 +254,9 @@ struct is_byte : std::integral_constant< bool,
 		std::is_integral<T>::value && sizeof(T) == 1 > {};
 
 
-template<typename T, class Set>
-inline bool is_dupl<T, Set>::operator()(const T & elem)
-{
-	bool insertSuccess = _seenElems->insert(elem).second;
-	return !insertSuccess;
-}
+template<typename Iterator> inline
+auto to_ptr(boost::move_iterator<Iterator> it) NOEXCEPT
+ -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
 
 
 namespace _detail
@@ -357,16 +323,8 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename Iterator> inline
-	void checkIterNotPointer()
-	{
-#	if OETL_MEM_BOUND_DEBUG_LVL && !PTR_AS_OETL_ARRAY_ITER
-		static_assert(!std::is_pointer<Iterator>::value, "Please use a checked output iterator, raw pointer is unsafe");
-#	endif
-	}
-
 	template<typename InputIter, typename OutputIter, typename Unused> inline
-	OutputIter copy(InputIter first, InputIter last, OutputIter dest, std::false_type, Unused)
+	OutputIter Copy(std::false_type, Unused, InputIter first, InputIter last, OutputIter dest)
 	{
 		for (; first != last; ++dest, ++first)
 			*dest = *first;
@@ -374,9 +332,9 @@ namespace _detail
 		return dest;
 	}
 
-	template<typename RandAccessIter1, typename RandAccessIter2, typename TrivialCopyFunc> inline
-	RandAccessIter2 copy(RandAccessIter1 const first, RandAccessIter1 const last, RandAccessIter2 const dest,
-						 std::true_type, TrivialCopyFunc doCopy)
+	template<typename IterSrc, typename IterDest, typename TrivialCopyFunc> inline
+	IterDest Copy(std::true_type, TrivialCopyFunc doCopy,
+				  IterSrc const first, IterSrc const last, IterDest const dest)
 	{	// can use memcpy/memmove
 		auto const count = last - first;
 #	if OETL_MEM_BOUND_DEBUG_LVL
@@ -390,9 +348,9 @@ namespace _detail
 		return dest + count;
 	}
 
-	template<typename RandAccessIter1, typename Count, typename RandAccessIter2, typename CopyFunc> inline
-	range_ends<RandAccessIter1, RandAccessIter2> copyN(RandAccessIter1 first, Count count, RandAccessIter2 dest,
-													   std::true_type, CopyFunc doCopy)
+	template<typename IterSrc, typename Count, typename IterDest, typename CopyFunc> inline
+	range_ends<IterSrc, IterDest> CopyN(std::true_type, CopyFunc doCopy,
+										IterSrc first, Count count, IterDest dest)
 	{	// can use memcpy/memmove
 		if (0 < count)
 		{
@@ -407,8 +365,8 @@ namespace _detail
 		return {first, dest};
 	}
 
-	template<typename InputIter, typename Count, typename OutIter, typename Unused> inline
-	range_ends<InputIter, OutIter> copyNonoverlapN(InputIter first, Count count, OutIter dest, std::false_type, Unused)
+	template<typename InputIter, typename Count, typename OutputIter, typename Unused> inline
+	range_ends<InputIter, OutputIter> CopyN(std::false_type, Unused, InputIter first, Count count, OutputIter dest)
 	{
 		for (; 0 < count; --count)
 		{
@@ -417,32 +375,6 @@ namespace _detail
 		}
 		return {first, dest};
 	}
-
-	template<typename BidirIter1, typename BidirIter2> inline
-	BidirIter2 copyBkwd(BidirIter1 first, BidirIter1 last, BidirIter2 result, std::false_type)
-	{	// copy object by object
-		while (first != last)
-		{
-			--result, --last;
-			*result = *last;
-		}
-		return result;
-	}
-
-	template<typename RandAccessIter1, typename RandAccessIter2> inline
-	RandAccessIter2 copyBkwd(RandAccessIter1 first, RandAccessIter1 last, RandAccessIter2 destEnd, std::true_type)
-	{
-		auto const count = last - first;
-		RandAccessIter2 destFirst = destEnd - count;
-#	if OETL_MEM_BOUND_DEBUG_LVL
-		if (0 ! count)
-		{	*(last - 1);					// Dereference iterators at bounds, this detects
-			*destFirst, *(destEnd - 1); // out of range errors if they are checked iterators
-		}
-#	endif
-		memmove(to_ptr(destFirst), to_ptr(first), count * sizeof(*first));
-		return destFirst;
-	}
 } // namespace _detail
 
 } // namespace oetl
@@ -450,56 +382,38 @@ namespace _detail
 template<typename InputIterator, typename OutputIterator>
 inline OutputIterator  oetl::copy(InputIterator first, InputIterator last, OutputIterator dest)
 {
-	_detail::checkIterNotPointer<OutputIterator>();
-	return _detail::copy( first, last, dest,
-			can_memmove_ranges_with<OutputIterator, InputIterator>(),
-			memmove );
+	return _detail::Copy(can_memmove_ranges_with(dest, begin(source)),
+						 memmove,
+						 begin(source), end(source), dest);
 }
 
 template<typename InputRange, typename OutputIterator>
 inline OutputIterator  oetl::copy_nonoverlap(const InputRange & source, OutputIterator dest)
 {
-	_detail::checkIterNotPointer<OutputIterator>();
-	return _detail::copy( begin(source), end(source), dest,
-			can_memmove_ranges_with<OutputIterator, decltype(begin(source))>(),
-			memcpy );
-}
-
-template<typename BidirectionIter1, typename BidirectionIter2>
-inline BidirectionIter2  oetl::copy_backward(BidirectionIter1 first, BidirectionIter1 last, BidirectionIter2 destEnd)
-{
-	_detail::checkIterNotPointer<BidirectionIter2>();
-	return _detail::copyBkwd( first, last, destEnd,
-				can_memmove_ranges_with<BidirectionIter2, BidirectionIter1>() );
+	return _detail::Copy(can_memmove_ranges_with(dest, begin(source)),
+						 memcpy,
+						 begin(source), end(source), dest);
 }
 
 template<typename InputIterator, typename Count, typename OutputIterator>
 inline oetl::range_ends<InputIterator, OutputIterator>  oetl::copy_n(InputIterator first, Count count, OutputIterator dest)
 {
-	checkIterNotPointer<OutputIter>();
-	return _detail::copyN(first, count, dest,
-				can_memmove_ranges_with<OutputIterator, InputIterator>(), memmove);
+	return _detail::CopyN(can_memmove_ranges_with(dest, first), memmove,
+						  first, count, dest);
 }
 
 template<typename InputIterator, typename Count, typename OutputIterator>
 inline oetl::range_ends<InputIterator, OutputIterator>  oetl::
 	copy_nonoverlap(InputIterator first, Count count, OutputIterator dest)
 {
-	checkIterNotPointer<OutputIter>();
-	return _detail::copyN(first, count, dest,
-				can_memmove_ranges_with<OutputIterator, ForwardIterator>(), memcpy);
+	return _detail::CopyN(can_memmove_ranges_with(dest, first), memcpy,
+						  first, count, dest);
 }
 
 template<typename InputIterator, typename OutputIterator>
 inline OutputIterator  oetl::move(InputIterator first, InputIterator last, OutputIterator dest)
 {
 	return oetl::copy(make_move_iter(first), make_move_iter(last), dest);
-}
-
-template<typename BidirectionIter1, typename BidirectionIter2>
-inline BidirectionIter2  oetl::move_backward(BidirectionIter1 first, BidirectionIter1 last, BidirectionIter2 destEnd)
-{
-	return oetl::copy_backward(make_move_iter(first), make_move_iter(last), destEnd);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
