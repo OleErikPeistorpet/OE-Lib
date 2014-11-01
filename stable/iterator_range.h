@@ -39,7 +39,7 @@ boost::iterator_range< boost::move_iterator<InputIterator> >  move_range(InputIt
 
 
 template<typename Iterator> inline
-auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
+auto to_ptr(boost::move_iterator<Iterator> it) NOEXCEPT
  -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
 
 } // namespace oetl
