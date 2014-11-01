@@ -60,8 +60,8 @@ template<typename C, typename Tr>
 struct is_trivially_relocatable< std::basic_string<C, Tr> >
  :	std::true_type {};
 
-// ?
-//
+#if 0
+
 template<typename T, typename Ctr>
 struct is_trivially_relocatable< std::stack<T, Ctr> >
  :	is_trivially_relocatable<Ctr> {};
@@ -120,6 +120,8 @@ struct is_trivially_relocatable< std::unordered_multi_map<K, T, H, P> >
 
 template<typename T>
 struct is_trivially_relocatable< boost::circular_buffer<T> > : std::true_type {};
+
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -298,7 +300,7 @@ namespace _detail
 	}
 
 
-	template<typename DestValT, typename InputIter, typename ForwardIter> inline
+	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter> inline
 	range_ends<InputIter, ForwardIter>
 		uninitCopyN(std::true_type, InputIter first, Count count, ForwardIter dest)
 	{	// nothrow constructible
@@ -310,7 +312,7 @@ namespace _detail
 		return {first, dest};
 	}
 
-	template<typename DestValT, typename InputIter, typename BidirectionIter> inline
+	template<typename DestValT, typename InputIter, typename Count, typename BidirectionIter> inline
 	range_ends<InputIter, BidirectionIter>
 		uninitCopyN(std::false_type, InputIter first, Count count, BidirectionIter dest)
 	{

@@ -9,6 +9,7 @@
 #include "basic_range_util.h"
 
 #include <algorithm>
+#include <memory>
 #include <cstring>
 #include <cstdint>
 #include <unordered_set>
@@ -187,7 +188,7 @@ range_ends<InputIterator, OutputIterator> copy_n(InputIterator first, Count coun
 template<typename BidirectionIter1, typename BidirectionIter2>
 BidirectionIter2 copy_backward(BidirectionIter1 first, BidirectionIter1 last, BidirectionIter2 dest_end);
 
-/// std::move_iterator wrapping of copy_backward
+/// move_iterator wrapping of copy_backward
 template<typename BidirectionIter1, typename BidirectionIter2>
 BidirectionIter2 move_backward(BidirectionIter1 first, BidirectionIter1 last, BidirectionIter2 dest_end);
 
@@ -281,7 +282,7 @@ Func for_each_reverse(BidirectionRange && range, Func func)
 /// Type trait to check whether a type is integral and has size 1
 template<typename T>
 struct is_byte : std::integral_constant< bool,
-		std::is_integral<T> && sizeof(T) == 1 > {};
+		std::is_integral<T>::value && sizeof(T) == 1 > {};
 
 
 template<typename T, class Set>
@@ -406,7 +407,7 @@ namespace _detail
 		return {first, dest};
 	}
 
-	template<typename InputIter, typename Count, typename OutIter> inline
+	template<typename InputIter, typename Count, typename OutIter, typename Unused> inline
 	range_ends<InputIter, OutIter> copyNonoverlapN(InputIter first, Count count, OutIter dest, std::false_type, Unused)
 	{
 		for (; 0 < count; --count)
