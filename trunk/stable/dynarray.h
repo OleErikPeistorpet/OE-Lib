@@ -7,7 +7,7 @@
 
 
 #include "array_iterator.h"
-#include "container_shared.h"
+#include "container_core.h"
 
 #include <boost/iterator/iterator_categories.hpp>
 #include <algorithm>

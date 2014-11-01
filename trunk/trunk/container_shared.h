@@ -17,11 +17,6 @@
 
 namespace oetl
 {
-
-struct init_size_t {};
-static init_size_t const init_size;
-
-
 /**
 * @brief Trait that specifies whether moving a T object to a new location and immediately destroying the source object is
 * equivalent to memcpy and not calling destructor on the source.
@@ -249,7 +244,7 @@ namespace _detail
 {
 	template<typename, typename Iter>
 	void Destroy(std::true_type, Iter, Iter)
-	{}	// optimization for debug builds
+	{}	// optimization for non-optimized builds
 
 	template<typename ValT, typename ForwardIter> inline
 	void Destroy(std::false_type, ForwardIter first, ForwardIter last)
@@ -271,16 +266,16 @@ namespace _detail
 	{}	// trivial default constructor; optimization for debug builds
 
 	template<typename ValT, typename ForwardIter> inline
-	typename std::enable_if< std::is_nothrow_default_constructible<ValT>::value >::type
+	std::enable_if_t< std::is_nothrow_default_constructible<ValT>::value >
 		UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
 	{
 		for (; first != last; ++first)
 			::new(std::addressof(*first)) ValT;
 	}
 
-	template<typename ValT, typename BidirectionIter> inline
-	typename std::enable_if< !std::is_nothrow_default_constructible<ValT>::value >::type
-		UninitFillDefault(std::false_type, BidirectionIter first, BidirectionIter const last)
+	template<typename ValT, typename ForwardIter> inline
+	std::enable_if_t< !std::is_nothrow_default_constructible<ValT>::value >
+		UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
 	{	// default constructor potentially throws
 		auto const init = first;
 		try
@@ -290,11 +285,7 @@ namespace _detail
 		}
 		catch (...)
 		{	// Destroy the objects that were constructed before the exception
-			while (init != first)
-			{
-				--first;
-				(*first).~ValT();
-			}
+			Destroy(init, first);
 			throw;
 		}
 	}
@@ -302,7 +293,7 @@ namespace _detail
 
 	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter> inline
 	range_ends<InputIter, ForwardIter>
-		uninitCopyN(std::true_type, InputIter first, Count count, ForwardIter dest)
+		UninitCopyN(std::true_type, InputIter first, Count count, ForwardIter dest)
 	{	// nothrow constructible
 		for (; 0 < count; --count)
 		{
@@ -312,9 +303,9 @@ namespace _detail
 		return {first, dest};
 	}
 
-	template<typename DestValT, typename InputIter, typename Count, typename BidirectionIter> inline
-	range_ends<InputIter, BidirectionIter>
-		uninitCopyN(std::false_type, InputIter first, Count count, BidirectionIter dest)
+	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter> inline
+	range_ends<InputIter, ForwardIter>
+		UninitCopyN(std::false_type, InputIter first, Count count, ForwardIter dest)
 	{
 		auto const destBegin = dest;
 		try
@@ -327,32 +318,28 @@ namespace _detail
 		}
 		catch (...)
 		{
-			while (destBegin != dest)
-			{
-				--dest;
-				(*dest).~DestValT();
-			}
+			Destroy(destBegin, dest);
 			throw;
 		}
 		return {first, dest};
 	}
 } // namespace _detail
 
-/// Call default constructor if it is non-trivial on uninitialized memory in range [first, last)
-template<typename BidirectionalIterator> inline
-void uninitialized_fill_default(BidirectionalIterator first, BidirectionalIterator last)
+/// Default initializes objects (in uninitialized memory) in range [first, last)
+template<typename ForwardIterator> inline
+void uninitialized_fill_default(ForwardIterator first, ForwardIterator last)
 {
-	typedef typename std::iterator_traits<BidirectionalIterator>::value_type ValT;
+	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
 	_detail::UninitFillDefault<ValT>(std::is_trivially_default_constructible<ValT>(), first, last);
 }
 
 /// Copies count elements from a range beginning at first to an uninitialized memory area beginning at dest
-template<typename InputIterator, typename Count, typename BidirectionalIterator>
-range_ends<InputIterator, BidirectionalIterator>
-	uninitialized_copy_n(InputIterator first, Count count, BidirectionalIterator dest)
+template<typename InputIterator, typename Count, typename ForwardIterator>
+range_ends<InputIterator, ForwardIterator>
+	uninitialized_copy_n(InputIterator first, Count count, ForwardIterator dest)
 {
-	typedef typename std::iterator_traits<BidirectionalIterator>::value_type ValT;
-	return _detail::uninitCopyN<ValT>(std::is_nothrow_constructible<ValT, decltype(*first)>(),
+	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
+	return _detail::UninitCopyN<ValT>(std::is_nothrow_constructible<ValT, decltype(*first)>(),
 									  first, count, dest);
 }
 
