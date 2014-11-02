@@ -59,7 +59,7 @@ public:
 
 #if OETL_MEM_BOUND_DEBUG_LVL
 	using iterator       = array_iterator< fixcap_array<T, Capacity> >;
-	using const_iterator = array_const_iterator< fixcap_array<T, Capacity> > ;
+	using const_iterator = array_const_iterator< fixcap_array<T, Capacity> >;
 #else
 	using iterator       = T *;
 	using const_iterator = const T *;
@@ -67,7 +67,7 @@ public:
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
 	using size_type       = size_t;
 
-	fixcap_array() NOEXCEPT;
+	fixcap_array() NOEXCEPT  : _size(0) {}
 	/**
 	* @brief Non-trivial constructor called on elements, otherwise not initialized.
 	* @throw length_error if size > Capacity  */
@@ -362,12 +362,6 @@ private:
 };
 
 // Definitions of public functions
-
-template<typename T, size_t Capacity>
-inline fixcap_array<T, Capacity>::
-fixcap_array() NOEXCEPT :
-	_size(0) {
-}
 
 template<typename T, size_t Capacity>
 fixcap_array<T, Capacity>::
