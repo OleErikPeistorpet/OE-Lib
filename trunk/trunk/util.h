@@ -8,7 +8,6 @@
 
 #include "basic_range_util.h"
 
-#include <boost/range/algorithm.hpp>
 #include <algorithm>
 #include <memory>
 #include <cstring>
@@ -21,10 +20,6 @@
 
 namespace oetl
 {
-
-using namespace boost::range;
-
-
 
 /// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T>
@@ -109,7 +104,7 @@ void erase_unordered(Container & ctr, typename Container::iterator position)
 
 /// Erase the elements from newEnd to the end of container
 template<class Container> inline
-void truncate(Container & ctr, typename Container::iterator newEnd)  { ctr.erase(newEnd, ctr.end()); }
+void erase_back(Container & ctr, typename Container::iterator newEnd)  { ctr.erase(newEnd, ctr.end()); }
 
 /**
 * @brief Erase consecutive duplicate elements in container.
@@ -222,7 +217,7 @@ namespace _detail
 	template<class Container> inline
 	void EraseSuccessiveDup(Container & ctr, long)
 	{
-		truncate( ctr, std::unique(begin(ctr), end(ctr)) );
+		erase_back( ctr, std::unique(begin(ctr), end(ctr)) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -284,7 +279,7 @@ namespace _detail
 } // namespace oetl
 
 template<typename InputIterator, typename OutputIterator>
-inline OutputIterator  oetl::copy(InputIterator first, InputIterator last, OutputIterator dest)
+inline OutputIterator oetl::copy(InputIterator first, InputIterator last, OutputIterator dest)
 {
 	return _detail::Copy(can_memmove_ranges_with(dest, begin(source)),
 						 memmove,
@@ -292,7 +287,7 @@ inline OutputIterator  oetl::copy(InputIterator first, InputIterator last, Outpu
 }
 
 template<typename InputRange, typename OutputIterator>
-inline OutputIterator  oetl::copy_nonoverlap(const InputRange & source, OutputIterator dest)
+inline OutputIterator oetl::copy_nonoverlap(const InputRange & source, OutputIterator dest)
 {
 	return _detail::Copy(can_memmove_ranges_with(dest, begin(source)),
 						 memcpy,

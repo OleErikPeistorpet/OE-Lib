@@ -66,7 +66,7 @@ void erase_unordered(Container & ctr, typename Container::iterator position)
 
 /// Erase the elements from newEnd to the end of container
 template<class Container> inline
-void truncate(Container & ctr, typename Container::iterator newEnd)  { ctr.erase(newEnd, ctr.end()); }
+void erase_back(Container & ctr, typename Container::iterator newEnd)  { ctr.erase(newEnd, ctr.end()); }
 
 /**
 * @brief Erase consecutive duplicate elements in container.
@@ -75,7 +75,7 @@ void truncate(Container & ctr, typename Container::iterator newEnd)  { ctr.erase
 template<class Container>
 void erase_successive_dup(Container & ctr)
 {
-	truncate( ctr, std::unique(ctr.begin(), ctr.end()) );
+	erase_back( ctr, std::unique(ctr.begin(), ctr.end()) );
 }
 
 

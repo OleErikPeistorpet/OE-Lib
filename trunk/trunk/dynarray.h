@@ -52,9 +52,9 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) NOEXCEPT  { a.swap(b); }
 template<typename T, typename A>
 typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator position);
 
-/// Non-member truncate, overloads generic one (stl_util.h)
+/// Non-member erase_back, overloads generic erase_back(Container &, Container::iterator)
 template<typename T, typename A> inline
-void truncate(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator newEnd)  { ctr.erase_from(newEnd); }
+void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator newEnd)  { ctr.erase_back(newEnd); }
 
 template<typename T, typename A>
 bool operator==(const dynarray<T, A> & left, const dynarray<T, A> & right);
@@ -168,13 +168,13 @@ public:
 	iterator   erase(iterator first, iterator last) NOEXCEPT;
 
 	/// Pop the elements from newEnd to the end of dynarray
-	void       erase_from(iterator newEnd) NOEXCEPT;
+	void       erase_back(iterator newEnd) NOEXCEPT;
 
 	/// Non-trivial constructor called on added elements, otherwise not initialized
 	void       resize(size_type newSize);
 	void       resize(size_type newSize, const T & addVal);
 
-	void       clear() NOEXCEPT        { erase_from(begin()); }
+	void       clear() NOEXCEPT        { erase_back(begin()); }
 
 	bool       empty() const NOEXCEPT  { return data() == _end; }
 
@@ -310,7 +310,7 @@ private:
 		else if (size() >= count)
 		{	// enough elements, copy new and destroy old
 			iterator newEnd = std::copy(first, last, begin());
-			erase_from(newEnd);
+			erase_back(newEnd);
 		}
 		else
 		{	// enough room, assign to old elements and construct rest
@@ -443,7 +443,7 @@ private:
 		}
 		catch (...)
 		{
-			erase_from(begin() + oldSize);
+			erase_back(begin() + oldSize);
 			throw;
 		}
 
@@ -771,7 +771,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::erase_from(iterator newEnd) NOEXCEPT
+inline void dynarray<T, Alloc>::erase_back(iterator newEnd) NOEXCEPT
 {
 	pointer const first = to_ptr(newEnd);
 	MEM_BOUND_ASSERT(data() <= first && first <= _end);
