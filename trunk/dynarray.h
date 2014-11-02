@@ -82,7 +82,7 @@ public:
 
 #if OETL_MEM_BOUND_DEBUG_LVL
 	using iterator       = array_iterator< dynarray<T, Alloc> >;
-	using const_iterator = array_const_iterator< dynarray<T, Alloc> > ;
+	using const_iterator = array_const_iterator< dynarray<T, Alloc> >;
 #else
 	using iterator       = T *;
 	using const_iterator = const T *;
@@ -153,7 +153,7 @@ public:
 	void       emplace_back(Params &&... args);
 
 	void       push_back(T && val);
-	void       push_back(const T & val);
+	void       push_back(const T & val)  { emplace_back(val); }
 
 	template<typename... Params>
 	iterator   emplace(const_iterator position, Params &&... args);
@@ -619,12 +619,6 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::push_back(T && val)
 {
 	emplace_back(std::move(val));
-}
-
-template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::push_back(const T & val)
-{
-	emplace_back(val);
 }
 
 template<typename T, typename Alloc> template<typename... Params>
