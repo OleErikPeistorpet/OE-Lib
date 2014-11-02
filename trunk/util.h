@@ -8,6 +8,7 @@
 
 #include "basic_range_util.h"
 
+#include <boost/range/algorithm.hpp>
 #include <algorithm>
 #include <memory>
 #include <cstring>
@@ -20,6 +21,10 @@
 
 namespace oetl
 {
+
+using namespace boost::range;
+
+
 
 /// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T>
@@ -113,14 +118,6 @@ void truncate(Container & ctr, typename Container::iterator newEnd)  { ctr.erase
 template<class Container>
 void erase_successive_dup(Container & ctr);
 
-/// Erase elements in container equal to val (convenience function for erase-remove idiom).
-template<typename T, class Container>
-void erase_val(Container & ctr, const T & val);
-
-/// Erase elements in container for which pred return true (convenience function for erase-remove idiom).
-template<class Container, typename UnaryPredicate>
-void erase_if(Container & ctr, UnaryPredicate && pred);
-
 
 
 /// Create a std::move_iterator from InputIterator
@@ -162,21 +159,6 @@ range_ends<InputIterator, OutputIterator> copy_n(InputIterator first, Count coun
 
 
 ///
-template<typename T, typename ForwardRange> inline
-void replace(ForwardRange & range, const T & oldVal, const T & newVal)
-{
-	std::replace(begin(range), end(range), oldVal, newVal);
-}
-
-
-///
-template<typename InputRange, typename Pred> inline
-auto find_if(const InputRange & toSearch, Pred && pred) -> decltype(begin(toSearch))
-{
-	return std::find_if(begin(toSearch), end(toSearch), std::forward<Pred>(pred));
-}
-
-///
 template<typename Count, typename T, typename InputIterator>
 Count find_idx(InputIterator first, Count count, const T & value);
 ///
@@ -199,27 +181,6 @@ auto rfind_idx(const BidirectionRange & toSearch, const T & value) -> decltype(c
 			break;
 	}
 	return pos;
-}
-
-///
-template<typename ForwardRange1, typename ForwardRange2> inline
-auto search(const ForwardRange1 & toSearch, const ForwardRange2 & toFind) -> decltype(begin(toSearch))
-{
-	return std::search(begin(toSearch), end(toSearch), begin(toFind), end(toFind));
-}
-
-///
-template<typename ForwardRange1, typename ForwardRange2> inline
-auto find_end(const ForwardRange1 & toSearch, const ForwardRange2 & toFind) -> decltype(begin(toSearch))
-{
-	return std::find_end(begin(toSearch), end(toSearch), begin(toFind), end(toFind));
-}
-
-///
-template<typename InputRange, typename ForwardRange> inline
-auto find_it_first_of(const InputRange & toSearch, const ForwardRange & oneOf) -> decltype(begin(toSearch))
-{
-	return std::find_first_of(begin(toSearch), end(toSearch), begin(oneOf), end(oneOf));
 }
 
 
@@ -261,28 +222,7 @@ namespace _detail
 	template<class Container> inline
 	void EraseSuccessiveDup(Container & ctr, long)
 	{
-		truncate( ctr, std::unique(ctr.begin(), ctr.end()) );
-	}
-
-	template<typename T, class Container> inline
-	auto EraseVal(Container & ctr, const T & val, int) -> decltype(ctr.remove(val)) { return ctr.remove(val); }
-
-	template<typename T, class Container> inline
-	void EraseVal(Container & ctr, const T & val, long)
-	{
-		truncate(ctr,
-				 std::remove(ctr.begin(), ctr.end(), val));
-	}
-
-	template<class Container, typename UnaryPred> inline
-	auto EraseIf(Container & ctr, UnaryPred && pred, int) -> decltype( ctr.remove_if(std::forward<UnaryPred>(pred)) )
-															  { return ctr.remove_if(std::forward<UnaryPred>(pred)); }
-
-	template<class Container, typename UnaryPred> inline
-	void EraseIf(Container & ctr, UnaryPred && pred, long)
-	{
-		truncate( ctr,
-				  std::remove_if(ctr.begin(), ctr.end(), std::forward<UnaryPred>(pred)) );
+		truncate( ctr, std::unique(begin(ctr), end(ctr)) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -386,18 +326,6 @@ template<class Container>
 void oetl::erase_successive_dup(Container & ctr)
 {
 	_detail::EraseSuccessiveDup(ctr, int{});
-}
-
-template<typename T, class Container>
-void oetl::erase_val(Container & ctr, const T & val)
-{
-	_detail::EraseVal(ctr, val, int{});
-}
-
-template<class Container, typename UnaryPredicate>
-void oetl::erase_if(Container & ctr, UnaryPredicate && pred)
-{
-	_detail::EraseIf(ctr, std::forward<UnaryPredicate>(pred), int{});
 }
 
 ////////////////////////////////////////////////////////////////////////////////
