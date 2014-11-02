@@ -132,9 +132,9 @@ public:
 	void          resize(size_type newSize);
 	void          resize(size_type newSize, const T & addVal);  ///< Throws length_error if new_size > Capacity
 
-	void          clear() NOEXCEPT;
+	void          clear() NOEXCEPT        { erase_from(begin()); }
 
-	bool          empty() const NOEXCEPT;
+	bool          empty() const NOEXCEPT  { return 0 == _size; }
 
 	size_type     size() const NOEXCEPT   { return _size; }
 
@@ -149,8 +149,8 @@ public:
 	pointer         data() NOEXCEPT;
 	const_pointer   data() const NOEXCEPT;
 
-	reference       front() NOEXCEPT;
-	const_reference front() const NOEXCEPT;
+	reference       front() NOEXCEPT        { return operator[](0); }
+	const_reference front() const NOEXCEPT  { return operator[](0); }
 
 	reference       back() NOEXCEPT;
 	const_reference back() const NOEXCEPT;
@@ -600,20 +600,6 @@ inline void  fixcap_array<T, Capacity>::
 }
 
 template<typename T, size_t Capacity>
-inline void  fixcap_array<T, Capacity>::
-	clear() NOEXCEPT
-{
-	erase_from(begin());
-}
-
-template<typename T, size_t Capacity>
-inline bool  fixcap_array<T, Capacity>::
-	empty() const NOEXCEPT
-{
-	return 0 == _size;
-}
-
-template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::pointer  fixcap_array<T, Capacity>::
 	data() NOEXCEPT
 {
@@ -657,28 +643,15 @@ inline typename fixcap_array<T, Capacity>::const_iterator  fixcap_array<T, Capac
 
 template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::reference  fixcap_array<T, Capacity>::
-	front() NOEXCEPT
-{
-	return (*this)[0];
-}
-template<typename T, size_t Capacity>
-inline typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capacity>::
-	front() const NOEXCEPT
-{
-	return (*this)[0];
-}
-
-template<typename T, size_t Capacity>
-inline typename fixcap_array<T, Capacity>::reference  fixcap_array<T, Capacity>::
 	back() NOEXCEPT
 {
-	return (*this)[_size - 1];
+	return operator[](_size - 1);
 }
 template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capacity>::
 	back() const NOEXCEPT
 {
-	return (*this)[_size - 1];
+	return operator[](_size - 1);
 }
 
 template<typename T, size_t Capacity>
@@ -704,14 +677,14 @@ template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::reference  fixcap_array<T, Capacity>::
 	operator[](size_type index) NOEXCEPT
 {
-	MEM_BOUND_ASSERT(_size > index);
+	MEM_BOUND_ASSERT(index < _size);
 	return data()[index];
 }
 template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capacity>::
 	operator[](size_type index) const NOEXCEPT
 {
-	MEM_BOUND_ASSERT(_size > index);
+	MEM_BOUND_ASSERT(index < _size);
 	return data()[index];
 }
 
