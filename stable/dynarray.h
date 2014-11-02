@@ -175,9 +175,9 @@ public:
 	void       resize(size_type newSize);
 	void       resize(size_type newSize, const T & addVal);
 
-	void       clear() NOEXCEPT;
+	void       clear() NOEXCEPT        { erase_from(begin()); }
 
-	bool       empty() const NOEXCEPT;
+	bool       empty() const NOEXCEPT  { return data() == _end; }
 
 	size_type  size() const NOEXCEPT;
 
@@ -778,18 +778,6 @@ inline void dynarray<T, Alloc>::erase_from(iterator newEnd) NOEXCEPT
 	MEM_BOUND_ASSERT(data() <= first && first <= _end);
 	_detail::Destroy(first, _end);
 	_end = first;
-}
-
-template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::clear() NOEXCEPT
-{
-	erase_from(begin());
-}
-
-template<typename T, typename Alloc>
-inline bool dynarray<T, Alloc>::empty() const NOEXCEPT
-{
-	return data() == _end;
 }
 
 template<typename T, typename Alloc>
