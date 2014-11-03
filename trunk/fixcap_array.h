@@ -169,8 +169,7 @@ public:
 
 private:
 	size_type _size;
-	_detail::AlignedStorage<sizeof(T), std::alignment_of<T>::value>
-			  _data[Capacity];
+	_detail::AlignedStorage<sizeof(T), alignof(T)> _data[Capacity];
 
 
 	template<typename CheckT>
@@ -186,16 +185,11 @@ private:
 	}
 
 	template<typename Range>
-	static auto _getSize(const Range & r, int) -> decltype(r.size())
-	{
-		return r.size();
-	}
+	static auto _getSize(const Range & r, int) -> decltype(r.size()) { return r.size(); }
 
 	template<typename Range>
 	static auto _getSize(const Range & r, long) -> decltype(adl_end(r) - adl_begin(r))
-	{
-		return adl_end(r) - adl_begin(r);
-	}
+												   { return adl_end(r) - adl_begin(r); }
 
 	static std::false_type _getSize(...) { return {}; }
 
@@ -231,8 +225,7 @@ private:
 		_size = 0;
 	}
 
-	void _setEmptyIfNot(std::true_type) {
-	}
+	void _setEmptyIfNot(std::true_type) {}
 
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type newSize, UninitFillFunc initNewElems)
