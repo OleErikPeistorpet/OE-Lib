@@ -124,12 +124,6 @@ struct is_trivially_relocatable< boost::circular_buffer<T> > : std::true_type {}
 // The rest are advanced utilities, not for users
 
 
-#if _MSC_VER && _MSC_VER < 1900
-#   define alignof __alignof
-#elif __GNUC__ && __GNUC__ <= 4 && __GNUC_MINOR__ < 8
-#   define alignof __alignof__
-#endif
-
 namespace _detail
 {
 #if _MSC_VER
