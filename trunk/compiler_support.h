@@ -1,15 +1,13 @@
 #pragma once
 
-#ifndef NOEXCEPT
-#	if !_MSC_VER || _MSC_VER >= 1900
-#		define NOEXCEPT noexcept
-#	else
-#		define NOEXCEPT throw()
-#	endif
-#endif
+#if !_MSC_VER || _MSC_VER >= 1900
+#	define NOEXCEPT noexcept
 
-#if _MSC_VER && _MSC_VER < 1900
-#	define alignof __alignof
+#	define ALIGNOF alignof
+#else
+#	define NOEXCEPT throw()
+
+#	define ALIGNOF __alignof
 #endif
 
 #if !_MSC_VER || _MSC_VER >= 1800

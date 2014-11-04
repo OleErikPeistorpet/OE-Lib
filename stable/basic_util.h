@@ -11,12 +11,14 @@
 #include <iterator>
 
 
-#ifndef NOEXCEPT
-#	if !_MSC_VER || _MSC_VER >= 1900
-#		define NOEXCEPT noexcept
-#	else
-#		define NOEXCEPT throw()
-#	endif
+#if !_MSC_VER || _MSC_VER >= 1900
+#	define NOEXCEPT noexcept
+
+#	define ALIGNOF alignof
+#else
+#	define NOEXCEPT throw()
+
+#	define ALIGNOF __alignof
 #endif
 
 
