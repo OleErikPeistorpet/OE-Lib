@@ -41,10 +41,6 @@ auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
 #endif
 
 
-/// Returns true if r has zero elements
-template<typename Range>
-bool empty(const Range & r);
-
 /// Returns number of elements in r (array, container or iterator_range), signed type
 template<typename Range>
 auto count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type;
@@ -122,15 +118,6 @@ inline std::false_type can_memmove_ranges_with(...)  { return {}; }
 
 namespace _detail
 {
-	template<typename Range> inline // pass dummy int to prefer this overload
-	auto Empty(const Range & r, int) -> decltype(r.empty()) { return r.empty(); }
-
-	template<typename Range> inline
-	bool Empty(const Range & r, long)
-	{
-		return begin(r) == end(r);
-	}
-
 	template<typename HasSizeRange> inline
 	auto Count(const HasSizeRange & r, int) -> decltype(r.size()) { return r.size(); }
 
@@ -140,12 +127,6 @@ namespace _detail
 }
 
 } // namespace oetl
-
-template<typename Range>
-inline bool oetl::empty(const Range & r)
-{
-	return _detail::Empty(r, int{});
-}
 
 template<typename Range>
 inline auto oetl::count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
