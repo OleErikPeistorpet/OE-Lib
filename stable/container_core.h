@@ -48,12 +48,6 @@ struct is_trivially_relocatable< std::basic_string<C, Tr> >
 // The rest are advanced utilities, not for users
 
 
-#if _MSC_VER && _MSC_VER < 1900
-#   define alignof __alignof
-#elif __GNUC__ && __GNUC__ <= 4 && __GNUC_MINOR__ < 8
-#   define alignof __alignof__
-#endif
-
 namespace _detail
 {
 	template<size_t Align>
@@ -61,7 +55,7 @@ namespace _detail
 #		if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16 >
 #		else
-			Align <= alignof(long double) >
+			Align <= ALIGNOF(long double) >
 #		endif
 	{};
 
@@ -94,20 +88,21 @@ namespace _detail
 }
 
 /// An alignment-aware, non-standard allocator
+template<typename T>
 struct allocator
 {
 	using size_type = size_t;
 
-	template<size_t Align>
-    void * allocate(size_type nBytes)
+	T * allocate(size_type nObjs)
 	{
-		return _detail::OpNew<Align>(_detail::CanDefaultAlloc<Align>(), nBytes);
+		_detail::CanDefaultAlloc<ALIGNOF(T)> defAlloc;
+		void * p = _detail::OpNew<ALIGNOF(T)>(defAlloc, nObjs * sizeof(T));
+		return static_cast<T *>(p);
 	}
 
-	template<size_t Align>
-	void deallocate(void * ptr)
+	void deallocate(T * ptr)
 	{
-		_detail::OpDelete(_detail::CanDefaultAlloc<Align>(), ptr);
+		_detail::OpDelete(_detail::CanDefaultAlloc<ALIGNOF(T)>(), ptr);
 	}
 };
 

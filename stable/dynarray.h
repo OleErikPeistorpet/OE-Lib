@@ -68,7 +68,7 @@ bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { re
 * Relocating objects of template argument T must be equivalent to memcpy without destructor call (true for most types).
 * This is checked when compiling with is_trivially_relocatable, a trait which must be specialized manually for each
 * type that is not trivially copyable. */
-template<typename T, typename Alloc = allocator>
+template<typename T, typename Alloc = allocator<T> >
 class dynarray
 {
 public:
@@ -218,13 +218,13 @@ public:
 private:
 	static pointer _alloc(size_type count)
 	{
-		return static_cast<pointer>( Alloc{}.allocate<alignof(T)>(count * sizeof(T)) );
+		return Alloc{}.allocate(count);
 	}
 
 	struct _dealloc
 	{	void operator()(pointer ptr)
 		{
-			Alloc{}.deallocate<alignof(T)>(ptr);
+			Alloc{}.deallocate(ptr);
 		}
 	};
 
