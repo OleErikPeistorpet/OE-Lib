@@ -55,7 +55,7 @@ namespace _detail
 #		if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16 >
 #		else
-			Align <= ALIGNOF(long double) >
+			Align <= ALIGNOF(std::max_align_t) >
 #		endif
 	{};
 
