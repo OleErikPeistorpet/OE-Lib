@@ -152,8 +152,8 @@ public:
 	reference       front() NOEXCEPT        { return operator[](0); }
 	const_reference front() const NOEXCEPT  { return operator[](0); }
 
-	reference       back() NOEXCEPT;
-	const_reference back() const NOEXCEPT;
+	reference       back() NOEXCEPT         { return operator[](_size - 1); }
+	const_reference back() const NOEXCEPT   { return operator[](_size - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -169,7 +169,7 @@ public:
 
 private:
 	size_type _size;
-	_detail::AlignedStorage<sizeof(T), alignof(T)> _data[Capacity];
+	_detail::AlignedStorage<sizeof(T), ALIGNOF(T)> _data[Capacity];
 
 
 	template<typename CheckT>
@@ -195,11 +195,11 @@ private:
 
 
 #if OETL_MEM_BOUND_DEBUG_LVL
-#	define OEP_FIXCAPARR_ITERATOR(ptr)        iterator{ptr, this}
-#	define OEP_FIXCAPARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
+#	define OE_FIXCAPARR_ITERATOR(ptr)        iterator{ptr, this}
+#	define OE_FIXCAPARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
 #else
-#	define OEP_FIXCAPARR_ITERATOR(ptr)        (ptr)
-#	define OEP_FIXCAPARR_CONST_ITER(constPtr) (constPtr)
+#	define OE_FIXCAPARR_ITERATOR(ptr)        (ptr)
+#	define OE_FIXCAPARR_CONST_ITER(constPtr) (constPtr)
 #endif
 
 	size_type _unusedCapacity() const NOEXCEPT
@@ -498,7 +498,7 @@ typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 		++_size;
 		::new(posPtr) T(std::move(tmp));
 
-		return OEP_FIXCAPARR_ITERATOR(posPtr);
+		return OE_FIXCAPARR_ITERATOR(posPtr);
 	}
 	else
 	{	throw _lengthExc();
@@ -604,41 +604,28 @@ template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	begin() NOEXCEPT
 {
-	return OEP_FIXCAPARR_ITERATOR(data());
+	return OE_FIXCAPARR_ITERATOR(data());
 }
 
 template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::const_iterator  fixcap_array<T, Capacity>::
 	begin() const NOEXCEPT
 {
-	return OEP_FIXCAPARR_CONST_ITER(data());
+	return OE_FIXCAPARR_CONST_ITER(data());
 }
 
 template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	end() NOEXCEPT
 {
-	return OEP_FIXCAPARR_ITERATOR(data() + _size);
+	return OE_FIXCAPARR_ITERATOR(data() + _size);
 }
 
 template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::const_iterator  fixcap_array<T, Capacity>::
 	end() const NOEXCEPT
 {
-	return OEP_FIXCAPARR_CONST_ITER(data() + _size);
-}
-
-template<typename T, size_t Capacity>
-inline typename fixcap_array<T, Capacity>::reference  fixcap_array<T, Capacity>::
-	back() NOEXCEPT
-{
-	return operator[](_size - 1);
-}
-template<typename T, size_t Capacity>
-inline typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capacity>::
-	back() const NOEXCEPT
-{
-	return operator[](_size - 1);
+	return OE_FIXCAPARR_CONST_ITER(data() + _size);
 }
 
 template<typename T, size_t Capacity>
@@ -675,8 +662,8 @@ inline typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capa
 	return data()[index];
 }
 
-#undef OEP_FIXCAPARR_ITERATOR
-#undef OEP_FIXCAPARR_CONST_ITER
+#undef OE_FIXCAPARR_ITERATOR
+#undef OE_FIXCAPARR_CONST_ITER
 
 } // namespace oetl
 

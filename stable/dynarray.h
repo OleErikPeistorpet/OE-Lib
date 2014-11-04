@@ -236,11 +236,11 @@ private:
 
 
 #if OETL_MEM_BOUND_DEBUG_LVL
-#	define OEP_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
-#	define OEP_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
+#	define OETL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
+#	define OETL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
 #else
-#	define OEP_DYNARR_ITERATOR(ptr)        (ptr)
-#	define OEP_DYNARR_CONST_ITER(constPtr) (constPtr)
+#	define OETL_DYNARR_ITERATOR(ptr)        (ptr)
+#	define OETL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
 
 	void _uninitCopyData(std::false_type, const dynarray<T, Alloc> & src)
@@ -430,7 +430,7 @@ private:
 						std::uninitialized_copy(first, last, dest);
 				} );
 
-		return OEP_DYNARR_ITERATOR(pos);
+		return OETL_DYNARR_ITERATOR(pos);
 	}
 
 	template<typename InputRange>
@@ -643,7 +643,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 		::new(posPtr) T(std::move(tmp)); // move construct the new element at uninitialized location pos
 
-		return OEP_DYNARR_ITERATOR(posPtr);
+		return OETL_DYNARR_ITERATOR(posPtr);
 	}
 	else
 	{	// not enough room, reallocate
@@ -664,7 +664,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 		_data.swap(newData);
 
-		return OEP_DYNARR_ITERATOR(newPos);
+		return OETL_DYNARR_ITERATOR(newPos);
 	}
 }
 
@@ -789,37 +789,37 @@ inline typename dynarray<T, Alloc>::size_type  dynarray<T, Alloc>::capacity() co
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::begin() NOEXCEPT
 {
-	return OEP_DYNARR_ITERATOR(_data.get());
+	return OETL_DYNARR_ITERATOR(_data.get());
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_iterator  dynarray<T, Alloc>::begin() const NOEXCEPT
 {
-	return OEP_DYNARR_CONST_ITER(_data.get());
+	return OETL_DYNARR_CONST_ITER(_data.get());
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::end() NOEXCEPT
 {
-	return OEP_DYNARR_ITERATOR(_end);
+	return OETL_DYNARR_ITERATOR(_end);
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_iterator  dynarray<T, Alloc>::end() const NOEXCEPT
 {
-	return OEP_DYNARR_CONST_ITER(_end);
+	return OETL_DYNARR_CONST_ITER(_end);
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::back() NOEXCEPT
 {
-	return *OEP_DYNARR_ITERATOR(_end - 1);
+	return *OETL_DYNARR_ITERATOR(_end - 1);
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::back() const NOEXCEPT
 {
-	return *OEP_DYNARR_CONST_ITER(_end - 1);
+	return *OETL_DYNARR_CONST_ITER(_end - 1);
 }
 
 template<typename T, typename Alloc>
@@ -852,8 +852,8 @@ inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operato
 	return _data[index];
 }
 
-#undef OEP_DYNARR_ITERATOR
-#undef OEP_DYNARR_CONST_ITER
+#undef OETL_DYNARR_ITERATOR
+#undef OETL_DYNARR_CONST_ITER
 
 } // namespace oetl
 
