@@ -1,5 +1,7 @@
 #pragma once
 
+// Copyright © 2014 Ole Erik Peistorpet
+//
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -32,10 +34,10 @@ class array_const_iterator
 
 #if OETL_MEM_BOUND_DEBUG_LVL >= 2
 	// test for iterator pair pointing to same container
-#	define OEP_ARRITER_CHECKCOMPAT(right)  \
+#	define OETL_ARRITER_CHECKCOMPAT(right)  \
 		MEM_BOUND_ASSERT(_myCont && right._myCont == _myCont)
 #else
-#	define OEP_ARRITER_CHECKCOMPAT(right)
+#	define OETL_ARRITER_CHECKCOMPAT(right)
 #endif
 
 public:
@@ -131,7 +133,7 @@ public:
 
 	difference_type operator -(const array_const_iterator & right) const
 	{	// return difference of iterators
-		OEP_ARRITER_CHECKCOMPAT(right);
+		OETL_ARRITER_CHECKCOMPAT(right);
 		return _pElem - right._pElem;
 	}
 
@@ -152,13 +154,13 @@ public:
 
 	bool operator <(const array_const_iterator & right) const
 	{
-		OEP_ARRITER_CHECKCOMPAT(right);
+		OETL_ARRITER_CHECKCOMPAT(right);
 		return _pElem < right._pElem;
 	}
 
 	bool operator >(const array_const_iterator & right) const
 	{
-		OEP_ARRITER_CHECKCOMPAT(right);
+		OETL_ARRITER_CHECKCOMPAT(right);
 		return _pElem > right._pElem;
 	}
 
@@ -181,7 +183,7 @@ protected:
 	_nonConstPtrT     _pElem;  // wrapped pointer
 	const Container * _myCont;
 
-#undef OEP_ARRITER_CHECKCOMPAT
+#undef OETL_ARRITER_CHECKCOMPAT
 };
 
 template<typename C> inline

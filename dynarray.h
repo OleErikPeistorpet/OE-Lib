@@ -152,14 +152,14 @@ public:
 	template<typename... Params>
 	void       emplace_back(Params &&... args);
 
-	void       push_back(T && val);
+	void       push_back(T && val)       { emplace_back(std::move(val)); }
 	void       push_back(const T & val)  { emplace_back(val); }
 
 	template<typename... Params>
 	iterator   emplace(const_iterator position, Params &&... args);
 
 	iterator   insert(const_iterator position, T && val);
-	iterator   insert(const_iterator position, const T & val);
+	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
 
 	void       pop_back() NOEXCEPT;
 
@@ -178,14 +178,14 @@ public:
 
 	bool       empty() const NOEXCEPT  { return data() == _end; }
 
-	size_type  size() const NOEXCEPT;
+	size_type  size() const NOEXCEPT   { return _end - _data.get(); }
 
 	void       reserve(size_type minCapacity);
 
 	/// It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
 	void       shrink_to_fit();
 
-	size_type  capacity() const NOEXCEPT;
+	size_type  capacity() const NOEXCEPT  { return _reserveEnd - data(); }
 
 	iterator        begin() NOEXCEPT;
 	const_iterator  begin() const NOEXCEPT;
@@ -217,7 +217,8 @@ public:
 private:
 	static pointer _alloc(size_type count)
 	{
-		return static_cast<pointer>( Alloc{}.allocate<ALIGNOF(T)>(count * sizeof(T)) );
+		void * p = Alloc{}.allocate<ALIGNOF(T)>(count * sizeof(T));
+		return static_cast<pointer>(p);
 	}
 
 	struct _dealloc
@@ -235,11 +236,11 @@ private:
 
 
 #if OETL_MEM_BOUND_DEBUG_LVL
-#	define OEP_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
-#	define OEP_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
+#	define OETL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
+#	define OETL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
 #else
-#	define OEP_DYNARR_ITERATOR(ptr)        (ptr)
-#	define OEP_DYNARR_CONST_ITER(constPtr) (constPtr)
+#	define OETL_DYNARR_ITERATOR(ptr)        (ptr)
+#	define OETL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
 
 	void _uninitCopyData(std::false_type, const dynarray<T, Alloc> & src)
@@ -429,7 +430,7 @@ private:
 						std::uninitialized_copy(first, last, dest);
 				} );
 
-		return OEP_DYNARR_ITERATOR(pos);
+		return OETL_DYNARR_ITERATOR(pos);
 	}
 
 	template<typename InputRange>
@@ -615,12 +616,6 @@ inline void dynarray<T, Alloc>::emplace_back(Params &&... args)
 	++_end;
 }
 
-template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::push_back(T && val)
-{
-	emplace_back(std::move(val));
-}
-
 template<typename T, typename Alloc> template<typename... Params>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Params &&... args)
 {
@@ -642,7 +637,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 		::new(posPtr) T(std::move(tmp)); // move construct the new element at uninitialized location pos
 
-		return OEP_DYNARR_ITERATOR(posPtr);
+		return OETL_DYNARR_ITERATOR(posPtr);
 	}
 	else
 	{	// not enough room, reallocate
@@ -663,7 +658,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 		_data.swap(newData);
 
-		return OEP_DYNARR_ITERATOR(newPos);
+		return OETL_DYNARR_ITERATOR(newPos);
 	}
 }
 
@@ -671,12 +666,6 @@ template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_iterator pos, T && val)
 {
 	return emplace(pos, std::move(val));
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_iterator pos, const T & val)
-{
-	return emplace(pos, val);
 }
 
 template<typename T, typename Alloc>
@@ -774,51 +763,39 @@ inline void dynarray<T, Alloc>::erase_back(iterator newEnd) NOEXCEPT
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::size_type  dynarray<T, Alloc>::size() const NOEXCEPT
-{
-	return _end - _data.get();
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::size_type  dynarray<T, Alloc>::capacity() const NOEXCEPT
-{
-	return _reserveEnd - data();
-}
-
-template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::begin() NOEXCEPT
 {
-	return OEP_DYNARR_ITERATOR(_data.get());
+	return OETL_DYNARR_ITERATOR(_data.get());
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_iterator  dynarray<T, Alloc>::begin() const NOEXCEPT
 {
-	return OEP_DYNARR_CONST_ITER(_data.get());
+	return OETL_DYNARR_CONST_ITER(_data.get());
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::end() NOEXCEPT
 {
-	return OEP_DYNARR_ITERATOR(_end);
+	return OETL_DYNARR_ITERATOR(_end);
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_iterator  dynarray<T, Alloc>::end() const NOEXCEPT
 {
-	return OEP_DYNARR_CONST_ITER(_end);
+	return OETL_DYNARR_CONST_ITER(_end);
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::back() NOEXCEPT
 {
-	return *OEP_DYNARR_ITERATOR(_end - 1);
+	return *OETL_DYNARR_ITERATOR(_end - 1);
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::back() const NOEXCEPT
 {
-	return *OEP_DYNARR_CONST_ITER(_end - 1);
+	return *OETL_DYNARR_CONST_ITER(_end - 1);
 }
 
 template<typename T, typename Alloc>
@@ -851,8 +828,8 @@ inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operato
 	return _data[index];
 }
 
-#undef OEP_DYNARR_ITERATOR
-#undef OEP_DYNARR_CONST_ITER
+#undef OETL_DYNARR_ITERATOR
+#undef OETL_DYNARR_CONST_ITER
 
 } // namespace oetl
 
