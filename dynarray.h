@@ -217,13 +217,13 @@ public:
 private:
 	static pointer _alloc(size_type count)
 	{
-		return static_cast<pointer>( Alloc{}.allocate<alignof(T)>(count * sizeof(T)) );
+		return static_cast<pointer>( Alloc{}.allocate<ALIGNOF(T)>(count * sizeof(T)) );
 	}
 
 	struct _dealloc
 	{	void operator()(pointer ptr)
 		{
-			Alloc{}.deallocate<alignof(T)>(ptr);
+			Alloc{}.deallocate<ALIGNOF(T)>(ptr);
 		}
 	};
 
