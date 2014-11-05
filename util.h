@@ -225,9 +225,11 @@ namespace _detail
 	template<typename InputIter, typename OutputIter, typename Unused> inline
 	OutputIter Copy(std::false_type, Unused, InputIter first, InputIter last, OutputIter dest)
 	{
-		for (; first != last; ++dest, ++first)
+		while (first != last)
+		{
 			*dest = *first;
-
+			++dest; ++first;
+		}
 		return dest;
 	}
 
@@ -341,10 +343,12 @@ namespace smsc
 	template<typename Size, typename T, typename InputIter> inline
 	Size FindIdx(InputIter first, Size count, const T & val, std::false_type)
 	{
-		for (Size i = 0; i < count; ++first, ++i)
+		for (Size i = 0; i < count; ++i)
 		{
 			if (*first == val)
 				return i;
+
+			++first;
 		}
 		return Size(-1);
 	}
