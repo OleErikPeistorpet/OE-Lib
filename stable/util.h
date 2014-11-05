@@ -105,9 +105,11 @@ namespace _detail
 	template<typename InputIter, typename OutputIter> inline
 	OutputIter Copy(std::false_type, InputIter first, InputIter last, OutputIter dest)
 	{
-		for (; first != last; ++dest, ++first)
+		while (first != last)
+		{
 			*dest = *first;
-
+			++dest; ++first;
+		}
 		return dest;
 	}
 
