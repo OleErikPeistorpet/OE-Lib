@@ -50,7 +50,7 @@ struct is_trivially_relocatable< std::tuple<T, Us...> > : std::integral_constant
 template<>
 struct is_trivially_relocatable< std::tuple<> > : std::true_type {};
 
-/// Warning: Might not be safe for all STL implementations (only checked Visual C++ 2013)
+/// Might not be safe with all STL implementations, only verified for Visual C++ 2013
 template<typename C, typename Tr>
 struct is_trivially_relocatable< std::basic_string<C, Tr> >
  :	std::true_type {};
@@ -271,7 +271,7 @@ namespace _detail
 	std::enable_if_t< !std::is_nothrow_default_constructible<ValT>::value >
 		UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
 	{	// default constructor potentially throws
-		auto const init = first;
+		ForwardIter const init = first;
 		try
 		{
 			for (; first != last; ++first)
@@ -292,7 +292,7 @@ namespace _detail
 		for (; 0 < count; --count)
 		{
 			::new(std::addressof(*dest)) DestValT(*first);
-			++dest, ++first;
+			++dest; ++first;
 		}
 		return {first, dest};
 	}
@@ -301,13 +301,13 @@ namespace _detail
 	range_ends<InputIter, ForwardIter>
 		UninitCopyN(std::false_type, InputIter first, Count count, ForwardIter dest)
 	{
-		auto const destBegin = dest;
+		ForwardIter const destBegin = dest;
 		try
 		{
 			for (; 0 < count; --count)
 			{
 				::new(std::addressof(*dest)) DestValT(*first);
-				++dest, ++first;
+				++dest; ++first;
 			}
 		}
 		catch (...)
