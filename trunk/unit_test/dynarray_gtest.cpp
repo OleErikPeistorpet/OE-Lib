@@ -62,6 +62,8 @@ TEST_F(dynarrayTest, construct)
 {
 	oetl::dynarray<std::string> a;
 	decltype(a) b(a);
+
+	dynarray< dynarray<int> > nested;
 }
 
 TEST_F(dynarrayTest, assign)

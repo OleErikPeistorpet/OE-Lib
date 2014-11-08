@@ -34,14 +34,14 @@ template<typename T, size_t C>
 typename fixcap_array<T, C>::iterator  erase_unordered(fixcap_array<T, C> & ctr,
 													   typename fixcap_array<T, C>::iterator position);
 
-/// Non-member truncate, overloads generic one (stl_util.h)
+/// Non-member erase_back, overloads generic erase_back(Container &, Container::iterator)
 template<typename T, size_t C> inline
-void truncate(fixcap_array<T, C> & ctr, typename fixcap_array<T, C>::iterator newEnd)  { ctr.erase_from(newEnd); }
+void erase_back(fixcap_array<T, C> & ctr, typename fixcap_array<T, C>::iterator newEnd)  { ctr.erase_back(newEnd); }
 
-template<typename T, size_t Capacity>
-bool operator==(const fixcap_array<T, Capacity> & left, const fixcap_array<T, Capacity> & right);
-template<typename T, size_t Capacity> inline
-bool operator!=(const fixcap_array<T, Capacity> & left, const fixcap_array<T, Capacity> & right)  { return !(left == right); }
+template<typename T1, typename T2, size_t Capacity>
+bool operator==(const fixcap_array<T1, Capacity> & left, const fixcap_array<T2, Capacity> & right);
+template<typename T1, typename T2, size_t Capacity>
+bool operator!=(const fixcap_array<T1, Capacity> & left, const fixcap_array<T2, Capacity> & right)  { return !(left == right); }
 
 /**
 * @brief Resizable array, statically allocated. Specify maximum size as template argument.
@@ -124,7 +124,7 @@ public:
 	iterator      erase(iterator first, iterator last);
 
 	/// Pop the elements from newEnd to the end of fixcap_array
-	void          erase_from(iterator newEnd) NOEXCEPT;
+	void          erase_back(iterator newEnd) NOEXCEPT;
 
 	/**
 	* @brief Non-trivial constructor called on added elements, otherwise not initialized.
@@ -132,7 +132,7 @@ public:
 	void          resize(size_type newSize);
 	void          resize(size_type newSize, const T & addVal);  ///< Throws length_error if new_size > Capacity
 
-	void          clear() NOEXCEPT        { erase_from(begin()); }
+	void          clear() NOEXCEPT        { erase_back(begin()); }
 
 	bool          empty() const NOEXCEPT  { return 0 == _size; }
 
@@ -348,7 +348,7 @@ private:
 		}
 		catch (...)
 		{
-			erase_from(oldEnd);
+			erase_back(oldEnd);
 			throw;
 		}
 	}
@@ -578,7 +578,7 @@ inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 
 template<typename T, size_t Capacity>
 inline void  fixcap_array<T, Capacity>::
-	erase_from(iterator newEnd) NOEXCEPT
+	erase_back(iterator newEnd) NOEXCEPT
 {
 	pointer const first = to_ptr(newEnd);
 	MEM_BOUND_ASSERT(data() <= first && first <= data() + _size);
@@ -676,9 +676,9 @@ inline typename oetl::fixcap_array<T, C>::iterator  oetl::
 	return pos;
 }
 
-template<typename T, size_t Capacity>
+template<typename T1, typename T2, size_t Capacity>
 inline bool  oetl::operator==
-	(const fixcap_array<T, Capacity> & left, const fixcap_array<T, Capacity> & right)
+	(const fixcap_array<T1, Capacity> & left, const fixcap_array<T2, Capacity> & right)
 {
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());

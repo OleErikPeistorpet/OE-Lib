@@ -9,6 +9,9 @@
 #include "array_iterator.h"
 #include "container_shared.h"
 
+#ifndef OETL_NO_BOOST
+#include <boost/iterator/iterator_categories.hpp>
+#endif
 #include <algorithm>
 
 
@@ -24,10 +27,26 @@
 namespace oetl
 {
 
-template<typename, typename> class dynarray;  // forward declare
-
-
 using std::out_of_range;
+
+
+#ifdef OETL_NO_BOOST
+
+template<typename Iterator>
+using iterator_traversal_t = typename std::iterator_traits<Iterator>::iterator_category;
+
+using forward_traversal_tag = std::forward_iterator_tag;
+using single_pass_traversal_tag = std::input_iterator_tag;
+
+#else
+
+template<typename Iterator>
+using iterator_traversal_t = typename boost::iterator_traversal<Iterator>::type;
+
+using boost::forward_traversal_tag;
+using boost::single_pass_traversal_tag;
+
+#endif
 
 
 /// Type to indicate that a container constructor must allocate storage but not create any elements
@@ -35,6 +54,9 @@ struct reserve_t {};
 /// An instance of reserve_t to pass
 static reserve_t const reserve;
 
+////////////////////////////////////////////////////////////////////////////////
+
+template<typename, typename> class dynarray;  // forward declare
 
 /// dynarray<dynarray<_>> is all right
 template<typename T, typename A>
@@ -56,10 +78,10 @@ typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typenam
 template<typename T, typename A> inline
 void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator newEnd)  { ctr.erase_back(newEnd); }
 
-template<typename T, typename A>
-bool operator==(const dynarray<T, A> & left, const dynarray<T, A> & right);
-template<typename T, typename A> inline
-bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { return !(left == right); }
+template<typename T1, typename T2, typename A1, typename A2>
+bool operator==(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right);
+template<typename T1, typename T2, typename A1, typename A2>
+bool operator!=(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right)  { return !(left == right); }
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
@@ -323,7 +345,7 @@ private:
 	}
 
 	template<typename ForwTravRange>
-	void _assign(const ForwTravRange & range, boost::forward_traversal_tag)
+	void _assign(const ForwTravRange & range, forward_traversal_tag)
 	{
 		auto first = adl_begin(range);
 		_assignImpl(can_memmove_ranges_with(data(), first),
@@ -331,7 +353,7 @@ private:
 	}
 
 	template<typename InputRange>
-	void _assign(const InputRange & range, boost::single_pass_traversal_tag)
+	void _assign(const InputRange & range, single_pass_traversal_tag)
 	{	// single pass iterator (slowest)
 		clear();
 		append(range);
@@ -407,7 +429,7 @@ private:
 	}
 
 	template<typename CntigusRange>
-	FORCEINLINE iterator _append(std::true_type, boost::random_access_traversal_tag, const CntigusRange & range)
+	FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & range)
 	{	// use memcpy
 		auto const nElems = count(range);
 		_appendN(std::true_type{}, adl_begin(range), nElems);
@@ -416,7 +438,7 @@ private:
 	}
 
 	template<typename ForwTravRange>
-	iterator _append(std::false_type, boost::forward_traversal_tag, const ForwTravRange & range)
+	iterator _append(std::false_type, forward_traversal_tag, const ForwTravRange & range)
 	{	// multi-pass iterator
 		auto first = adl_begin(range);
 		auto last = adl_end(range);
@@ -434,7 +456,7 @@ private:
 	}
 
 	template<typename InputRange>
-	iterator _append(std::false_type, boost::single_pass_traversal_tag, const InputRange & range)
+	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & range)
 	{	// cannot count input before copy
 		size_type const oldSize = size();
 		try
@@ -573,7 +595,7 @@ template<typename T, typename Alloc> template<typename InputRange>
 inline void dynarray<T, Alloc>::assign(const InputRange & source)
 {
 	using InIter = decltype(adl_begin(source));
-	_assign(source, typename boost::iterator_traversal<InIter>::type{});
+	_assign(source, iterator_traversal_t<InIter>());
 }
 
 template<typename T, typename Alloc> template<typename InputIterator>
@@ -587,7 +609,7 @@ FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(co
 {
 	auto first = adl_begin(range);
 	return _append(can_memmove_ranges_with(data(), first),
-				   typename boost::iterator_traversal<decltype(first)>::type{},
+				   iterator_traversal_t<decltype(first)>(),
 				   range);
 }
 
@@ -842,8 +864,8 @@ inline typename oetl::dynarray<T, A>::iterator  oetl::
 	return pos;
 }
 
-template<typename T, typename A>
-inline bool oetl::operator==(const dynarray<T, A> & left, const dynarray<T, A> & right)
+template<typename T1, typename T2, typename A1, typename A2>
+inline bool oetl::operator==(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right)
 {
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());
