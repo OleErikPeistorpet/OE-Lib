@@ -92,9 +92,15 @@ TEST_F(dynarrayTest, assign)
 TEST_F(dynarrayTest, append)
 {
 	{
-		oetl::dynarray<int> dest;
-		std::deque<int> src;
+		oetl::dynarray<double> dest(2);
+
+		std::deque<double> src;
 		dest.append(src);
+
+		dest.append(dest.begin(), dest.size());
+		EXPECT_EQ(4, dest.size());
+		EXPECT_EQ(dest[0], dest[2]);
+		EXPECT_EQ(dest[1], dest[3]);
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
