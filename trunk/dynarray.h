@@ -124,8 +124,8 @@ public:
 
 	~dynarray() NOEXCEPT;
 
-	dynarray & operator =(dynarray && other) NOEXCEPT;
-	dynarray & operator =(const dynarray & other);
+	dynarray & operator =(dynarray && other) NOEXCEPT  { swap(other);  return *this; }
+	dynarray & operator =(const dynarray & other)      { assign(other);  return *this; }
 
 	void       swap(dynarray & other) NOEXCEPT;
 
@@ -550,13 +550,6 @@ inline dynarray<T, Alloc>::dynarray(dynarray<T, Alloc> && other) NOEXCEPT :
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray<T, Alloc> && other) NOEXCEPT
-{
-	swap(other);
-	return *this;
-}
-
-template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
 {
 	using std::swap;
@@ -576,13 +569,6 @@ inline dynarray<T, Alloc>::dynarray(const dynarray<T, Alloc> & other) :
 	_data( _alloc(other.size()) )
 {
 	_uninitCopyData(is_trivially_copyable<T>(), other);
-}
-
-template<typename T, typename Alloc>
-inline dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(const dynarray<T, Alloc> & other)
-{
-	assign(other);
-	return *this;
 }
 
 template<typename T, typename Alloc> template<typename ForwardTravIterator>
