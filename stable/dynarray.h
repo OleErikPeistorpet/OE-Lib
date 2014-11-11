@@ -13,12 +13,10 @@
 #include <algorithm>
 
 
-#ifndef FORCEINLINE
-#	if _MSC_VER && defined(NDEBUG)
-#		define FORCEINLINE __forceinline
-#	else
-#		define FORCEINLINE inline
-#	endif
+#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
+#	define OETL_FORCEINLINE __forceinline
+#else
+#	define OETL_FORCEINLINE inline
 #endif
 
 
@@ -31,7 +29,7 @@ template<typename, typename> class dynarray;  // forward declare
 using std::out_of_range;
 
 
-/// Type to indicate that a container constructor must allocate storage but not create any elements
+/// Type to indicate that a container constructor must allocate storage
 struct reserve_t {};
 /// An instance of reserve_t to pass
 static reserve_t const reserve;
@@ -153,14 +151,14 @@ public:
 	template<typename... Params>
 	void       emplace_back(Params &&... args);
 
-	void       push_back(T && val);
+	void       push_back(T && val)       { emplace_back(std::move(val)); }
 	void       push_back(const T & val)  { emplace_back(val); }
 
 	template<typename... Params>
 	iterator   emplace(const_iterator position, Params &&... args);
 
 	iterator   insert(const_iterator position, T && val);
-	iterator   insert(const_iterator position, const T & val);
+	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
 
 	void       pop_back() NOEXCEPT;
 
@@ -179,14 +177,14 @@ public:
 
 	bool       empty() const NOEXCEPT  { return data() == _end; }
 
-	size_type  size() const NOEXCEPT;
+	size_type  size() const NOEXCEPT   { return _end - _data.get(); }
 
 	void       reserve(size_type minCapacity);
 
 	/// It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
 	void       shrink_to_fit();
 
-	size_type  capacity() const NOEXCEPT;
+	size_type  capacity() const NOEXCEPT  { return _reserveEnd - data(); }
 
 	iterator        begin() NOEXCEPT;
 	const_iterator  begin() const NOEXCEPT;
@@ -338,7 +336,7 @@ private:
 	}
 
 	template<typename CopyFunc>
-	FORCEINLINE pointer _appendNonTrivial(size_type const count, CopyFunc makeNewElems)
+	OETL_FORCEINLINE pointer _appendNonTrivial(size_type const count, CopyFunc makeNewElems)
 	{
 		pointer appendPos;
 		if (_unusedCapacity() >= count)
@@ -364,11 +362,13 @@ private:
 	}
 
 	template<typename CntigusIter>
-	FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
+	OETL_FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
 	{	// use memcpy
 #	if OETL_MEM_BOUND_DEBUG_LVL
-		if (count > 0)				 // Dereference iterator to the last element to append,
-			*(first + (count - 1)); // this catches out of range errors with checked iterators
+		CntigusIter last = first + count;
+
+		if (count > 0)    // Dereference iterator to the last element to append,
+			*(last - 1);  // this catches out of range errors with checked iterators
 #	endif
 		if (_unusedCapacity() >= count)
 		{
@@ -390,7 +390,11 @@ private:
 		}
 		_end += count;
 
+#	if OETL_MEM_BOUND_DEBUG_LVL
+		return last; // in case of append self, bypass check in array_const_iterator::operator +
+#	else
 		return first + count;
+#	endif
 	}
 
 	template<typename InputIter>
@@ -407,7 +411,7 @@ private:
 	}
 
 	template<typename CntigusRange>
-	FORCEINLINE iterator _append(std::true_type, boost::random_access_traversal_tag, const CntigusRange & range)
+	OETL_FORCEINLINE iterator _append(std::true_type, boost::random_access_traversal_tag, const CntigusRange & range)
 	{	// use memcpy
 		auto const nElems = count(range);
 		_appendN(std::true_type{}, adl_begin(range), nElems);
@@ -429,7 +433,6 @@ private:
 #					endif
 						std::uninitialized_copy(first, last, dest);
 				} );
-
 		return OETL_DYNARR_ITERATOR(pos);
 	}
 
@@ -577,13 +580,13 @@ inline void dynarray<T, Alloc>::assign(const InputRange & source)
 }
 
 template<typename T, typename Alloc> template<typename InputIterator>
-FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
+OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
 {
 	return _appendN(can_memmove_ranges_with(data(), first), first, count);
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & range)
+OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & range)
 {
 	auto first = adl_begin(range);
 	return _append(can_memmove_ranges_with(data(), first),
@@ -614,12 +617,6 @@ inline void dynarray<T, Alloc>::emplace_back(Params &&... args)
 		_data.swap(newData);
 	}
 	++_end;
-}
-
-template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::push_back(T && val)
-{
-	emplace_back(std::move(val));
 }
 
 template<typename T, typename Alloc> template<typename... Params>
@@ -672,12 +669,6 @@ template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_iterator pos, T && val)
 {
 	return emplace(pos, std::move(val));
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_iterator pos, const T & val)
-{
-	return emplace(pos, val);
 }
 
 template<typename T, typename Alloc>
@@ -775,18 +766,6 @@ inline void dynarray<T, Alloc>::erase_back(iterator newEnd) NOEXCEPT
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::size_type  dynarray<T, Alloc>::size() const NOEXCEPT
-{
-	return _end - _data.get();
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::size_type  dynarray<T, Alloc>::capacity() const NOEXCEPT
-{
-	return _reserveEnd - data();
-}
-
-template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::begin() NOEXCEPT
 {
 	return OETL_DYNARR_ITERATOR(_data.get());
@@ -872,3 +851,5 @@ inline bool oetl::operator==(const dynarray<T, A> & left, const dynarray<T, A> &
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());
 }
+
+#undef OETL_FORCEINLINE

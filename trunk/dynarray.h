@@ -15,12 +15,10 @@
 #include <algorithm>
 
 
-#ifndef FORCEINLINE
-#	if _MSC_VER && defined(NDEBUG)
-#		define FORCEINLINE __forceinline
-#	else
-#		define FORCEINLINE inline
-#	endif
+#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
+#	define OETL_FORCEINLINE __forceinline
+#else
+#	define OETL_FORCEINLINE inline
 #endif
 
 
@@ -49,7 +47,7 @@ using boost::single_pass_traversal_tag;
 #endif
 
 
-/// Type to indicate that a container constructor must allocate storage but not create any elements
+/// Type to indicate that a container constructor must allocate storage
 struct reserve_t {};
 /// An instance of reserve_t to pass
 static reserve_t const reserve;
@@ -360,7 +358,7 @@ private:
 	}
 
 	template<typename CopyFunc>
-	FORCEINLINE pointer _appendNonTrivial(size_type const count, CopyFunc makeNewElems)
+	OETL_FORCEINLINE pointer _appendNonTrivial(size_type const count, CopyFunc makeNewElems)
 	{
 		pointer appendPos;
 		if (_unusedCapacity() >= count)
@@ -386,11 +384,13 @@ private:
 	}
 
 	template<typename CntigusIter>
-	FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
+	OETL_FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
 	{	// use memcpy
 #	if OETL_MEM_BOUND_DEBUG_LVL
-		if (count > 0)				 // Dereference iterator to the last element to append,
-			*(first + (count - 1)); // this catches out of range errors with checked iterators
+		CntigusIter last = first + count;
+
+		if (count > 0)    // Dereference iterator to the last element to append,
+			*(last - 1);  // this catches out of range errors with checked iterators
 #	endif
 		if (_unusedCapacity() >= count)
 		{
@@ -412,7 +412,11 @@ private:
 		}
 		_end += count;
 
+#	if OETL_MEM_BOUND_DEBUG_LVL
+		return last; // in case of append self, bypass check in array_const_iterator::operator +
+#	else
 		return first + count;
+#	endif
 	}
 
 	template<typename InputIter>
@@ -429,7 +433,7 @@ private:
 	}
 
 	template<typename CntigusRange>
-	FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & range)
+	OETL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & range)
 	{	// use memcpy
 		auto const nElems = count(range);
 		_appendN(std::true_type{}, adl_begin(range), nElems);
@@ -451,7 +455,6 @@ private:
 #					endif
 						std::uninitialized_copy(first, last, dest);
 				} );
-
 		return OETL_DYNARR_ITERATOR(pos);
 	}
 
@@ -599,13 +602,13 @@ inline void dynarray<T, Alloc>::assign(const InputRange & source)
 }
 
 template<typename T, typename Alloc> template<typename InputIterator>
-FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
+OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
 {
 	return _appendN(can_memmove_ranges_with(data(), first), first, count);
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & range)
+OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & range)
 {
 	auto first = adl_begin(range);
 	return _append(can_memmove_ranges_with(data(), first),
@@ -870,3 +873,5 @@ inline bool oetl::operator==(const dynarray<T1, A1> & left, const dynarray<T2, A
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());
 }
+
+#undef OETL_FORCEINLINE
