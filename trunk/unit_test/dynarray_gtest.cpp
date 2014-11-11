@@ -92,15 +92,17 @@ TEST_F(dynarrayTest, assign)
 TEST_F(dynarrayTest, append)
 {
 	{
-		oetl::dynarray<double> dest(2);
-
+		oetl::dynarray<double> dest;
+		// Test append empty std iterator range to empty dynarray
 		std::deque<double> src;
 		dest.append(src);
 
+		double const TEST_VAL = 6.6;
+		dest.resize(2, TEST_VAL);
 		dest.append(dest.begin(), dest.size());
 		EXPECT_EQ(4, dest.size());
-		EXPECT_EQ(dest[0], dest[2]);
-		EXPECT_EQ(dest[1], dest[3]);
+		for (const auto & d : dest)
+			EXPECT_EQ(TEST_VAL, d);
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
