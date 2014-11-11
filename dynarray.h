@@ -153,7 +153,8 @@ public:
 	* @brief Add count elements at end from range beginning at first (in same order)
 	* @param first iterator to first element to append
 	* @param count number of elements to append
-	* @return end of source range (first incremented by count)
+	* @return first incremented count times,
+	*	which has singular value (invalid) if first pointed into same dynarray and a reallocation happened
 	*
 	* Causes reallocation if the old size() + count is greater than capacity(). On reallocation, all iterators and
 	* references are invalidated. Otherwise, any previous end iterator will point to the first element added.
