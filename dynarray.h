@@ -86,7 +86,8 @@ bool operator!=(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right)  
 *
 * Relocating objects of template argument T must be equivalent to memcpy without destructor call (true for most types).
 * This is checked when compiling with is_trivially_relocatable, a trait which must be specialized manually for each
-* type that is not trivially copyable. */
+* type that is not trivially copyable.
+* @par The default allocator supports over-aligned types (e.g. __m256)  */
 template<typename T, typename Alloc = allocator>
 class dynarray
 {
@@ -122,7 +123,7 @@ public:
 	dynarray(dynarray && other) NOEXCEPT;
 	dynarray(const dynarray & other);
 
-	~dynarray() NOEXCEPT;
+	~dynarray() NOEXCEPT  { _detail::Destroy(data(), _end); }
 
 	dynarray & operator =(dynarray && other) NOEXCEPT  { swap(other);  return *this; }
 	dynarray & operator =(const dynarray & other)      { assign(other);  return *this; }
@@ -557,12 +558,6 @@ inline void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
 	swap(_data, other._data);
 	swap(_end, other._end);
 	swap(_reserveEnd, other._reserveEnd);
-}
-
-template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::~dynarray() NOEXCEPT
-{
-	_detail::Destroy(data(), _end);
 }
 
 template<typename T, typename Alloc>
