@@ -38,10 +38,10 @@ typename fixcap_array<T, C>::iterator  erase_unordered(fixcap_array<T, C> & ctr,
 template<typename T, size_t C> inline
 void erase_back(fixcap_array<T, C> & ctr, typename fixcap_array<T, C>::iterator newEnd)  { ctr.erase_back(newEnd); }
 
-template<typename T1, typename T2, size_t Capacity>
-bool operator==(const fixcap_array<T1, Capacity> & left, const fixcap_array<T2, Capacity> & right);
-template<typename T1, typename T2, size_t Capacity>
-bool operator!=(const fixcap_array<T1, Capacity> & left, const fixcap_array<T2, Capacity> & right)  { return !(left == right); }
+template<typename T1, typename T2, size_t C1, size_t C2>
+bool operator==(const fixcap_array<T1, C1> & left, const fixcap_array<T2, C2> & right);
+template<typename T1, typename T2, size_t C1, size_t C2>
+bool operator!=(const fixcap_array<T1, C1> & left, const fixcap_array<T2, C2> & right)  { return !(left == right); }
 
 /**
 * @brief Resizable array, statically allocated. Specify maximum size as template argument.
@@ -230,14 +230,20 @@ private:
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type newSize, UninitFillFunc initNewElems)
 	{
-		pointer const oldEnd = data() + _size;
-		pointer const newEnd = data() + newSize;
-		if (oldEnd < newEnd) // then construct new
-			initNewElems(oldEnd, newEnd);
-		else // destroy old
-			_detail::Destroy(newEnd, oldEnd);
+		if (Capacity >= newSize)
+		{
+			pointer const oldEnd = data() + _size;
+			pointer const newEnd = data() + newSize;
+			if (oldEnd < newEnd) // then construct new
+				initNewElems(oldEnd, newEnd);
+			else // destroy old
+				_detail::Destroy(newEnd, oldEnd);
 
-		_size = newSize;
+			_size = newSize;
+		}
+		else
+		{	throw _lengthExc();
+		}
 	}
 
 	template<typename CntigusIter>
@@ -357,8 +363,7 @@ private:
 // Definitions of public functions
 
 template<typename T, size_t Capacity>
-fixcap_array<T, Capacity>::
-fixcap_array(size_type size)
+fixcap_array<T, Capacity>::fixcap_array(size_type size)
 {
 	if (Capacity >= size)
 	{
@@ -371,8 +376,7 @@ fixcap_array(size_type size)
 }
 
 template<typename T, size_t Capacity>
-fixcap_array<T, Capacity>::
-fixcap_array(size_type size, const T & val)
+fixcap_array<T, Capacity>::fixcap_array(size_type size, const T & val)
 {
 	if (Capacity >= size)
 	{
@@ -385,8 +389,7 @@ fixcap_array(size_type size, const T & val)
 }
 
 template<typename T, size_t Capacity>
-inline fixcap_array<T, Capacity>::
-~fixcap_array() NOEXCEPT
+inline fixcap_array<T, Capacity>::~fixcap_array() NOEXCEPT
 {
 	_detail::Destroy(data(), data() + _size);
 }
@@ -518,31 +521,18 @@ template<typename T, size_t Capacity>
 void  fixcap_array<T, Capacity>::
 	resize(size_type newSize)
 {
-	if (Capacity >= newSize)
-	{
-		_resizeImpl( newSize,
-			[](pointer first, pointer last) { oetl::uninitialized_fill_default(first, last); } );
-	}
-	else
-	{	throw _lengthExc();
-	}
+	_resizeImpl(newSize, oetl::uninitialized_fill_default<pointer>);
 }
 
 template<typename T, size_t Capacity>
 void  fixcap_array<T, Capacity>::
 	resize(size_type newSize, const T & addVal)
 {
-	if (Capacity >= newSize)
-	{
-		_resizeImpl( newSize,
-			[&addVal](pointer first, pointer last)
-			{
-				std::uninitialized_fill(first, last, addVal);
-			} );
-	}
-	else
-	{	throw _lengthExc();
-	}
+	_resizeImpl( newSize,
+		[&addVal](pointer first, pointer last)
+		{
+			std::uninitialized_fill(first, last, addVal);
+		} );
 }
 
 template<typename T, size_t Capacity>
@@ -676,9 +666,9 @@ inline typename oetl::fixcap_array<T, C>::iterator  oetl::
 	return pos;
 }
 
-template<typename T1, typename T2, size_t Capacity>
+template<typename T1, typename T2, size_t C1, size_t C2>
 inline bool  oetl::operator==
-	(const fixcap_array<T1, Capacity> & left, const fixcap_array<T2, Capacity> & right)
+	(const fixcap_array<T1, C1> & left, const fixcap_array<T2, C2> & right)
 {
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());
