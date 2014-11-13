@@ -1,7 +1,10 @@
+#include "forward_decl_test.h"
 #include "dynarray.h"
 #include "iterator_range.h"
 #include "gtest/gtest.h"
 #include <deque>
+
+class ForwDeclared { char c; };
 
 namespace
 {
@@ -60,6 +63,10 @@ TEST_F(dynarrayTest, push_back)
 
 TEST_F(dynarrayTest, construct)
 {
+	{
+		Outer o;
+	}
+
 	oetl::dynarray<std::string> a;
 	decltype(a) b(a);
 

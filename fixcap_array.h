@@ -172,13 +172,6 @@ private:
 	_detail::AlignedStorage<sizeof(T), ALIGNOF(T)> _data[Capacity];
 
 
-	template<typename CheckT>
-	struct _staticAssertTrivialRelocate
-	{
-		static_assert(is_trivially_relocatable<CheckT>::value,
-			"Template argument T must be trivially relocatable, see documentation for is_trivially_relocatable");
-	};
-
 	static length_error _lengthExc()
 	{
 		return length_error("Not enough space in fixcap_array");
@@ -405,7 +398,7 @@ template<typename T, size_t Capacity>
 inline fixcap_array<T, Capacity>::
 fixcap_array(fixcap_array<T, Capacity> && other)
 {
-	_staticAssertTrivialRelocate<T>();
+	_detail::AssertRelocate<T>{};
 
 	_uninitCopyFrom(std::true_type{}, other);
 	other._setEmptyIfNot(std::has_trivial_destructor<T>());
@@ -423,7 +416,7 @@ template<typename T, size_t Capacity>
 inline fixcap_array<T, Capacity> &  fixcap_array<T, Capacity>::
 	operator =(fixcap_array<T, Capacity> && other)
 {
-	_staticAssertTrivialRelocate<T>();
+	_detail::AssertRelocate<T>{};
 
 	_assignInternal(std::true_type{}, other.data(), other._size);
 	other._setEmptyIfNot(std::has_trivial_destructor<T>());
@@ -486,8 +479,8 @@ template<typename T, size_t Capacity> template<typename... Params>
 typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	insert(const_iterator pos, Params &&... args)
 {
-	_staticAssertTrivialRelocate<T>();
 	static_assert(std::is_nothrow_move_constructible<T>::value, "T must have noexcept move constructor");
+	_detail::AssertRelocate<T>{};
 
 	MEM_BOUND_ASSERT(begin() <= pos && pos <= end());
 
@@ -539,7 +532,7 @@ template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	erase(iterator pos)
 {
-	_staticAssertTrivialRelocate<T>();
+	_detail::AssertRelocate<T>{};
 
 	(*pos).~T();
 	pointer const next = to_ptr(pos) + 1;
@@ -552,7 +545,7 @@ template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	erase(iterator first, iterator last)
 {
-	_staticAssertTrivialRelocate<T>();
+	_detail::AssertRelocate<T>{};
 
 	MEM_BOUND_ASSERT(to_ptr(first) <= to_ptr(last));
 	if (first < last)
