@@ -239,6 +239,15 @@ auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 
 namespace _detail
 {
+	template<typename T>
+	struct AssertRelocate
+	{
+		static_assert(is_trivially_relocatable<T>::value,
+			"Template argument T must be trivially relocatable, see documentation for is_trivially_relocatable");
+	};
+
+
+
 	template<typename, typename Iter>
 	void Destroy(std::true_type, Iter, Iter)
 	{}	// optimization for non-optimized builds
