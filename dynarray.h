@@ -154,11 +154,11 @@ public:
 	* @brief Add count elements at end from range beginning at first (in same order)
 	* @param first iterator to first element to append
 	* @param count number of elements to append
-	* @return first incremented count times,
-	*	which has singular value (invalid) if first pointed into same dynarray and a reallocation happened
+	* @return first incremented count times. The value is undefined and shall be ignored if
+	*	first pointed into same dynarray and there was insufficient capacity to avoid reallocation.
 	*
-	* Causes reallocation if the old size() + count is greater than capacity(). On reallocation, all iterators and
-	* references are invalidated. Otherwise, any previous end iterator will point to the first element added.
+	* Causes reallocation if the pre-call size + count is greater than capacity. On reallocation, all iterators
+	* and references are invalidated. Otherwise, any previous end iterator will point to the first element added.
 	* Strong exception safety, aka. commit or rollback semantics. */
 	template<typename InputIterator>
 	InputIterator append(InputIterator first, size_type count);
