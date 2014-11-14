@@ -464,7 +464,7 @@ private:
 		try
 		{
 			for (auto && v : range)
-				push_back( std::forward<decltype(v)>(v) );
+				emplace_back( std::forward<decltype(v)>(v) );
 		}
 		catch (...)
 		{
