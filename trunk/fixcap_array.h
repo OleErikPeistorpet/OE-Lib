@@ -57,7 +57,7 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 
-#if OETL_MEM_BOUND_DEBUG_LVL
+#if OETL_MEM_BOUND_DEBUG_LVL >= 2
 	using iterator       = array_iterator< fixcap_array<T, Capacity> >;
 	using const_iterator = array_const_iterator< fixcap_array<T, Capacity> >;
 #else
@@ -187,7 +187,7 @@ private:
 	static std::false_type _getSize(...) { return {}; }
 
 
-#if OETL_MEM_BOUND_DEBUG_LVL
+#if OETL_MEM_BOUND_DEBUG_LVL >= 2
 #	define OE_FIXCAPARR_ITERATOR(ptr)        iterator{ptr, this}
 #	define OE_FIXCAPARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
 #else
@@ -291,7 +291,7 @@ private:
 	template<typename CntigusIter>
 	CntigusIter _appendN(std::true_type, CntigusIter first, size_type const count)
 	{	// use memcpy
-#	if OETL_MEM_BOUND_DEBUG_LVL
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
 		if (count > 0)				// Dereference iterator to the last element to append,
 			*(first + (count - 1)); // this catches out of range errors with checked iterators
 #	endif
@@ -343,7 +343,7 @@ private:
 		try
 		{
 			for (auto && v : range)
-				push_back( std::forward<decltype(v)>(v) );
+				emplace_back( std::forward<decltype(v)>(v) );
 		}
 		catch (...)
 		{
@@ -482,7 +482,7 @@ typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	static_assert(std::is_nothrow_move_constructible<T>::value, "T must have noexcept move constructor");
 	_detail::AssertRelocate<T>{};
 
-	MEM_BOUND_ASSERT(begin() <= pos && pos <= end());
+	BOUND_ASSERT_FAST(begin() <= pos && pos <= end());
 
 	if (Capacity > _size)
 	{
@@ -534,7 +534,10 @@ inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 {
 	_detail::AssertRelocate<T>{};
 
-	(*pos).~T();
+	pointer const posPtr = to_ptr(pos);
+	BOUND_ASSERT_FAST(data() <= posPtr && pos < end());
+
+	posPtr-> ~T();
 	pointer const next = to_ptr(pos) + 1;
 	memmove(to_ptr(pos), next, ((data() + _size) - next) * sizeof(T)); // move [pos + 1, _end) to [pos, _end - 1)
 	--_size;
@@ -547,14 +550,19 @@ inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 {
 	_detail::AssertRelocate<T>{};
 
-	MEM_BOUND_ASSERT(to_ptr(first) <= to_ptr(last));
-	if (first < last)
+	pointer const pFirst = to_ptr(first);
+	pointer const pLast = to_ptr(last);
+	BOUND_ASSERT_FAST(data() <= pFirst);
+	MEM_BOUND_ASSERT(pFirst <= pLast && last <= end()); // memmove will crash if last > end
+
+	difference_type nErase = pLast - pFirst;
+	if (0 < nErase)
 	{
-		size_type const nAfterLast = (data() + _size) - to_ptr(last);
-		_detail::Destroy(first, last);
+		_detail::Destroy(pFirst, pLast);
+		size_type const nAfterLast = (data() + _size) - pLast;
 		// move [last, _end) to [first, first + nAfterLast)
-		memmove(to_ptr(first), to_ptr(last), nAfterLast * sizeof(T));
-		_size -= to_ptr(last) - to_ptr(first);
+		memmove(pFirst, pLast, nAfterLast * sizeof(T));
+		_size -= nErase;
 	}
 	return first;
 }
@@ -564,7 +572,7 @@ inline void  fixcap_array<T, Capacity>::
 	erase_back(iterator newEnd) NOEXCEPT
 {
 	pointer const first = to_ptr(newEnd);
-	MEM_BOUND_ASSERT(data() <= first && first <= data() + _size);
+	BOUND_ASSERT_FAST(data() <= first && first <= data() + _size);
 	_detail::Destroy(first, data() + _size);
 	_size = first - data();
 }

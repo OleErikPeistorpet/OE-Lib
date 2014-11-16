@@ -71,7 +71,7 @@ public:
 
 	array_const_iterator & operator++()
 	{	// preincrement
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT(_pElem < to_ptr(end(*_myCont)));
 #	endif
 		++_pElem;
@@ -87,7 +87,7 @@ public:
 
 	array_const_iterator & operator--()
 	{	// predecrement
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT(to_ptr(begin(*_myCont)) < _pElem);
 #	endif
 		--_pElem;
@@ -103,7 +103,7 @@ public:
 
 	array_const_iterator & operator+=(difference_type offset)
 	{	// add integer to pointer
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT( offset >= to_ptr(begin(*_myCont)) - _pElem
 					   && offset <= to_ptr(end(*_myCont)) - _pElem );
 #	endif
@@ -113,7 +113,7 @@ public:
 
 	array_const_iterator & operator-=(difference_type offset)
 	{	// subtract integer from pointer
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT( offset <= _pElem - to_ptr(begin(*_myCont))
 					   && offset >= _pElem - to_ptr(end(*_myCont)) );
 #	endif

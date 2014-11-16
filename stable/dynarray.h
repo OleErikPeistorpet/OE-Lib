@@ -13,7 +13,7 @@
 #include <algorithm>
 
 
-#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
+#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL < 2 && _ITERATOR_DEBUG_LEVEL == 0
 #	define OETL_FORCEINLINE __forceinline
 #else
 #	define OETL_FORCEINLINE inline
@@ -57,7 +57,7 @@ void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator newEnd) 
 
 template<typename T, typename A>
 bool operator==(const dynarray<T, A> & left, const dynarray<T, A> & right);
-template<typename T, typename A> inline
+template<typename T, typename A>
 bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { return !(left == right); }
 
 /**
@@ -77,7 +77,7 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 
-#if OETL_MEM_BOUND_DEBUG_LVL
+#if OETL_MEM_BOUND_DEBUG_LVL >= 2
 	using iterator       = array_iterator< dynarray<T, Alloc> >;
 	using const_iterator = array_const_iterator< dynarray<T, Alloc> >;
 #else
@@ -108,8 +108,8 @@ public:
 
 	/**
 	* @brief Replace the contents with count copies from range beginning at first
-	* @param first iterator to first element to assign from.
-	*	Shall not point into same dynarray, except if it is the begin iterator.
+	* @param first iterator to first element to assign from. Shall not point into same dynarray, except if it
+	*	is the begin iterator. Type must meet the requirements of Forward Traversal Iterator (boost concept)
 	* @param count number of elements to assign
 	* @return end of source range (first incremented by count)
 	*
@@ -159,6 +159,7 @@ public:
 	iterator   insert(const_iterator position, T && val);
 	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
 
+	/// After the call, any previous iterator to the back element will be equal to end()
 	void       pop_back() NOEXCEPT;
 
 	iterator   erase(iterator position) NOEXCEPT;
@@ -232,7 +233,7 @@ private:
 	pointer   _reserveEnd; // Pointer to end of allocated memory
 
 
-#if OETL_MEM_BOUND_DEBUG_LVL
+#if OETL_MEM_BOUND_DEBUG_LVL >= 2
 #	define OETL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
 #	define OETL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
 #else
@@ -284,7 +285,7 @@ private:
 	template<typename CntigusIter>
 	void _assignImpl(std::true_type, CntigusIter const first, CntigusIter, size_type const count)
 	{	// fast assign
-#	if OETL_MEM_BOUND_DEBUG_LVL
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
 		if (count > 0)				// Dereference iterator to the last incoming element,
 			*(first + (count - 1)); // this catches out of range errors with checked iterators
 #	endif
@@ -370,7 +371,7 @@ private:
 	template<typename CntigusIter>
 	OETL_FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
 	{	// use memcpy
-#	if OETL_MEM_BOUND_DEBUG_LVL
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
 		CntigusIter last = first + count;
 
 		if (count > 0)    // Dereference iterator to the last element to append,
@@ -396,7 +397,7 @@ private:
 		}
 		_end += count;
 
-#	if OETL_MEM_BOUND_DEBUG_LVL
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
 		return last; // in case of append self, bypass check in array_const_iterator::operator +
 #	else
 		return first + count;
@@ -620,7 +621,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	_staticAssertRelocate();
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
-	MEM_BOUND_ASSERT(data() <= posPtr && posPtr <= _end);
+	BOUND_ASSERT_FAST(data() <= posPtr && posPtr <= _end);
 
 	size_type const nAfterPos = _end - posPtr;
 
@@ -733,9 +734,12 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 {
 	_staticAssertRelocate();
 
-	(*pos).~T();
-	pointer const next = to_ptr(pos) + 1;
-	memmove(to_ptr(pos), next, (_end - next) * sizeof(T)); // move [pos + 1, end) to [pos, end - 1)
+	pointer const posPtr = to_ptr(pos);
+	BOUND_ASSERT_FAST(data() <= posPtr && posPtr < _end);
+
+	posPtr-> ~T();
+	pointer const next = posPtr + 1;
+	memmove(posPtr, next, (_end - next) * sizeof(T)); // move [pos + 1, end) to [pos, end - 1)
 	--_end;
 	return pos;
 }
@@ -747,7 +751,8 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 
 	pointer const pFirst = to_ptr(first);
 	pointer const pLast = to_ptr(last);
-	MEM_BOUND_ASSERT(pFirst <= pLast);
+	BOUND_ASSERT_FAST(data() <= pFirst);  // if pLast > _end, caller will find out when memmove crashes
+	MEM_BOUND_ASSERT(pFirst <= pLast && pLast <= _end);
 	if (pFirst < pLast)
 	{
 		_detail::Destroy(pFirst, pLast);
@@ -763,7 +768,7 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_back(iterator newEnd) NOEXCEPT
 {
 	pointer const first = to_ptr(newEnd);
-	MEM_BOUND_ASSERT(data() <= first && first <= _end);
+	BOUND_ASSERT_FAST(data() <= first && first <= _end);
 	_detail::Destroy(first, _end);
 	_end = first;
 }

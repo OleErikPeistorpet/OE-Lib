@@ -19,13 +19,21 @@
 #endif
 
 #if !defined(NDEBUG) && !defined(OETL_MEM_BOUND_DEBUG_LVL)
-/// Undefined: no array index and iterator debug checks. 1: some debug checks (usually fast). 2: all checks.
-#	define OETL_MEM_BOUND_DEBUG_LVL 2
+/** @brief Undefined: no array index and iterator checks. 1: fast checks. 2: most debug checks. 3: all checks, often slow.
+*
+* Warning: Levels 0 and 1 are not binary compatible with levels 2 and 3. */
+#	define OETL_MEM_BOUND_DEBUG_LVL 3
 #endif
 
 #undef MEM_BOUND_ASSERT
-#if OETL_MEM_BOUND_DEBUG_LVL
+#undef BOUND_ASSERT_FAST
+#if OETL_MEM_BOUND_DEBUG_LVL >= 2
 #	define MEM_BOUND_ASSERT ASSERT_ALWAYS
 #else
 #	define MEM_BOUND_ASSERT(expr) ((void) 0)
+#endif
+#if OETL_MEM_BOUND_DEBUG_LVL
+#	define BOUND_ASSERT_FAST ASSERT_ALWAYS
+#else
+#	define BOUND_ASSERT_FAST(expr) ((void) 0)
 #endif
