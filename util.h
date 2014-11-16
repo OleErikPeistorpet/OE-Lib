@@ -238,7 +238,7 @@ namespace _detail
 				  IterSrc const first, IterSrc const last, IterDest const dest)
 	{	// can use memcpy/memmove
 		auto const count = last - first;
-#	if OETL_MEM_BOUND_DEBUG_LVL
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
 		if (0 != count)
 		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
 			*first; *dest;
@@ -255,7 +255,7 @@ namespace _detail
 	{	// can use memcpy/memmove
 		if (0 < count)
 		{
-#		if OETL_MEM_BOUND_DEBUG_LVL
+#		if OETL_MEM_BOUND_DEBUG_LVL >= 2
 			*(first + (count - 1));        // Dereference iterators at bounds, this detects
 			*dest; *(dest + (count - 1));  // out of range errors if they are checked iterators
 #		endif

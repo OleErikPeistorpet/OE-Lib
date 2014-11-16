@@ -90,10 +90,18 @@ TEST_F(dynarrayTest, assign)
 	EXPECT_EQ("Hawking", das.at(3));
 	EXPECT_EQ("radiation", das.at(4));
 
-	decltype(das) copyDest;
-	copyDest.assign(das);
+	{
+		decltype(das) copyDest;
+		copyDest.assign(das);
 
-	EXPECT_TRUE(das == copyDest);
+		EXPECT_TRUE(das == copyDest);
+	}
+	{
+		decltype(das) copyDest;
+		copyDest.assign(cbegin(das), das.size());
+
+		EXPECT_TRUE(das == copyDest);
+	}
 }
 
 TEST_F(dynarrayTest, append)
