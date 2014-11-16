@@ -203,12 +203,6 @@ Func for_each_reverse(BidirectionRange && range, Func func)
 // Implementation only in rest of the file
 
 
-/// Type trait to check whether a type is integral and has size 1
-template<typename T>
-struct is_byte : std::integral_constant< bool,
-		std::is_integral<T>::value && sizeof(T) == 1 > {};
-
-
 namespace _detail
 {
 	template<class Container> inline
@@ -327,9 +321,10 @@ void oetl::erase_successive_dup(Container & ctr)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace smsc
-{ namespace _detail
-  {
+namespace oetl
+{
+namespace _detail
+{
 	template<typename Size, typename CntigusIter> inline
 	Size FindIdx(CntigusIter first, Size count, int val, std::true_type)
 	{	// contiguous mem iterator with integral value_type of size 1
@@ -352,18 +347,29 @@ namespace smsc
 		}
 		return Size(-1);
 	}
-  }
+
+
+	template<typename T>
+	struct IsSz1Int : bool_constant<
+			std::is_integral<T>::value && sizeof(T) == 1 > {};
 }
+
+/// If memchr can be used, returns std::true_type, else false_type
+template<typename Iterator, typename T> inline
+auto can_memchr_with(Iterator it, const T &)
+ -> decltype( to_ptr(it),
+			  bool_constant< _detail::IsSz1Int< typename std::iterator_traits<Iterator>::value_type >::value
+							 && !std::is_same<T, bool>::value >() )  { return {}; }
+
+// SFINAE fallback
+inline std::false_type can_memchr_with(...)  { return {}; }
+
+} // namespace oetl
 
 template<typename Count, typename T, typename InputIterator>
 inline Count oetl::find_idx(InputIterator first, Count count, const T & value)
 {
-	std::integral_constant< bool,
-			oetl::is_byte< typename std::iterator_traits<InputIterator>::value_type >::value
-			&& !std::is_same<T, bool>::value
-			&& is_contiguous_iterator<InputIterator>::value
-						  > canUseMemchr;
-	return _detail::FindIdx(first, count, value, canUseMemchr);
+	return _detail::FindIdx(first, count, value, can_memchr_with(first, value));
 }
 
 

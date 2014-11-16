@@ -61,11 +61,16 @@ struct range_ends
 // The rest are advanced utilities, not for users
 
 
+template<bool Value>
+using bool_constant = std::integral_constant<bool, Value>;
+
+
+
 #if _MSC_VER
 	using std::is_trivially_copyable;
 #else
 	template<typename T>
-	struct is_trivially_copyable : std::integral_constant< bool,
+	struct is_trivially_copyable : bool_constant<
 			(__has_trivial_copy(T) && __has_trivial_assign(T)) || std::is_pod<T>::value > {};
 #endif
 

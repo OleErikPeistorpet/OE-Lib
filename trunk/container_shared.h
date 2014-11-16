@@ -41,11 +41,11 @@ template<typename T>
 struct is_trivially_relocatable< std::shared_ptr<T> > : std::true_type {};
 
 template<typename T, typename U>
-struct is_trivially_relocatable< std::pair<T, U> > : std::integral_constant< bool,
+struct is_trivially_relocatable< std::pair<T, U> > : bool_constant<
 	is_trivially_relocatable<T>::value && is_trivially_relocatable<U>::value > {};
 
 template<typename T, typename... Us>
-struct is_trivially_relocatable< std::tuple<T, Us...> > : std::integral_constant< bool,
+struct is_trivially_relocatable< std::tuple<T, Us...> > : bool_constant<
 	is_trivially_relocatable<T>::value && is_trivially_relocatable< std::tuple<Us...> >::value > {};
 
 template<>
@@ -159,7 +159,7 @@ namespace _detail
 
 
 	template<size_t Align>
-	struct CanDefaultAlloc : std::integral_constant< bool,
+	struct CanDefaultAlloc : bool_constant<
 #		if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16 >
 #		else
