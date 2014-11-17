@@ -482,7 +482,7 @@ typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	static_assert(std::is_nothrow_move_constructible<T>::value, "T must have noexcept move constructor");
 	_detail::AssertRelocate<T>{};
 
-	BOUND_ASSERT_FAST(begin() <= pos && pos <= end());
+	BOUND_ASSERT_CHEAP(begin() <= pos && pos <= end());
 
 	if (Capacity > _size)
 	{
@@ -535,7 +535,7 @@ inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	_detail::AssertRelocate<T>{};
 
 	pointer const posPtr = to_ptr(pos);
-	BOUND_ASSERT_FAST(data() <= posPtr && pos < end());
+	BOUND_ASSERT_CHEAP(data() <= posPtr && pos < end());
 
 	posPtr-> ~T();
 	pointer const next = to_ptr(pos) + 1;
@@ -552,7 +552,7 @@ inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 
 	pointer const pFirst = to_ptr(first);
 	pointer const pLast = to_ptr(last);
-	BOUND_ASSERT_FAST(data() <= pFirst);
+	BOUND_ASSERT_CHEAP(data() <= pFirst);
 	MEM_BOUND_ASSERT(pFirst <= pLast && last <= end()); // memmove will crash if last > end
 
 	difference_type nErase = pLast - pFirst;
@@ -572,7 +572,7 @@ inline void  fixcap_array<T, Capacity>::
 	erase_back(iterator newEnd) NOEXCEPT
 {
 	pointer const first = to_ptr(newEnd);
-	BOUND_ASSERT_FAST(data() <= first && first <= data() + _size);
+	BOUND_ASSERT_CHEAP(data() <= first && first <= data() + _size);
 	_detail::Destroy(first, data() + _size);
 	_size = first - data();
 }
