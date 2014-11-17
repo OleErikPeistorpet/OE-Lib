@@ -298,8 +298,7 @@ namespace _detail
 
 
 	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter> inline
-	range_ends<InputIter, ForwardIter>
-		UninitCopyN(std::true_type, InputIter first, Count count, ForwardIter dest)
+	range_ends<InputIter, ForwardIter>  UninitCopyN(std::true_type, InputIter first, Count count, ForwardIter & dest)
 	{	// nothrow constructible
 		for (; 0 < count; --count)
 		{
@@ -310,24 +309,18 @@ namespace _detail
 	}
 
 	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter> inline
-	range_ends<InputIter, ForwardIter>
-		UninitCopyN(std::false_type, InputIter first, Count count, ForwardIter dest)
+	range_ends<InputIter, ForwardIter>  UninitCopyN(std::false_type, InputIter first, Count count, ForwardIter dest)
 	{
 		ForwardIter const destBegin = dest;
 		try
 		{
-			for (; 0 < count; --count)
-			{
-				::new(std::addressof(*dest)) DestValT(*first);
-				++dest; ++first;
-			}
+			return UninitCopyN<DestValT>(std::true_type, first, count, dest); // dest passed by reference
 		}
 		catch (...)
 		{
 			Destroy(destBegin, dest);
 			throw;
 		}
-		return {first, dest};
 	}
 } // namespace _detail
 
