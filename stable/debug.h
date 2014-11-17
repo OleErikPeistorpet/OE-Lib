@@ -26,14 +26,14 @@
 #endif
 
 #undef MEM_BOUND_ASSERT
-#undef BOUND_ASSERT_FAST
+#undef BOUND_ASSERT_CHEAP
 #if OETL_MEM_BOUND_DEBUG_LVL >= 2
 #	define MEM_BOUND_ASSERT ASSERT_ALWAYS
 #else
 #	define MEM_BOUND_ASSERT(expr) ((void) 0)
 #endif
 #if OETL_MEM_BOUND_DEBUG_LVL
-#	define BOUND_ASSERT_FAST ASSERT_ALWAYS
+#	define BOUND_ASSERT_CHEAP ASSERT_ALWAYS
 #else
-#	define BOUND_ASSERT_FAST(expr) ((void) 0)
+#	define BOUND_ASSERT_CHEAP(expr) ((void) 0)
 #endif

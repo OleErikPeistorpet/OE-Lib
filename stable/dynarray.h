@@ -621,7 +621,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	_staticAssertRelocate();
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
-	BOUND_ASSERT_FAST(data() <= posPtr && posPtr <= _end);
+	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);
 
 	size_type const nAfterPos = _end - posPtr;
 
@@ -735,7 +735,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 	_staticAssertRelocate();
 
 	pointer const posPtr = to_ptr(pos);
-	BOUND_ASSERT_FAST(data() <= posPtr && posPtr < _end);
+	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr < _end);
 
 	posPtr-> ~T();
 	pointer const next = posPtr + 1;
@@ -751,7 +751,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 
 	pointer const pFirst = to_ptr(first);
 	pointer const pLast = to_ptr(last);
-	BOUND_ASSERT_FAST(data() <= pFirst);  // if pLast > _end, caller will find out when memmove crashes
+	BOUND_ASSERT_CHEAP(data() <= pFirst);  // if pLast > _end, caller will find out when memmove crashes
 	MEM_BOUND_ASSERT(pFirst <= pLast && pLast <= _end);
 	if (pFirst < pLast)
 	{
@@ -768,7 +768,7 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_back(iterator newEnd) NOEXCEPT
 {
 	pointer const first = to_ptr(newEnd);
-	BOUND_ASSERT_FAST(data() <= first && first <= _end);
+	BOUND_ASSERT_CHEAP(data() <= first && first <= _end);
 	_detail::Destroy(first, _end);
 	_end = first;
 }

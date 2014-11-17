@@ -153,7 +153,7 @@ namespace _detail
 	template<typename ValT, typename ForwardIter> inline
 	void UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
 	{	// not trivial default constructor
-		auto init = first;
+		ForwardIter init = first;
 		try
 		{
 			for (; first != last; ++first)
@@ -174,7 +174,7 @@ template<typename InputIterator, typename ForwardIterator>
 range_ends<InputIterator, ForwardIterator> uninitialized_copy_n(InputIterator first, size_t count, ForwardIterator dest)
 {
 	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
-	auto destBegin = dest;
+	ForwardIterator destBegin = dest;
 	try
 	{
 		for (; 0 < count; --count)
