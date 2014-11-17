@@ -9,8 +9,8 @@
 #include "basic_util.h"
 
 #include <algorithm>
-#include <cstring>
 #include <cstdint>
+#include <string.h>
 
 /**
 * @file util.h

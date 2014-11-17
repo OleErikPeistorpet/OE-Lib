@@ -11,8 +11,8 @@
 #ifndef OETL_NO_BOOST
 #include <boost/align/aligned_alloc.hpp>
 #endif
+#include <string.h>
 #include <memory>
-#include <cstring>
 #include <stdexcept>
 
 

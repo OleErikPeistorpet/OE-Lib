@@ -10,8 +10,8 @@
 
 #include <algorithm>
 #include <memory>
-#include <cstring>
 #include <cstdint>
+#include <string.h>
 
 /**
 * @file util.h

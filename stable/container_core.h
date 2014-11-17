@@ -9,8 +9,8 @@
 #include "basic_util.h"
 
 #include <boost/align/aligned_alloc.hpp>
+#include <string.h>
 #include <memory>
-#include <cstring>
 #include <stdexcept>
 
 
