@@ -71,12 +71,12 @@ struct range_ends
 // The rest are advanced utilities, not for users
 
 
-#if _MSC_VER
-	using std::is_trivially_copyable;
-#else
+#if __GLIBCXX__
 	template<typename T>
 	struct is_trivially_copyable : std::integral_constant< bool,
 				__has_trivial_copy(T) && __has_trivial_assign(T) > {};
+#else
+	using std::is_trivially_copyable;
 #endif
 
 

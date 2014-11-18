@@ -4,6 +4,8 @@
 #include "gtest/gtest.h"
 #include <deque>
 
+#include <array>
+
 class ForwDeclared { char c; };
 
 namespace
@@ -75,33 +77,37 @@ TEST_F(dynarrayTest, construct)
 
 TEST_F(dynarrayTest, assign)
 {
-	std::stringstream ss{"My computer emits Hawking radiation"};
-	dynarray<std::string> das;
-
-	std::istream_iterator<std::string> begin{ss};
-	std::istream_iterator<std::string> end;
-	das.assign(oetl::make_range(begin, end));
-
-	EXPECT_EQ(5, das.size());
-
-	EXPECT_EQ("My", das.at(0));
-	EXPECT_EQ("computer", das.at(1));
-	EXPECT_EQ("emits", das.at(2));
-	EXPECT_EQ("Hawking", das.at(3));
-	EXPECT_EQ("radiation", das.at(4));
-
 	{
-		decltype(das) copyDest;
-		copyDest.assign(das);
+		std::stringstream ss{"My computer emits Hawking radiation"};
+		dynarray<std::string> das;
 
-		EXPECT_TRUE(das == copyDest);
-	}
-	{
+		std::istream_iterator<std::string> begin{ss};
+		std::istream_iterator<std::string> end;
+		das.assign(oetl::make_range(begin, end));
+
+		EXPECT_EQ(5, das.size());
+
+		EXPECT_EQ("My", das.at(0));
+		EXPECT_EQ("computer", das.at(1));
+		EXPECT_EQ("emits", das.at(2));
+		EXPECT_EQ("Hawking", das.at(3));
+		EXPECT_EQ("radiation", das.at(4));
+
 		decltype(das) copyDest;
 		copyDest.assign(cbegin(das), das.size());
 
 		EXPECT_TRUE(das == copyDest);
 	}
+
+	typedef float Vec3[3];
+	Vec3 src[] {{1, 0, 0}, {0, 0, -1}};
+
+	dynarray<Vec3> test;
+	std::true_type check = oetl::_detail::CanMemmoveArrays(test.data(), oetl::cbegin(src));
+	test.assign(src);
+
+	EXPECT_EQ(src[0], test[0]);
+	EXPECT_EQ(src[1], test[1]);
 }
 
 TEST_F(dynarrayTest, append)

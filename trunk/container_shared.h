@@ -267,21 +267,15 @@ namespace _detail
 	}
 
 
-	template<typename, typename Iter>
-	void UninitFillDefault(std::true_type, Iter, Iter)
-	{}	// trivial default constructor; optimization for debug builds
-
 	template<typename ValT, typename ForwardIter> inline
-	std::enable_if_t< std::is_nothrow_default_constructible<ValT>::value >
-		UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
+	void UninitFillDefault(std::true_type, ForwardIter first, ForwardIter const last)
 	{
 		for (; first != last; ++first)
 			::new(std::addressof(*first)) ValT;
 	}
 
 	template<typename ValT, typename ForwardIter> inline
-	std::enable_if_t< !std::is_nothrow_default_constructible<ValT>::value >
-		UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
+	void UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
 	{	// default constructor potentially throws
 		ForwardIter const init = first;
 		try
@@ -329,7 +323,7 @@ template<typename ForwardIterator> inline
 void uninitialized_fill_default(ForwardIterator first, ForwardIterator last)
 {
 	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
-	_detail::UninitFillDefault<ValT>(std::is_trivially_default_constructible<ValT>(), first, last);
+	_detail::UninitFillDefault<ValT>(std::is_nothrow_default_constructible<ValT>(), first, last);
 }
 
 /// Copies count elements from a range beginning at first to an uninitialized memory area beginning at dest

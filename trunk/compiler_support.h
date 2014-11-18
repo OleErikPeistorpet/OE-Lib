@@ -9,7 +9,3 @@
 
 #	define ALIGNOF __alignof
 #endif
-
-#if !_MSC_VER || _MSC_VER >= 1800
-#	define CPP11_VARIADIC_TEMPL 1
-#endif

@@ -42,8 +42,6 @@ bool index_valid(const Range & range, std::int64_t index);
 
 
 
-#if CPP11_VARIADIC_TEMPL
-
 /// Calls new T using constructor syntax with args as the parameter list and wraps it in a std::unique_ptr.
 template<typename T, typename... Params, typename = std::enable_if_t<!std::is_array<T>::value> >
 std::unique_ptr<T>  make_unique(Params &&... args);
@@ -74,8 +72,6 @@ std::unique_ptr<T> make_unique(size_t arraySize);
 * Default initialization of non-class T produces objects with indeterminate value  */
 template<typename T>
 std::unique_ptr<T> make_unique_default(size_t arraySize);
-
-#endif
 
 
 /**
@@ -414,8 +410,6 @@ inline bool oetl::index_valid(const Range & r, std::int64_t idx)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#if CPP11_VARIADIC_TEMPL
-
 template<typename T, typename... Params, typename>
 std::unique_ptr<T>  oetl::make_unique(Params &&... args)
 {
@@ -450,4 +444,3 @@ inline std::unique_ptr<T>  oetl::make_unique_default(size_t arraySize)
 	typedef typename std::remove_extent<T>::type Elem;
 	return std::unique_ptr<T>(new Elem[arraySize]);  // default-initialize
 }
-#endif
