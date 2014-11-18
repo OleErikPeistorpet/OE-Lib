@@ -166,7 +166,8 @@ public:
 	* @param range object which begin and end can be called on (an array, STL container or iterator_range)
 	* @return iterator pointing to first of the new elements in dynarray, or end if range is empty
 	*
-	* Otherwise same as append(InputIterator, size_type)  */
+	* Strong exception safety (commit or rollback semantics), provided that type of first meet the requirements
+	* of Forward Traversal Iterator (boost concept). Otherwise same as append(InputIterator, size_type)  */
 	template<typename InputRange>
 	iterator      append(const InputRange & range);
 
@@ -464,16 +465,8 @@ private:
 	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & range)
 	{	// slowest
 		size_type const oldSize = size();
-		try
-		{
-			for (auto && v : range)
-				emplace_back( std::forward<decltype(v)>(v) );
-		}
-		catch (...)
-		{
-			erase_back(begin() + oldSize);
-			throw;
-		}
+		for (auto && v : range)
+			emplace_back( std::forward<decltype(v)>(v) );
 
 		return begin() + oldSize;
 	}
