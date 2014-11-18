@@ -63,6 +63,10 @@ TEST_F(dynarrayTest, push_back)
 
 TEST_F(dynarrayTest, construct)
 {
+	{
+		Outer o;
+	}
+
 	oetl::dynarray<std::string> a;
 	decltype(a) b(a);
 
@@ -72,9 +76,14 @@ TEST_F(dynarrayTest, construct)
 TEST_F(dynarrayTest, assign)
 {
 	{
-		std::stringstream ss{"My computer emits Hawking radiation"};
 		dynarray<std::string> das;
 
+		std::string * p = nullptr;
+		das.assign(oetl::make_range(p, p));
+
+		EXPECT_EQ(0, das.size());
+
+		std::stringstream ss{"My computer emits Hawking radiation"};
 		std::istream_iterator<std::string> begin{ss};
 		std::istream_iterator<std::string> end;
 		das.assign(oetl::make_range(begin, end));
@@ -88,18 +97,41 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ("radiation", das.at(4));
 
 		decltype(das) copyDest;
+
 		copyDest.assign(cbegin(das), das.size());
 
 		EXPECT_TRUE(das == copyDest);
+
+		copyDest.assign(oetl::make_range(cbegin(das), cbegin(das) + 1));
+
+		EXPECT_EQ(1, copyDest.size());
+		EXPECT_EQ(das[0], copyDest[0]);
+
+		copyDest.assign(cbegin(das) + 2, 3);
+
+		EXPECT_EQ(3, copyDest.size());
+		EXPECT_EQ(das[2], copyDest[0]);
+		EXPECT_EQ(das[3], copyDest[1]);
+		EXPECT_EQ(das[4], copyDest[2]);
 	}
 
-	Outer src[] = {{1}, {0}, {-1}};
-	dynarray<Outer> test;
-	test.assign(src);
+	Deleter::callCount = 0;
+	{
+		double const VALUES[] = {-1.1, 0.4};
+		DoublePtr src[] { DoublePtr{new double{VALUES[0]}},
+						  DoublePtr{new double{VALUES[1]}} };
+		dynarray<DoublePtr> test;
 
-	EXPECT_EQ(src[0].c, test[0].c);
-	EXPECT_EQ(src[1].c, test[1].c);
-	EXPECT_EQ(src[2].c, test[2].c);
+		test.assign(oetl::move_range(src));
+
+		EXPECT_EQ(2, test.size());
+		EXPECT_EQ(VALUES[0], *test[0]);
+		EXPECT_EQ(VALUES[1], *test[1]);
+
+		test.assign(oetl::make_move_iter(src), 0);
+		EXPECT_EQ(0, test.size());
+	}
+	EXPECT_EQ(2, Deleter::callCount);
 }
 
 TEST_F(dynarrayTest, append)
