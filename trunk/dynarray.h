@@ -332,8 +332,8 @@ private:
 		}
 		else if (size() >= count)
 		{	// enough elements, copy new and destroy old
-			iterator newEnd = std::copy(first, last, begin());
-			erase_back(newEnd);
+			pointer newEnd = std::copy(first, last, data());
+			erase_back(OETL_DYNARR_ITERATOR(newEnd));
 		}
 		else
 		{	// enough room, assign to old elements and construct rest
@@ -481,7 +481,7 @@ private:
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
 	{
-		_detail::AssertRelocate<T>{};
+		_detail::AssertRelocate<T>();
 
 		size_type allocSize = capacity();
 		if (newSize < allocSize)
@@ -591,7 +591,7 @@ inline void dynarray<T, Alloc>::assign(const InputRange & source)
 template<typename T, typename Alloc> template<typename InputIterator>
 OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	return _appendN(can_memmove_ranges_with(data(), first), first, count);
 }
@@ -599,7 +599,7 @@ OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, s
 template<typename T, typename Alloc> template<typename InputRange>
 OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & range)
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	auto first = adl_begin(range);
 	return _append(can_memmove_ranges_with(data(), first),
@@ -610,7 +610,7 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 template<typename T, typename Alloc> template<typename... Params>
 inline void dynarray<T, Alloc>::emplace_back(Params &&... args)
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	if (_end < _reserveEnd)
 	{
@@ -638,7 +638,7 @@ template<typename T, typename Alloc> template<typename... Params>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Params &&... args)
 {
 	static_assert(std::is_nothrow_move_constructible<T>::value, "T must have noexcept move constructor");
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
 	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);
@@ -690,7 +690,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_i
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::reserve(size_type minCapacity)
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	if (capacity() < minCapacity)
 	{
@@ -708,7 +708,7 @@ inline void dynarray<T, Alloc>::reserve(size_type minCapacity)
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::shrink_to_fit()
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	size_type const usedSize = size();
 	pointer newData;
@@ -752,7 +752,7 @@ inline void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) NOEXCEPT
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	pointer const posPtr = to_ptr(pos);
 	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr < _end);
@@ -767,7 +767,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) NOEXCEPT
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	pointer const pFirst = to_ptr(first);
 	pointer const pLast = to_ptr(last);
