@@ -6,10 +6,20 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "compiler_support.h"
 #include "debug.h"
 
 #include <iterator>
+
+
+#if !_MSC_VER || _MSC_VER >= 1900
+#	define NOEXCEPT noexcept
+
+#	define ALIGNOF alignof
+#else
+#	define NOEXCEPT throw()
+
+#	define ALIGNOF __alignof
+#endif
 
 
 /// Obscure Efficient Template Library
@@ -129,7 +139,7 @@ inline std::false_type can_memmove_ranges_with(...)  { return {}; }
 
 namespace _detail
 {
-	template<typename HasSizeRange> inline
+	template<typename HasSizeRange> inline // pass dummy int to prefer this overload
 	auto Count(const HasSizeRange & r, int) -> decltype(r.size()) { return r.size(); }
 
 	template<typename Range> inline

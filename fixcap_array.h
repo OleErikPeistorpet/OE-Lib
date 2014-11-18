@@ -9,6 +9,8 @@
 #include "array_iterator.h"
 #include "container_shared.h"
 
+#include <stdexcept>
+
 
 namespace oetl
 {

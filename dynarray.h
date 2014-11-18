@@ -13,6 +13,7 @@
 #include <boost/iterator/iterator_categories.hpp>
 #include "boost/iterator/iterator_concepts.hpp"
 #endif
+#include <stdexcept>
 #include <algorithm>
 
 
