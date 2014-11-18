@@ -117,7 +117,7 @@ namespace _detail
 	IterDest Copy(std::true_type, IterSrc const first, IterSrc const last, IterDest const dest)
 	{	// can use memcpy
 		auto const count = last - first;
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#	if OETL_MEM_BOUND_DEBUG_LVL
 		if (0 != count)
 		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
 			*first; *dest;
@@ -133,7 +133,7 @@ namespace _detail
 	{	// can use memcpy
 		if (0 < count)
 		{
-#		if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#		if OETL_MEM_BOUND_DEBUG_LVL
 			*(first + (count - 1));        // Dereference iterators at bounds, this detects
 			*dest; *(dest + (count - 1));  // out of range errors if they are checked iterators
 #		endif

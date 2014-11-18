@@ -301,7 +301,7 @@ private:
 	template<typename CntigusIter>
 	void _assignImpl(std::true_type, CntigusIter const first, CntigusIter, size_type const count)
 	{	// fast assign
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#	if OETL_MEM_BOUND_DEBUG_LVL
 		if (count > 0)				// Dereference iterator to the last incoming element,
 			*(first + (count - 1)); // this catches out of range errors with checked iterators
 #	endif
@@ -387,7 +387,7 @@ private:
 	template<typename CntigusIter>
 	OETL_FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
 	{	// use memcpy
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#	if OETL_MEM_BOUND_DEBUG_LVL
 		CntigusIter last = first + count;
 
 		if (count > 0)    // Dereference iterator to the last element to append,
@@ -413,7 +413,7 @@ private:
 		}
 		_end += count;
 
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#	if OETL_MEM_BOUND_DEBUG_LVL
 		return last; // in case of append self, bypass check in array_const_iterator::operator +
 #	else
 		return first + count;
