@@ -340,7 +340,8 @@ private:
 	void _assign(const InputRange & range, boost::single_pass_traversal_tag)
 	{	// single pass iterator (slowest)
 		clear();
-		append(range);
+		for (auto && v : range)
+			push_back( std::forward<decltype(v)>(v) );
 	}
 
 	template<typename CopyFunc>
