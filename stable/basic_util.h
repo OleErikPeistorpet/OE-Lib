@@ -31,7 +31,7 @@ using std::size_t;
 using std::begin;
 using std::end;
 
-#if _MSC_VER >= 1800
+#if _MSC_VER
 
 using std::cbegin;
 using std::cend;
@@ -71,12 +71,12 @@ struct range_ends
 // The rest are advanced utilities, not for users
 
 
-#if _MSC_VER >= 1800
+#if _MSC_VER
 	using std::is_trivially_copyable;
 #else
 	template<typename T>
 	struct is_trivially_copyable : std::integral_constant< bool,
-			(__has_trivial_copy(T) && __has_trivial_assign(T)) || std::is_pod<T>::value > {};
+				__has_trivial_copy(T) && __has_trivial_assign(T) > {};
 #endif
 
 
@@ -94,7 +94,7 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 	T *       to_ptr(std::_Array_iterator<T, S> it)        { return it._Unchecked(); }
 	template<typename T, size_t S> inline
 	const T * to_ptr(std::_Array_const_iterator<T, S> it)  { return it._Unchecked(); }
-#elif __GNUC__
+#elif __GLIBCXX__
 	template<typename T, typename U> inline
 	T * to_ptr(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
 #endif
