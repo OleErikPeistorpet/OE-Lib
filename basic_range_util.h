@@ -106,22 +106,8 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 
 namespace _detail
 {
-	template<typename T, typename U>
-	struct CanMemmoveArraysOf
-	{
-		using RemovArrT = std::remove_all_extents_t<T>;
-		using StripU = std::remove_const_t< std::remove_all_extents_t<U> >;
-
-		static bool const value = is_trivially_copyable<RemovArrT>::value
-							   && (std::is_same<RemovArrT, StripU>::value
-								 || std::is_base_of<RemovArrT, StripU>::value
-								 || std::is_base_of<StripU, RemovArrT>::value)
-							   && sizeof(T) == sizeof(U);
-	};
-
-	template<typename DestElem, typename SrcElem>
-	bool_constant< CanMemmoveArraysOf<DestElem, SrcElem>::value >
-		CanMemmoveArrays(DestElem *, SrcElem *) { return {}; }
+	template<typename T>    // (target, source)
+	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
 }
 
 #if _MSC_VER
