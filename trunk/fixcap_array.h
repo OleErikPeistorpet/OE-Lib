@@ -341,17 +341,8 @@ private:
 	template<typename InputRange>
 	void _append(std::false_type, const InputRange & range)
 	{	// number of items unknown (slowest)
-		iterator const oldEnd = end();
-		try
-		{
-			for (auto && v : range)
-				emplace_back( std::forward<decltype(v)>(v) );
-		}
-		catch (...)
-		{
-			erase_back(oldEnd);
-			throw;
-		}
+		for (auto && v : range)
+			emplace_back( std::forward<decltype(v)>(v) );
 	}
 };
 
@@ -400,7 +391,7 @@ template<typename T, size_t Capacity>
 inline fixcap_array<T, Capacity>::
 fixcap_array(fixcap_array<T, Capacity> && other)
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	_uninitCopyFrom(std::true_type{}, other);
 	other._setEmptyIfNot(std::has_trivial_destructor<T>());
@@ -418,7 +409,7 @@ template<typename T, size_t Capacity>
 inline fixcap_array<T, Capacity> &  fixcap_array<T, Capacity>::
 	operator =(fixcap_array<T, Capacity> && other)
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	_assignInternal(std::true_type{}, other.data(), other._size);
 	other._setEmptyIfNot(std::has_trivial_destructor<T>());
@@ -482,7 +473,7 @@ typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	insert(const_iterator pos, Params &&... args)
 {
 	static_assert(std::is_nothrow_move_constructible<T>::value, "T must have noexcept move constructor");
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	BOUND_ASSERT_CHEAP(begin() <= pos && pos <= end());
 
@@ -534,7 +525,7 @@ template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	erase(iterator pos)
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	pointer const posPtr = to_ptr(pos);
 	BOUND_ASSERT_CHEAP(data() <= posPtr && pos < end());
@@ -550,7 +541,7 @@ template<typename T, size_t Capacity>
 inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	erase(iterator first, iterator last)
 {
-	_detail::AssertRelocate<T>{};
+	_detail::AssertRelocate<T>();
 
 	pointer const pFirst = to_ptr(first);
 	pointer const pLast = to_ptr(last);

@@ -109,8 +109,8 @@ public:
 
 	/**
 	* @brief Replace the contents with count copies from range beginning at first
-	* @param first iterator to first element to assign from. Shall not point into same dynarray, except if it
-	*	is the begin iterator. Type must meet the requirements of Forward Traversal Iterator (boost concept)
+	* @param first iterator to first element to assign from. Shall not point into same dynarray, except if it is
+	*	the begin iterator. Type must meet the requirements of Forward Traversal Iterator (no std::istream_iterator)
 	* @param count number of elements to assign
 	* @return end of source range (first incremented by count)
 	*
