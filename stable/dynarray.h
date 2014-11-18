@@ -10,6 +10,7 @@
 #include "container_core.h"
 
 #include <boost/iterator/iterator_categories.hpp>
+#include <stdexcept>
 #include <algorithm>
 
 

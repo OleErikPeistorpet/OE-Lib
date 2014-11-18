@@ -6,14 +6,13 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "basic_range_util.h"
+#include "basic_util.h"
 
 #ifndef OETL_NO_BOOST
 #include <boost/align/aligned_alloc.hpp>
 #endif
-#include <string.h>
 #include <memory>
-#include <stdexcept>
+#include <string.h>
 
 
 namespace oetl
