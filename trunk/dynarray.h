@@ -166,7 +166,7 @@ public:
 	* @param range object which begin and end can be called on (an array, STL container or iterator_range)
 	* @return iterator pointing to first of the new elements in dynarray, or end if range is empty
 	*
-	* Strong exception safety (commit or rollback semantics), provided that type of first meet the requirements
+	* Strong exception safety (commit or rollback semantics), provided that range iterator type meet the requirements
 	* of Forward Traversal Iterator (boost concept). Otherwise same as append(InputIterator, size_type)  */
 	template<typename InputRange>
 	iterator      append(const InputRange & range);
