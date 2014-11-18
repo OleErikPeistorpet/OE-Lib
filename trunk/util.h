@@ -273,7 +273,7 @@ template<typename InputIterator, typename OutputIterator>
 inline OutputIterator oetl::copy(InputIterator first, InputIterator last, OutputIterator dest)
 {
 	return _detail::Copy(can_memmove_ranges_with(dest, begin(source)),
-						 memmove,
+						 ::memmove,
 						 begin(source), end(source), dest);
 }
 
@@ -281,14 +281,14 @@ template<typename InputRange, typename OutputIterator>
 inline OutputIterator oetl::copy_nonoverlap(const InputRange & source, OutputIterator dest)
 {
 	return _detail::Copy(can_memmove_ranges_with(dest, begin(source)),
-						 memcpy,
+						 ::memcpy,
 						 begin(source), end(source), dest);
 }
 
 template<typename InputIterator, typename Count, typename OutputIterator>
 inline oetl::range_ends<InputIterator, OutputIterator>  oetl::copy_n(InputIterator first, Count count, OutputIterator dest)
 {
-	return _detail::CopyN(can_memmove_ranges_with(dest, first), memmove,
+	return _detail::CopyN(can_memmove_ranges_with(dest, first), ::memmove,
 						  first, count, dest);
 }
 
@@ -296,7 +296,7 @@ template<typename InputIterator, typename Count, typename OutputIterator>
 inline oetl::range_ends<InputIterator, OutputIterator>  oetl::
 	copy_nonoverlap(InputIterator first, Count count, OutputIterator dest)
 {
-	return _detail::CopyN(can_memmove_ranges_with(dest, first), memcpy,
+	return _detail::CopyN(can_memmove_ranges_with(dest, first), ::memcpy,
 						  first, count, dest);
 }
 

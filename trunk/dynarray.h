@@ -272,7 +272,7 @@ private:
 
 	void _uninitCopyData(std::true_type, const dynarray<T, Alloc> & src)
 	{	// trivial copy
-		memcpy(data(), src.data(), src.size() * sizeof(T));
+		::memcpy(data(), src.data(), src.size() * sizeof(T));
 		_reserveEnd = _end = data() + src.size();
 	}
 
@@ -315,7 +315,7 @@ private:
 		{	_end = data() + count;
 		}
 		// Not portable. Check for self assignment or use memmove?
-		memcpy(data(), to_ptr(first), count * sizeof(T));
+		::memcpy(data(), to_ptr(first), count * sizeof(T));
 	}
 
 	template<typename InputIter>
@@ -378,7 +378,7 @@ private:
 			// Do not assign member variables until after copy of new elements in case of exception
 			_reserveEnd = newData.get() + newCapacity;
 
-			memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
+			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
 			_data.swap(newData);
 		}
 		return appendPos;
@@ -396,7 +396,7 @@ private:
 		if (_unusedCapacity() >= count)
 		{
 			// Behaviour undefined by standard if first points to null
-			memcpy(_end, to_ptr(first), count * sizeof(T));
+			::memcpy(_end, to_ptr(first), count * sizeof(T));
 		}
 		else
 		{
@@ -405,9 +405,9 @@ private:
 
 			_reserveEnd = newData + newCapacity;
 
-			memcpy(newData, data(), size() * sizeof(T));
+			::memcpy(newData, data(), size() * sizeof(T));
 			_end = newData + size();
-			memcpy(_end, to_ptr(first), count * sizeof(T));
+			::memcpy(_end, to_ptr(first), count * sizeof(T));
 			// Copy new elements before deallocating old buffer, in case this->_data is the source
 			_data.reset(newData);
 		}
@@ -507,7 +507,7 @@ private:
 			_reserveEnd = newData.get() + allocSize;
 
 			// Fill new elements before reallocating old data, in case of copying an element from this
-			memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
+			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
 			_data.swap(newData);
 		}
 	}
@@ -627,7 +627,7 @@ inline void dynarray<T, Alloc>::emplace_back(Params &&... args)
 		_reserveEnd = newData.get() + newCapacity;
 
 		// Make new element before reallocating old data to support push_back from this
-		memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
+		::memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
 		_data.swap(newData);
 	}
 	++_end;
@@ -650,7 +650,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		auto tmp = T(std::forward<Params>(args)...);
 
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
-		memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
+		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
 		++_end;
 
 		::new(posPtr) T(std::move(tmp)); // move construct the new element at uninitialized location pos
@@ -668,8 +668,8 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		::new(newPos) T(std::forward<Params>(args)...);		// add new
 		_end = newPos + 1;
 		// Behaviour undefined by standard if data is null
-		memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // move and destroy prefix
-		memcpy(_end, posPtr, nAfterPos * sizeof(T));  // move and destroy suffix
+		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // move and destroy prefix
+		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // move and destroy suffix
 		_end += nAfterPos;
 
 		_reserveEnd = newData.get() + newCapacity;
@@ -697,7 +697,7 @@ inline void dynarray<T, Alloc>::reserve(size_type minCapacity)
 
 		_reserveEnd = newData + minCapacity;
 
-		memcpy(newData, data(), size() * sizeof(T));  // move and destroy old
+		::memcpy(newData, data(), size() * sizeof(T));  // move and destroy old
 		_end = newData + size();
 
 		_data.reset(newData);
@@ -714,7 +714,7 @@ inline void dynarray<T, Alloc>::shrink_to_fit()
 	if (0 < usedSize)
 	{
 		newData = _alloc(usedSize);
-		memcpy(newData, data(), usedSize * sizeof(T)); // copy data from old
+		::memcpy(newData, data(), usedSize * sizeof(T)); // copy data from old
 		_end = newData + usedSize;
 	}
 	else
@@ -758,7 +758,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 
 	posPtr-> ~T();
 	pointer const next = posPtr + 1;
-	memmove(posPtr, next, (_end - next) * sizeof(T)); // move [pos + 1, end) to [pos, end - 1)
+	::memmove(posPtr, next, (_end - next) * sizeof(T)); // move [pos + 1, end) to [pos, end - 1)
 	--_end;
 	return pos;
 }
@@ -777,7 +777,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 		_detail::Destroy(pFirst, pLast);
 		size_type const nAfterLast = _end - pLast;
 		// move [last, end) to [first, first + nAfterLast)
-		memmove(pFirst, pLast, nAfterLast * sizeof(T));
+		::memmove(pFirst, pLast, nAfterLast * sizeof(T));
 		_end = pFirst + nAfterLast;
 	}
 	return first;

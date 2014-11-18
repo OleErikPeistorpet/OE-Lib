@@ -209,8 +209,8 @@ private:
 	void _uninitCopyFrom(std::true_type, const fixcap_array<T, Capacity> & src)
 	{	// trivial copy
 		//_size = src._size;
-		//memcpy(data(), src.data(), src._size * sizeof(T));
-		memcpy(this, &src, sizeof src._size + src._size * sizeof(T));
+		//::memcpy(data(), src.data(), src._size * sizeof(T));
+		::memcpy(this, &src, sizeof src._size + src._size * sizeof(T));
 	}
 
 	void _setEmptyIfNot(std::false_type)
@@ -244,7 +244,7 @@ private:
 	{	// fastest assign
 		_size = count;
 		// Not portable for self assignment. Use memmove?
-		memcpy(data(), to_ptr(first), count * sizeof(T));
+		::memcpy(data(), to_ptr(first), count * sizeof(T));
 
 		return first + count;
 	}
@@ -295,7 +295,7 @@ private:
 		if (count > 0)				// Dereference iterator to the last element to append,
 			*(first + (count - 1)); // this catches out of range errors with checked iterators
 #	endif
-		memcpy(data() + _size, to_ptr(first), count * sizeof(T));
+		::memcpy(data() + _size, to_ptr(first), count * sizeof(T));
 		_size += count;
 
 		return first + count;
@@ -490,7 +490,7 @@ typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 		size_type const nAfter = (data() + _size) - posPtr;
 		auto tmp = T(std::forward<Params>(args)...);
 		// Made a temporary in case source is in the destination range of the following memmove
-		memmove(posPtr + 1, posPtr, nAfter * sizeof(T));
+		::memmove(posPtr + 1, posPtr, nAfter * sizeof(T));
 		++_size;
 		::new(posPtr) T(std::move(tmp));
 
@@ -539,7 +539,7 @@ inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 
 	posPtr-> ~T();
 	pointer const next = to_ptr(pos) + 1;
-	memmove(to_ptr(pos), next, ((data() + _size) - next) * sizeof(T)); // move [pos + 1, _end) to [pos, _end - 1)
+	::memmove(to_ptr(pos), next, ((data() + _size) - next) * sizeof(T)); // move [pos + 1, _end) to [pos, _end - 1)
 	--_size;
 	return pos;
 }
@@ -561,7 +561,7 @@ inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 		_detail::Destroy(pFirst, pLast);
 		size_type const nAfterLast = (data() + _size) - pLast;
 		// move [last, _end) to [first, first + nAfterLast)
-		memmove(pFirst, pLast, nAfterLast * sizeof(T));
+		::memmove(pFirst, pLast, nAfterLast * sizeof(T));
 		_size -= nErase;
 	}
 	return first;

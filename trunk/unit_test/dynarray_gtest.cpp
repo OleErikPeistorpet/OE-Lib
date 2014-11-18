@@ -4,8 +4,6 @@
 #include "gtest/gtest.h"
 #include <deque>
 
-#include <array>
-
 class ForwDeclared { char c; };
 
 namespace
@@ -65,10 +63,6 @@ TEST_F(dynarrayTest, push_back)
 
 TEST_F(dynarrayTest, construct)
 {
-	{
-		Outer o;
-	}
-
 	oetl::dynarray<std::string> a;
 	decltype(a) b(a);
 
@@ -99,15 +93,13 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_TRUE(das == copyDest);
 	}
 
-	typedef float Vec3[3];
-	Vec3 src[] {{1, 0, 0}, {0, 0, -1}};
-
-	dynarray<Vec3> test;
-	std::true_type check = oetl::_detail::CanMemmoveArrays(test.data(), oetl::cbegin(src));
+	Outer src[] = {{1}, {0}, {-1}};
+	dynarray<Outer> test;
 	test.assign(src);
 
-	EXPECT_EQ(src[0], test[0]);
-	EXPECT_EQ(src[1], test[1]);
+	EXPECT_EQ(src[0].c, test[0].c);
+	EXPECT_EQ(src[1].c, test[1].c);
+	EXPECT_EQ(src[2].c, test[2].c);
 }
 
 TEST_F(dynarrayTest, append)

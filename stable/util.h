@@ -124,7 +124,7 @@ namespace _detail
 			*(dest + (count - 1));
 		}
 #	endif
-		memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
+		::memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
 		return dest + count;
 	}
 
@@ -137,7 +137,7 @@ namespace _detail
 			*(first + (count - 1));        // Dereference iterators at bounds, this detects
 			*dest; *(dest + (count - 1));  // out of range errors if they are checked iterators
 #		endif
-			memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
+			::memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
 			first += count;
 			dest += count;
 		}

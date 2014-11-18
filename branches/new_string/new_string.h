@@ -229,7 +229,7 @@ private:
 
 	void _copyData(const Char * source)
 	{
-		memcpy(data(), source, _len * sizeof(Char));
+		::memcpy(data(), source, _len * sizeof(Char));
 		_data[_len] = _nullChar;
 	}
 
@@ -530,7 +530,7 @@ namespace _strDetail
 	template<class String>
 	inline void AppendPreAlloc(const String & s, Char * dest, strlen_type & len)
 	{
-		memcpy(dest + len, s.data(), s.length() * sizeof(Char));
+		::memcpy(dest + len, s.data(), s.length() * sizeof(Char));
 		len += s.length();
 	}
 	inline void AppendPreAlloc(Char c, Char * dest, strlen_type & len)
@@ -605,7 +605,7 @@ namespace _strDetail
 	//{
 	//	static_assert(Size > 0, "copy_cstr_min does not support empty array");
 	//	auto cpyLen = std::min(source.size(), Size - 1);
-	//	memcpy(dest, source.data(), cpyLen * sizeof(Char));
+	//	::memcpy(dest, source.data(), cpyLen * sizeof(Char));
 	//	dest[cpyLen] = '\0';
 	//	return cpyLen;
 	//}
@@ -797,7 +797,7 @@ basic_string<Char> & basic_string<Char>::operator =(const basic_string_ref<Char>
 	if (_data != right.data() || _len != right.size())
 	{
 		auto newData = _alloc(right.size() + 1);
-		memcpy(newData, right.data(), right.size() * sizeof(Char));
+		::memcpy(newData, right.data(), right.size() * sizeof(Char));
 		newData[right.size()] = _nullChar;
 		_dealloc(_data);
 		_data = newData;
@@ -922,7 +922,7 @@ inline void basic_string<Char>::erase_idx(size_type index)
 	if (size() > index)
 	{
 		Char *const pFirst = _data + index;
-		memmove(pFirst, pFirst + 1, (_len - (index + 1)) * sizeof(Char)); // copy [pos + 1, _end) to [pos, _end - 1)
+		::memmove(pFirst, pFirst + 1, (_len - (index + 1)) * sizeof(Char)); // copy [pos + 1, _end) to [pos, _end - 1)
 		--_len;
 	}
 	else
@@ -933,7 +933,7 @@ template<typename Char>
 inline typename basic_string<Char>::iterator  basic_string<Char>::erase(iterator pos) NOEXCEPT
 {
 	Char *const next = std::addressof(*pos) + 1;
-	memmove(to_ptr(pos), next, ((data() + _len) - next) * sizeof(Char)); // copy [pos + 1, _end) to [pos, _end - 1)
+	::memmove(to_ptr(pos), next, ((data() + _len) - next) * sizeof(Char)); // copy [pos + 1, _end) to [pos, _end - 1)
 	--_len;
 	return pos;
 }
@@ -946,7 +946,7 @@ inline typename basic_string<Char>::iterator  basic_string<Char>::erase(iterator
 	{
 		size_type nAfterLast = end() - last;
 		_len -= last - first;
-		memmove(to_ptr(first), to_ptr(last), nAfterLast * sizeof(Char));
+		::memmove(to_ptr(first), to_ptr(last), nAfterLast * sizeof(Char));
 		_data[_len] = _nullChar;
 	}
 	return first;
@@ -962,7 +962,7 @@ inline void basic_string<Char>::erase(size_type index, size_type count) NOEXCEPT
 		size_type const newLen = _len - count;
 		Char *const pFirst = _data + index;
 		size_type nElemsAfter = newLen - index;
-		memmove(pFirst, pFirst + count, nElemsAfter * sizeof(Char));
+		::memmove(pFirst, pFirst + count, nElemsAfter * sizeof(Char));
 		_data[newLen] = _nullChar;
 		_len = newLen;
 	}
@@ -979,7 +979,7 @@ basic_string<Char>::operator const basic_string_ref<Char> &() const NOEXCEPT
 //	if (newLen != _len)
 //	{
 //		Char * newData = _alloc(newLen + 1);
-//		memcpy(newData, _data, _len * sizeof(Char));
+//		::memcpy(newData, _data, _len * sizeof(Char));
 //		newData[newLen] = _nullChar;
 //		_dealloc(_data);
 //		_data = newData;
@@ -1029,7 +1029,7 @@ template<typename Char, oetl::strlen_type Size>
 inline oetl::strlen_type oetl::copy_cstr_min(basic_string_ref<Char> source, Char (&dest)[Size]) NOEXCEPT
 {
 	auto cpyLen = std::min(source.size(), Size - 1);
-	memcpy(dest, source.data(), cpyLen * sizeof(Char));
+	::memcpy(dest, source.data(), cpyLen * sizeof(Char));
 	dest[cpyLen] = '\0';
 	return cpyLen;
 }
@@ -1041,7 +1041,7 @@ inline oetl::strlen_type oetl::copy_cstr_min(basic_string_ref<Char> source, Char
 	if (0 < destSize)
 	{
 		cpyLen = std::min(source.size(), destSize - 1);
-		memcpy(dest, source.data(), cpyLen * sizeof(Char));
+		::memcpy(dest, source.data(), cpyLen * sizeof(Char));
 		dest[cpyLen] = '\0';
 	}
 	else
@@ -1062,7 +1062,7 @@ inline void oetl::copy_cstr(basic_string_ref<Char> source, Char * dest, strlen_t
 {
 	if (source.size() < destSize)
 	{
-		memcpy(dest, source.data(), source.size() * sizeof(Char));
+		::memcpy(dest, source.data(), source.size() * sizeof(Char));
 		dest[source.size()] = '\0';
 	}
 	else
