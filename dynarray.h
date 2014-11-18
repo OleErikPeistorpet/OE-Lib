@@ -321,7 +321,7 @@ private:
 
 	template<typename InputIter>
 	void _assignImpl(std::false_type, InputIter first, InputIter const last, size_type const count)
-	{	// cannot fast assign
+	{	// non-trivial assign
 		if (capacity() < count)
 		{	// not enough room, allocate new array and construct new
 			_smartPtr newData{_alloc(count)};
@@ -354,7 +354,7 @@ private:
 
 	template<typename InputRange>
 	void _assign(const InputRange & range, single_pass_traversal_tag)
-	{	// single pass iterator (slowest)
+	{	// cannot count input objects before assigning
 		clear();
 		append(range);
 	}
@@ -462,7 +462,7 @@ private:
 
 	template<typename InputRange>
 	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & range)
-	{	// cannot count input before copy
+	{	// slowest
 		size_type const oldSize = size();
 		try
 		{
