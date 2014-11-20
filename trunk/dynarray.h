@@ -122,7 +122,7 @@ public:
 	dynarray(dynarray && other) NOEXCEPT;
 	dynarray(const dynarray & other);
 
-	~dynarray() NOEXCEPT  { _detail::Destroy(data(), _end); }
+	~dynarray() NOEXCEPT;
 
 	dynarray & operator =(dynarray && other) NOEXCEPT  { swap(other);  return *this; }
 	dynarray & operator =(const dynarray & other)      { assign(other);  return *this; }
@@ -547,19 +547,25 @@ inline dynarray<T, Alloc>::dynarray(dynarray<T, Alloc> && other) NOEXCEPT :
 }
 
 template<typename T, typename Alloc>
+dynarray<T, Alloc>::dynarray(const dynarray<T, Alloc> & other) :
+	_data( _alloc(other.size()) )
+{
+	_uninitCopyData(is_trivially_copyable<T>(), other);
+}
+
+template<typename T, typename Alloc>
+dynarray<T, Alloc>::~dynarray() NOEXCEPT
+{
+	_detail::Destroy(data(), _end);
+}
+
+template<typename T, typename Alloc>
 void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
 {
 	using std::swap;
 	swap(_data, other._data);
 	swap(_end, other._end);
 	swap(_reserveEnd, other._reserveEnd);
-}
-
-template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(const dynarray<T, Alloc> & other) :
-	_data( _alloc(other.size()) )
-{
-	_uninitCopyData(is_trivially_copyable<T>(), other);
 }
 
 template<typename T, typename Alloc> template<typename ForwardTravIterator>
@@ -737,7 +743,7 @@ void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)
 }
 
 template<typename T, typename Alloc>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) NOEXCEPT
+inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) NOEXCEPT
 {
 	_detail::AssertRelocate<T>();
 
