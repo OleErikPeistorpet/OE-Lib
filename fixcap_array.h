@@ -79,7 +79,7 @@ public:
 	fixcap_array(const fixcap_array & other);
 	fixcap_array(fixcap_array && other);
 
-	~fixcap_array() NOEXCEPT;
+	~fixcap_array() NOEXCEPT  { _detail::Destroy(data(), data() + _size); }
 
 	fixcap_array & operator =(const fixcap_array & other);
 	fixcap_array & operator =(fixcap_array && other);
@@ -375,12 +375,6 @@ fixcap_array<T, Capacity>::fixcap_array(size_type size, const T & val)
 }
 
 template<typename T, size_t Capacity>
-inline fixcap_array<T, Capacity>::~fixcap_array() NOEXCEPT
-{
-	_detail::Destroy(data(), data() + _size);
-}
-
-template<typename T, size_t Capacity>
 inline fixcap_array<T, Capacity>::
 fixcap_array(const fixcap_array<T, Capacity> & other)
 {
@@ -398,7 +392,7 @@ fixcap_array(fixcap_array<T, Capacity> && other)
 }
 
 template<typename T, size_t Capacity>
-inline fixcap_array<T, Capacity> &  fixcap_array<T, Capacity>::
+fixcap_array<T, Capacity> &  fixcap_array<T, Capacity>::
 	operator =(const fixcap_array<T, Capacity> & other)
 {	// Bypassing Capacity check in _assign
 	_assignInternal(is_trivially_copyable<T>(), other.data(), other._size);
@@ -427,8 +421,7 @@ InputIterator  fixcap_array<T, Capacity>::
 }
 
 template<typename T, size_t Capacity> template<typename InputRange>
-void  fixcap_array<T, Capacity>::
-	assign(const InputRange & range)
+void fixcap_array<T, Capacity>::assign(const InputRange & range)
 {
 	_assign(_getSize(range, int{}), range);
 }
@@ -504,8 +497,7 @@ inline void  fixcap_array<T, Capacity>::
 }
 
 template<typename T, size_t Capacity>
-void  fixcap_array<T, Capacity>::
-	resize(size_type newSize)
+void fixcap_array<T, Capacity>::resize(size_type newSize)
 {
 	_resizeImpl(newSize, oetl::uninitialized_fill_default<pointer>);
 }
@@ -522,7 +514,7 @@ void  fixcap_array<T, Capacity>::
 }
 
 template<typename T, size_t Capacity>
-inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
+typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	erase(iterator pos)
 {
 	_detail::AssertRelocate<T>();
@@ -538,7 +530,7 @@ inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 }
 
 template<typename T, size_t Capacity>
-inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
+typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	erase(iterator first, iterator last)
 {
 	_detail::AssertRelocate<T>();
@@ -561,8 +553,7 @@ inline typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 }
 
 template<typename T, size_t Capacity>
-inline void  fixcap_array<T, Capacity>::
-	erase_back(iterator newEnd) NOEXCEPT
+void fixcap_array<T, Capacity>::erase_back(iterator newEnd) NOEXCEPT
 {
 	pointer const first = to_ptr(newEnd);
 	BOUND_ASSERT_CHEAP(data() <= first && first <= data() + _size);
@@ -613,19 +604,19 @@ inline typename fixcap_array<T, Capacity>::const_iterator  fixcap_array<T, Capac
 }
 
 template<typename T, size_t Capacity>
-inline typename fixcap_array<T, Capacity>::reference  fixcap_array<T, Capacity>::
+typename fixcap_array<T, Capacity>::reference  fixcap_array<T, Capacity>::
 	at(size_type index)
 {
-	if (_size > index)
+	if (index < _size)
 		return data()[index];
 	else
 		throw out_of_range("Invalid index fixcap_array::at");
 }
 template<typename T, size_t Capacity>
-inline typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capacity>::
+typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capacity>::
 	at(size_type index) const
 {
-	if (_size > index)
+	if (index < _size)
 		return data()[index];
 	else
 		throw out_of_range("Invalid index fixcap_array::at");
@@ -661,8 +652,7 @@ inline typename oetl::fixcap_array<T, C>::iterator  oetl::
 }
 
 template<typename T1, typename T2, size_t C1, size_t C2>
-inline bool  oetl::operator==
-	(const fixcap_array<T1, C1> & left, const fixcap_array<T2, C2> & right)
+bool oetl::operator==(const fixcap_array<T1, C1> & left, const fixcap_array<T2, C2> & right)
 {
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());
