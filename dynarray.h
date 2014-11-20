@@ -110,7 +110,7 @@ public:
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
 	using size_type       = typename Alloc::size_type;
 
-	dynarray() NOEXCEPT;
+	dynarray() NOEXCEPT  : _data(nullptr), _end(nullptr), _reserveEnd(nullptr) {}
 	/**
 	* @brief Construct empty dynarray with space reserved for at least capacity elements
 	* @throw std::bad_alloc if the allocation request does not succeed (same for all functions that expand the dynarray)  */
@@ -508,11 +508,6 @@ private:
 };
 
 // Definitions of public functions
-
-template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray() NOEXCEPT :
-	_data(nullptr), _end(nullptr), _reserveEnd(nullptr) {
-}
 
 template<typename T, typename Alloc>
 inline dynarray<T, Alloc>::dynarray(reserve_t, size_type capacity) :
