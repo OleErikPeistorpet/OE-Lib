@@ -80,7 +80,7 @@ void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator newEnd) 
 
 template<typename T1, typename T2, typename A1, typename A2>
 bool operator==(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right);
-template<typename T1, typename T2, typename A1, typename A2>
+template<typename T1, typename T2, typename A1, typename A2> inline
 bool operator!=(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right)  { return !(left == right); }
 
 /**
@@ -180,7 +180,7 @@ public:
 	template<typename... Params>
 	iterator   emplace(const_iterator position, Params &&... args);
 
-	iterator   insert(const_iterator position, T && val);
+	iterator   insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
 	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
 
 	/// After the call, any previous iterator to the back element will be equal to end()
@@ -530,7 +530,7 @@ inline dynarray<T, Alloc>::dynarray(size_type size) :
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(size_type size, const T & val) :
+dynarray<T, Alloc>::dynarray(size_type size, const T & val) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
@@ -547,7 +547,7 @@ inline dynarray<T, Alloc>::dynarray(dynarray<T, Alloc> && other) NOEXCEPT :
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
+void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
 {
 	using std::swap;
 	swap(_data, other._data);
@@ -556,14 +556,14 @@ inline void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(const dynarray<T, Alloc> & other) :
+dynarray<T, Alloc>::dynarray(const dynarray<T, Alloc> & other) :
 	_data( _alloc(other.size()) )
 {
 	_uninitCopyData(is_trivially_copyable<T>(), other);
 }
 
 template<typename T, typename Alloc> template<typename ForwardTravIterator>
-inline ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
+ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
 {
 #ifndef OETL_NO_BOOST
 	BOOST_CONCEPT_ASSERT((boost_concepts::ForwardTraversal<ForwardTravIterator>));
@@ -575,7 +575,7 @@ inline ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first,
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-inline void dynarray<T, Alloc>::assign(const InputRange & source)
+void dynarray<T, Alloc>::assign(const InputRange & source)
 {
 	using InIter = decltype(adl_begin(source));
 	_assign(source, iterator_traversal_t<InIter>());
@@ -601,7 +601,7 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 }
 
 template<typename T, typename Alloc> template<typename... Params>
-inline void dynarray<T, Alloc>::emplace_back(Params &&... args)
+void dynarray<T, Alloc>::emplace_back(Params &&... args)
 {
 	_detail::AssertRelocate<T>();
 
@@ -675,13 +675,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_iterator pos, T && val)
-{
-	return emplace(pos, std::move(val));
-}
-
-template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::reserve(size_type minCapacity)
+void dynarray<T, Alloc>::reserve(size_type minCapacity)
 {
 	_detail::AssertRelocate<T>();
 
@@ -699,7 +693,7 @@ inline void dynarray<T, Alloc>::reserve(size_type minCapacity)
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::shrink_to_fit()
+void dynarray<T, Alloc>::shrink_to_fit()
 {
 	_detail::AssertRelocate<T>();
 
@@ -727,13 +721,13 @@ inline void dynarray<T, Alloc>::pop_back() NOEXCEPT
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::resize(size_type newSize)
+void dynarray<T, Alloc>::resize(size_type newSize)
 {
 	_resizeImpl(newSize, oetl::uninitialized_fill_default<pointer>);
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)
+void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)
 {
 	_resizeImpl( newSize,
 			[&addVal](pointer first, pointer last)
@@ -743,7 +737,7 @@ inline void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) NOEXCEPT
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) NOEXCEPT
 {
 	_detail::AssertRelocate<T>();
 
@@ -758,7 +752,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) NOEXCEPT
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) NOEXCEPT
 {
 	_detail::AssertRelocate<T>();
 
@@ -823,7 +817,7 @@ inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::back() 
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type index)
+typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type index)
 {
 	if (size() > index)
 		return _data[index];
@@ -831,7 +825,7 @@ inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type 
 		throw out_of_range("Invalid index dynarray::at");
 }
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
+typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
 {
 	if (size() > index)
 		return _data[index];
@@ -867,7 +861,7 @@ inline typename oetl::dynarray<T, A>::iterator  oetl::
 }
 
 template<typename T1, typename T2, typename A1, typename A2>
-inline bool oetl::operator==(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right)
+bool oetl::operator==(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right)
 {
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());

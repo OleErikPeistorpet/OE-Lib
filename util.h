@@ -22,10 +22,10 @@ namespace oetl
 {
 
 /// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
-template<typename T>
+template<typename T> inline
 typename std::make_signed<T>::type    as_signed(T val) NOEXCEPT    { return typename std::make_signed<T>::type(val); }
 /// Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
-template<typename T>
+template<typename T> inline
 typename std::make_unsigned<T>::type  as_unsigned(T val) NOEXCEPT  { return typename std::make_unsigned<T>::type(val); }
 
 
@@ -159,12 +159,12 @@ auto find_idx(const Range & toSearch, const T & value) -> decltype(count(toSearc
 }
 
 ///
-template<typename T, typename BidirectionRange>
+template<typename T, typename BidirectionRange> inline
 auto rfind_idx(const BidirectionRange & toSearch, const T & value) -> decltype(count(toSearch))
 {
 	auto pos = count(toSearch);
 	auto it = end(toSearch);
-	while (--pos != decltype(pos)(-1))
+	while (--pos != -1)
 	{
 		--it;
 		if (*it == value)
@@ -203,7 +203,7 @@ namespace _detail
 	template<class Container> inline
 	auto EraseSuccessiveDup(Container & ctr, int) -> decltype(ctr.unique()) { return ctr.unique(); }
 
-	template<class Container> inline
+	template<class Container>
 	void EraseSuccessiveDup(Container & ctr, long)
 	{
 		erase_back( ctr, std::unique(begin(ctr), end(ctr)) );
@@ -309,7 +309,7 @@ inline OutputIterator  oetl::move(InputIterator first, InputIterator last, Outpu
 ////////////////////////////////////////////////////////////////////////////////
 
 template<class Container>
-void oetl::erase_successive_dup(Container & ctr)
+inline void oetl::erase_successive_dup(Container & ctr)
 {
 	_detail::EraseSuccessiveDup(ctr, int{});
 }
@@ -411,7 +411,7 @@ inline bool oetl::index_valid(const Range & r, std::int64_t idx)
 ////////////////////////////////////////////////////////////////////////////////
 
 template<typename T, typename... Params, typename>
-std::unique_ptr<T>  oetl::make_unique(Params &&... args)
+inline std::unique_ptr<T>  oetl::make_unique(Params &&... args)
 {
 	T * p = new T(std::forward<Params>(args)...); // direct-initialize, or value-initialize if no args
 	return std::unique_ptr<T>(p);
