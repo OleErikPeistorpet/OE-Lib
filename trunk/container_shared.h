@@ -127,34 +127,34 @@ struct is_trivially_relocatable< boost::circular_buffer<T> > : std::true_type {}
 namespace _detail
 {
 #if _MSC_VER
-#	define OEP_ALIGN_PRE(bytes)  __declspec(align(bytes))
-#	define OEP_ALIGN_POST(bytes)
+#	define OETL_ALIGN_PRE(bytes)  __declspec(align(bytes))
+#	define OETL_ALIGN_POST(bytes)
 #else
-#	define OEP_ALIGN_PRE(bytes)
-#	define OEP_ALIGN_POST(bytes) __attribute__(aligned(bytes))
+#	define OETL_ALIGN_PRE(bytes)
+#	define OETL_ALIGN_POST(bytes) __attribute__(aligned(bytes))
 #endif
 
-#define OEP_STORAGE_ALIGNED_TO(align)  \
+#define OETL_STORAGE_ALIGNED_TO(align)  \
 	template<size_t Size>  \
 	struct AlignedStorage<Size, align>  \
 	{  \
-		OEP_ALIGN_PRE(align) unsigned char bytes[Size];  \
-	} OEP_ALIGN_POST(align)
+		OETL_ALIGN_PRE(align) unsigned char bytes[Size];  \
+	} OETL_ALIGN_POST(align)
 
 	template<size_t Size, size_t Align>
 	struct AlignedStorage {};
 
-	OEP_STORAGE_ALIGNED_TO(1);
-	OEP_STORAGE_ALIGNED_TO(2);
-	OEP_STORAGE_ALIGNED_TO(4);
-	OEP_STORAGE_ALIGNED_TO(8);
-	OEP_STORAGE_ALIGNED_TO(16);
-	OEP_STORAGE_ALIGNED_TO(32);
-	OEP_STORAGE_ALIGNED_TO(64);
+	OETL_STORAGE_ALIGNED_TO(1);
+	OETL_STORAGE_ALIGNED_TO(2);
+	OETL_STORAGE_ALIGNED_TO(4);
+	OETL_STORAGE_ALIGNED_TO(8);
+	OETL_STORAGE_ALIGNED_TO(16);
+	OETL_STORAGE_ALIGNED_TO(32);
+	OETL_STORAGE_ALIGNED_TO(64);
 
-#undef OEP_STORAGE_ALIGNED_TO
-#undef OEP_ALIGN_PRE
-#undef OEP_ALIGN_POST
+#undef OETL_STORAGE_ALIGNED_TO
+#undef OETL_ALIGN_PRE
+#undef OETL_ALIGN_POST
 
 
 	template<size_t Align>
@@ -179,7 +179,7 @@ namespace _detail
 
 #ifndef OETL_NO_BOOST
 	// TODO: Should use new_handler or let both OpNew overloads use custom failure function
-	template<size_t Align> inline
+	template<size_t Align>
 	void * OpNew(std::false_type, size_t nBytes)
 	{
 		void * p = boost::alignment::aligned_alloc(Align, nBytes);
@@ -247,7 +247,7 @@ namespace _detail
 
 
 
-	template<typename, typename Iter>
+	template<typename, typename Iter> inline
 	void Destroy(std::true_type, Iter, Iter)
 	{}	// optimization for non-optimized builds
 
@@ -273,7 +273,7 @@ namespace _detail
 			::new(std::addressof(*first)) ValT;
 	}
 
-	template<typename ValT, typename ForwardIter> inline
+	template<typename ValT, typename ForwardIter>
 	void UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
 	{	// default constructor potentially throws
 		ForwardIter const init = first;
@@ -301,7 +301,7 @@ namespace _detail
 		return {first, dest};
 	}
 
-	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter> inline
+	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter>
 	range_ends<InputIter, ForwardIter>  UninitCopyN(std::false_type, InputIter first, Count count, ForwardIter dest)
 	{
 		ForwardIter const destBegin = dest;

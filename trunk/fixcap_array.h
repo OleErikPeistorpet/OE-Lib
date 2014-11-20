@@ -42,7 +42,7 @@ void erase_back(fixcap_array<T, C> & ctr, typename fixcap_array<T, C>::iterator 
 
 template<typename T1, typename T2, size_t C1, size_t C2>
 bool operator==(const fixcap_array<T1, C1> & left, const fixcap_array<T2, C2> & right);
-template<typename T1, typename T2, size_t C1, size_t C2>
+template<typename T1, typename T2, size_t C1, size_t C2> inline
 bool operator!=(const fixcap_array<T1, C1> & left, const fixcap_array<T2, C2> & right)  { return !(left == right); }
 
 /**
@@ -417,7 +417,7 @@ inline fixcap_array<T, Capacity> &  fixcap_array<T, Capacity>::
 }
 
 template<typename T, size_t Capacity> template<typename InputIterator>
-inline InputIterator  fixcap_array<T, Capacity>::
+InputIterator  fixcap_array<T, Capacity>::
 	assign(InputIterator first, size_type count)
 {
 	if (Capacity >= count)
@@ -427,7 +427,7 @@ inline InputIterator  fixcap_array<T, Capacity>::
 }
 
 template<typename T, size_t Capacity> template<typename InputRange>
-inline void  fixcap_array<T, Capacity>::
+void  fixcap_array<T, Capacity>::
 	assign(const InputRange & range)
 {
 	_assign(_getSize(range, int{}), range);

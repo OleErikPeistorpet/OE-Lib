@@ -86,7 +86,7 @@ using bool_constant = std::integral_constant<bool, Value>;
 
 
 /// Convert iterator to pointer. This is overloaded for each contiguous memory iterator class
-template<typename T>
+template<typename T> inline
 T * to_ptr(T * ptr)  { return ptr; }
 
 template<typename Iterator> inline
@@ -116,7 +116,7 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 
 namespace _detail
 {
-	template<typename T>    // (target, source)
+	template<typename T> inline   // (target, source)
 	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
 }
 
