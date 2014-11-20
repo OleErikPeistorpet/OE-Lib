@@ -342,7 +342,7 @@ private:
 	void _append(std::false_type, const InputRange & range)
 	{	// number of items unknown (slowest)
 		for (auto && v : range)
-			emplace_back( std::forward<decltype(v)>(v) );
+			push_back( std::forward<decltype(v)>(v) );
 	}
 };
 

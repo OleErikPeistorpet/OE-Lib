@@ -380,7 +380,7 @@ private:
 			// Do not assign member variables until after copy of new elements in case of exception
 			_reserveEnd = newData.get() + newCapacity;
 
-			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
+			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
 			_data.swap(newData);
 		}
 		return appendPos;
@@ -501,7 +501,7 @@ private:
 			_reserveEnd = newData.get() + allocSize;
 
 			// Fill new elements before reallocating old data, in case of copying an element from this
-			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
+			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
 			_data.swap(newData);
 		}
 	}
@@ -622,7 +622,7 @@ void dynarray<T, Alloc>::emplace_back(Params &&... args)
 		_reserveEnd = newData.get() + newCapacity;
 
 		// Make new element before reallocating old data to support push_back from this
-		::memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
+		::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
 		_data.swap(newData);
 	}
 	++_end;
@@ -663,8 +663,8 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		::new(newPos) T(std::forward<Params>(args)...);		// add new
 		_end = newPos + 1;
 		// Behaviour undefined by standard if data is null
-		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // move and destroy prefix
-		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // move and destroy suffix
+		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // relocate prefix
+		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // relocate suffix
 		_end += nAfterPos;
 
 		_reserveEnd = newData.get() + newCapacity;
@@ -686,7 +686,7 @@ void dynarray<T, Alloc>::reserve(size_type minCapacity)
 
 		_reserveEnd = newData + minCapacity;
 
-		::memcpy(newData, data(), size() * sizeof(T));  // move and destroy old
+		::memcpy(newData, data(), size() * sizeof(T));  // relocate elements
 		_end = newData + size();
 
 		_data.reset(newData);
@@ -703,7 +703,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	if (0 < usedSize)
 	{
 		newData = _alloc(usedSize);
-		::memcpy(newData, data(), usedSize * sizeof(T)); // copy data from old
+		::memcpy(newData, data(), usedSize * sizeof(T)); // relocate elements
 		_end = newData + usedSize;
 	}
 	else

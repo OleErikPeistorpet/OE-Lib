@@ -1,21 +1,18 @@
+#include "fixcap_array.h"
 #include "forward_decl_test.h"
-
-class ForwDeclared { char c; };
-
-int Deleter::callCount;
 
 namespace
 {
 
-using oetl::dynarray;
+using oetl::fixcap_array;
 
 }
 
-// The fixture for testing dynarray.
-class dynarrayTest : public ::testing::Test
+// The fixture for testing fixcap_array.
+class fixcap_arrayTest : public ::testing::Test
 {
 protected:
-	dynarrayTest()
+	fixcap_arrayTest()
 	{
 		// You can do set-up work for each test here.
 	}
@@ -23,11 +20,11 @@ protected:
 	// Objects declared here can be used by all tests.
 };
 
-TEST_F(dynarrayTest, push_back)
+TEST_F(fixcap_arrayTest, push_back)
 {
 	Deleter::callCount = 0;
 	{
-		dynarray<DoublePtr> up;
+		fixcap_array<DoublePtr, 3> up;
 
 		double const VALUES[] = {-1.1, 2.0};
 
@@ -46,22 +43,18 @@ TEST_F(dynarrayTest, push_back)
 	EXPECT_EQ(2, Deleter::callCount);
 }
 
-TEST_F(dynarrayTest, construct)
+TEST_F(fixcap_arrayTest, construct)
 {
-	{
-		Outer o;
-	}
-
-	oetl::dynarray<std::string> a;
+	oetl::fixcap_array<std::string, 1> a;
 	decltype(a) b(a);
 
-	dynarray< dynarray<int> > nested;
+	fixcap_array< fixcap_array<int, 8>, 5 > nested;
 }
 
-TEST_F(dynarrayTest, assign)
+TEST_F(fixcap_arrayTest, assign)
 {
 	{
-		dynarray<std::string> das;
+		fixcap_array<std::string, 5> das;
 
 		std::string * p = nullptr;
 		das.assign(oetl::make_range(p, p));
@@ -105,7 +98,7 @@ TEST_F(dynarrayTest, assign)
 		double const VALUES[] = {-1.1, 0.4};
 		DoublePtr src[] { DoublePtr{new double{VALUES[0]}},
 						  DoublePtr{new double{VALUES[1]}} };
-		dynarray<DoublePtr> test;
+		fixcap_array<DoublePtr, 2> test;
 
 		test.assign(oetl::move_range(src));
 
@@ -119,11 +112,11 @@ TEST_F(dynarrayTest, assign)
 	EXPECT_EQ(2, Deleter::callCount);
 }
 
-TEST_F(dynarrayTest, append)
+TEST_F(fixcap_arrayTest, append)
 {
 	{
-		oetl::dynarray<double> dest;
-		// Test append empty std iterator range to empty dynarray
+		oetl::fixcap_array<double, 4> dest;
+		// Test append empty std iterator range to empty fixcap_array
 		std::deque<double> src;
 		dest.append(src);
 
@@ -138,11 +131,11 @@ TEST_F(dynarrayTest, append)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 	const int arrayB[] = {1, 2, 3, 4};
 
-	dynarray<double> double_dynarr;
+	fixcap_array<double, 8> double_dynarr;
 	double_dynarr.append(oetl::begin(arrayA), oetl::count(arrayA));
 
 	{
-		dynarray<int> int_dynarr;
+		fixcap_array<int, 4> int_dynarr;
 		int_dynarr.append(arrayB);
 
 		double_dynarr.append(int_dynarr);
@@ -163,7 +156,7 @@ TEST_F(dynarrayTest, append)
 	{
 		std::stringstream ss("1 2 3 4 5");
 
-		dynarray<int> dest;
+		fixcap_array<int, 4> dest;
 
 		std::istream_iterator<int> it(ss);
 
@@ -177,11 +170,11 @@ TEST_F(dynarrayTest, append)
 }
 
 // Test insert.
-TEST_F(dynarrayTest, insert)
+TEST_F(fixcap_arrayTest, insert)
 {
 	Deleter::callCount = 0;
 	{
-		dynarray<DoublePtr> up;
+		fixcap_array<DoublePtr, 6> up;
 
 		double const VALUES[] = {-1.1, 0.4, 1.3, 2.2};
 
@@ -212,29 +205,15 @@ TEST_F(dynarrayTest, insert)
 		EXPECT_EQ(val, *end(up)[-2]);
 	}
 	EXPECT_EQ(4, Deleter::callCount);
-
-	//d.insert(begin(d), 0);
-	//ASSERT_EQ(1, d.size());
-	//d.insert(begin(d), 1);
-	//ASSERT_EQ(2, d.size());
-	//d.insert(end(d), 2);
-	//ASSERT_EQ(3, d.size());
-	//d.insert(begin(d) + 1, 3);
-	//ASSERT_EQ(4, d.size());
-	//d.insert(end(d) - 1, 4);
-	//ASSERT_EQ(5, d.size());
-
-	//int cmp[] = {1, 3, 0, 4, 2};
-	//EXPECT_TRUE(std::equal(cbegin(d), cend(d), cmp));
 }
 
 // Test resize.
-TEST_F(dynarrayTest, resize)
+TEST_F(fixcap_arrayTest, resize)
 {
-	dynarray<int> d;
-
 	size_t const S1 = 4;
 	size_t const VAL = 313;
+
+	fixcap_array<int, S1> d;
 
 	d.resize(S1, VAL);
 	ASSERT_EQ(S1, d.size());
@@ -242,9 +221,9 @@ TEST_F(dynarrayTest, resize)
 	unsigned int nExcept = 0;
 	try
 	{
-		d.resize((size_t)-8);
+		d.resize(S1 + 1);
 	}
-	catch (std::bad_alloc &)
+	catch (std::length_error &)
 	{
 		++nExcept;
 	}
@@ -257,30 +236,16 @@ TEST_F(dynarrayTest, resize)
 	}
 }
 
-TEST_F(dynarrayTest, erase)
+TEST_F(fixcap_arrayTest, erase)
 {
-	dynarray<int> d;
+	fixcap_array<int, 5> d;
 
 	for (int i = 0; i < 5; ++i)
 		d.push_back(i);
-
-	//auto r = t.erase(t.begin() + 2, t.begin() + 1);
-
-	//dynarray<int> dest;
-	//auto it = t.begin();
-	//t.append(it, 5);
-	//dest.append(it, 5);
 
 	auto const s = d.size();
 	auto r = d.erase(begin(d) + 1, begin(d) + 3);
 	ASSERT_EQ(s - 2, d.size());
 	r = d.erase(end(d) - 1);
 	ASSERT_EQ(s - 3, d.size());
-}
-
-
-int main(int argc, char **argv)
-{
-	::testing::InitGoogleTest(&argc, argv);
-	return RUN_ALL_TESTS();
 }

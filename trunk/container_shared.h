@@ -307,7 +307,7 @@ namespace _detail
 		ForwardIter const destBegin = dest;
 		try
 		{
-			return UninitCopyN<DestValT>(std::true_type, first, count, dest); // dest passed by reference
+			return UninitCopyN<DestValT>(std::true_type{}, first, count, dest); // dest passed by reference
 		}
 		catch (...)
 		{
