@@ -30,6 +30,10 @@ template<typename, typename> class dynarray;  // forward declare
 using std::out_of_range;
 
 
+template<typename Iterator>
+using iterator_traversal_t = typename boost::iterator_traversal<Iterator>::type;
+
+
 /// Type to indicate that a container constructor must allocate storage
 struct reserve_t {};
 /// An instance of reserve_t to pass
@@ -58,7 +62,7 @@ void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator newEnd) 
 
 template<typename T, typename A>
 bool operator==(const dynarray<T, A> & left, const dynarray<T, A> & right);
-template<typename T, typename A>
+template<typename T, typename A> inline
 bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { return !(left == right); }
 
 /**
@@ -88,7 +92,7 @@ public:
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
 	using size_type       = typename Alloc::size_type;
 
-	dynarray() NOEXCEPT;
+	dynarray() NOEXCEPT  : _data(nullptr), _end(nullptr), _reserveEnd(nullptr) {}
 	/**
 	* @brief Construct empty dynarray with space reserved for at least capacity elements
 	* @throw std::bad_alloc if the allocation request does not succeed (same for all functions that expand the dynarray)  */
@@ -100,7 +104,7 @@ public:
 	dynarray(dynarray && other) NOEXCEPT;
 	dynarray(const dynarray & other);
 
-	~dynarray() NOEXCEPT  { _detail::Destroy(data(), _end); }
+	~dynarray() NOEXCEPT;
 
 	dynarray & operator =(dynarray && other) NOEXCEPT  { swap(other);  return *this; }
 	dynarray & operator =(const dynarray & other)      { assign(other);  return *this; }
@@ -109,8 +113,8 @@ public:
 
 	/**
 	* @brief Replace the contents with count copies from range beginning at first
-	* @param first iterator to first element to assign from. Shall not point into same dynarray, except if it is
-	*	the begin iterator. Type must meet the requirements of Forward Traversal Iterator (no std::istream_iterator)
+	* @param first iterator to first element to assign from.
+	*	Shall not point into same dynarray, except if it is the begin iterator.
 	* @param count number of elements to assign
 	* @return end of source range (first incremented by count)
 	*
@@ -157,7 +161,7 @@ public:
 	template<typename... Params>
 	iterator   emplace(const_iterator position, Params &&... args);
 
-	iterator   insert(const_iterator position, T && val);
+	iterator   insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
 	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
 
 	/// After the call, any previous iterator to the back element will be equal to end()
@@ -305,7 +309,7 @@ private:
 
 	template<typename InputIter>
 	void _assignImpl(std::false_type, InputIter first, InputIter const last, size_type const count)
-	{	// cannot fast assign
+	{	// non-trivial assign
 		if (capacity() < count)
 		{	// not enough room, allocate new array and construct new
 			_smartPtr newData{_alloc(count)};
@@ -316,8 +320,8 @@ private:
 		}
 		else if (size() >= count)
 		{	// enough elements, copy new and destroy old
-			iterator newEnd = std::copy(first, last, begin());
-			erase_back(newEnd);
+			pointer newEnd = std::copy(first, last, data());
+			erase_back(OETL_DYNARR_ITERATOR(newEnd));
 		}
 		else
 		{	// enough room, assign to old elements and construct rest
@@ -338,7 +342,7 @@ private:
 
 	template<typename InputRange>
 	void _assign(const InputRange & range, boost::single_pass_traversal_tag)
-	{	// single pass iterator (slowest)
+	{	// cannot count input objects before assigning
 		clear();
 		for (auto && v : range)
 			emplace_back( std::forward<decltype(v)>(v) );
@@ -364,7 +368,7 @@ private:
 			// Do not assign member variables until after copy of new elements in case of exception
 			_reserveEnd = newData.get() + newCapacity;
 
-			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
+			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
 			_data.swap(newData);
 		}
 		return appendPos;
@@ -447,7 +451,7 @@ private:
 
 	template<typename InputRange>
 	iterator _append(std::false_type, boost::single_pass_traversal_tag, const InputRange & range)
-	{	// cannot count input before copy
+	{	// slowest
 		size_type const oldSize = size();
 		try
 		{
@@ -493,18 +497,13 @@ private:
 			_reserveEnd = newData.get() + allocSize;
 
 			// Fill new elements before reallocating old data, in case of copying an element from this
-			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
+			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
 			_data.swap(newData);
 		}
 	}
 };
 
 // Definitions of public functions
-
-template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray() NOEXCEPT :
-	_data(nullptr), _end(nullptr), _reserveEnd(nullptr) {
-}
 
 template<typename T, typename Alloc>
 inline dynarray<T, Alloc>::dynarray(reserve_t, size_type capacity) :
@@ -522,7 +521,7 @@ inline dynarray<T, Alloc>::dynarray(size_type size) :
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(size_type size, const T & val) :
+dynarray<T, Alloc>::dynarray(size_type size, const T & val) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
@@ -539,7 +538,20 @@ inline dynarray<T, Alloc>::dynarray(dynarray<T, Alloc> && other) NOEXCEPT :
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
+dynarray<T, Alloc>::dynarray(const dynarray<T, Alloc> & other) :
+	_data( _alloc(other.size()) )
+{
+	_uninitCopyData(is_trivially_copyable<T>(), other);
+}
+
+template<typename T, typename Alloc>
+dynarray<T, Alloc>::~dynarray() NOEXCEPT
+{
+	_detail::Destroy(data(), _end);
+}
+
+template<typename T, typename Alloc>
+void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
 {
 	using std::swap;
 	swap(_data, other._data);
@@ -547,16 +559,11 @@ inline void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
 	swap(_reserveEnd, other._reserveEnd);
 }
 
-template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(const dynarray<T, Alloc> & other) :
-	_data( _alloc(other.size()) )
-{
-	_uninitCopyData(is_trivially_copyable<T>(), other);
-}
-
 template<typename T, typename Alloc> template<typename ForwardTravIterator>
-inline ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
+ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
 {
+	static_assert(boost::is_convertible< iterator_traversal_t<ForwardTravIterator>, boost::forward_traversal_tag >::value,
+				  "Type of first must meet requirements of Forward Traversal Iterator");
 	auto last = std::next(first, count);
 	_assignImpl(can_memmove_ranges_with(data(), first),
 				first, last, count);
@@ -564,10 +571,10 @@ inline ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first,
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-inline void dynarray<T, Alloc>::assign(const InputRange & source)
+void dynarray<T, Alloc>::assign(const InputRange & source)
 {
 	using InIter = decltype(adl_begin(source));
-	_assign(source, typename boost::iterator_traversal<InIter>::type{});
+	_assign(source, iterator_traversal_t<InIter>());
 }
 
 template<typename T, typename Alloc> template<typename InputIterator>
@@ -585,12 +592,12 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 
 	auto first = adl_begin(range);
 	return _append(can_memmove_ranges_with(data(), first),
-				   typename boost::iterator_traversal<decltype(first)>::type{},
+				   iterator_traversal_t<decltype(first)>(),
 				   range);
 }
 
 template<typename T, typename Alloc> template<typename... Params>
-inline void dynarray<T, Alloc>::emplace_back(Params &&... args)
+void dynarray<T, Alloc>::emplace_back(Params &&... args)
 {
 	_staticAssertRelocate();
 
@@ -610,7 +617,7 @@ inline void dynarray<T, Alloc>::emplace_back(Params &&... args)
 		_reserveEnd = newData.get() + newCapacity;
 
 		// Make new element before reallocating old data to support push_back from this
-		::memcpy(newData.get(), data(), oldSize * sizeof(T));  // move and destroy old
+		::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
 		_data.swap(newData);
 	}
 	++_end;
@@ -651,8 +658,8 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		::new(newPos) T(std::forward<Params>(args)...);		// add new
 		_end = newPos + 1;
 		// Behaviour undefined by standard if data is null
-		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // move and destroy prefix
-		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // move and destroy suffix
+		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // relocate prefix
+		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // relocate suffix
 		_end += nAfterPos;
 
 		_reserveEnd = newData.get() + newCapacity;
@@ -664,13 +671,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_iterator pos, T && val)
-{
-	return emplace(pos, std::move(val));
-}
-
-template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::reserve(size_type minCapacity)
+void dynarray<T, Alloc>::reserve(size_type minCapacity)
 {
 	_staticAssertRelocate();
 
@@ -679,8 +680,8 @@ inline void dynarray<T, Alloc>::reserve(size_type minCapacity)
 		pointer const newData = _alloc(minCapacity);
 
 		_reserveEnd = newData + minCapacity;
-
-		::memcpy(newData, data(), size() * sizeof(T));  // move and destroy old
+		// Relocate elements
+		::memcpy(newData, data(), size() * sizeof(T));
 		_end = newData + size();
 
 		_data.reset(newData);
@@ -688,7 +689,7 @@ inline void dynarray<T, Alloc>::reserve(size_type minCapacity)
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::shrink_to_fit()
+void dynarray<T, Alloc>::shrink_to_fit()
 {
 	_staticAssertRelocate();
 
@@ -697,7 +698,7 @@ inline void dynarray<T, Alloc>::shrink_to_fit()
 	if (0 < usedSize)
 	{
 		newData = _alloc(usedSize);
-		::memcpy(newData, data(), usedSize * sizeof(T)); // copy data from old
+		::memcpy(newData, data(), usedSize * sizeof(T)); // relocate elements
 		_end = newData + usedSize;
 	}
 	else
@@ -716,13 +717,13 @@ inline void dynarray<T, Alloc>::pop_back() NOEXCEPT
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::resize(size_type newSize)
+void dynarray<T, Alloc>::resize(size_type newSize)
 {
 	_resizeImpl(newSize, oetl::uninitialized_fill_default<pointer>);
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)
+void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)
 {
 	_resizeImpl( newSize,
 			[&addVal](pointer first, pointer last)
@@ -741,13 +742,13 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 
 	posPtr-> ~T();
 	pointer const next = posPtr + 1;
-	::memmove(posPtr, next, (_end - next) * sizeof(T)); // move [pos + 1, end) to [pos, end - 1)
+	::memmove(posPtr, next, (_end - next) * sizeof(T)); // relocate [pos + 1, end) to [pos, end - 1)
 	--_end;
 	return pos;
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) NOEXCEPT
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) NOEXCEPT
 {
 	_staticAssertRelocate();
 
@@ -759,7 +760,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 	{
 		_detail::Destroy(pFirst, pLast);
 		size_type const nAfterLast = _end - pLast;
-		// move [last, end) to [first, first + nAfterLast)
+		// Relocate [last, end) to [first, first + nAfterLast)
 		::memmove(pFirst, pLast, nAfterLast * sizeof(T));
 		_end = pFirst + nAfterLast;
 	}
@@ -812,7 +813,7 @@ inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::back() 
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type index)
+typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type index)
 {
 	if (size() > index)
 		return _data[index];
@@ -820,7 +821,7 @@ inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type 
 		throw out_of_range("Invalid index dynarray::at");
 }
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
+typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
 {
 	if (size() > index)
 		return _data[index];
@@ -856,7 +857,7 @@ inline typename oetl::dynarray<T, A>::iterator  oetl::
 }
 
 template<typename T, typename A>
-inline bool oetl::operator==(const dynarray<T, A> & left, const dynarray<T, A> & right)
+bool oetl::operator==(const dynarray<T, A> & left, const dynarray<T, A> & right)
 {
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());

@@ -65,7 +65,7 @@ namespace _detail
 	}
 
 	// TODO: Should use new_handler or let both OpNew overloads use custom failure function
-	template<size_t Align> inline
+	template<size_t Align>
 	void * OpNew(std::false_type, size_t nBytes)
 	{
 		void * p = boost::alignment::aligned_alloc(Align, nBytes);
@@ -129,7 +129,7 @@ auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 
 namespace _detail
 {
-	template<typename T>
+	template<typename T> inline
 	void Destroy(std::true_type, T *, T *) {}  // optimization for non-optimized builds
 
 	template<typename T> inline
@@ -146,10 +146,10 @@ namespace _detail
 	}
 
 
-	template<typename, typename Iter>
+	template<typename, typename Iter> inline
 	void UninitFillDefault(std::true_type, Iter, Iter) {}  // optimization for non-optimized builds
 
-	template<typename ValT, typename ForwardIter> inline
+	template<typename ValT, typename ForwardIter>
 	void UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
 	{	// not trivial default constructor
 		ForwardIter init = first;

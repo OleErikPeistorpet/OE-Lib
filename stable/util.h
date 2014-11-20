@@ -21,10 +21,10 @@ namespace oetl
 {
 
 /// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
-template<typename T>
+template<typename T> inline
 typename std::make_signed<T>::type    as_signed(T val) NOEXCEPT    { return typename std::make_signed<T>::type(val); }
 /// Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
-template<typename T>
+template<typename T> inline
 typename std::make_unsigned<T>::type  as_unsigned(T val) NOEXCEPT  { return typename std::make_unsigned<T>::type(val); }
 
 

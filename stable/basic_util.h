@@ -82,7 +82,7 @@ struct range_ends
 
 
 /// Convert iterator to pointer. This is overloaded for each contiguous memory iterator class
-template<typename T>
+template<typename T> inline
 T * to_ptr(T * ptr)  { return ptr; }
 
 template<typename Iterator> inline
@@ -94,6 +94,17 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 	T *       to_ptr(std::_Array_iterator<T, S> it)        { return it._Unchecked(); }
 	template<typename T, size_t S> inline
 	const T * to_ptr(std::_Array_const_iterator<T, S> it)  { return it._Unchecked(); }
+
+	template<typename S> inline
+	typename std::_String_iterator<S>::pointer  to_ptr(std::_String_iterator<S> it)
+	{
+		return it._Unchecked();
+	}
+	template<typename S> inline
+	typename std::_String_const_iterator<S>::pointer  to_ptr(std::_String_const_iterator<S> it)
+	{
+		return it._Unchecked();
+	}
 #elif __GLIBCXX__
 	template<typename T, typename U> inline
 	T * to_ptr(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
@@ -101,14 +112,21 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 
 namespace _detail
 {
-	template<typename T>    // (target, source)
+	template<typename T> inline   // (target, source)
 	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
 }
 
+#if _MSC_VER
+#	pragma warning(push, 3)
+#endif
 /// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
 template<typename OutIterator, typename InIterator> inline
 auto can_memmove_ranges_with(OutIterator dest, InIterator source)
  -> decltype( _detail::CanMemmoveArrays(to_ptr(dest), to_ptr(source)) )  { return {}; }
+
+#if _MSC_VER
+#	pragma warning(pop)
+#endif
 
 // SFINAE fallback for cases where to_ptr(iterator) is not declared or value types are not the same
 inline std::false_type can_memmove_ranges_with(...)  { return {}; }
