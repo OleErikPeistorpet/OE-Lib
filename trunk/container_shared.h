@@ -119,6 +119,12 @@ struct is_trivially_relocatable< boost::circular_buffer<T> > : std::true_type {}
 #endif
 
 
+/// Tag to select a specific constructor
+struct init_size_t {};
+/// An instance of init_size_t to pass
+static init_size_t const init_size;
+
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // The rest are advanced utilities, not for users

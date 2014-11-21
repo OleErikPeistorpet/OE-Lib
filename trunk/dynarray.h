@@ -116,16 +116,19 @@ public:
 	* @throw std::bad_alloc if the allocation request does not succeed (same for all functions that expand the dynarray)  */
 	dynarray(reserve_t, size_type capacity);
 	/// Non-trivial constructor called on elements, otherwise not initialized
-	explicit dynarray(size_type size);
-	dynarray(size_type size, const T & fillVal);
+	dynarray(init_size_t, size_type size);
+	dynarray(init_size_t, size_type size, const T & fillVal);
+	dynarray(std::initializer_list<T> init);
 
 	dynarray(dynarray && other) NOEXCEPT;
 	dynarray(const dynarray & other);
 
 	~dynarray() NOEXCEPT;
 
-	dynarray & operator =(dynarray && other) NOEXCEPT  { swap(other);  return *this; }
-	dynarray & operator =(const dynarray & other)      { assign(other);  return *this; }
+	dynarray & operator =(dynarray && other) NOEXCEPT   { swap(other);  return *this; }
+	dynarray & operator =(const dynarray & other)       { assign(other);  return *this; }
+
+	dynarray & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
 
 	void       swap(dynarray & other) NOEXCEPT;
 
@@ -170,6 +173,12 @@ public:
 	* of Forward Traversal Iterator (boost concept). Otherwise same as append(InputIterator, size_type)  */
 	template<typename InputRange>
 	iterator      append(const InputRange & range);
+	/**
+	* @brief Add at end the elements from initializer list
+	* @param il std::initializer_list to append the values from (in the same order)
+	*
+	* Otherwise same as append(InputIterator, size_type)  */
+	iterator      append(std::initializer_list<T> il);
 
 	template<typename... Params>
 	void       emplace_back(Params &&... args);
@@ -266,16 +275,16 @@ private:
 #	define OETL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
 
-	void _uninitCopyData(std::false_type, const dynarray<T, Alloc> & src)
-	{	// non-trivial copy
-		_end = std::uninitialized_copy(src._data.get(), src._end, data());
+	void _uninitCopyData(std::false_type, const_pointer first, const_pointer last, size_type)
+	{	// not trivially copyable T
+		_end = std::uninitialized_copy(first, last, data());
 		_reserveEnd = _end;
 	}
 
-	void _uninitCopyData(std::true_type, const dynarray<T, Alloc> & src)
-	{	// trivial copy
-		::memcpy(data(), src.data(), src.size() * sizeof(T));
-		_reserveEnd = _end = data() + src.size();
+	void _uninitCopyData(std::true_type, const_pointer first, const_pointer, size_type count)
+	{
+		::memcpy(data(), first, count * sizeof(T));
+		_reserveEnd = _end = data() + count;
 	}
 
 	size_type _unusedCapacity() const
@@ -517,7 +526,7 @@ inline dynarray<T, Alloc>::dynarray(reserve_t, size_type capacity) :
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(size_type size) :
+inline dynarray<T, Alloc>::dynarray(init_size_t, size_type size) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
@@ -525,7 +534,7 @@ inline dynarray<T, Alloc>::dynarray(size_type size) :
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, const T & val) :
+dynarray<T, Alloc>::dynarray(init_size_t, size_type size, const T & val) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
@@ -545,7 +554,16 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(const dynarray<T, Alloc> & other) :
 	_data( _alloc(other.size()) )
 {
-	_uninitCopyData(is_trivially_copyable<T>(), other);
+	_uninitCopyData(is_trivially_copyable<T>(),
+					other.data(), other._end, other.size());
+}
+
+template<typename T, typename Alloc>
+dynarray<T, Alloc>::dynarray(std::initializer_list<T> init) :
+	_data( _alloc(init.size()) )
+{
+	_uninitCopyData(is_trivially_copyable<T>(),
+					other.begin(), other.end(), other.size());
 }
 
 template<typename T, typename Alloc>
@@ -599,6 +617,12 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 	return _append(can_memmove_ranges_with(data(), first),
 				   iterator_traversal_t<decltype(first)>(),
 				   range);
+}
+
+template<typename T, typename Alloc>
+OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(std::initializer_list<T> il)
+{
+	return append< std::initializer_list<T> >(il);
 }
 
 template<typename T, typename Alloc> template<typename... Params>
