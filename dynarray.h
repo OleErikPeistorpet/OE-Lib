@@ -174,10 +174,7 @@ public:
 	template<typename InputRange>
 	iterator      append(const InputRange & range);
 	/**
-	* @brief Add at end the elements from initializer list
-	* @param il std::initializer_list to append the values from (in the same order)
-	*
-	* Otherwise same as append(InputIterator, size_type)  */
+	* @brief Equivalent to calling template<typename InputRange> append(const InputRange &) with il as argument  */
 	iterator      append(std::initializer_list<T> il);
 
 	template<typename... Params>
