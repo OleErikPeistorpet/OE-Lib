@@ -15,7 +15,9 @@
 
 /**
 * @file util.h
-* Utility functions designed for the STL interface
+* @brief Utilities, including algorithms
+*
+* Designed to interface with the standard library. Contains erase functions, copy functions, make_unique and more.
 */
 
 namespace oetl

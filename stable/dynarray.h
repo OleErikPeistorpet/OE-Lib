@@ -71,7 +71,8 @@ bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { re
 * Relocating objects of template argument T must be equivalent to memcpy without destructor call (true for most types).
 * This is checked when compiling with is_trivially_relocatable, a trait which must be specialized manually for each
 * type that is not trivially copyable.
-* @par The default allocator supports over-aligned types (e.g. __m256)  */
+*
+* The default allocator supports over-aligned types (e.g. __m256)  */
 template<typename T, typename Alloc = allocator<T> >
 class dynarray
 {
