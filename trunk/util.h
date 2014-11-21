@@ -44,9 +44,21 @@ bool index_valid(const Range & range, std::int64_t index);
 
 
 
+#if _MSC_VER
+
+using std::make_unique;
+
+#else
+
 /// Calls new T using constructor syntax with args as the parameter list and wraps it in a std::unique_ptr.
 template<typename T, typename... Params, typename = std::enable_if_t<!std::is_array<T>::value> >
 std::unique_ptr<T>  make_unique(Params &&... args);
+
+/// Calls new T[arraySize]() and wraps it in a std::unique_ptr. The array is value-initialized.
+template< typename T, typename = std::enable_if_t<std::is_array<T>::value> >
+std::unique_ptr<T> make_unique(size_t arraySize);
+
+#endif
 
 /** @brief Calls new T using uniform initialization syntax (args in braces) and wraps it in a std::unique_ptr.
 *
@@ -58,16 +70,8 @@ std::unique_ptr<T> make_unique_brace(Params &&... args);
 /** @brief Calls new T and wraps it in a std::unique_ptr. The T object is default-initialized.
 *
 * Default initialization of non-class T produces an object with indeterminate value  */
-template<typename T> inline
-std::unique_ptr<T> make_unique_default()
-{
-	static_assert(!std::is_array<T>::value, "Please use make_unique_default<T[]>(size_t) for array");
-	return std::unique_ptr<T>(new T);
-}
-
-/// Calls new T[arraySize]() and wraps it in a std::unique_ptr. The array is value-initialized.
-template< typename T, typename = std::enable_if_t<std::is_array<T>::value> >
-std::unique_ptr<T> make_unique(size_t arraySize);
+template<typename T>
+std::unique_ptr<T> make_unique_default();
 
 /** @brief Calls new T[arraySize] and wraps it in a std::unique_ptr. The array is default-initialized.
 *
@@ -412,19 +416,12 @@ inline bool oetl::index_valid(const Range & r, std::int64_t idx)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#if !_MSC_VER
+
 template<typename T, typename... Params, typename>
 inline std::unique_ptr<T>  oetl::make_unique(Params &&... args)
 {
 	T * p = new T(std::forward<Params>(args)...); // direct-initialize, or value-initialize if no args
-	return std::unique_ptr<T>(p);
-}
-
-template<typename T, typename... Params>
-inline std::unique_ptr<T>  oetl::make_unique_brace(Params &&... args)
-{
-	static_assert(!std::is_array<T>::value, "make_unique_brace forbids array of T");
-
-	T * p = new T{std::forward<Params>(args)...}; // list-initialize
 	return std::unique_ptr<T>(p);
 }
 
@@ -435,6 +432,24 @@ inline std::unique_ptr<T>  oetl::make_unique(size_t arraySize)
 
 	typedef typename std::remove_extent<T>::type Elem;
 	return std::unique_ptr<T>( new Elem[arraySize]() ); // value-initialize
+}
+
+#endif
+
+template<typename T, typename... Params>
+inline std::unique_ptr<T>  oetl::make_unique_brace(Params &&... args)
+{
+	static_assert(!std::is_array<T>::value, "make_unique_brace forbids array of T");
+
+	T * p = new T{std::forward<Params>(args)...}; // list-initialize
+	return std::unique_ptr<T>(p);
+}
+
+template<typename T>
+inline std::unique_ptr<T>  oetl::make_unique_default()
+{
+	static_assert(!std::is_array<T>::value, "Please use make_unique_default<T[]>(size_t) for array");
+	return std::unique_ptr<T>(new T);
 }
 
 template<typename T>
