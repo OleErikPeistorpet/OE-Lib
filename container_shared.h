@@ -130,39 +130,40 @@ static init_size_t const init_size;
 // The rest are advanced utilities, not for users
 
 
-namespace _detail
-{
+/// Like std::aligned_storage<Size, Align>::type, but guaranteed to support alignment of up to 64
+template<size_t Size, size_t Align>
+struct aligned_storage_t {};
+
 #if _MSC_VER
-#	define OETL_ALIGN_PRE(bytes)  __declspec(align(bytes))
-#	define OETL_ALIGN_POST(bytes)
+#	define OETL_ALIGN_PRE(amount)  __declspec(align(amount))
+#	define OETL_ALIGN_POST(amount)
 #else
-#	define OETL_ALIGN_PRE(bytes)
-#	define OETL_ALIGN_POST(bytes) __attribute__(aligned(bytes))
+#	define OETL_ALIGN_PRE(amount)
+#	define OETL_ALIGN_POST(amount) __attribute__(aligned(amount))
 #endif
 
 #define OETL_STORAGE_ALIGNED_TO(align)  \
 	template<size_t Size>  \
-	struct AlignedStorage<Size, align>  \
+	struct aligned_storage_t<Size, align>  \
 	{  \
-		OETL_ALIGN_PRE(align) unsigned char bytes[Size];  \
+		OETL_ALIGN_PRE(align) unsigned char data[Size];  \
 	} OETL_ALIGN_POST(align)
 
-	template<size_t Size, size_t Align>
-	struct AlignedStorage {};
-
-	OETL_STORAGE_ALIGNED_TO(1);
-	OETL_STORAGE_ALIGNED_TO(2);
-	OETL_STORAGE_ALIGNED_TO(4);
-	OETL_STORAGE_ALIGNED_TO(8);
-	OETL_STORAGE_ALIGNED_TO(16);
-	OETL_STORAGE_ALIGNED_TO(32);
-	OETL_STORAGE_ALIGNED_TO(64);
+OETL_STORAGE_ALIGNED_TO(1);
+OETL_STORAGE_ALIGNED_TO(2);
+OETL_STORAGE_ALIGNED_TO(4);
+OETL_STORAGE_ALIGNED_TO(8);
+OETL_STORAGE_ALIGNED_TO(16);
+OETL_STORAGE_ALIGNED_TO(32);
+OETL_STORAGE_ALIGNED_TO(64);
 
 #undef OETL_STORAGE_ALIGNED_TO
 #undef OETL_ALIGN_PRE
 #undef OETL_ALIGN_POST
 
 
+namespace _detail
+{
 	template<size_t Align>
 	struct CanDefaultAlloc : bool_constant<
 #		if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux

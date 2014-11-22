@@ -12,287 +12,214 @@
 namespace oetl
 {
 
-template<class T>
-struct value_type
-{
-	typedef typename T::value_type the;
-};
-template<typename T, size_t Size>
-struct value_type<T[Size]>
-{
-	typedef T the;
-};
+template<typename, typename> class array_debug_iterator;
 
-
-/** @brief Iterator wrapping for pointer to const value
+/** @brief Iterator wrapping for pointer with error checking
 *
-* The array iterators have significant overhead, are meant for debugging only  */
-template<typename Container>
-class array_const_iterator
+* The class has significant overhead, is meant for debug builds only  */
+template<typename ConstQualValT, typename Container>
+class array_debug_iterator
 {
-	typedef typename value_type<Container>::the * _nonConstPtrT;
+#define OETL_ARRITER_CHECK_DEREFABLE  \
+	MEM_BOUND_ASSERT( static_cast<typename Container::size_type>(_pElem - _myCont->data()) < _myCont->size() )
 
-#if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#if OETL_MEM_BOUND_DEBUG_LVL >= 3
 	// test for iterator pair pointing to same container
-#	define OETL_ARRITER_CHECKCOMPAT(right)  \
+#	define OETL_ARRITER_CHECK_COMPAT(right)  \
 		MEM_BOUND_ASSERT(_myCont && right._myCont == _myCont)
 #else
-#	define OETL_ARRITER_CHECKCOMPAT(right)
+#	define OETL_ARRITER_CHECK_COMPAT(right)
 #endif
 
 public:
-	typedef std::random_access_iterator_tag iterator_category;
+	using iterator_category = std::random_access_iterator_tag;
 
-	typedef typename value_type<Container>::the value_type;
-	typedef std::ptrdiff_t                      difference_type;
-	typedef const value_type *                  pointer;
-	typedef const value_type &                  reference;
+	using value_type = typename Container::value_type;
+	using pointer    = ConstQualValT *;
+	using reference  = ConstQualValT &;
+	using difference_type = std::ptrdiff_t;
 
-	array_const_iterator()
-	 :	_myCont(nullptr)
-	{}
+	array_debug_iterator() : _myCont(nullptr) {
+	}
 
-	// construct with position in container (and pointer to container for debug)
-	array_const_iterator(pointer pos, const Container * container)
-	 :	_pElem(const_cast<_nonConstPtrT>(pos)),
-		_myCont(container)
-	{}
+	// construct with position in data and pointer to container
+	array_debug_iterator(pointer pos, const Container * container)
+	 :	_pElem(pos), _myCont(container) {
+	}
+
+	operator array_debug_iterator<value_type const, Container>() const
+	{
+		return {_pElem, _myCont};
+	}
 
 	reference operator*() const
-	{	// return reference to element
-		return *operator->();
+	{
+		OETL_ARRITER_CHECK_DEREFABLE;
+		return *_pElem;
 	}
 
 	pointer operator->() const
-	{	// return pointer to element
-		MEM_BOUND_ASSERT( to_ptr(begin(*_myCont)) <= _pElem && _pElem < to_ptr(end(*_myCont)) );
+	{
+		OETL_ARRITER_CHECK_DEREFABLE;
 		return _pElem;
 	}
 
-	array_const_iterator & operator++()
+	array_debug_iterator & operator++()
 	{	// preincrement
 #	if OETL_MEM_BOUND_DEBUG_LVL >= 3
-		MEM_BOUND_ASSERT(_pElem < to_ptr(end(*_myCont)));
+		MEM_BOUND_ASSERT( _pElem < to_ptr(_myCont->end()) );
 #	endif
 		++_pElem;
 		return *this;
 	}
 
-	array_const_iterator operator++(int)
+	array_debug_iterator operator++(int)
 	{	// postincrement
 		auto tmp = *this;
 		++(*this);
 		return tmp;
 	}
 
-	array_const_iterator & operator--()
+	array_debug_iterator & operator--()
 	{	// predecrement
 #	if OETL_MEM_BOUND_DEBUG_LVL >= 3
-		MEM_BOUND_ASSERT(to_ptr(begin(*_myCont)) < _pElem);
+		MEM_BOUND_ASSERT(_myCont->data() < _pElem);
 #	endif
 		--_pElem;
 		return *this;
 	}
 
-	array_const_iterator operator--(int)
+	array_debug_iterator operator--(int)
 	{	// postdecrement
 		auto tmp = *this;
 		--(*this);
 		return tmp;
 	}
 
-	array_const_iterator & operator+=(difference_type offset)
+	array_debug_iterator & operator+=(difference_type offset)
 	{	// add integer to pointer
 #	if OETL_MEM_BOUND_DEBUG_LVL >= 3
-		MEM_BOUND_ASSERT( offset >= to_ptr(begin(*_myCont)) - _pElem
-					   && offset <= to_ptr(end(*_myCont)) - _pElem );
+		MEM_BOUND_ASSERT( offset >= _myCont->data() - _pElem
+					   && offset <= to_ptr(_myCont->end()) - _pElem );
 #	endif
 		_pElem += offset;
 		return *this;
 	}
 
-	array_const_iterator & operator-=(difference_type offset)
+	array_debug_iterator & operator-=(difference_type offset)
 	{	// subtract integer from pointer
 #	if OETL_MEM_BOUND_DEBUG_LVL >= 3
-		MEM_BOUND_ASSERT( offset <= _pElem - to_ptr(begin(*_myCont))
-					   && offset >= _pElem - to_ptr(end(*_myCont)) );
+		MEM_BOUND_ASSERT( offset <= _pElem - _myCont->data()
+					   && offset >= _pElem - to_ptr(_myCont->end()) );
 #	endif
 		_pElem -= offset;
 		return *this;
 	}
 
-	array_const_iterator operator +(difference_type offset) const
+	array_debug_iterator operator +(difference_type offset) const
 	{	// return this + integer
-		return array_const_iterator(*this) += offset;
+		auto tmp = *this;
+		return tmp += offset;
 	}
 
-	array_const_iterator operator -(difference_type offset) const
+	array_debug_iterator operator -(difference_type offset) const
 	{	// return this - integer
-		return array_const_iterator(*this) -= offset;
+		auto tmp = *this;
+		return tmp -= offset;
 	}
 
-	difference_type operator -(const array_const_iterator & right) const
+	template<typename ValT2>
+	difference_type operator -(const array_debug_iterator<ValT2, Container> & right) const
 	{	// return difference of iterators
-		OETL_ARRITER_CHECKCOMPAT(right);
+		OETL_ARRITER_CHECK_COMPAT(right);
 		return _pElem - right._pElem;
 	}
 
 	reference operator[](difference_type offset) const
-	{	// subscript
+	{
 		return *(operator +(offset));
 	}
 
-	bool operator==(const array_const_iterator & right) const
+	template<typename ValT2>
+	bool operator==(const array_debug_iterator<ValT2, Container> & right) const
 	{
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 3
+		MEM_BOUND_ASSERT(_myCont || right._myCont);
+#	endif
 		return _pElem == right._pElem;
 	}
 
-	bool operator!=(const array_const_iterator & right) const
+	template<typename ValT2>
+	bool operator!=(const array_debug_iterator<ValT2, Container> & right) const
 	{
+#	if OETL_MEM_BOUND_DEBUG_LVL >= 3
+		MEM_BOUND_ASSERT(_myCont || right._myCont);
+#	endif
 		return _pElem != right._pElem;
 	}
 
-	bool operator <(const array_const_iterator & right) const
+	template<typename ValT2>
+	bool operator <(const array_debug_iterator<ValT2, Container> & right) const
 	{
-		OETL_ARRITER_CHECKCOMPAT(right);
+		OETL_ARRITER_CHECK_COMPAT(right);
 		return _pElem < right._pElem;
 	}
 
-	bool operator >(const array_const_iterator & right) const
+	template<typename ValT2>
+	bool operator >(const array_debug_iterator<ValT2, Container> & right) const
 	{
-		OETL_ARRITER_CHECKCOMPAT(right);
+		OETL_ARRITER_CHECK_COMPAT(right);
 		return _pElem > right._pElem;
 	}
 
-	bool operator<=(const array_const_iterator & right) const
+	template<typename ValT2>
+	bool operator<=(const array_debug_iterator<ValT2, Container> & right) const
 	{
 		return !(*this > right);
 	}
 
-	bool operator>=(const array_const_iterator & right) const
+	template<typename ValT2>
+	bool operator>=(const array_debug_iterator<ValT2, Container> & right) const
 	{
 		return !(*this < right);
 	}
 
-	friend pointer to_ptr(array_const_iterator it) NOEXCEPT
+	friend pointer to_ptr(array_debug_iterator it) NOEXCEPT
 	{	// return pointer (unchecked)
 		return it._pElem;
 	}
 
 protected:
-	_nonConstPtrT     _pElem;  // wrapped pointer
+	pointer           _pElem;  // wrapped pointer
 	const Container * _myCont;
 
-#undef OETL_ARRITER_CHECKCOMPAT
+	friend class array_debug_iterator;
+
+#undef OETL_ARRITER_CHECK_COMPAT
+#undef OETL_ARRITER_CHECK_DEREFABLE
 };
 
-template<typename C> inline
-array_const_iterator<C> operator +(typename array_const_iterator<C>::difference_type offset,
-                                   array_const_iterator<C> iter)
+template<typename T, typename C> inline
+array_debug_iterator<T, C> operator +(typename array_debug_iterator<T, C>::difference_type offset,
+									  array_debug_iterator<T, C> iter)
 {	// add offset to iterator
 	return iter += offset;
 }
 
+#if OETL_MEM_BOUND_DEBUG_LVL >= 2
 
-/// Iterator wrapping for pointer to non-const value
 template<typename Container>
-class array_iterator
-	: public array_const_iterator<Container>
-{
-	typedef array_const_iterator<Container> _baseT;
+using array_iterator       = array_debug_iterator<typename Container::value_type, Container>;
+template<typename Container>
+using array_const_iterator = array_debug_iterator< std::add_const_t<typename Container::value_type>, Container >;
 
-public:
-	typedef typename _baseT::iterator_category iterator_category;
+#else
 
-	typedef typename _baseT::value_type      value_type;
-	typedef typename _baseT::difference_type difference_type;
-	typedef value_type *                     pointer;
-	typedef value_type &                     reference;
+template<typename Container>
+using array_iterator       = typename Container::value_type *;
+template<typename Container>
+using array_const_iterator = const typename Container::value_type *;
 
-	array_iterator() {}
-
-	array_iterator(pointer pos, const Container * container)
-	 :	_baseT(pos, container)
-	{}
-
-	reference operator*() const
-	{	// using base class operator-> for debug checks
-		return *const_cast<pointer>(_baseT::operator->());;
-	}
-
-	pointer operator->() const
-	{	// using base class for debug checks
-		return const_cast<pointer>(_baseT::operator->());
-	}
-
-	array_iterator & operator++()
-	{	// preincrement
-		_baseT::operator++();
-		return *this;
-	}
-
-	array_iterator operator++(int)
-	{	// postincrement
-		auto tmp = *this;
-		_baseT::operator++();
-		return tmp;
-	}
-
-	array_iterator & operator--()
-	{	// predecrement
-		_baseT::operator--();
-		return *this;
-	}
-
-	array_iterator operator--(int)
-	{	// postdecrement
-		auto tmp = *this;
-		_baseT::operator--();
-		return tmp;
-	}
-
-	array_iterator & operator+=(difference_type offset)
-	{
-		_baseT::operator+=(offset);
-		return *this;
-	}
-
-	array_iterator & operator-=(difference_type offset)
-	{
-		_baseT::operator-=(offset);
-		return *this;
-	}
-
-	array_iterator operator +(difference_type offset) const
-	{
-		return array_iterator(*this) += offset;
-	}
-
-	array_iterator operator -(difference_type offset) const
-	{
-		return array_iterator(*this) -= offset;
-	}
-
-	difference_type operator -(const _baseT & right) const
-	{
-		return _baseT::operator -(right);
-	}
-
-	reference operator[](difference_type offset) const
-	{
-		return const_cast<reference>(_baseT::operator[](offset));
-	}
-
-	friend pointer to_ptr(array_iterator it) NOEXCEPT
-	{	// return pointer (unchecked)
-		return it._baseT::_pElem;
-	}
-};
-
-template<typename C> inline
-array_iterator<C> operator +(typename array_iterator<C>::difference_type offset, array_iterator<C> iter)
-{
-	return iter += offset;
-}
+#endif
 
 } // namespace oetl

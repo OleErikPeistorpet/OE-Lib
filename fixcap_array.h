@@ -59,13 +59,9 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 
-#if OETL_MEM_BOUND_DEBUG_LVL >= 2
 	using iterator       = array_iterator< fixcap_array<T, Capacity> >;
 	using const_iterator = array_const_iterator< fixcap_array<T, Capacity> >;
-#else
-	using iterator       = T *;
-	using const_iterator = const T *;
-#endif
+
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
 	using size_type       = size_t;
 
@@ -171,7 +167,7 @@ public:
 
 private:
 	size_type _size;
-	_detail::AlignedStorage<sizeof(T), ALIGNOF(T)> _data[Capacity];
+	aligned_storage_t<sizeof(T), ALIGNOF(T)> _data[Capacity];
 
 
 	static length_error _lengthExc()
