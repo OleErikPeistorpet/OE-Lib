@@ -101,13 +101,9 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 
-#if OETL_MEM_BOUND_DEBUG_LVL >= 2
 	using iterator       = array_iterator< dynarray<T, Alloc> >;
 	using const_iterator = array_const_iterator< dynarray<T, Alloc> >;
-#else
-	using iterator       = T *;
-	using const_iterator = const T *;
-#endif
+
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
 	using size_type       = typename Alloc::size_type;
 
@@ -470,7 +466,7 @@ private:
 
 	template<typename InputRange>
 	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & range)
-	{	// slowest
+	{	// cannot count input objects before copy
 		size_type const oldSize = size();
 		for (auto && v : range)
 			emplace_back( std::forward<decltype(v)>(v) );
@@ -707,8 +703,8 @@ void dynarray<T, Alloc>::reserve(size_type minCapacity)
 		pointer const newData = _alloc(minCapacity);
 
 		_reserveEnd = newData + minCapacity;
-
-		::memcpy(newData, data(), size() * sizeof(T));  // relocate elements
+		// Relocate elements
+		::memcpy(newData, data(), size() * sizeof(T));
 		_end = newData + size();
 
 		_data.reset(newData);
@@ -769,7 +765,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 
 	posPtr-> ~T();
 	pointer const next = posPtr + 1;
-	::memmove(posPtr, next, (_end - next) * sizeof(T)); // move [pos + 1, end) to [pos, end - 1)
+	::memmove(posPtr, next, (_end - next) * sizeof(T)); // relocate [pos + 1, end) to [pos, end - 1)
 	--_end;
 	return pos;
 }
@@ -787,7 +783,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 	{
 		_detail::Destroy(pFirst, pLast);
 		size_type const nAfterLast = _end - pLast;
-		// move [last, end) to [first, first + nAfterLast)
+		// Relocate [last, end) to [first, first + nAfterLast)
 		::memmove(pFirst, pLast, nAfterLast * sizeof(T));
 		_end = pFirst + nAfterLast;
 	}

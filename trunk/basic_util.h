@@ -121,7 +121,8 @@ namespace _detail
 }
 
 #if _MSC_VER
-#	pragma warning(push, 3)
+#	pragma warning(push)
+#	pragma warning(disable: 4100)
 #endif
 /// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
 template<typename OutIterator, typename InIterator> inline
