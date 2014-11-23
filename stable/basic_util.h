@@ -117,7 +117,8 @@ namespace _detail
 }
 
 #if _MSC_VER
-#	pragma warning(push, 3)
+#	pragma warning(push)
+#	pragma warning(disable: 4100)
 #endif
 /// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
 template<typename OutIterator, typename InIterator> inline
@@ -148,5 +149,5 @@ namespace _detail
 template<typename Range>
 inline auto oetl::count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
 {
-	return _detail::Count(r, int());
+	return _detail::Count(r, int{});
 }

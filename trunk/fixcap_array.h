@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "array_iterator.h"
+#include "contiguous_iterator.h"
 #include "container_shared.h"
 
 #include <stdexcept>
@@ -59,8 +59,8 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 
-	using iterator       = array_iterator< fixcap_array<T, Capacity> >;
-	using const_iterator = array_const_iterator< fixcap_array<T, Capacity> >;
+	using iterator       = contiguous_iterator< T, fixcap_array<T, Capacity> >;
+	using const_iterator = contiguous_iterator< T const, fixcap_array<T, Capacity> >;
 
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
 	using size_type       = size_t;

@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "array_iterator.h"
+#include "contiguous_iterator.h"
 #include "container_shared.h"
 
 #ifndef OETL_NO_BOOST
@@ -101,8 +101,8 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 
-	using iterator       = array_iterator< dynarray<T, Alloc> >;
-	using const_iterator = array_const_iterator< dynarray<T, Alloc> >;
+	using iterator       = contiguous_iterator< T, dynarray<T, Alloc> >;
+	using const_iterator = contiguous_iterator< T const, dynarray<T, Alloc> >;
 
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
 	using size_type       = typename Alloc::size_type;

@@ -23,6 +23,25 @@ protected:
 	// Objects declared here can be used by all tests.
 };
 
+TEST_F(dynarrayTest, construct)
+{
+	{
+		Outer o;
+	}
+
+	using Iter = dynarray<std::string>::iterator;
+	using ConstIter = dynarray<std::string>::const_iterator;
+
+	dynarray<std::string> a;
+	decltype(a) b(a);
+
+	static_assert(oetl::is_trivially_copyable<Iter>::value, "");
+	static_assert(std::is_convertible<Iter, ConstIter>::value, "");
+	static_assert(!std::is_convertible<ConstIter, Iter>::value, "");
+
+	dynarray< dynarray<int> > nested;
+}
+
 TEST_F(dynarrayTest, push_back)
 {
 	Deleter::callCount = 0;
@@ -46,18 +65,6 @@ TEST_F(dynarrayTest, push_back)
 	EXPECT_EQ(2, Deleter::callCount);
 }
 
-TEST_F(dynarrayTest, construct)
-{
-	{
-		Outer o;
-	}
-
-	oetl::dynarray<std::string> a;
-	decltype(a) b(a);
-
-	dynarray< dynarray<int> > nested;
-}
-
 TEST_F(dynarrayTest, assign)
 {
 	{
@@ -71,6 +78,7 @@ TEST_F(dynarrayTest, assign)
 		std::stringstream ss{"My computer emits Hawking radiation"};
 		std::istream_iterator<std::string> begin{ss};
 		std::istream_iterator<std::string> end;
+		//das.assign(begin, 5);  should not compile
 		das.assign(oetl::make_range(begin, end));
 
 		EXPECT_EQ(5, das.size());

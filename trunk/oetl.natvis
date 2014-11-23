@@ -27,8 +27,7 @@
       </Expand>
    </Type>
 
-   <Type Name="oetl::array_iterator&lt; oetl::dynarray&lt;*&gt; &gt;">
-      <AlternativeType Name="oetl::array_const_iterator&lt; oetl::dynarray&lt;*&gt; &gt;" />
+   <Type Name="oetl::cntigus_ctr_dbg_iterator&lt; *, oetl::dynarray&lt;*&gt; &gt;">
       <DisplayString Condition="_pElem == _myCont-&gt;_end">end</DisplayString>
       <DisplayString>[{_pElem - _myCont-&gt;_data._Myptr}] {*_pElem}</DisplayString>
       <Expand>
@@ -37,10 +36,9 @@
       </Expand>
    </Type>
 
-   <Type Name="oetl::array_iterator&lt; oetl::fixcap_array&lt;*&gt; &gt;">
-      <AlternativeType Name="oetl::array_const_iterator&lt; oetl::fixcap_array&lt;*&gt; &gt;" />
-      <DisplayString Condition="_pElem - (_nonConstPtrT)_myCont-&gt;_data == _myCont-&gt;_size">end</DisplayString>
-      <DisplayString>[{_pElem - (_nonConstPtrT)_myCont-&gt;_data}] {*_pElem}</DisplayString>
+   <Type Name="oetl::cntigus_ctr_dbg_iterator&lt; *, oetl::fixcap_array&lt;*&gt; &gt;">
+      <DisplayString Condition="_pElem - (pointer)_myCont-&gt;_data == _myCont-&gt;_size">end</DisplayString>
+      <DisplayString>[{_pElem - (pointer)_myCont-&gt;_data}] {*_pElem}</DisplayString>
       <Expand>
          <Item Name="ptr" ExcludeView="simple">(void*)_pElem</Item>
          <Item Name="owner">_myCont</Item>
