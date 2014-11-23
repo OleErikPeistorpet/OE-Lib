@@ -8,9 +8,7 @@
 
 #include "basic_util.h"
 
-#ifndef OETL_NO_BOOST
 #include <boost/align/aligned_alloc.hpp>
-#endif
 #include <memory>
 #include <string.h>
 
@@ -36,86 +34,11 @@ template<typename T, typename Del>
 struct is_trivially_relocatable< std::unique_ptr<T, Del> >
  :	is_trivially_relocatable<Del> {};
 
-template<typename T>
-struct is_trivially_relocatable< std::shared_ptr<T> > : std::true_type {};
-
-template<typename T, typename U>
-struct is_trivially_relocatable< std::pair<T, U> > : bool_constant<
-	is_trivially_relocatable<T>::value && is_trivially_relocatable<U>::value > {};
-
-template<typename T, typename... Us>
-struct is_trivially_relocatable< std::tuple<T, Us...> > : bool_constant<
-	is_trivially_relocatable<T>::value && is_trivially_relocatable< std::tuple<Us...> >::value > {};
-
-template<>
-struct is_trivially_relocatable< std::tuple<> > : std::true_type {};
-
+#if _MSC_VER && _MSC_VER < 1900
 /// Might not be safe with all STL implementations, only verified for Visual C++ 2013
 template<typename C, typename Tr>
 struct is_trivially_relocatable< std::basic_string<C, Tr> >
  :	std::true_type {};
-
-#if 0
-
-template<typename T, typename Ctr>
-struct is_trivially_relocatable< std::stack<T, Ctr> >
- :	is_trivially_relocatable<Ctr> {};
-
-template<typename T, typename Ctr>
-struct is_trivially_relocatable< std::queue<T, Ctr> >
- :	is_trivially_relocatable<Ctr> {};
-
-template<typename T, typename Ctr, typename C>
-struct is_trivially_relocatable< std::priority_queue<T, Ctr, C> >
- :	is_trivially_relocatable<Ctr> {};
-
-template<typename T, size_t S>
-struct is_trivially_relocatable< std::array<T, S> >
- :	is_trivially_relocatable<T> {};
-
-template<typename T>
-struct is_trivially_relocatable< std::deque<T> > : std::true_type {};
-
-template<typename T>
-struct is_trivially_relocatable< std::list<T> > : std::true_type {};
-
-template<typename T>
-struct is_trivially_relocatable< std::forward_list<T> > : std::true_type {};
-
-template<typename T, typename C>
-struct is_trivially_relocatable< std::set<T, C> > : std::true_type {};
-
-template<typename T, typename C>
-struct is_trivially_relocatable< std::multi_set<T, C> >
- :	std::true_type {};
-
-template<typename K, typename T, typename C>
-struct is_trivially_relocatable< std::map<K, T, C> >
- :	std::true_type {};
-
-template<typename K, typename T, typename C>
-struct is_trivially_relocatable< std::multi_map<K, T, C> >
- :	std::true_type {};
-
-template<typename T, typename H, typename P>
-struct is_trivially_relocatable< std::unordered_set<T, H, P> >
- :	std::true_type {};
-
-template<typename T, typename H, typename P>
-struct is_trivially_relocatable< std::unordered_multi_set<T, H, P> >
- :	std::true_type {};
-
-template<typename K, typename T, typename H, typename P>
-struct is_trivially_relocatable< std::unordered_map<K, T, H, P> >
- :	std::true_type {};
-
-template<typename K, typename T, typename H, typename P>
-struct is_trivially_relocatable< std::unordered_multi_map<K, T, H, P> >
- :	std::true_type {};
-
-template<typename T>
-struct is_trivially_relocatable< boost::circular_buffer<T> > : std::true_type {};
-
 #endif
 
 
@@ -130,42 +53,10 @@ static init_size_t const init_size;
 // The rest are advanced utilities, not for users
 
 
-/// Like std::aligned_storage<Size, Align>::type, but guaranteed to support alignment of up to 64
-template<size_t Size, size_t Align>
-struct aligned_storage_t {};
-
-#if _MSC_VER
-#	define OETL_ALIGN_PRE(amount)  __declspec(align(amount))
-#	define OETL_ALIGN_POST(amount)
-#else
-#	define OETL_ALIGN_PRE(amount)
-#	define OETL_ALIGN_POST(amount) __attribute__(aligned(amount))
-#endif
-
-#define OETL_STORAGE_ALIGNED_TO(align)  \
-	template<size_t Size>  \
-	struct aligned_storage_t<Size, align>  \
-	{  \
-		OETL_ALIGN_PRE(align) unsigned char data[Size];  \
-	} OETL_ALIGN_POST(align)
-
-OETL_STORAGE_ALIGNED_TO(1);
-OETL_STORAGE_ALIGNED_TO(2);
-OETL_STORAGE_ALIGNED_TO(4);
-OETL_STORAGE_ALIGNED_TO(8);
-OETL_STORAGE_ALIGNED_TO(16);
-OETL_STORAGE_ALIGNED_TO(32);
-OETL_STORAGE_ALIGNED_TO(64);
-
-#undef OETL_STORAGE_ALIGNED_TO
-#undef OETL_ALIGN_PRE
-#undef OETL_ALIGN_POST
-
-
 namespace _detail
 {
 	template<size_t Align>
-	struct CanDefaultAlloc : bool_constant<
+	struct CanDefaultAlloc : std::integral_constant< bool,
 #		if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16 >
 #		else
@@ -179,12 +70,6 @@ namespace _detail
 		return ::operator new[](nBytes);
 	}
 
-	inline void OpDelete(std::true_type, void * ptr)
-	{
-		::operator delete[](ptr);
-	}
-
-#ifndef OETL_NO_BOOST
 	// TODO: Should use new_handler or let both OpNew overloads use custom failure function
 	template<size_t Align>
 	void * OpNew(std::false_type, size_t nBytes)
@@ -196,11 +81,15 @@ namespace _detail
 			throw std::bad_alloc();
 	}
 
+	inline void OpDelete(std::true_type, void * ptr)
+	{
+		::operator delete[](ptr);
+	}
+
 	inline void OpDelete(std::false_type, void * ptr)
 	{
 		boost::alignment::aligned_free(ptr);
 	}
-#endif
 }
 
 /// An alignment-aware, non-standard allocator
@@ -246,101 +135,75 @@ auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 
 namespace _detail
 {
-	template<typename T>
-	struct AssertRelocate
-	{
-		static_assert(is_trivially_relocatable<T>::value,
-			"Template argument T must be trivially relocatable, see documentation for is_trivially_relocatable");
-	};
+	template<typename T> inline
+	void Destroy(std::true_type, T *, T *) {}  // optimization for non-optimized builds
 
+	template<typename T> inline
+	void Destroy(std::false_type, T * first, T * last)
+	{
+		for (; first < last; ++first)
+			first-> ~T();
+	}
+
+	template<typename T> inline
+	void Destroy(T * first, T * last) NOEXCEPT
+	{	// first > last is OK, does nothing
+		Destroy(std::has_trivial_destructor<T>(), first, last);
+	}
 
 
 	template<typename, typename Iter> inline
-	void Destroy(std::true_type, Iter, Iter)
-	{}	// optimization for non-optimized builds
-
-	template<typename ValT, typename ForwardIter> inline
-	void Destroy(std::false_type, ForwardIter first, ForwardIter last)
-	{
-		for (; first != last; ++first)
-			(*first).~ValT();
-	}
-
-	template<typename ForwardIter> inline
-	void Destroy(ForwardIter first, ForwardIter last) NOEXCEPT
-	{
-		typedef typename std::iterator_traits<ForwardIter>::value_type ValT;
-		Destroy<ValT>(std::has_trivial_destructor<ValT>(), first, last);
-	}
-
-
-	template<typename ValT, typename ForwardIter> inline
-	void UninitFillDefault(std::true_type, ForwardIter first, ForwardIter const last)
-	{
-		for (; first != last; ++first)
-			::new(std::addressof(*first)) ValT;
-	}
+	void UninitFillDefault(std::true_type, Iter, Iter) {}  // optimization for non-optimized builds
 
 	template<typename ValT, typename ForwardIter>
 	void UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
-	{	// default constructor potentially throws
-		ForwardIter const init = first;
+	{	// not trivial default constructor
+		ForwardIter init = first;
 		try
 		{
 			for (; first != last; ++first)
 				::new(std::addressof(*first)) ValT;
 		}
 		catch (...)
-		{	// Destroy the objects that were constructed before the exception
-			Destroy(init, first);
+		{	// Destroy the objects constructed before the exception
+			for (; init != first; ++init)
+				(*init).~ValT();
+
 			throw;
 		}
 	}
+}
 
-
-	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter> inline
-	range_ends<InputIter, ForwardIter>  UninitCopyN(std::true_type, InputIter first, Count count, ForwardIter & dest)
-	{	// nothrow constructible
+/// Copies count elements from a range beginning at first to an uninitialized memory area beginning at dest
+template<typename InputIterator, typename ForwardIterator>
+range_ends<InputIterator, ForwardIterator> uninitialized_copy_n(InputIterator first, size_t count, ForwardIterator dest)
+{
+	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
+	ForwardIterator destBegin = dest;
+	try
+	{
 		for (; 0 < count; --count)
 		{
-			::new(std::addressof(*dest)) DestValT(*first);
+			::new(std::addressof(*dest)) ValT(*first);
 			++dest; ++first;
 		}
-		return {first, dest};
 	}
+	catch (...)
+	{	// Destroy the objects constructed before the exception
+		for (; destBegin != dest; ++destBegin)
+			(*destBegin).~ValT();
 
-	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter>
-	range_ends<InputIter, ForwardIter>  UninitCopyN(std::false_type, InputIter first, Count count, ForwardIter dest)
-	{
-		ForwardIter const destBegin = dest;
-		try
-		{
-			return UninitCopyN<DestValT>(std::true_type{}, first, count, dest); // dest passed by reference
-		}
-		catch (...)
-		{
-			Destroy(destBegin, dest);
-			throw;
-		}
+		throw;
 	}
-} // namespace _detail
+	return {first, dest};
+}
 
 /// Default initializes objects (in uninitialized memory) in range [first, last)
 template<typename ForwardIterator> inline
 void uninitialized_fill_default(ForwardIterator first, ForwardIterator last)
 {
 	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
-	_detail::UninitFillDefault<ValT>(std::is_nothrow_default_constructible<ValT>(), first, last);
-}
-
-/// Copies count elements from a range beginning at first to an uninitialized memory area beginning at dest
-template<typename InputIterator, typename Count, typename ForwardIterator>
-range_ends<InputIterator, ForwardIterator>
-	uninitialized_copy_n(InputIterator first, Count count, ForwardIterator dest)
-{
-	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
-	return _detail::UninitCopyN<ValT>(std::is_nothrow_constructible<ValT, decltype(*first)>(),
-									  first, count, dest);
+	_detail::UninitFillDefault<ValT>(std::has_trivial_default_constructor<ValT>(), first, last);
 }
 
 } // namespace oetl
