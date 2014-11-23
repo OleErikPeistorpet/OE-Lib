@@ -91,7 +91,7 @@ bool operator!=(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right)  
 * type that is not trivially copyable.
 *
 * The default allocator supports over-aligned types (e.g. __m256)  */
-template<typename T, typename Alloc = allocator>
+template<typename T, typename Alloc = allocator<T> >
 class dynarray
 {
 public:
@@ -166,12 +166,10 @@ public:
 	* @param range object which begin and end can be called on (an array, STL container or iterator_range)
 	* @return iterator pointing to first of the new elements in dynarray, or end if range is empty
 	*
-	* Strong exception safety (commit or rollback semantics), provided that range iterator type meet the requirements
-	* of Forward Traversal Iterator (boost concept). Otherwise same as append(InputIterator, size_type)  */
+	* Otherwise same as append(InputIterator, size_type)  */
 	template<typename InputRange>
 	iterator      append(const InputRange & range);
-	/**
-	* @brief Equivalent to calling template<typename InputRange> append(const InputRange &) with il as argument  */
+	/// Equivalent to calling template<typename InputRange> append(const InputRange &) with il as argument  */
 	iterator      append(std::initializer_list<T> il);
 
 	template<typename... Params>
@@ -243,14 +241,13 @@ public:
 private:
 	static pointer _alloc(size_type count)
 	{
-		void * p = Alloc{}.allocate<ALIGNOF(T)>(count * sizeof(T));
-		return static_cast<pointer>(p);
+		return Alloc{}.allocate(count);
 	}
 
 	struct _dealloc
 	{	void operator()(pointer ptr)
 		{
-			Alloc{}.deallocate<ALIGNOF(T)>(ptr);
+			Alloc{}.deallocate(ptr);
 		}
 	};
 
@@ -360,7 +357,8 @@ private:
 	void _assign(const InputRange & range, single_pass_traversal_tag)
 	{	// cannot count input objects before assigning
 		clear();
-		append(range);
+		for (auto && v : range)
+			emplace_back( std::forward<decltype(v)>(v) );
 	}
 
 	template<typename CopyFunc>
@@ -466,10 +464,18 @@ private:
 
 	template<typename InputRange>
 	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & range)
-	{	// cannot count input objects before copy
+	{	// slowest
 		size_type const oldSize = size();
-		for (auto && v : range)
-			emplace_back( std::forward<decltype(v)>(v) );
+		try
+		{
+			for (auto && v : range)
+				emplace_back( std::forward<decltype(v)>(v) );
+		}
+		catch (...)
+		{
+			erase_back(begin() + oldSize);
+			throw;
+		}
 
 		return begin() + oldSize;
 	}
@@ -616,7 +622,7 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 template<typename T, typename Alloc>
 OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(std::initializer_list<T> il)
 {
-	return append< std::initializer_list<T> >(il);
+	return append<>(il);
 }
 
 template<typename T, typename Alloc> template<typename... Params>
