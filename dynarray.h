@@ -355,7 +355,7 @@ private:
 	}
 
 	template<typename CopyFunc>
-	OETL_FORCEINLINE pointer _appendNonTrivial(size_type const count, CopyFunc makeNewElems)
+	pointer _appendNonTrivial(size_type const count, CopyFunc makeNewElems)
 	{
 		pointer appendPos;
 		if (_unusedCapacity() >= count)
@@ -386,8 +386,9 @@ private:
 #	if OETL_MEM_BOUND_DEBUG_LVL
 		CntigusIter last = first + count;
 
-		if (count > 0)    // Dereference iterator to the last element to append,
-			*(last - 1);  // this catches out of range errors with checked iterators
+		if (count > 0)  // Dereference to catch out of range errors if the iterators have internal checks
+		{	*first; *(last - 1);
+		}
 #	endif
 		if (_unusedCapacity() >= count)
 		{
@@ -410,7 +411,7 @@ private:
 		_end += count;
 
 #	if OETL_MEM_BOUND_DEBUG_LVL
-		return last; // in case of append self, bypass check in array_const_iterator::operator +
+		return last; // in the case of append self, bypasses check in iterator's operator +
 #	else
 		return first + count;
 #	endif
