@@ -297,8 +297,10 @@ private:
 	void _assignImpl(std::true_type, CntigusIter const first, CntigusIter, size_type const count)
 	{	// fast assign
 #	if OETL_MEM_BOUND_DEBUG_LVL
-		if (count > 0)				// Dereference iterator to the last incoming element,
-			*(first + (count - 1)); // this catches out of range errors with checked iterators
+		if (count > 0)
+		{	*first;  // Dereference to catch out of range errors if the iterators have internal checks
+			*(first + (count - 1));
+		}
 #	endif
 		if (capacity() < count)
 		{
