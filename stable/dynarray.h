@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "array_iterator.h"
+#include "contiguous_iterator.h"
 #include "container_core.h"
 
 #include <boost/iterator/iterator_categories.hpp>
@@ -84,8 +84,8 @@ public:
 	using const_reference = const T &;
 
 #if OETL_MEM_BOUND_DEBUG_LVL >= 2
-	using iterator       = array_iterator< dynarray<T, Alloc> >;
-	using const_iterator = array_const_iterator< dynarray<T, Alloc> >;
+	using iterator       = cntigus_ctr_dbg_iterator< T, dynarray<T, Alloc> >;
+	using const_iterator = cntigus_ctr_dbg_iterator< T const, dynarray<T, Alloc> >;
 #else
 	using iterator       = T *;
 	using const_iterator = const T *;
