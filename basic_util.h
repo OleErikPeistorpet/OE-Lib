@@ -71,14 +71,10 @@ struct range_ends
 // The rest are advanced utilities, not for users
 
 
-template<bool Value>
-using bool_constant = std::integral_constant<bool, Value>;
-
-
-
 #if __GLIBCXX__
 	template<typename T>
-	struct is_trivially_copyable : bool_constant<__has_trivial_copy(T) && __has_trivial_assign(T)> {};
+	struct is_trivially_copyable : std::integral_constant< bool,
+				__has_trivial_copy(T) && __has_trivial_assign(T) > {};
 #else
 	using std::is_trivially_copyable;
 #endif

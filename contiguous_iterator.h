@@ -12,9 +12,9 @@
 namespace oetl
 {
 
-/** @brief Iterator wrapping for pointer with error checking
+/** @brief Debug iterator for container with contiguous memory
 *
-* The class has significant overhead, is meant for debug builds only  */
+* Wraps a pointer with error checks. The class has significant overhead. */
 template<typename ConstQualValT, typename Container>
 class cntigus_ctr_dbg_iterator
 {
@@ -30,12 +30,14 @@ class cntigus_ctr_dbg_iterator
 #endif
 
 public:
-	using iterator_category = std::random_access_iterator_tag;
+	typedef std::random_access_iterator_tag iterator_category;
 
-	using value_type = typename Container::value_type;
-	using pointer    = ConstQualValT *;
-	using reference  = ConstQualValT &;
-	using difference_type = std::ptrdiff_t;
+	typedef typename Container::value_type value_type;
+	typedef ConstQualValT *                pointer;
+	typedef ConstQualValT &                reference;
+	typedef std::ptrdiff_t                 difference_type;
+
+	typedef cntigus_ctr_dbg_iterator<value_type const, Container> const_iterator;
 
 	cntigus_ctr_dbg_iterator() : _myCont(nullptr) {
 	}
@@ -45,9 +47,9 @@ public:
 	 :	_pElem(pos), _myCont(container) {
 	}
 
-	template< typename ValT2, typename = std::enable_if_t<std::is_same<value_type, ValT2>::value> >
-	cntigus_ctr_dbg_iterator(const cntigus_ctr_dbg_iterator<ValT2, Container> & other)
-	 :	_pElem(other._pElem), _myCont(other._myCont) {
+	operator const_iterator() const
+	{
+		return const_iterator(_pElem, _myCont);
 	}
 
 	reference operator*() const
@@ -198,17 +200,5 @@ cntigus_ctr_dbg_iterator<T, C> operator +(typename cntigus_ctr_dbg_iterator<T, C
 {	// add offset to iterator
 	return iter += offset;
 }
-
-#if OETL_MEM_BOUND_DEBUG_LVL >= 2
-
-template<typename ConstQualValT, typename Container>
-using contiguous_iterator = cntigus_ctr_dbg_iterator<ConstQualValT, Container>;
-
-#else
-
-template<typename ConstQualValT, typename>
-using contiguous_iterator = ConstQualValT *;
-
-#endif
 
 } // namespace oetl

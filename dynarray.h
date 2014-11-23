@@ -7,12 +7,9 @@
 
 
 #include "contiguous_iterator.h"
-#include "container_shared.h"
+#include "container_core.h"
 
-#ifndef OETL_NO_BOOST
 #include <boost/iterator/iterator_categories.hpp>
-#include "boost/iterator/iterator_concepts.hpp"
-#endif
 #include <stdexcept>
 #include <algorithm>
 
@@ -27,26 +24,14 @@
 namespace oetl
 {
 
+template<typename, typename> class dynarray;  // forward declare
+
+
 using std::out_of_range;
 
 
-#ifdef OETL_NO_BOOST
-
-template<typename Iterator>
-using iterator_traversal_t = typename std::iterator_traits<Iterator>::iterator_category;
-
-using forward_traversal_tag = std::forward_iterator_tag;
-using single_pass_traversal_tag = std::input_iterator_tag;
-
-#else
-
 template<typename Iterator>
 using iterator_traversal_t = typename boost::iterator_traversal<Iterator>::type;
-
-using boost::forward_traversal_tag;
-using boost::single_pass_traversal_tag;
-
-#endif
 
 
 /// Type to indicate that a container constructor must allocate storage
@@ -54,9 +39,6 @@ struct reserve_t {};
 /// An instance of reserve_t to pass
 static reserve_t const reserve;
 
-////////////////////////////////////////////////////////////////////////////////
-
-template<typename, typename> class dynarray;  // forward declare
 
 /// dynarray<dynarray<_>> is all right
 template<typename T, typename A>
@@ -78,10 +60,10 @@ typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typenam
 template<typename T, typename A> inline
 void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator newEnd)  { ctr.erase_back(newEnd); }
 
-template<typename T1, typename T2, typename A1, typename A2>
-bool operator==(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right);
-template<typename T1, typename T2, typename A1, typename A2> inline
-bool operator!=(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right)  { return !(left == right); }
+template<typename T, typename A>
+bool operator==(const dynarray<T, A> & left, const dynarray<T, A> & right);
+template<typename T, typename A> inline
+bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { return !(left == right); }
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
@@ -101,9 +83,13 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 
-	using iterator       = contiguous_iterator< T, dynarray<T, Alloc> >;
-	using const_iterator = contiguous_iterator< T const, dynarray<T, Alloc> >;
-
+#if OETL_MEM_BOUND_DEBUG_LVL >= 2
+	using iterator       = cntigus_ctr_dbg_iterator< T, dynarray<T, Alloc> >;
+	using const_iterator = cntigus_ctr_dbg_iterator< T const, dynarray<T, Alloc> >;
+#else
+	using iterator       = T *;
+	using const_iterator = const T *;
+#endif
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
 	using size_type       = typename Alloc::size_type;
 
@@ -266,6 +252,13 @@ private:
 #	define OETL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
 
+	struct _staticAssertRelocate
+	{
+		static_assert(is_trivially_relocatable<T>::value,
+			"Template argument T must be trivially relocatable, see documentation for is_trivially_relocatable");
+	};
+
+
 	void _uninitCopyData(std::false_type, const_pointer first, const_pointer last, size_type)
 	{	// not trivially copyable T
 		_end = std::uninitialized_copy(first, last, data());
@@ -346,7 +339,7 @@ private:
 	}
 
 	template<typename ForwTravRange>
-	void _assign(const ForwTravRange & range, forward_traversal_tag)
+	void _assign(const ForwTravRange & range, boost::forward_traversal_tag)
 	{
 		auto first = adl_begin(range);
 		_assignImpl(can_memmove_ranges_with(data(), first),
@@ -354,7 +347,7 @@ private:
 	}
 
 	template<typename InputRange>
-	void _assign(const InputRange & range, single_pass_traversal_tag)
+	void _assign(const InputRange & range, boost::single_pass_traversal_tag)
 	{	// cannot count input objects before assigning
 		clear();
 		for (auto && v : range)
@@ -437,7 +430,7 @@ private:
 	}
 
 	template<typename CntigusRange>
-	OETL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & range)
+	OETL_FORCEINLINE iterator _append(std::true_type, boost::random_access_traversal_tag, const CntigusRange & range)
 	{	// use memcpy
 		auto const nElems = count(range);
 		_appendN(std::true_type{}, adl_begin(range), nElems);
@@ -446,7 +439,7 @@ private:
 	}
 
 	template<typename ForwTravRange>
-	iterator _append(std::false_type, forward_traversal_tag, const ForwTravRange & range)
+	iterator _append(std::false_type, boost::forward_traversal_tag, const ForwTravRange & range)
 	{	// multi-pass iterator
 		auto first = adl_begin(range);
 		auto last = adl_end(range);
@@ -463,7 +456,7 @@ private:
 	}
 
 	template<typename InputRange>
-	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & range)
+	iterator _append(std::false_type, boost::single_pass_traversal_tag, const InputRange & range)
 	{	// slowest
 		size_type const oldSize = size();
 		try
@@ -483,7 +476,7 @@ private:
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
 	{
-		_detail::AssertRelocate<T>();
+		_staticAssertRelocate();
 
 		size_type allocSize = capacity();
 		if (newSize < allocSize)
@@ -584,9 +577,8 @@ void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
 template<typename T, typename Alloc> template<typename ForwardTravIterator>
 ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
 {
-#ifndef OETL_NO_BOOST
-	BOOST_CONCEPT_ASSERT((boost_concepts::ForwardTraversal<ForwardTravIterator>));
-#endif
+	static_assert(boost::is_convertible< iterator_traversal_t<ForwardTravIterator>, boost::forward_traversal_tag >::value,
+				  "Type of first must meet requirements of Forward Traversal Iterator");
 	auto last = std::next(first, count);
 	_assignImpl(can_memmove_ranges_with(data(), first),
 				first, last, count);
@@ -603,7 +595,7 @@ void dynarray<T, Alloc>::assign(const InputRange & source)
 template<typename T, typename Alloc> template<typename InputIterator>
 OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
 {
-	_detail::AssertRelocate<T>();
+	_staticAssertRelocate();
 
 	return _appendN(can_memmove_ranges_with(data(), first), first, count);
 }
@@ -611,7 +603,7 @@ OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, s
 template<typename T, typename Alloc> template<typename InputRange>
 OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & range)
 {
-	_detail::AssertRelocate<T>();
+	_staticAssertRelocate();
 
 	auto first = adl_begin(range);
 	return _append(can_memmove_ranges_with(data(), first),
@@ -628,7 +620,7 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 template<typename T, typename Alloc> template<typename... Params>
 void dynarray<T, Alloc>::emplace_back(Params &&... args)
 {
-	_detail::AssertRelocate<T>();
+	_staticAssertRelocate();
 
 	if (_end < _reserveEnd)
 	{
@@ -656,7 +648,7 @@ template<typename T, typename Alloc> template<typename... Params>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Params &&... args)
 {
 	static_assert(std::is_nothrow_move_constructible<T>::value, "T must have noexcept move constructor");
-	_detail::AssertRelocate<T>();
+	_staticAssertRelocate();
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
 	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);
@@ -702,7 +694,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::reserve(size_type minCapacity)
 {
-	_detail::AssertRelocate<T>();
+	_staticAssertRelocate();
 
 	if (capacity() < minCapacity)
 	{
@@ -720,7 +712,7 @@ void dynarray<T, Alloc>::reserve(size_type minCapacity)
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::shrink_to_fit()
 {
-	_detail::AssertRelocate<T>();
+	_staticAssertRelocate();
 
 	size_type const usedSize = size();
 	pointer newData;
@@ -764,7 +756,7 @@ void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) NOEXCEPT
 {
-	_detail::AssertRelocate<T>();
+	_staticAssertRelocate();
 
 	pointer const posPtr = to_ptr(pos);
 	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr < _end);
@@ -779,7 +771,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) NOEXCEPT
 {
-	_detail::AssertRelocate<T>();
+	_staticAssertRelocate();
 
 	pointer const pFirst = to_ptr(first);
 	pointer const pLast = to_ptr(last);
@@ -885,8 +877,8 @@ inline typename oetl::dynarray<T, A>::iterator  oetl::
 	return pos;
 }
 
-template<typename T1, typename T2, typename A1, typename A2>
-bool oetl::operator==(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right)
+template<typename T, typename A>
+bool oetl::operator==(const dynarray<T, A> & left, const dynarray<T, A> & right)
 {
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());
