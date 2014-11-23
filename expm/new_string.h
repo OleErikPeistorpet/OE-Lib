@@ -1,8 +1,6 @@
 #pragma once
 
-#define RANGE_COMPLETE 1
-
-#include "array_iterator.h"
+#include "contiguous_iterator.h"
 #include "util.h"
 
 #include <boost/range/algorithm.hpp>
@@ -33,11 +31,8 @@ namespace _strDetail
 		typedef ptrdiff_t    difference_type;
 		typedef Char         value_type;
 		typedef const Char & const_reference;
-#	if PTR_AS_OETL_ARRAY_ITERATOR
-		typedef const Char *                             const_iterator
-#	else
-		typedef array_const_iterator< StringBase<Char> > const_iterator;
-#	endif
+
+		using const_iterator = contiguous_iterator< Char const, StringBase<Char> >;
 
 		bool        empty() const NOEXCEPT;
 
@@ -86,11 +81,11 @@ class basic_string_ref   : private _strDetail::StringBase<Char>
 	typedef typename _strDetail::StringBase<Char> _stringBase;
 
 public:
-	typedef strlen_type                  size_type;
-	typedef _stringBase::difference_type difference_type;
-	typedef _stringBase::value_type      value_type;
-	typedef _stringBase::const_reference const_reference;
-	typedef _stringBase::const_iterator  const_iterator;
+	typedef strlen_type size_type;
+	using _stringBase::difference_type;
+	using _stringBase::value_type;
+	using _stringBase::const_reference;
+	using _stringBase::const_iterator;
 
 	basic_string_ref() NOEXCEPT;
 	template<size_type Size>
@@ -130,17 +125,14 @@ class basic_string   : private _strDetail::StringBase<Char>
 	typedef _strDetail::StringBase<Char> _stringBase;
 
 public:
-	typedef strlen_type                  size_type;
-	typedef _stringBase::difference_type difference_type;
-	typedef _stringBase::value_type      value_type;
-	typedef Char &                       reference;
-	typedef _stringBase::const_reference const_reference;
-#if PTR_AS_OETL_ARRAY_ITERATOR
-	typedef Char *                       iterator
-#else
-	typedef array_iterator<_stringBase>  iterator;
-#endif
-	typedef _stringBase::const_iterator  const_iterator;
+	typedef strlen_type size_type;
+	using _stringBase::difference_type;
+	using _stringBase::value_type;
+	typedef Char &     reference;
+	using _stringBase::const_reference;
+
+	using iterator = contiguous_iterator<Char,_stringBase>;
+	using _stringBase::const_iterator;
 
 	basic_string() NOEXCEPT;
 	template<size_type Size>
@@ -197,7 +189,7 @@ public:
 	bool ends_with(Char ch) const NOEXCEPT;
 	bool ends_with(basic_string_ref str) const NOEXCEPT;
 
-	void     truncate(iterator newEnd) NOEXCEPT;
+	void     erase_back(iterator newEnd) NOEXCEPT;
 	iterator erase(iterator position) NOEXCEPT;
 	iterator erase(iterator first, iterator last) NOEXCEPT;
 
@@ -271,12 +263,10 @@ template<typename Char> inline
 void swap(basic_string<Char> & a, basic_string<Char> & b) NOEXCEPT  { a.swap(b); }
 
 template<typename Char>
-struct is_trivially_reallocatable< basic_string_ref<Char> > :
-	public std::true_type {};
+struct is_trivially_reallocatable< basic_string_ref<Char> > : std::true_type {};
 
 template<typename Char>
-struct is_trivially_reallocatable< basic_string<Char> > :
-	public std::true_type {};
+struct is_trivially_reallocatable< basic_string<Char> > : std::true_type {};
 
 
 typedef basic_string_ref<char> string_ref;
@@ -900,7 +890,7 @@ inline bool basic_string<Char>::ends_with(basic_string_ref<Char> str) const NOEX
 }
 
 template<typename Char>
-inline void basic_string<Char>::truncate(iterator newEnd) NOEXCEPT
+inline void basic_string<Char>::erase_back(iterator newEnd) NOEXCEPT
 {
 	_len = newEnd - begin();
 	*newEnd = _nullChar;
