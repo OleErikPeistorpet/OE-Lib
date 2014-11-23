@@ -8,7 +8,9 @@
 
 #include "basic_util.h"
 
+#ifndef OETL_NO_BOOST
 #include <boost/align/aligned_alloc.hpp>
+#endif
 #include <memory>
 #include <string.h>
 
@@ -70,6 +72,12 @@ namespace _detail
 		return ::operator new[](nBytes);
 	}
 
+	inline void OpDelete(std::true_type, void * ptr)
+	{
+		::operator delete[](ptr);
+	}
+
+#ifndef OETL_NO_BOOST
 	// TODO: Should use new_handler or let both OpNew overloads use custom failure function
 	template<size_t Align>
 	void * OpNew(std::false_type, size_t nBytes)
@@ -81,15 +89,11 @@ namespace _detail
 			throw std::bad_alloc();
 	}
 
-	inline void OpDelete(std::true_type, void * ptr)
-	{
-		::operator delete[](ptr);
-	}
-
 	inline void OpDelete(std::false_type, void * ptr)
 	{
 		boost::alignment::aligned_free(ptr);
 	}
+#endif
 }
 
 /// An alignment-aware, non-standard allocator

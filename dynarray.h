@@ -9,7 +9,9 @@
 #include "contiguous_iterator.h"
 #include "container_core.h"
 
+#ifndef OETL_NO_BOOST
 #include <boost/iterator/iterator_categories.hpp>
+#endif
 #include <stdexcept>
 #include <algorithm>
 
@@ -24,14 +26,26 @@
 namespace oetl
 {
 
-template<typename, typename> class dynarray;  // forward declare
+#ifdef OETL_NO_BOOST
 
+template<typename Iterator>
+using iterator_traversal_t = typename std::iterator_traits<Iterator>::iterator_category;
 
-using std::out_of_range;
+using forward_traversal_tag = std::forward_iterator_tag;
+using single_pass_traversal_tag = std::input_iterator_tag;
 
+#else
 
 template<typename Iterator>
 using iterator_traversal_t = typename boost::iterator_traversal<Iterator>::type;
+
+using boost::forward_traversal_tag;
+using boost::single_pass_traversal_tag;
+
+#endif
+
+
+using std::out_of_range;
 
 
 /// Type to indicate that a container constructor must allocate storage
@@ -39,6 +53,9 @@ struct reserve_t {};
 /// An instance of reserve_t to pass
 static reserve_t const reserve;
 
+////////////////////////////////////////////////////////////////////////////////
+
+template<typename, typename> class dynarray;  // forward declare
 
 /// dynarray<dynarray<_>> is all right
 template<typename T, typename A>
@@ -341,7 +358,7 @@ private:
 	}
 
 	template<typename ForwTravRange>
-	void _assign(const ForwTravRange & range, boost::forward_traversal_tag)
+	void _assign(const ForwTravRange & range, forward_traversal_tag)
 	{
 		auto first = adl_begin(range);
 		_assignImpl(can_memmove_ranges_with(data(), first),
@@ -349,7 +366,7 @@ private:
 	}
 
 	template<typename InputRange>
-	void _assign(const InputRange & range, boost::single_pass_traversal_tag)
+	void _assign(const InputRange & range, single_pass_traversal_tag)
 	{	// cannot count input objects before assigning
 		clear();
 		for (auto && v : range)
@@ -433,7 +450,7 @@ private:
 	}
 
 	template<typename CntigusRange>
-	OETL_FORCEINLINE iterator _append(std::true_type, boost::random_access_traversal_tag, const CntigusRange & range)
+	OETL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & range)
 	{	// use memcpy
 		auto const nElems = count(range);
 		_appendN(std::true_type{}, adl_begin(range), nElems);
@@ -442,7 +459,7 @@ private:
 	}
 
 	template<typename ForwTravRange>
-	iterator _append(std::false_type, boost::forward_traversal_tag, const ForwTravRange & range)
+	iterator _append(std::false_type, forward_traversal_tag, const ForwTravRange & range)
 	{	// multi-pass iterator
 		auto first = adl_begin(range);
 		auto last = adl_end(range);
@@ -459,7 +476,7 @@ private:
 	}
 
 	template<typename InputRange>
-	iterator _append(std::false_type, boost::single_pass_traversal_tag, const InputRange & range)
+	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & range)
 	{	// slowest
 		size_type const oldSize = size();
 		try
@@ -580,8 +597,10 @@ void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
 template<typename T, typename Alloc> template<typename ForwardTravIterator>
 ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
 {
-	static_assert(boost::is_convertible< iterator_traversal_t<ForwardTravIterator>, boost::forward_traversal_tag >::value,
+#ifndef OETL_NO_BOOST
+	static_assert(boost::is_convertible< iterator_traversal_t<ForwardTravIterator>, forward_traversal_tag >::value,
 				  "Type of first must meet requirements of Forward Traversal Iterator");
+#endif
 	auto last = std::next(first, count);
 	_assignImpl(can_memmove_ranges_with(data(), first),
 				first, last, count);
