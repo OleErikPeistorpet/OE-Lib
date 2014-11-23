@@ -204,20 +204,21 @@ namespace _detail
 }
 
 /// An alignment-aware, non-standard allocator
+template<typename T>
 struct allocator
 {
 	using size_type = size_t;
 
-	template<size_t Align>
-    void * allocate(size_type nBytes)
+	T * allocate(size_type nObjs)
 	{
-		return _detail::OpNew<Align>(_detail::CanDefaultAlloc<Align>(), nBytes);
+		_detail::CanDefaultAlloc<ALIGNOF(T)> defAlloc;
+		void * p = _detail::OpNew<ALIGNOF(T)>(defAlloc, nObjs * sizeof(T));
+		return static_cast<T *>(p);
 	}
 
-	template<size_t Align>
-	void deallocate(void * ptr)
+	void deallocate(T * ptr)
 	{
-		_detail::OpDelete(_detail::CanDefaultAlloc<Align>(), ptr);
+		_detail::OpDelete(_detail::CanDefaultAlloc<ALIGNOF(T)>(), ptr);
 	}
 };
 
