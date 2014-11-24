@@ -44,10 +44,10 @@ struct is_trivially_relocatable< std::basic_string<C, Tr> >
 #endif
 
 
-/// Tag to select a specific constructor
-struct init_size_t {};
-/// An instance of init_size_t to pass
-static init_size_t const init_size;
+/// Tag to select a specific constructor. The static instance ini_size is provided as a convenience
+struct ini_size_tag {};
+
+static ini_size_tag const ini_size;
 
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -66,9 +66,9 @@ void erase_unordered(Container & ctr, typename Container::iterator position)
 	ctr.pop_back();
 }
 
-/// Erase the elements from newEnd to the end of container
+/// Erase the elements from first to the end of container, making first the new end
 template<class Container> inline
-void erase_back(Container & ctr, typename Container::iterator newEnd)  { ctr.erase(newEnd, ctr.end()); }
+void erase_back(Container & ctr, typename Container::iterator first)  { ctr.erase(first, ctr.end()); }
 
 /**
 * @brief Erase consecutive duplicate elements in container.
