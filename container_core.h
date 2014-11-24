@@ -21,12 +21,14 @@ namespace oetl
 * @brief Trait that specifies whether moving a T object to a new location and immediately destroying the source object is
 * equivalent to memcpy and not calling destructor on the source.
 *
+* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2754.html
 * @par
 * To specify that a type is trivially relocatable define a specialization like this:
 @code
-template<> struct oetl::is_trivially_relocatable<MyType> : std::true_type {};
+namespace oetl {
+template<> struct is_trivially_relocatable<MyType> : std::true_type {};
+}
 @endcode  */
 template<typename T>
 struct is_trivially_relocatable : is_trivially_copyable<T> {};
