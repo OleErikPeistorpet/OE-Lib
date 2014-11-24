@@ -106,8 +106,8 @@ struct allocator
 
 	T * allocate(size_type nObjs)
 	{
-		_detail::CanDefaultAlloc<ALIGNOF(T)> defAlloc;
-		void * p = _detail::OpNew<ALIGNOF(T)>(defAlloc, nObjs * sizeof(T));
+		void * p = _detail::OpNew<ALIGNOF(T)>(_detail::CanDefaultAlloc<ALIGNOF(T)>(),
+											  nObjs * sizeof(T));
 		return static_cast<T *>(p);
 	}
 

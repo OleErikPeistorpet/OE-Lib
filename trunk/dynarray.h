@@ -16,13 +16,6 @@
 #include <algorithm>
 
 
-#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL < 2 && _ITERATOR_DEBUG_LEVEL == 0
-#	define OETL_FORCEINLINE __forceinline
-#else
-#	define OETL_FORCEINLINE inline
-#endif
-
-
 namespace oetl
 {
 
@@ -260,6 +253,12 @@ private:
 	pointer   _end;        // Pointer to one past the last object (back)
 	pointer   _reserveEnd; // Pointer to end of allocated memory
 
+
+#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL < 2 && _ITERATOR_DEBUG_LEVEL == 0
+#	define OETL_FORCEINLINE __forceinline
+#else
+#	define OETL_FORCEINLINE inline
+#endif
 
 #if OETL_MEM_BOUND_DEBUG_LVL >= 2
 #	define OETL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
