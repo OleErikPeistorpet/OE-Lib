@@ -184,6 +184,11 @@ public:
 	iterator   insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
 	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
 
+	template<typename ContiguousIterator>
+	iterator   insert(const_iterator position, ContiguousIterator first, size_type count);
+	template<typename ContiguousRange>
+	iterator   insert(const_iterator position, const ContiguousRange & range);
+
 	/// After the call, any previous iterator to the back element will be equal to end()
 	void       pop_back() NOEXCEPT;
 
@@ -697,6 +702,55 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 		return OETL_DYNARR_ITERATOR(newPos);
 	}
+}
+
+template<typename T, typename Alloc> template<typename ContiguousIterator>
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
+	insert(const_iterator pos, ContiguousIterator first, size_type count)
+{
+	std::true_type{can_memmove_ranges_with(data(), first)}; // test
+
+	auto const posPtr = const_cast<pointer>(to_ptr(pos));
+	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);
+
+	size_type const nAfterPos = _end - posPtr;
+
+	if (_unusedCapacity() >= count)
+	{
+		::memmove(posPtr + count, posPtr, nAfterPos * sizeof(T));
+		_end += count;
+
+		::memcpy(posPtr, to_ptr(first), count);
+
+		return OETL_DYNARR_ITERATOR(posPtr);
+	}
+	else
+	{	// not enough room, reallocate
+		size_type const newCapacity = _insertOneCalcCap();
+
+		_smartPtr newData{_alloc(newCapacity)};
+
+		size_type const nBeforePos = posPtr - data();
+		pointer const newPos = newData.get() + nBeforePos;
+		::memcpy(newPos, to_ptr(first), count);		// add new
+		_end = newPos + count;
+		// Behaviour undefined by standard if data is null
+		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // relocate prefix
+		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // relocate suffix
+		_end += nAfterPos;
+
+		_reserveEnd = newData.get() + newCapacity;
+
+		_data.swap(newData);
+
+		return OETL_DYNARR_ITERATOR(newPos);
+	}
+}
+
+template<typename T, typename Alloc> template<typename ContiguousRange>
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_iterator pos, const ContiguousRange & range)
+{
+	return insert(pos, adl_begin(range), count(range));
 }
 
 template<typename T, typename Alloc>
