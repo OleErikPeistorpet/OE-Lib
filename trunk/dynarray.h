@@ -48,10 +48,10 @@ using boost::single_pass_traversal_tag;
 using std::out_of_range;
 
 
-/// Type to indicate that a container constructor must allocate storage
-struct reserve_t {};
-/// An instance of reserve_t to pass
-static reserve_t const reserve;
+/// Type to indicate that a container constructor must allocate storage. A static instance named reserve is provided to pass
+struct reserve_tag {};
+
+static reserve_tag const reserve;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -75,7 +75,7 @@ typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typenam
 
 /// Non-member erase_back, overloads generic erase_back(Container &, Container::iterator)
 template<typename T, typename A> inline
-void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator newEnd)  { ctr.erase_back(newEnd); }
+void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first)  { ctr.erase_back(first); }
 
 template<typename T, typename A>
 bool operator==(const dynarray<T, A> & left, const dynarray<T, A> & right);
@@ -114,10 +114,10 @@ public:
 	/**
 	* @brief Construct empty dynarray with space reserved for at least capacity elements
 	* @throw std::bad_alloc if the allocation request does not succeed (same for all functions that expand the dynarray)  */
-	dynarray(reserve_t, size_type capacity);
-	/// Non-trivial constructor called on elements, otherwise not initialized
-	dynarray(init_size_t, size_type size);
-	dynarray(init_size_t, size_type size, const T & fillVal);
+	dynarray(reserve_tag, size_type capacity);
+	/// Elements are default initialized, meaning non-class T produces indeterminate values
+	dynarray(ini_size_tag, size_type size);
+	dynarray(ini_size_tag, size_type size, const T & fillVal);
 	dynarray(std::initializer_list<T> init);
 
 	dynarray(dynarray && other) NOEXCEPT;
@@ -172,7 +172,7 @@ public:
 	* Otherwise same as append(InputIterator, size_type)  */
 	template<typename InputRange>
 	iterator      append(const InputRange & range);
-	/// Equivalent to calling template<typename InputRange> append(const InputRange &) with il as argument  */
+	/// Equivalent to calling append(const InputRange &) with il as argument  */
 	iterator      append(std::initializer_list<T> il);
 
 	template<typename... Params>
@@ -194,10 +194,10 @@ public:
 
 	iterator   erase(iterator first, iterator last) NOEXCEPT;
 
-	/// Pop the elements from newEnd to the end of dynarray
-	void       erase_back(iterator newEnd) NOEXCEPT;
+	/// Equivalent to erase(first, end()) (but potentially faster)
+	void       erase_back(iterator first) NOEXCEPT;
 
-	/// Non-trivial constructor called on added elements, otherwise not initialized
+	/// Added elements are default initialized, meaning non-class T produces indeterminate values
 	void       resize(size_type newSize);
 	void       resize(size_type newSize, const T & addVal);
 
@@ -532,14 +532,14 @@ private:
 // Definitions of public functions
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(reserve_t, size_type capacity) :
+inline dynarray<T, Alloc>::dynarray(reserve_tag, size_type capacity) :
 	_data(_alloc(capacity)),
 	_end(data()),
 	_reserveEnd(data() + capacity) {
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(init_size_t, size_type size) :
+inline dynarray<T, Alloc>::dynarray(ini_size_tag, size_type size) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
@@ -547,7 +547,7 @@ inline dynarray<T, Alloc>::dynarray(init_size_t, size_type size) :
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(init_size_t, size_type size, const T & val) :
+dynarray<T, Alloc>::dynarray(ini_size_tag, size_type size, const T & val) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
@@ -679,7 +679,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 	if (_end < _reserveEnd) // then new element fits
 	{
-		// Copy construct new element as temporary, so that if it throws, this remains unchanged
+		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		auto tmp = T(std::forward<Params>(args)...);
 
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
@@ -811,12 +811,12 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::erase_back(iterator newEnd) NOEXCEPT
+inline void dynarray<T, Alloc>::erase_back(iterator first) NOEXCEPT
 {
-	pointer const first = to_ptr(newEnd);
-	BOUND_ASSERT_CHEAP(data() <= first && first <= _end);
-	_detail::Destroy(first, _end);
-	_end = first;
+	pointer const newEnd = to_ptr(first);
+	BOUND_ASSERT_CHEAP(data() <= newEnd && newEnd <= _end);
+	_detail::Destroy(newEnd, _end);
+	_end = newEnd;
 }
 
 template<typename T, typename Alloc>
