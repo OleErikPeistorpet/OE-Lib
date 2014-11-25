@@ -27,9 +27,6 @@
 namespace oetl
 {
 
-using std::out_of_range;
-
-
 #ifdef OETL_NO_BOOST
 
 template<typename Iterator>
@@ -47,6 +44,9 @@ using boost::forward_traversal_tag;
 using boost::single_pass_traversal_tag;
 
 #endif
+
+
+using std::out_of_range;
 
 
 /// Type to indicate that a container constructor must allocate storage
@@ -184,10 +184,10 @@ public:
 	iterator   insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
 	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
 
-	template<typename ContiguousIterator>
-	iterator   insert(const_iterator position, ContiguousIterator first, size_type count);
-	template<typename ContiguousRange>
-	iterator   insert(const_iterator position, const ContiguousRange & range);
+	template<typename ContiguousTIterator>
+	iterator   insert(const_iterator position, ContiguousTIterator first, size_type count);
+	template< typename ContiguousTRange, typename = std::enable_if_t<!std::is_convertible<ContiguousTRange, T>::value> >
+	iterator   insert(const_iterator position, const ContiguousTRange & range);
 
 	/// After the call, any previous iterator to the back element will be equal to end()
 	void       pop_back() NOEXCEPT;
@@ -309,8 +309,10 @@ private:
 	void _assignImpl(std::true_type, CntigusIter const first, CntigusIter, size_type const count)
 	{	// fast assign
 #	if OETL_MEM_BOUND_DEBUG_LVL
-		if (count > 0)				// Dereference iterator to the last incoming element,
-			*(first + (count - 1)); // this catches out of range errors with checked iterators
+		if (count > 0)
+		{	*first;  // Dereference to catch out of range errors if the iterators have internal checks
+			*(first + (count - 1));
+		}
 #	endif
 		if (capacity() < count)
 		{
@@ -398,8 +400,9 @@ private:
 #	if OETL_MEM_BOUND_DEBUG_LVL
 		CntigusIter last = first + count;
 
-		if (count > 0)    // Dereference iterator to the last element to append,
-			*(last - 1);  // this catches out of range errors with checked iterators
+		if (count > 0)  // Dereference to catch out of range errors if the iterators have internal checks
+		{	*first; *(last - 1);
+		}
 #	endif
 		if (_unusedCapacity() >= count)
 		{
@@ -422,7 +425,7 @@ private:
 		_end += count;
 
 #	if OETL_MEM_BOUND_DEBUG_LVL
-		return last; // in case of append self, bypass check in array_const_iterator::operator +
+		return last; // in the case of append self, bypasses check in iterator's operator +
 #	else
 		return first + count;
 #	endif
@@ -518,6 +521,18 @@ private:
 			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
 			_data.swap(newData);
 		}
+	}
+
+	void _relocateData(std::true_type, pointer newData, pointer, size_type count)
+	{
+		::memcpy(newData, data(), count * sizeof(T));
+	}
+
+	void _relocateData(std::false_type, pointer newData, pointer oldEnd, size_type)
+	{
+		static_assert(std::is_nothrow_move_constructible<T>::value,
+					  "T must be trivially relocatable or have noexcept move constructor");
+		std::uninitialized_copy(data(), oldEnd, newData);
 	}
 };
 
@@ -633,8 +648,6 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 template<typename T, typename Alloc> template<typename... Params>
 void dynarray<T, Alloc>::emplace_back(Params &&... args)
 {
-	_detail::AssertRelocate<T>();
-
 	if (_end < _reserveEnd)
 	{
 		::new(_end) T(std::forward<Params>(args)...);
@@ -644,15 +657,17 @@ void dynarray<T, Alloc>::emplace_back(Params &&... args)
 		size_type const newCapacity = _insertOneCalcCap();
 		_smartPtr newData{_alloc(newCapacity)};
 
+		_reserveEnd = newData.get() + newCapacity;
+
 		size_type const oldSize = size();
 		pointer const newEnd = newData.get() + oldSize;
 		::new(newEnd) T(std::forward<Params>(args)...);
-		_end = newEnd;
-		_reserveEnd = newData.get() + newCapacity;
 
 		// Make new element before reallocating old data to support push_back from this
-		::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
+		_relocateData(is_trivially_relocatable<T>(), newData.get(), _end, oldSize);
+
 		_data.swap(newData);
+		_end = newEnd;
 	}
 	++_end;
 }
@@ -704,9 +719,9 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	}
 }
 
-template<typename T, typename Alloc> template<typename ContiguousIterator>
+template<typename T, typename Alloc> template<typename ContiguousTIterator>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
-	insert(const_iterator pos, ContiguousIterator first, size_type count)
+	insert(const_iterator pos, ContiguousTIterator first, size_type count)
 {
 	std::true_type{can_memmove_ranges_with(data(), first)}; // test
 
@@ -747,8 +762,8 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 	}
 }
 
-template<typename T, typename Alloc> template<typename ContiguousRange>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_iterator pos, const ContiguousRange & range)
+template<typename T, typename Alloc> template<typename ContiguousTRange, typename>
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_iterator pos, const ContiguousTRange & range)
 {
 	return insert(pos, adl_begin(range), count(range));
 }

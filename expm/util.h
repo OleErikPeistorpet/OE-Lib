@@ -10,7 +10,7 @@
 
 #include <algorithm>
 #include <memory>
-#include <cstdint>
+#include <limits>
 #include <string.h>
 
 /**
@@ -33,14 +33,8 @@ typename std::make_unsigned<T>::type  as_unsigned(T val) NOEXCEPT  { return type
 
 
 /// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename T, typename Range, typename = std::enable_if_t<std::is_unsigned<T>::value> >
+template<typename T, typename Range>
 bool index_valid(const Range & range, T index);
-/// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename Range>
-bool index_valid(const Range & range, std::int32_t index);
-/// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename Range>
-bool index_valid(const Range & range, std::int64_t index);
 
 
 
@@ -103,9 +97,9 @@ void erase_unordered(Container & ctr, typename Container::iterator position)
 	ctr.pop_back();
 }
 
-/// Erase the elements from newEnd to the end of container
+/// Erase the elements from first to the end of container, making first the new end
 template<class Container> inline
-void erase_back(Container & ctr, typename Container::iterator newEnd)  { ctr.erase(newEnd, ctr.end()); }
+void erase_back(Container & ctr, typename Container::iterator first)  { ctr.erase(first, ctr.end()); }
 
 /**
 * @brief Erase consecutive duplicate elements in container.
@@ -395,23 +389,30 @@ inline auto oetl::find_sorted(ForwardRange & range, const T & val, Compare comp)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-template<typename T, typename Range, typename>
+namespace oetl
+{
+  namespace _detail
+  {
+	template<typename T, typename Range> inline
+	bool IdxValid(std::false_type, const Range & r, T idx)
+	{
+		return as_unsigned(idx) < as_unsigned(count(r));
+	}
+
+	template<typename T, typename Range> inline
+	bool IdxValid(std::true_type, const Range & r, T idx)
+	{
+		return 0 <= idx && idx < count(r);
+	}
+  }
+}
+
+template<typename T, typename Range>
 inline bool oetl::index_valid(const Range & r, T idx)
 {
-	return idx < as_unsigned(count(r));
-}
-
-template<typename Range>
-inline bool oetl::index_valid(const Range & r, std::int32_t idx)
-{
-	return 0 <= idx && idx < count(r);
-}
-
-template<typename Range>
-inline bool oetl::index_valid(const Range & r, std::int64_t idx)
-{
-	using std::uint64_t;
-	return static_cast<uint64_t>(idx) < static_cast<uint64_t>(count(r));
+	using LimUChar = std::numeric_limits<unsigned char>;
+	return _detail::IdxValid(bool_constant< std::is_signed<T>::value && (sizeof(T) * LimUChar::digits < 60) >(),
+							 r, idx);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
