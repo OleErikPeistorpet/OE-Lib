@@ -10,14 +10,8 @@
 #include "container_core.h"
 
 #include <boost/iterator/iterator_categories.hpp>
+#include <stdexcept>
 #include <algorithm>
-
-
-#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
-#	define OETL_FORCEINLINE __forceinline
-#else
-#	define OETL_FORCEINLINE inline
-#endif
 
 
 namespace oetl
@@ -66,7 +60,8 @@ bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { re
 * Relocating objects of template argument T must be equivalent to memcpy without destructor call (true for most types).
 * This is checked when compiling with is_trivially_relocatable, a trait which must be specialized manually for each
 * type that is not trivially copyable.
-* @par The default allocator supports over-aligned types (e.g. __m256)  */
+*
+* The default allocator supports over-aligned types (e.g. __m256)  */
 template<typename T, typename Alloc = allocator<T> >
 class dynarray
 {
@@ -92,7 +87,7 @@ public:
 	* @brief Construct empty dynarray with space reserved for at least capacity elements
 	* @throw std::bad_alloc if the allocation request does not succeed (same for all functions that expand the dynarray)  */
 	dynarray(reserve_t, size_type capacity);
-	/// Non-trivial constructor called on elements, otherwise not initialized
+	/// Elements are default initialized, meaning non-class T produces indeterminate values
 	explicit dynarray(size_type size);
 	dynarray(size_type size, const T & fillVal);
 
@@ -159,6 +154,7 @@ public:
 	iterator   insert(const_iterator position, T && val);
 	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
 
+	/// After the call, any previous iterator to the back element will be equal to end()
 	void       pop_back() NOEXCEPT;
 
 	iterator   erase(iterator position) NOEXCEPT;
@@ -168,7 +164,7 @@ public:
 	/// Pop the elements from newEnd to the end of dynarray
 	void       erase_back(iterator newEnd) NOEXCEPT;
 
-	/// Non-trivial constructor called on added elements, otherwise not initialized
+	/// Added elements are default initialized, meaning non-class T produces indeterminate values
 	void       resize(size_type newSize);
 	void       resize(size_type newSize, const T & addVal);
 
@@ -231,6 +227,12 @@ private:
 	pointer   _end;        // Pointer to one past the last object (back)
 	pointer   _reserveEnd; // Pointer to end of allocated memory
 
+
+#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
+#	define OETL_FORCEINLINE __forceinline
+#else
+#	define OETL_FORCEINLINE inline
+#endif
 
 #if OETL_MEM_BOUND_DEBUG_LVL
 #	define OETL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}

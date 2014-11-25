@@ -9,8 +9,8 @@
 #include "basic_util.h"
 
 #include <algorithm>
-#include <cstring>
 #include <cstdint>
+#include <string.h>
 
 /**
 * @file util.h
@@ -32,13 +32,13 @@ typename std::make_unsigned<T>::type  as_unsigned(T val) NOEXCEPT  { return type
 /// Check if index is valid (can be used with operator[]) for array or other range.
 template<typename T, typename Range>
 typename std::enable_if< std::is_unsigned<T>::value,
-bool >::type  index_valid(const Range & r, T index);
+bool >::type  index_valid(const Range & range, T index);
 /// Check if index is valid (can be used with operator[]) for array or other range.
 template<typename Range>
-bool index_valid(const Range & range, int32_t index);
+bool index_valid(const Range & range, std::int32_t index);
 /// Check if index is valid (can be used with operator[]) for array or other range.
 template<typename Range>
-bool index_valid(const Range & range, int64_t index);
+bool index_valid(const Range & range, std::int64_t index);
 
 
 /**
@@ -183,13 +183,14 @@ inline typename std::enable_if< std::is_unsigned<T>::value,
 }
 
 template<typename Range>
-inline bool oetl::index_valid(const Range & r, int32_t idx)
+inline bool oetl::index_valid(const Range & r, std::int32_t idx)
 {
 	return 0 <= idx && idx < count(r);
 }
 
 template<typename Range>
-inline bool oetl::index_valid(const Range & r, int64_t idx)
+inline bool oetl::index_valid(const Range & r, std::int64_t idx)
 {
+	using std::uint64_t;
 	return static_cast<uint64_t>(idx) < static_cast<uint64_t>(count(r));
 }

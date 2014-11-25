@@ -105,10 +105,18 @@ namespace _detail
 	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
 }
 
+#if _MSC_VER
+#	pragma warning(push)
+#	pragma warning(disable: 4100)
+#endif
 /// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
 template<typename OutIterator, typename InIterator> inline
 auto can_memmove_ranges_with(OutIterator dest, InIterator source)
  -> decltype( _detail::CanMemmoveArrays(to_ptr(dest), to_ptr(source)) )  { return {}; }
+
+#if _MSC_VER
+#	pragma warning(pop)
+#endif
 
 // SFINAE fallback for cases where to_ptr(iterator) is not declared or value types are not the same
 inline std::false_type can_memmove_ranges_with(...)  { return {}; }
