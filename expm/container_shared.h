@@ -21,12 +21,14 @@ namespace oetl
 * @brief Trait that specifies whether moving a T object to a new location and immediately destroying the source object is
 * equivalent to memcpy and not calling destructor on the source.
 *
+* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2754.html
 * @par
 * To specify that a type is trivially relocatable define a specialization like this:
 @code
-template<> struct oetl::is_trivially_relocatable<MyType> : std::true_type {};
+namespace oetl {
+template<> struct is_trivially_relocatable<MyType> : std::true_type {};
+}
 @endcode  */
 template<typename T>
 struct is_trivially_relocatable : is_trivially_copyable<T> {};
@@ -119,10 +121,10 @@ struct is_trivially_relocatable< boost::circular_buffer<T> > : std::true_type {}
 #endif
 
 
-/// Tag to select a specific constructor
-struct init_size_t {};
-/// An instance of init_size_t to pass
-static init_size_t const init_size;
+/// Tag to select a specific constructor. The static instance ini_size is provided as a convenience
+struct ini_size_tag {};
+
+static ini_size_tag const ini_size;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -211,8 +213,8 @@ struct allocator
 
 	T * allocate(size_type nObjs)
 	{
-		_detail::CanDefaultAlloc<ALIGNOF(T)> defAlloc;
-		void * p = _detail::OpNew<ALIGNOF(T)>(defAlloc, nObjs * sizeof(T));
+		void * p = _detail::OpNew<ALIGNOF(T)>(_detail::CanDefaultAlloc<ALIGNOF(T)>(),
+											  nObjs * sizeof(T));
 		return static_cast<T *>(p);
 	}
 
@@ -227,20 +229,20 @@ struct allocator
 /** @brief Argument-dependent lookup non-member begin, defaults to std::begin
 *
 * For use in implementation of classes with begin member  */
-template<typename Range> inline
-auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
+template<typename Iterable> inline
+auto adl_begin(Iterable & ib)       -> decltype(begin(ib))  { return begin(ib); }
 /// Const version of adl_begin
-template<typename Range> inline
-auto adl_begin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+template<typename Iterable> inline
+auto adl_begin(const Iterable & ib) -> decltype(begin(ib))  { return begin(ib); }
 
 /** @brief Argument-dependent lookup non-member end, defaults to std::end
 *
 * For use in implementation of classes with end member  */
-template<typename Range> inline
-auto adl_end(Range & r)       -> decltype(end(r))  { return end(r); }
+template<typename Iterable> inline
+auto adl_end(Iterable & ib)       -> decltype(end(ib))  { return end(ib); }
 /// Const version of adl_end
-template<typename Range> inline
-auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
+template<typename Iterable> inline
+auto adl_end(const Iterable & ib) -> decltype(end(ib))  { return end(ib); }
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -259,32 +261,32 @@ namespace _detail
 	void Destroy(std::true_type, Iter, Iter)
 	{}	// optimization for non-optimized builds
 
-	template<typename ValT, typename ForwardIter> inline
-	void Destroy(std::false_type, ForwardIter first, ForwardIter last)
+	template<typename ValT, typename ForwardItor> inline
+	void Destroy(std::false_type, ForwardItor first, ForwardItor last)
 	{
 		for (; first != last; ++first)
 			(*first).~ValT();
 	}
 
-	template<typename ForwardIter> inline
-	void Destroy(ForwardIter first, ForwardIter last) NOEXCEPT
+	template<typename ForwardItor> inline
+	void Destroy(ForwardItor first, ForwardItor last) NOEXCEPT
 	{
-		typedef typename std::iterator_traits<ForwardIter>::value_type ValT;
+		typedef typename std::iterator_traits<ForwardItor>::value_type ValT;
 		Destroy<ValT>(std::has_trivial_destructor<ValT>(), first, last);
 	}
 
 
-	template<typename ValT, typename ForwardIter> inline
-	void UninitFillDefault(std::true_type, ForwardIter first, ForwardIter const last)
+	template<typename ValT, typename ForwardItor> inline
+	void UninitFillDefault(std::true_type, ForwardItor first, ForwardItor const last)
 	{
 		for (; first != last; ++first)
 			::new(std::addressof(*first)) ValT;
 	}
 
-	template<typename ValT, typename ForwardIter>
-	void UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
+	template<typename ValT, typename ForwardItor>
+	void UninitFillDefault(std::false_type, ForwardItor first, ForwardItor const last)
 	{	// default constructor potentially throws
-		ForwardIter const init = first;
+		ForwardItor const init = first;
 		try
 		{
 			for (; first != last; ++first)
@@ -298,8 +300,8 @@ namespace _detail
 	}
 
 
-	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter> inline
-	range_ends<InputIter, ForwardIter>  UninitCopyN(std::true_type, InputIter first, Count count, ForwardIter & dest)
+	template<typename DestValT, typename InputItor, typename Count, typename ForwardItor> inline
+	end_iterators<InputItor, ForwardItor>  UninitCopyN(std::true_type, InputItor first, Count count, ForwardItor & dest)
 	{	// nothrow constructible
 		for (; 0 < count; --count)
 		{
@@ -309,10 +311,10 @@ namespace _detail
 		return {first, dest};
 	}
 
-	template<typename DestValT, typename InputIter, typename Count, typename ForwardIter>
-	range_ends<InputIter, ForwardIter>  UninitCopyN(std::false_type, InputIter first, Count count, ForwardIter dest)
+	template<typename DestValT, typename InputItor, typename Count, typename ForwardItor>
+	end_iterators<InputItor, ForwardItor>  UninitCopyN(std::false_type, InputItor first, Count count, ForwardItor dest)
 	{
-		ForwardIter const destBegin = dest;
+		ForwardItor const destBegin = dest;
 		try
 		{
 			return UninitCopyN<DestValT>(std::true_type{}, first, count, dest); // dest passed by reference
@@ -333,9 +335,9 @@ void uninitialized_fill_default(ForwardIterator first, ForwardIterator last)
 	_detail::UninitFillDefault<ValT>(std::is_nothrow_default_constructible<ValT>(), first, last);
 }
 
-/// Copies count elements from a range beginning at first to an uninitialized memory area beginning at dest
+/// Copies count elements from an iterable beginning at first to an uninitialized memory area beginning at dest
 template<typename InputIterator, typename Count, typename ForwardIterator>
-range_ends<InputIterator, ForwardIterator>
+end_iterators<InputIterator, ForwardIterator>
 	uninitialized_copy_n(InputIterator first, Count count, ForwardIterator dest)
 {
 	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;

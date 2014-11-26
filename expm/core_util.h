@@ -39,27 +39,32 @@ using std::cend;
 #else
 /**
 * @brief Const version of std::begin.
-* @return An iterator addressing the (const) first element in the range r. */
-template<typename Range> inline
-auto cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+* @return An iterator addressing the (const) first element in iterable. */
+template<typename Iterable> inline
+auto cbegin(const Iterable & ib) -> decltype(begin(ib))  { return begin(ib); }
 /**
 * @brief Const version of std::end.
-* @return An iterator positioned one beyond the (const) last element in the range r. */
-template<typename Range> inline
-auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
+* @return An iterator positioned one beyond the (const) last element in iterable. */
+template<typename Iterable> inline
+auto cend(const Iterable & ib) -> decltype(end(ib))  { return end(ib); }
 
 #endif
 
 
-/// Returns number of elements in r (array, container or iterator_range), signed type
-template<typename Range>
-auto count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type;
+/// Returns number of elements in iterable (which begin and end can be called on), signed type
+template<typename Iterable>
+auto count(const Iterable & ib) -> typename std::iterator_traits<decltype(begin(ib))>::difference_type;
 
 
 
-/// For copy functions that return the end of both source and destination ranges
+/// Create a std::move_iterator from InputIterator
+template<typename InputIterator> inline
+std::move_iterator<InputIterator> make_move_iter(InputIterator it)  { return std::make_move_iterator(it); }
+
+
+/// For copy functions that return the end of both source and destination Iterables
 template<typename InIterator, typename OutIterator>
-struct range_ends
+struct end_iterators
 {
 	InIterator  src_end;
 	OutIterator dest_end;
@@ -125,8 +130,8 @@ namespace _detail
 #	pragma warning(disable: 4100)
 #endif
 /// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
-template<typename OutIterator, typename InIterator> inline
-auto can_memmove_ranges_with(OutIterator dest, InIterator source)
+template<typename IteratorDest, typename IteratorSrc> inline
+auto can_memmove_ranges_with(IteratorDest dest, IteratorSrc source)
  -> decltype( _detail::CanMemmoveArrays(to_ptr(dest), to_ptr(source)) )  { return {}; }
 
 #if _MSC_VER
@@ -140,18 +145,18 @@ inline std::false_type can_memmove_ranges_with(...)  { return {}; }
 
 namespace _detail
 {
-	template<typename HasSizeRange> inline // pass dummy int to prefer this overload
-	auto Count(const HasSizeRange & r, int) -> decltype(r.size()) { return r.size(); }
+	template<typename HasSizeItbl> inline // pass dummy int to prefer this overload
+	auto Count(const HasSizeItbl & ib, int) -> decltype(ib.size()) { return ib.size(); }
 
-	template<typename Range> inline
-	auto Count(const Range & r, long) -> decltype( std::distance(begin(r), end(r)) )
-										  { return std::distance(begin(r), end(r)); }
+	template<typename Iterable> inline
+	auto Count(const Iterable & ib, long) -> decltype( std::distance(begin(ib), end(ib)) )
+											  { return std::distance(begin(ib), end(ib)); }
 }
 
 } // namespace oetl
 
-template<typename Range>
-inline auto oetl::count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
+template<typename Iterable>
+inline auto oetl::count(const Iterable & ib) -> typename std::iterator_traits<decltype(begin(ib))>::difference_type
 {
-	return _detail::Count(r, int{});
+	return _detail::Count(ib, int{});
 }

@@ -32,9 +32,9 @@ typename std::make_unsigned<T>::type  as_unsigned(T val) NOEXCEPT  { return type
 
 
 
-/// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename T, typename Range>
-bool index_valid(const Range & range, T index);
+/// Check if index is valid (can be used with operator[]) for array or other iterable.
+template<typename T, typename CountableIterable>
+bool index_valid(const CountableIterable & ci, T index);
 
 
 
@@ -109,26 +109,20 @@ template<class Container>
 void erase_successive_dup(Container & ctr);
 
 
-
-/// Create a std::move_iterator from InputIterator
-template<typename InputIterator> inline
-std::move_iterator<InputIterator> make_move_iter(InputIterator it)  { return std::make_move_iterator(it); }
-
-
 /**
-* @brief Copies the elements in source into the range beginning at dest
-* @return an iterator to the end of the destination range
+* @brief Copies the elements in source into the Iterable beginning at dest
+* @return an iterator to the end of the destination
 *
-* The ranges shall not overlap. To move instead of copy, include iterator_range.h and pass move_range(source)  */
-template<typename InputRange, typename OutputIterator>
-OutputIterator copy_nonoverlap(const InputRange & source, OutputIterator dest);
+* The memory shall not overlap. To move instead of copy, include iterator_range.h and pass move_range(source)  */
+template<typename InputIterable, typename OutputIterator>
+OutputIterator copy_nonoverlap(const InputIterable & source, OutputIterator dest);
 /**
-* @brief Copies count elements from range beginning at first into the range beginning at dest
-* @return a struct with iterators to the end of both ranges
+* @brief Copies count elements from Iterable beginning at first into the Iterable beginning at dest
+* @return a struct with iterators to the end of both source and destination
 *
-* The ranges shall not overlap. To move instead of copy, pass make_move_iter(first)  */
+* The memory shall not overlap. To move instead of copy, pass make_move_iter(first)  */
 template<typename InputIterator, typename Count, typename OutputIterator>
-range_ends<InputIterator, OutputIterator>  copy_nonoverlap(InputIterator first, Count count, OutputIterator dest);
+end_iterators<InputIterator, OutputIterator>  copy_nonoverlap(InputIterator first, Count count, OutputIterator dest);
 
 /// Same as std::copy, but much faster for arrays of simple structs/classes than Visual C++ version
 template<typename InputIterator, typename OutputIterator>
@@ -139,12 +133,12 @@ template<typename InputIterator, typename OutputIterator>
 OutputIterator move(InputIterator first, InputIterator last, OutputIterator dest);
 
 /**
-* @brief Copies count elements from range beginning at first into the range beginning at dest
-* @return a struct with iterators to the end of both ranges
+* @brief Copies count elements from Iterable beginning at first into the Iterable beginning at dest
+* @return a struct with iterators to the end of both source and destination
 *
 * To move instead of copy, pass make_move_iter(first)  */
 template<typename InputIterator, typename Count, typename OutputIterator>
-range_ends<InputIterator, OutputIterator> copy_n(InputIterator first, Count count, OutputIterator dest);
+end_iterators<InputIterator, OutputIterator> copy_n(InputIterator first, Count count, OutputIterator dest);
 
 
 
@@ -152,15 +146,15 @@ range_ends<InputIterator, OutputIterator> copy_n(InputIterator first, Count coun
 template<typename Count, typename T, typename InputIterator>
 Count find_idx(InputIterator first, Count count, const T & value);
 ///
-template<typename T, typename Range> inline
-auto find_idx(const Range & toSearch, const T & value) -> decltype(count(toSearch))
+template<typename T, typename Iterable> inline
+auto find_idx(const Iterable & toSearch, const T & value) -> decltype(count(toSearch))
 {
 	return oetl::find_idx(begin(toSearch), count(toSearch), value);
 }
 
 ///
-template<typename T, typename BidirectionRange> inline
-auto rfind_idx(const BidirectionRange & toSearch, const T & value) -> decltype(count(toSearch))
+template<typename T, typename BidirectionIterable> inline
+auto rfind_idx(const BidirectionIterable & toSearch, const T & value) -> decltype(count(toSearch))
 {
 	auto pos = count(toSearch);
 	auto it = end(toSearch);
@@ -175,18 +169,18 @@ auto rfind_idx(const BidirectionRange & toSearch, const T & value) -> decltype(c
 
 
 ///
-template<typename ForwardRange, typename T>
-auto find_sorted(ForwardRange & range, const T & val) -> decltype(begin(range));
+template<typename ForwardIterable, typename T>
+auto find_sorted(ForwardIterable & ib, const T & val) -> decltype(begin(ib));
 ///
-template<typename ForwardRange, typename T, typename Compare>
-auto find_sorted(ForwardRange & range, const T & val, Compare comp) -> decltype(begin(range));
+template<typename ForwardIterable, typename T, typename Compare>
+auto find_sorted(ForwardIterable & ib, const T & val, Compare comp) -> decltype(begin(ib));
 
 
-template<typename BidirectionRange, typename Func> inline
-Func for_each_reverse(BidirectionRange && range, Func func)
+template<typename BidirectionIterable, typename Func> inline
+Func for_each_reverse(BidirectionIterable && ib, Func func)
 {	// perform function while it returns true for each element in reverse
-	auto const first = begin(range);
-	auto it = end(range);
+	auto const first = begin(ib);
+	auto it = end(ib);
 	while (first != it && func(*(--it)));
 
 	return func;
@@ -211,8 +205,8 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename InputIter, typename OutputIter, typename Unused> inline
-	OutputIter Copy(std::false_type, Unused, InputIter first, InputIter last, OutputIter dest)
+	template<typename InputIter, typename InputIter2, typename OutputIter, typename Unused> inline
+	OutputIter Copy(std::false_type, Unused, InputIter first, InputIter2 last, OutputIter dest)
 	{
 		while (first != last)
 		{
@@ -222,9 +216,9 @@ namespace _detail
 		return dest;
 	}
 
-	template<typename IterSrc, typename IterDest, typename TrivialCopyFunc> inline
-	IterDest Copy(std::true_type, TrivialCopyFunc doCopy,
-				  IterSrc const first, IterSrc const last, IterDest const dest)
+	template<typename ItorSrc, typename ItorDest, typename TrivialCopyFunc> inline
+	ItorDest Copy(std::true_type, TrivialCopyFunc doCopy,
+				  ItorSrc const first, ItorSrc const last, ItorDest const dest)
 	{	// can use memcpy/memmove
 		auto const count = last - first;
 #	if OETL_MEM_BOUND_DEBUG_LVL
@@ -238,9 +232,9 @@ namespace _detail
 		return dest + count;
 	}
 
-	template<typename IterSrc, typename Count, typename IterDest, typename CopyFunc> inline
-	range_ends<IterSrc, IterDest> CopyN(std::true_type, CopyFunc doCopy,
-										IterSrc first, Count count, IterDest dest)
+	template<typename ItorSrc, typename Count, typename ItorDest, typename CopyFunc> inline
+	end_iterators<ItorSrc, ItorDest> CopyN(std::true_type, CopyFunc doCopy,
+										   ItorSrc first, Count count, ItorDest dest)
 	{	// can use memcpy/memmove
 		if (0 < count)
 		{
@@ -255,8 +249,8 @@ namespace _detail
 		return {first, dest};
 	}
 
-	template<typename InputIter, typename Count, typename OutputIter, typename Unused> inline
-	range_ends<InputIter, OutputIter> CopyN(std::false_type, Unused, InputIter first, Count count, OutputIter dest)
+	template<typename InputItor, typename Count, typename OutputItor, typename Unused> inline
+	end_iterators<InputItor, OutputItor> CopyN(std::false_type, Unused, InputItor first, Count count, OutputItor dest)
 	{
 		for (; 0 < count; --count)
 		{
@@ -272,13 +266,13 @@ namespace _detail
 template<typename InputIterator, typename OutputIterator>
 inline OutputIterator oetl::copy(InputIterator first, InputIterator last, OutputIterator dest)
 {
-	return _detail::Copy(can_memmove_ranges_with(dest, begin(source)),
+	return _detail::Copy(can_memmove_ranges_with(dest, first),
 						 ::memmove,
-						 begin(source), end(source), dest);
+						 first, last, dest);
 }
 
-template<typename InputRange, typename OutputIterator>
-inline OutputIterator oetl::copy_nonoverlap(const InputRange & source, OutputIterator dest)
+template<typename InputIterable, typename OutputIterator>
+inline OutputIterator oetl::copy_nonoverlap(const InputIterable & source, OutputIterator dest)
 {
 	return _detail::Copy(can_memmove_ranges_with(dest, begin(source)),
 						 ::memcpy,
@@ -286,14 +280,14 @@ inline OutputIterator oetl::copy_nonoverlap(const InputRange & source, OutputIte
 }
 
 template<typename InputIterator, typename Count, typename OutputIterator>
-inline oetl::range_ends<InputIterator, OutputIterator>  oetl::copy_n(InputIterator first, Count count, OutputIterator dest)
+inline oetl::end_iterators<InputIterator, OutputIterator>  oetl::copy_n(InputIterator first, Count count, OutputIterator dest)
 {
 	return _detail::CopyN(can_memmove_ranges_with(dest, first), ::memmove,
 						  first, count, dest);
 }
 
 template<typename InputIterator, typename Count, typename OutputIterator>
-inline oetl::range_ends<InputIterator, OutputIterator>  oetl::
+inline oetl::end_iterators<InputIterator, OutputIterator>  oetl::
 	copy_nonoverlap(InputIterator first, Count count, OutputIterator dest)
 {
 	return _detail::CopyN(can_memmove_ranges_with(dest, first), ::memcpy,
@@ -330,8 +324,8 @@ namespace _detail
 		       Size(-1);
 	}
 
-	template<typename Size, typename T, typename InputIter> inline
-	Size FindIdx(InputIter first, Size count, const T & val, std::false_type)
+	template<typename Size, typename T, typename InputItor> inline
+	Size FindIdx(InputItor first, Size count, const T & val, std::false_type)
 	{
 		for (Size i = 0; i < count; ++i)
 		{
@@ -368,18 +362,18 @@ inline Count oetl::find_idx(InputIterator first, Count count, const T & value)
 }
 
 
-template<typename ForwardRange, typename T>
-inline auto oetl::find_sorted(ForwardRange & range, const T & val) -> decltype(begin(range))
+template<typename ForwardIterable, typename T>
+inline auto oetl::find_sorted(ForwardIterable & ib, const T & val) -> decltype(begin(ib))
 {
-	return find_sorted(range, val, std::less<>{});
+	return find_sorted(ib, val, std::less<>{});
 }
 
-template<typename ForwardRange, typename T, typename Compare>
-inline auto oetl::find_sorted(ForwardRange & range, const T & val, Compare comp) -> decltype(begin(range))
+template<typename ForwardIterable, typename T, typename Compare>
+inline auto oetl::find_sorted(ForwardIterable & ib, const T & val, Compare comp) -> decltype(begin(ib))
 {
-	auto const last = end(range);
+	auto const last = end(ib);
 	// Finds the lower bound in at most log(last - begin) + 1 comparisons
-	auto const it = std::lower_bound(begin(range), last, val, comp);
+	auto const it = std::lower_bound(begin(ib), last, val, comp);
 
 	if (last != it && !comp(val, *it))
 		return it; // found
@@ -393,26 +387,26 @@ namespace oetl
 {
   namespace _detail
   {
-	template<typename T, typename Range> inline
-	bool IdxValid(std::false_type, const Range & r, T idx)
+	template<typename T, typename Iterable> inline
+	bool IdxValid(std::false_type, const Iterable & ib, T idx)
 	{
-		return as_unsigned(idx) < as_unsigned(count(r));
+		return as_unsigned(idx) < as_unsigned(count(ib));
 	}
 
-	template<typename T, typename Range> inline
-	bool IdxValid(std::true_type, const Range & r, T idx)
+	template<typename T, typename Iterable> inline
+	bool IdxValid(std::true_type, const Iterable & ib, T idx)
 	{
-		return 0 <= idx && idx < count(r);
+		return 0 <= idx && idx < count(ib);
 	}
   }
 }
 
-template<typename T, typename Range>
-inline bool oetl::index_valid(const Range & r, T idx)
+template<typename T, typename CountableIterable>
+inline bool oetl::index_valid(const CountableIterable & ci, T idx)
 {
 	using LimUChar = std::numeric_limits<unsigned char>;
 	return _detail::IdxValid(bool_constant< std::is_signed<T>::value && (sizeof(T) * LimUChar::digits < 60) >(),
-							 r, idx);
+							 ci, idx);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

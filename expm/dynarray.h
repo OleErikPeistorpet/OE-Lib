@@ -123,31 +123,31 @@ public:
 	void       swap(dynarray & other) NOEXCEPT;
 
 	/**
-	* @brief Replace the contents with count copies from range beginning at first
+	* @brief Replace the contents with count copies from iterable beginning at first
 	* @param first iterator to first element to assign from.
-	*	Shall not point into same dynarray, except if it is the begin iterator.
+	*	Shall not point into same dynarray, except if it is the begin iterator
 	* @param count number of elements to assign
-	* @return end of source range (first incremented by count)
+	* @return end of source (first incremented by count)
 	*
 	* Any elements held before the call are either assigned to or destroyed.
 	* Performance note: This function is efficient only for random-access traversal iterator  */
 	template<typename ForwardTravIterator>
 	ForwardTravIterator assign(ForwardTravIterator first, size_type count);
 	/**
-	* @brief Replace the contents with range
-	* @param source object which begin and end can be called on (an array, STL container or iterator_range).
-	*	Shall not be a subset of same dynarray, except if begin(source) points to first element of dynarray.
+	* @brief Replace the contents with those from an iterable
+	* @param source object which begin and end can be called on and return iterators.
+	*	Shall not be a subset of same dynarray, except if begin(source) points to first element of dynarray
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
-	template<typename InputRange>
-	void                assign(const InputRange & source);
+	template<typename InputIterable>
+	void                assign(const InputIterable & source);
 
 	/**
-	* @brief Add count elements at end from range beginning at first (in same order)
+	* @brief Add count elements at end from iterable beginning at first (in same order)
 	* @param first iterator to first element to append
 	* @param count number of elements to append
 	* @return first incremented count times. The value is undefined and shall be ignored if
-	*	first pointed into same dynarray and there was insufficient capacity to avoid reallocation.
+	*	first pointed into same dynarray and there was insufficient capacity to avoid reallocation
 	*
 	* Causes reallocation if the pre-call size + count is greater than capacity. On reallocation, all iterators
 	* and references are invalidated. Otherwise, any previous end iterator will point to the first element added.
@@ -155,14 +155,14 @@ public:
 	template<typename InputIterator>
 	InputIterator append(InputIterator first, size_type count);
 	/**
-	* @brief Add at end the elements from range (in same order)
-	* @param range object which begin and end can be called on (an array, STL container or iterator_range)
-	* @return iterator pointing to first of the new elements in dynarray, or end if range is empty
+	* @brief Add at end the elements from iterable (in same order)
+	* @param source object which begin and end can be called on and return iterators
+	* @return iterator pointing to first of the new elements in dynarray, or end if source is empty
 	*
 	* Otherwise same as append(InputIterator, size_type)  */
-	template<typename InputRange>
-	iterator      append(const InputRange & range);
-	/// Equivalent to calling append(const InputRange &) with il as argument  */
+	template<typename InputIterable>
+	iterator      append(const InputIterable & source);
+	/// Equivalent to calling append(const InputIterable &) with il as argument  */
 	iterator      append(std::initializer_list<T> il);
 
 	template<typename... Params>
@@ -302,8 +302,8 @@ private:
 		return std::max(reserved, size() + toAdd);
 	}
 
-	template<typename CntigusIter>
-	void _assignImpl(std::true_type, CntigusIter const first, CntigusIter, size_type const count)
+	template<typename CntigusItor>
+	void _assignImpl(std::true_type, CntigusItor const first, CntigusItor, size_type const count)
 	{	// fast assign
 #	if OETL_MEM_BOUND_DEBUG_LVL
 		if (count > 0)
@@ -324,8 +324,8 @@ private:
 		::memcpy(data(), to_ptr(first), count * sizeof(T));
 	}
 
-	template<typename InputIter>
-	void _assignImpl(std::false_type, InputIter first, InputIter const last, size_type const count)
+	template<typename InputItor, typename InputItor2>
+	void _assignImpl(std::false_type, InputItor first, InputItor2 const last, size_type const count)
 	{	// non-trivial assign
 		if (capacity() < count)
 		{	// not enough room, allocate new array and construct new
@@ -349,19 +349,19 @@ private:
 		}
 	}
 
-	template<typename ForwTravRange>
-	void _assign(const ForwTravRange & range, forward_traversal_tag)
+	template<typename ForwTravIterable>
+	void _assign(const ForwTravIterable & src, forward_traversal_tag)
 	{
-		auto first = adl_begin(range);
+		auto first = adl_begin(src);
 		_assignImpl(can_memmove_ranges_with(data(), first),
-					first, adl_end(range), count(range));
+					first, adl_end(src), count(src));
 	}
 
-	template<typename InputRange>
-	void _assign(const InputRange & range, single_pass_traversal_tag)
+	template<typename InputIterable>
+	void _assign(const InputIterable & src, single_pass_traversal_tag)
 	{	// cannot count input objects before assigning
 		clear();
-		for (auto && v : range)
+		for (auto && v : src)
 			emplace_back( std::forward<decltype(v)>(v) );
 	}
 
@@ -391,11 +391,11 @@ private:
 		return appendPos;
 	}
 
-	template<typename CntigusIter>
-	OETL_FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
+	template<typename CntigusItor>
+	OETL_FORCEINLINE CntigusItor _appendN(std::true_type, CntigusItor const first, size_type const count)
 	{	// use memcpy
 #	if OETL_MEM_BOUND_DEBUG_LVL
-		CntigusIter last = first + count;
+		CntigusItor last = first + count;
 
 		if (count > 0)  // Dereference to catch out of range errors if the iterators have internal checks
 		{	*first; *(last - 1);
@@ -428,8 +428,8 @@ private:
 #	endif
 	}
 
-	template<typename InputIter>
-	InputIter _appendN(std::false_type, InputIter first, size_type const count)
+	template<typename InputItor>
+	InputItor _appendN(std::false_type, InputItor first, size_type const count)
 	{	// slower copy
 		_appendNonTrivial( count,
 				[&first](pointer dest, size_type count)
@@ -441,21 +441,21 @@ private:
 		return first;
 	}
 
-	template<typename CntigusRange>
-	OETL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & range)
+	template<typename CntigusIterable>
+	OETL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusIterable & src)
 	{	// use memcpy
-		auto const nElems = count(range);
-		_appendN(std::true_type{}, adl_begin(range), nElems);
+		auto const nElems = count(src);
+		_appendN(std::true_type{}, adl_begin(src), nElems);
 
 		return end() - nElems;
 	}
 
-	template<typename ForwTravRange>
-	iterator _append(std::false_type, forward_traversal_tag, const ForwTravRange & range)
+	template<typename ForwTravIterable>
+	iterator _append(std::false_type, forward_traversal_tag, const ForwTravIterable & src)
 	{	// multi-pass iterator
-		auto first = adl_begin(range);
-		auto last = adl_end(range);
-		pointer const pos = _appendNonTrivial( count(range),
+		auto first = adl_begin(src);
+		auto last = adl_end(src);
+		pointer const pos = _appendNonTrivial( count(src),
 				[=](pointer dest, size_type)
 				{
 					return
@@ -467,13 +467,13 @@ private:
 		return OETL_DYNARR_ITERATOR(pos);
 	}
 
-	template<typename InputRange>
-	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & range)
+	template<typename InputIterable>
+	iterator _append(std::false_type, single_pass_traversal_tag, const InputIterable & src)
 	{	// slowest
 		size_type const oldSize = size();
 		try
 		{
-			for (auto && v : range)
+			for (auto && v : src)
 				emplace_back( std::forward<decltype(v)>(v) );
 		}
 		catch (...)
@@ -481,7 +481,6 @@ private:
 			erase_back(begin() + oldSize);
 			throw;
 		}
-
 		return begin() + oldSize;
 	}
 
@@ -604,14 +603,14 @@ ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_t
 #ifndef OETL_NO_BOOST
 	BOOST_CONCEPT_ASSERT((boost_concepts::ForwardTraversal<ForwardTravIterator>));
 #endif
-	auto last = std::next(first, count);
+	auto const last = std::next(first, count);
 	_assignImpl(can_memmove_ranges_with(data(), first),
 				first, last, count);
 	return last;
 }
 
-template<typename T, typename Alloc> template<typename InputRange>
-void dynarray<T, Alloc>::assign(const InputRange & source)
+template<typename T, typename Alloc> template<typename InputIterable>
+void dynarray<T, Alloc>::assign(const InputIterable & source)
 {
 	using InIter = decltype(adl_begin(source));
 	_assign(source, iterator_traversal_t<InIter>());
@@ -625,15 +624,15 @@ OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, s
 	return _appendN(can_memmove_ranges_with(data(), first), first, count);
 }
 
-template<typename T, typename Alloc> template<typename InputRange>
-OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & range)
+template<typename T, typename Alloc> template<typename InputIterable>
+OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputIterable & src)
 {
 	_detail::AssertRelocate<T>();
 
-	auto first = adl_begin(range);
+	auto first = adl_begin(src);
 	return _append(can_memmove_ranges_with(data(), first),
 				   iterator_traversal_t<decltype(first)>(),
-				   range);
+				   src);
 }
 
 template<typename T, typename Alloc>
@@ -683,7 +682,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	if (_end < _reserveEnd) // then new element fits
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
-		auto tmp = T(std::forward<Params>(args)...);
+		T tmp = T(std::forward<Params>(args)...);
 
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
 		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
@@ -740,19 +739,19 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 	{	// not enough room, reallocate
 		size_type const newCapacity = _calcCapAdd(count);
 
-		_smartPtr newData{_alloc(newCapacity)};
+		pointer const newData = _alloc(newCapacity);
 
 		size_type const nBeforePos = posPtr - data();
-		pointer const newPos = newData.get() + nBeforePos;
+		pointer const newPos = newData + nBeforePos;
 		::memcpy(newPos, to_ptr(first), count);		// add new
 		_end = newPos + count;
-		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // relocate prefix
+		::memcpy(newData, data(), nBeforePos * sizeof(T)); // relocate prefix
 		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // relocate suffix
 		_end += nAfterPos;
 
-		_reserveEnd = newData.get() + newCapacity;
+		_reserveEnd = newData + newCapacity;
 
-		_data.swap(newData);
+		_data.reset(newData);
 
 		return OETL_DYNARR_ITERATOR(newPos);
 	}
