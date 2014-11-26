@@ -324,8 +324,8 @@ private:
 		::memcpy(data(), to_ptr(first), count * sizeof(T));
 	}
 
-	template<typename InputItor, typename InputItor2>
-	void _assignImpl(std::false_type, InputItor first, InputItor2 const last, size_type const count)
+	template<typename InputItor, typename Sentinel>
+	void _assignImpl(std::false_type, InputItor first, Sentinel const last, size_type const count)
 	{	// non-trivial assign
 		if (capacity() < count)
 		{	// not enough room, allocate new array and construct new
@@ -519,16 +519,17 @@ private:
 		}
 	}
 
-	void _relocateData(std::true_type, pointer newData, pointer, size_type count)
+	void _relocateData(std::true_type, pointer newData)
 	{
-		::memcpy(newData, data(), count * sizeof(T));
+		::memcpy(newData, data(), size() * sizeof(T));
 	}
 
-	void _relocateData(std::false_type, pointer newData, pointer oldEnd, size_type)
+	void _relocateData(std::false_type, pointer newData)
 	{
 		static_assert(std::is_nothrow_move_constructible<T>::value,
 					  "T must be trivially relocatable or have noexcept move constructor");
-		std::uninitialized_copy(data(), oldEnd, newData);
+		for (pointer p = data(); p < _end; ++p)
+			::new(newData++) T(std::move(*p));
 	}
 };
 
@@ -653,17 +654,14 @@ void dynarray<T, Alloc>::emplace_back(Params &&... args)
 		size_type const newCapacity = _calcCapAddOne();
 		_smartPtr newData{_alloc(newCapacity)};
 
-		_reserveEnd = newData.get() + newCapacity;
-
-		size_type const oldSize = size();
-		pointer const newEnd = newData.get() + oldSize;
+		pointer const newEnd = newData.get() + size();
 		::new(newEnd) T(std::forward<Params>(args)...);
-
+		// Exception free from here
+		_reserveEnd = newData.get() + newCapacity;
 		// Make new element before reallocating old data to support push_back from this
-		_relocateData(is_trivially_relocatable<T>(), newData.get(), _end, oldSize);
-
-		_data.swap(newData);
+		_relocateData(is_trivially_relocatable<T>(), newData.get());
 		_end = newEnd;
+		_data.swap(newData);
 	}
 	++_end;
 }
@@ -671,7 +669,7 @@ void dynarray<T, Alloc>::emplace_back(Params &&... args)
 template<typename T, typename Alloc> template<typename... Params>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Params &&... args)
 {
-	static_assert(std::is_nothrow_move_constructible<T>::value, "insert requires that T has noexcept move constructor");
+	static_assert(std::is_nothrow_move_constructible<T>::value, "insert/emplace require that T has noexcept move constructor");
 	_detail::AssertRelocate<T>();
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
