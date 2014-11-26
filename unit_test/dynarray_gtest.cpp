@@ -220,20 +220,6 @@ TEST_F(dynarrayTest, insert)
 		EXPECT_EQ(val, *end(up)[-2]);
 	}
 	EXPECT_EQ(4, Deleter::callCount);
-
-	//d.insert(begin(d), 0);
-	//ASSERT_EQ(1, d.size());
-	//d.insert(begin(d), 1);
-	//ASSERT_EQ(2, d.size());
-	//d.insert(end(d), 2);
-	//ASSERT_EQ(3, d.size());
-	//d.insert(begin(d) + 1, 3);
-	//ASSERT_EQ(4, d.size());
-	//d.insert(end(d) - 1, 4);
-	//ASSERT_EQ(5, d.size());
-
-	//int cmp[] = {1, 3, 0, 4, 2};
-	//EXPECT_TRUE(std::equal(cbegin(d), cend(d), cmp));
 }
 
 // Test resize.
@@ -284,6 +270,42 @@ TEST_F(dynarrayTest, erase)
 	ASSERT_EQ(s - 2, d.size());
 	r = d.erase(end(d) - 1);
 	ASSERT_EQ(s - 3, d.size());
+}
+
+TEST_F(dynarrayTest, misc)
+{
+	size_t fASrc[] = { 2, 3 };
+
+	dynarray<size_t> daSrc(oetl::reserve, 2);
+	daSrc.push_back(0);
+	daSrc.push_back(2);
+	daSrc.insert(begin(daSrc) + 1, 1);
+	auto sz = daSrc.size();
+	ASSERT_EQ(3, sz);
+
+	std::deque<size_t> dequeSrc;
+	dequeSrc.push_back(4);
+	dequeSrc.push_back(5);
+
+	dynarray<size_t> dest0;
+	dest0.reserve(1);
+	dest0 = daSrc;
+
+	dest0.append(cbegin(daSrc), daSrc.size());
+	dest0.append(fASrc, 2);
+	auto srcEnd = dest0.append(dequeSrc.begin(), dequeSrc.size());
+	EXPECT_EQ(end(dequeSrc), srcEnd);
+
+	dynarray<size_t> dest1;
+	dynarray<size_t>::const_iterator it = dest1.append(daSrc);
+	dest1.append(fASrc);
+	dest1.append(dequeSrc);
+
+	auto cap = dest1.capacity();
+	dest1.pop_back();
+	dest1.pop_back();
+	dest1.shrink_to_fit();
+	EXPECT_GT(cap, dest1.capacity());
 }
 
 

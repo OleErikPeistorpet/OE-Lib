@@ -668,7 +668,7 @@ void dynarray<T, Alloc>::emplace_back(Params &&... args)
 template<typename T, typename Alloc> template<typename... Params>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Params &&... args)
 {
-	static_assert(std::is_nothrow_move_constructible<T>::value, "T must have noexcept move constructor");
+	static_assert(std::is_nothrow_move_constructible<T>::value, "insert/emplace require that T has noexcept move constructor");
 	_staticAssertRelocate();
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
@@ -679,7 +679,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	if (_end < _reserveEnd) // then new element fits
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
-		auto tmp = T(std::forward<Params>(args)...);
+		T tmp = T(std::forward<Params>(args)...);
 
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
 		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
