@@ -17,13 +17,6 @@
 #include <algorithm>
 
 
-#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL < 2 && _ITERATOR_DEBUG_LEVEL == 0
-#	define OETL_FORCEINLINE __forceinline
-#else
-#	define OETL_FORCEINLINE inline
-#endif
-
-
 namespace oetl
 {
 
@@ -49,10 +42,10 @@ using boost::single_pass_traversal_tag;
 using std::out_of_range;
 
 
-/// Type to indicate that a container constructor must allocate storage
-struct reserve_t {};
-/// An instance of reserve_t to pass
-static reserve_t const reserve;
+/// Type to indicate that a container constructor must allocate storage. A static instance named reserve is provided to pass
+struct reserve_tag {};
+
+static reserve_tag const reserve;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -76,7 +69,7 @@ typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typenam
 
 /// Non-member erase_back, overloads generic erase_back(Container &, Container::iterator)
 template<typename T, typename A> inline
-void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator newEnd)  { ctr.erase_back(newEnd); }
+void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first)  { ctr.erase_back(first); }
 
 template<typename T1, typename T2, typename A1, typename A2>
 bool operator==(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right);
@@ -111,10 +104,10 @@ public:
 	/**
 	* @brief Construct empty dynarray with space reserved for at least capacity elements
 	* @throw std::bad_alloc if the allocation request does not succeed (same for all functions that expand the dynarray)  */
-	dynarray(reserve_t, size_type capacity);
-	/// Non-trivial constructor called on elements, otherwise not initialized
-	dynarray(init_size_t, size_type size);
-	dynarray(init_size_t, size_type size, const T & fillVal);
+	dynarray(reserve_tag, size_type capacity);
+	/// Elements are default initialized, meaning non-class T produces indeterminate values
+	dynarray(ini_size_tag, size_type size);
+	dynarray(ini_size_tag, size_type size, const T & fillVal);
 	dynarray(std::initializer_list<T> init);
 
 	dynarray(dynarray && other) NOEXCEPT;
@@ -169,7 +162,7 @@ public:
 	* Otherwise same as append(InputIterator, size_type)  */
 	template<typename InputRange>
 	iterator      append(const InputRange & range);
-	/// Equivalent to calling template<typename InputRange> append(const InputRange &) with il as argument  */
+	/// Equivalent to calling append(const InputRange &) with il as argument  */
 	iterator      append(std::initializer_list<T> il);
 
 	template<typename... Params>
@@ -183,11 +176,9 @@ public:
 
 	iterator   insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
 	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
-
+	/// ? ? ?
 	template<typename ContiguousTIterator>
 	iterator   insert(const_iterator position, ContiguousTIterator first, size_type count);
-	template< typename ContiguousTRange, typename = std::enable_if_t<!std::is_convertible<ContiguousTRange, T>::value> >
-	iterator   insert(const_iterator position, const ContiguousTRange & range);
 
 	/// After the call, any previous iterator to the back element will be equal to end()
 	void       pop_back() NOEXCEPT;
@@ -196,10 +187,10 @@ public:
 
 	iterator   erase(iterator first, iterator last) NOEXCEPT;
 
-	/// Pop the elements from newEnd to the end of dynarray
-	void       erase_back(iterator newEnd) NOEXCEPT;
+	/// Equivalent to erase(first, end()) (but potentially faster)
+	void       erase_back(iterator first) NOEXCEPT;
 
-	/// Non-trivial constructor called on added elements, otherwise not initialized
+	/// Added elements are default initialized, meaning non-class T produces indeterminate values
 	void       resize(size_type newSize);
 	void       resize(size_type newSize, const T & addVal);
 
@@ -263,6 +254,12 @@ private:
 	pointer   _reserveEnd; // Pointer to end of allocated memory
 
 
+#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL < 2 && _ITERATOR_DEBUG_LEVEL == 0
+#	define OETL_FORCEINLINE __forceinline
+#else
+#	define OETL_FORCEINLINE inline
+#endif
+
 #if OETL_MEM_BOUND_DEBUG_LVL >= 2
 #	define OETL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
 #	define OETL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
@@ -288,7 +285,7 @@ private:
 		return _reserveEnd - _end;
 	}
 
-	size_type _insertOneCalcCap() const
+	size_type _calcCapAddOne() const
 	{
 		enum { MIN_GROW = sizeof(pointer) >= sizeof(T) ?
 				2 * sizeof(pointer) / sizeof(T) :
@@ -298,7 +295,7 @@ private:
 		return reserved + std::max(reserved / 2, size_type(MIN_GROW));
 	}
 
-	size_type _appendCalcCap(size_type toAdd) const
+	size_type _calcCapAdd(size_type toAdd) const
 	{
 		size_type reserved = capacity();
 		reserved += reserved / 2;
@@ -380,7 +377,7 @@ private:
 		else
 		{
 			size_type const oldSize = size();
-			size_type const newCapacity = _appendCalcCap(count);
+			size_type const newCapacity = _calcCapAdd(count);
 			_smartPtr newData{_alloc(newCapacity)};
 
 			appendPos = newData.get() + oldSize;
@@ -411,7 +408,7 @@ private:
 		}
 		else
 		{
-			size_type const newCapacity = _appendCalcCap(count);
+			size_type const newCapacity = _calcCapAdd(count);
 			pointer const newData = _alloc(newCapacity);
 
 			_reserveEnd = newData + newCapacity;
@@ -539,14 +536,14 @@ private:
 // Definitions of public functions
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(reserve_t, size_type capacity) :
+inline dynarray<T, Alloc>::dynarray(reserve_tag, size_type capacity) :
 	_data(_alloc(capacity)),
 	_end(data()),
 	_reserveEnd(data() + capacity) {
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(init_size_t, size_type size) :
+inline dynarray<T, Alloc>::dynarray(ini_size_tag, size_type size) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
@@ -554,7 +551,7 @@ inline dynarray<T, Alloc>::dynarray(init_size_t, size_type size) :
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(init_size_t, size_type size, const T & val) :
+dynarray<T, Alloc>::dynarray(ini_size_tag, size_type size, const T & val) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
@@ -654,7 +651,7 @@ void dynarray<T, Alloc>::emplace_back(Params &&... args)
 	}
 	else
 	{
-		size_type const newCapacity = _insertOneCalcCap();
+		size_type const newCapacity = _calcCapAddOne();
 		_smartPtr newData{_alloc(newCapacity)};
 
 		_reserveEnd = newData.get() + newCapacity;
@@ -675,7 +672,7 @@ void dynarray<T, Alloc>::emplace_back(Params &&... args)
 template<typename T, typename Alloc> template<typename... Params>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Params &&... args)
 {
-	static_assert(std::is_nothrow_move_constructible<T>::value, "T must have noexcept move constructor");
+	static_assert(std::is_nothrow_move_constructible<T>::value, "insert requires that T has noexcept move constructor");
 	_detail::AssertRelocate<T>();
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
@@ -685,7 +682,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 	if (_end < _reserveEnd) // then new element fits
 	{
-		// Copy construct new element as temporary, so that if it throws, this remains unchanged
+		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		auto tmp = T(std::forward<Params>(args)...);
 
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
@@ -698,7 +695,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	}
 	else
 	{	// not enough room, reallocate
-		size_type const newCapacity = _insertOneCalcCap();
+		size_type const newCapacity = _calcCapAddOne();
 
 		_smartPtr newData{_alloc(newCapacity)};
 
@@ -723,7 +720,7 @@ template<typename T, typename Alloc> template<typename ContiguousTIterator>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 	insert(const_iterator pos, ContiguousTIterator first, size_type count)
 {
-	std::true_type{can_memmove_ranges_with(data(), first)}; // test
+	std::true_type{can_memmove_ranges_with(data(), first)};
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
 	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);
@@ -741,7 +738,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 	}
 	else
 	{	// not enough room, reallocate
-		size_type const newCapacity = _insertOneCalcCap();
+		size_type const newCapacity = _calcCapAdd(count);
 
 		_smartPtr newData{_alloc(newCapacity)};
 
@@ -749,7 +746,6 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 		pointer const newPos = newData.get() + nBeforePos;
 		::memcpy(newPos, to_ptr(first), count);		// add new
 		_end = newPos + count;
-		// Behaviour undefined by standard if data is null
 		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // relocate prefix
 		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // relocate suffix
 		_end += nAfterPos;
@@ -760,12 +756,6 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 
 		return OETL_DYNARR_ITERATOR(newPos);
 	}
-}
-
-template<typename T, typename Alloc> template<typename ContiguousTRange, typename>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert(const_iterator pos, const ContiguousTRange & range)
-{
-	return insert(pos, adl_begin(range), count(range));
 }
 
 template<typename T, typename Alloc>
@@ -866,12 +856,12 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::erase_back(iterator newEnd) NOEXCEPT
+inline void dynarray<T, Alloc>::erase_back(iterator first) NOEXCEPT
 {
-	pointer const first = to_ptr(newEnd);
-	BOUND_ASSERT_CHEAP(data() <= first && first <= _end);
-	_detail::Destroy(first, _end);
-	_end = first;
+	pointer const newEnd = to_ptr(first);
+	BOUND_ASSERT_CHEAP(data() <= newEnd && newEnd <= _end);
+	_detail::Destroy(newEnd, _end);
+	_end = newEnd;
 }
 
 template<typename T, typename Alloc>
