@@ -51,9 +51,13 @@ auto cend(const Iterable & ib) -> decltype(end(ib))  { return end(ib); }
 #endif
 
 
+template<typename Iterator>
+using difference_type = typename std::iterator_traits<Iterator>::difference_type
+
+
 /// Returns number of elements in iterable (which begin and end can be called on), signed type
 template<typename Iterable>
-auto count(const Iterable & ib) -> typename std::iterator_traits<decltype(begin(ib))>::difference_type;
+auto count(const Iterable & ib) -> difference_type<decltype(begin(ib))>;
 
 
 
@@ -145,8 +149,8 @@ inline std::false_type can_memmove_ranges_with(...)  { return {}; }
 
 namespace _detail
 {
-	template<typename HasSizeItbl> inline // pass dummy int to prefer this overload
-	auto Count(const HasSizeItbl & ib, int) -> decltype(ib.size()) { return ib.size(); }
+	template<typename HasSize> inline // pass dummy int to prefer this overload
+	auto Count(const HasSize & ib, int) -> decltype(ib.size()) { return ib.size(); }
 
 	template<typename Iterable> inline
 	auto Count(const Iterable & ib, long) -> decltype( std::distance(begin(ib), end(ib)) )
@@ -156,7 +160,7 @@ namespace _detail
 } // namespace oetl
 
 template<typename Iterable>
-inline auto oetl::count(const Iterable & ib) -> typename std::iterator_traits<decltype(begin(ib))>::difference_type
+inline auto oetl::count(const Iterable & ib) -> difference_type<decltype(begin(ib))>
 {
 	return _detail::Count(ib, int{});
 }

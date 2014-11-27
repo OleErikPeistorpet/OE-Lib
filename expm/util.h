@@ -146,17 +146,17 @@ end_iterators<InputIterator, OutputIterator> copy_n(InputIterator first, Count c
 template<typename Count, typename T, typename InputIterator>
 Count find_idx(InputIterator first, Count count, const T & value);
 ///
-template<typename T, typename Iterable> inline
-auto find_idx(const Iterable & toSearch, const T & value) -> decltype(count(toSearch))
+template<typename T, typename InputIterable> inline
+auto find_idx(const InputIterable & toSearch, const T & value) -> difference_type<decltype(begin(toSearch))>
 {
-	return oetl::find_idx(begin(toSearch), count(toSearch), value);
+	return oetl::find_idx(begin(toSearch), oetl::count(toSearch), value);
 }
 
 ///
 template<typename T, typename BidirectionIterable> inline
-auto rfind_idx(const BidirectionIterable & toSearch, const T & value) -> decltype(count(toSearch))
+auto rfind_idx(const BidirectionIterable & toSearch, const T & value) -> difference_type<decltype(begin(toSearch))>
 {
-	auto pos = count(toSearch);
+	auto pos = oetl::count(toSearch);
 	auto it = end(toSearch);
 	while (--pos != -1)
 	{
@@ -390,13 +390,13 @@ namespace oetl
 	template<typename T, typename Iterable> inline
 	bool IdxValid(std::false_type, const Iterable & ib, T idx)
 	{
-		return as_unsigned(idx) < as_unsigned(count(ib));
+		return as_unsigned(idx) < as_unsigned(oetl::count(ib));
 	}
 
 	template<typename T, typename Iterable> inline
 	bool IdxValid(std::true_type, const Iterable & ib, T idx)
 	{
-		return 0 <= idx && idx < count(ib);
+		return 0 <= idx && idx < oetl::count(ib);
 	}
   }
 }

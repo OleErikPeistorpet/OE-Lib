@@ -361,7 +361,7 @@ private:
 	{
 		auto first = adl_begin(range);
 		_assignImpl(can_memmove_ranges_with(data(), first),
-					first, adl_end(range), count(range));
+					first, adl_end(range), oetl::count(range));
 	}
 
 	template<typename InputRange>
@@ -451,7 +451,7 @@ private:
 	template<typename CntigusRange>
 	OETL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & range)
 	{	// use memcpy
-		auto const nElems = count(range);
+		auto const nElems = oetl::count(range);
 		_appendN(std::true_type{}, adl_begin(range), nElems);
 
 		return end() - nElems;
@@ -462,7 +462,7 @@ private:
 	{	// multi-pass iterator
 		auto first = adl_begin(range);
 		auto last = adl_end(range);
-		pointer const pos = _appendNonTrivial( count(range),
+		pointer const pos = _appendNonTrivial( oetl::count(range),
 				[=](pointer dest, size_type)
 				{
 					return
