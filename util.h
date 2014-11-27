@@ -183,18 +183,18 @@ inline oetl::range_ends<InputIterator, OutputIterator>  oetl::
 template<typename T, typename Range, typename>
 inline bool oetl::index_valid(const Range & r, T idx)
 {
-	return idx < as_unsigned(count(r));
+	return idx < as_unsigned(oetl::count(r));
 }
 
 template<typename Range>
 inline bool oetl::index_valid(const Range & r, std::int32_t idx)
 {
-	return 0 <= idx && idx < count(r);
+	return 0 <= idx && idx < oetl::count(r);
 }
 
 template<typename Range>
 inline bool oetl::index_valid(const Range & r, std::int64_t idx)
 {
-	using std::uint64_t;
-	return static_cast<uint64_t>(idx) < static_cast<uint64_t>(count(r));
+	auto idxU = static_cast<std::uint64_t>(idx);
+	return idxU < as_unsigned(oetl::count(r)); // assumes that r size is never greater than INT64_MAX
 }
