@@ -75,38 +75,34 @@ std::unique_ptr<T> make_unique_default(size_t arraySize);
 
 
 /**
-* @brief Erase the element at index from container without maintaining order of elements.
+* @brief Erase the element at index from subscriptable without maintaining order of elements.
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template<class RandomAccessContainer> inline
-void erase_unordered(RandomAccessContainer & ctr, typename RandomAccessContainer::size_type index)
+template<class PopBackSubscriptable, typename Index> inline
+void erase_unordered(PopBackSubscriptable & ps, Index index)
 {
-	ctr[index] = std::move(ctr.back());
-	ctr.pop_back();
+	ps[index] = std::move(ps.back());
+	ps.pop_back();
 }
 /**
-* @brief Erase the element at position from container without maintaining order of elements.
+* @brief Erase the element at position from iterable without maintaining order of elements.
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template<class Container> inline
-void erase_unordered(Container & ctr, typename Container::iterator position)
+template<class PopBackIterable> inline
+void erase_unordered(PopBackIterable & ib, typename PopBackIterable::iterator position)
 {
-	*position = std::move(ctr.back());
-	ctr.pop_back();
+	*position = std::move(ib.back());
+	ib.pop_back();
 }
 
-/// Erase the elements from first to the end of container, making first the new end
-template<class Container> inline
-void erase_back(Container & ctr, typename Container::iterator first)  { ctr.erase(first, ctr.end()); }
-
 /**
-* @brief Erase consecutive duplicate elements in container.
+* @brief Erase consecutive duplicate elements in iterable.
 *
-* To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
-template<class Container>
-void erase_successive_dup(Container & ctr);
+* By sorting contents first, all duplicates will be erased. */
+template<class EraseIterable>
+void erase_successive_dup(EraseIterable & ei);
 
 
 /**
@@ -194,19 +190,19 @@ Func for_each_reverse(BidirectionIterable && ib, Func func)
 
 namespace _detail
 {
-	template<class Container> inline
-	auto EraseSuccessiveDup(Container & ctr, int) -> decltype(ctr.unique()) { return ctr.unique(); }
+	template<class HasUnique> inline
+	auto EraseSuccessiveDup(HasUnique & ei, int) -> decltype(ei.unique()) { return ei.unique(); }
 
-	template<class Container>
-	void EraseSuccessiveDup(Container & ctr, long)
+	template<class EraseIterable>
+	void EraseSuccessiveDup(EraseIterable & ei, long)
 	{
-		erase_back( ctr, std::unique(begin(ctr), end(ctr)) );
+		erase_back( ei, std::unique(begin(ei), end(ei)) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename InputIter, typename InputIter2, typename OutputIter, typename Unused> inline
-	OutputIter Copy(std::false_type, Unused, InputIter first, InputIter2 last, OutputIter dest)
+	template<typename InputItor, typename Sentinel, typename OutputItor, typename Unused> inline
+	OutputItor Copy(std::false_type, Unused, InputItor first, Sentinel last, OutputItor dest)
 	{
 		while (first != last)
 		{
@@ -302,10 +298,10 @@ inline OutputIterator  oetl::move(InputIterator first, InputIterator last, Outpu
 
 ////////////////////////////////////////////////////////////////////////////////
 
-template<class Container>
-inline void oetl::erase_successive_dup(Container & ctr)
+template<class EraseIterable>
+inline void oetl::erase_successive_dup(EraseIterable & ei)
 {
-	_detail::EraseSuccessiveDup(ctr, int{});
+	_detail::EraseSuccessiveDup(ei, int{});
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -314,8 +310,8 @@ namespace oetl
 {
 namespace _detail
 {
-	template<typename Size, typename CntigusIter> inline
-	Size FindIdx(CntigusIter first, Size count, int val, std::true_type)
+	template<typename Size, typename CntigusItor> inline
+	Size FindIdx(CntigusItor first, Size count, int val, std::true_type)
 	{	// contiguous mem iterator with integral value_type of size 1
 		auto const pBuf = to_ptr(first);
 		auto found = static_cast<decltype(pBuf)>(memchr(pBuf, val, count));

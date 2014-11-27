@@ -75,6 +75,12 @@ struct end_iterators
 };
 
 
+
+/// Erase the elements from first to the end of iterable, making first the new end
+template<class EraseIterable>
+void erase_back(EraseIterable & ei, typename EraseIterable::iterator first);
+
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // The rest are advanced utilities, not for users
@@ -155,6 +161,13 @@ namespace _detail
 	template<typename Iterable> inline
 	auto Count(const Iterable & ib, long) -> decltype( std::distance(begin(ib), end(ib)) )
 											  { return std::distance(begin(ib), end(ib)); }
+
+
+	template<class HasEraseBack> inline
+	auto EraseBack(HasEraseBack & ei, typename HasEraseBack::iterator first, int) -> decltype(ei.erase_back(first))
+																					 { return ei.erase_back(first); }
+	template<class EraseIterable> inline
+	void EraseBack(EraseIterable & ei, typename EraseIterable::iterator first, long) { ei.erase(first, ei.end()); }
 }
 
 } // namespace oetl
@@ -163,4 +176,11 @@ template<typename Iterable>
 inline auto oetl::count(const Iterable & ib) -> difference_type<decltype(begin(ib))>
 {
 	return _detail::Count(ib, int{});
+}
+
+
+template<class EraseIterable>
+inline void oetl::erase_back(EraseIterable & ei, typename EraseIterable::iterator first)
+{
+	_detail::EraseBack(ei, first, int{});
 }

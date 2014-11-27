@@ -36,10 +36,6 @@ template<typename T, size_t C>
 typename fixcap_array<T, C>::iterator  erase_unordered(fixcap_array<T, C> & ctr,
 													   typename fixcap_array<T, C>::iterator position);
 
-/// Non-member erase_back, overloads generic erase_back(Container &, Container::iterator)
-template<typename T, size_t C> inline
-void erase_back(fixcap_array<T, C> & ctr, typename fixcap_array<T, C>::iterator newEnd)  { ctr.erase_back(newEnd); }
-
 template<typename T1, typename T2, size_t C1, size_t C2>
 bool operator==(const fixcap_array<T1, C1> & left, const fixcap_array<T2, C2> & right);
 template<typename T1, typename T2, size_t C1, size_t C2> inline

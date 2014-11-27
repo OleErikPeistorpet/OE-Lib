@@ -67,10 +67,6 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) NOEXCEPT  { a.swap(b); }
 template<typename T, typename A>
 typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator position);
 
-/// Non-member erase_back, overloads generic erase_back(Container &, Container::iterator)
-template<typename T, typename A> inline
-void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first)  { ctr.erase_back(first); }
-
 template<typename T1, typename T2, typename A1, typename A2>
 bool operator==(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right);
 template<typename T1, typename T2, typename A1, typename A2> inline
