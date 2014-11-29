@@ -52,7 +52,7 @@ auto cend(const Iterable & ib) -> decltype(end(ib))  { return end(ib); }
 
 
 template<typename Iterator>
-using difference_type = typename std::iterator_traits<Iterator>::difference_type
+using difference_type = typename std::iterator_traits<Iterator>::difference_type;
 
 
 /// Returns number of elements in iterable (which begin and end can be called on), signed type
@@ -99,7 +99,6 @@ using bool_constant = std::integral_constant<bool, Value>;
 #endif
 
 
-
 /// Convert iterator to pointer. This is overloaded for each contiguous memory iterator class
 template<typename T> inline
 T * to_ptr(T * ptr)  { return ptr; }
@@ -128,6 +127,7 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 	template<typename T, typename U> inline
 	T * to_ptr(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
 #endif
+
 
 namespace _detail
 {

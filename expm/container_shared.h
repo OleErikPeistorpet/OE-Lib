@@ -18,11 +18,11 @@
 namespace oetl
 {
 /**
-* @brief Trait that specifies whether moving a T object to a new location and immediately destroying the source object is
-* equivalent to memcpy and not calling destructor on the source.
+* @brief Trait that specifies that T does not have a pointer member to any of its data members, including
+*	inherited, and a T object does not need to notify any observers if its memory address changes.
 *
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation
+* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
 * @par
 * To specify that a type is trivially relocatable define a specialization like this:
 @code
@@ -41,6 +41,9 @@ struct is_trivially_relocatable< std::unique_ptr<T, Del> >
 template<typename T>
 struct is_trivially_relocatable< std::shared_ptr<T> > : std::true_type {};
 
+template<typename T>
+struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
+
 template<typename T, typename U>
 struct is_trivially_relocatable< std::pair<T, U> > : bool_constant<
 	is_trivially_relocatable<T>::value && is_trivially_relocatable<U>::value > {};
@@ -52,7 +55,7 @@ struct is_trivially_relocatable< std::tuple<T, Us...> > : bool_constant<
 template<>
 struct is_trivially_relocatable< std::tuple<> > : std::true_type {};
 
-/// Might not be safe with all STL implementations, only verified for Visual C++ 2013
+/// Might not be safe with all std library implementations, only verified for Visual C++ 2013
 template<typename C, typename Tr>
 struct is_trivially_relocatable< std::basic_string<C, Tr> >
  :	std::true_type {};
@@ -118,6 +121,9 @@ struct is_trivially_relocatable< std::unordered_multi_map<K, T, H, P> >
 template<typename T>
 struct is_trivially_relocatable< boost::circular_buffer<T> > : std::true_type {};
 
+template<typename T>
+struct is_trivially_relocatable< boost::intrusive_ptr<T> > : std::true_type {};
+
 #endif
 
 
@@ -127,14 +133,16 @@ struct ini_size_tag {};
 static ini_size_tag const ini_size;
 
 
-////////////////////////////////////////////////////////////////////////////////
-
-// The rest are advanced utilities, not for users
-
 
 /// Like std::aligned_storage<Size, Align>::type, but guaranteed to support alignment of up to 64
 template<size_t Size, size_t Align>
 struct aligned_storage_t {};
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+// The rest of the file is implementation details
+
 
 #if _MSC_VER
 #	define OETL_ALIGN_PRE(amount)  __declspec(align(amount))

@@ -18,11 +18,11 @@
 namespace oetl
 {
 /**
-* @brief Trait that specifies whether moving a T object to a new location and immediately destroying the source object is
-* equivalent to memcpy and not calling destructor on the source.
+* @brief Trait that specifies that T does not have a pointer member to any of its data members, including
+*	inherited, and a T object does not need to notify any observers if its memory address changes.
 *
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation
+* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
 * @par
 * To specify that a type is trivially relocatable define a specialization like this:
 @code
@@ -38,8 +38,11 @@ template<typename T, typename Del>
 struct is_trivially_relocatable< std::unique_ptr<T, Del> >
  :	is_trivially_relocatable<Del> {};
 
+template<typename T>
+struct is_trivially_relocatable< std::shared_ptr<T> > : std::true_type {};
+
 #if _MSC_VER && _MSC_VER < 1900
-/// Might not be safe with all STL implementations, only verified for Visual C++ 2013
+/// Might not be safe with all std library implementations, only verified for Visual C++ 2013
 template<typename C, typename Tr>
 struct is_trivially_relocatable< std::basic_string<C, Tr> >
  :	std::true_type {};
