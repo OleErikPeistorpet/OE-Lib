@@ -2,7 +2,13 @@
 
 class ForwDeclared { char c; };
 
-int Deleter::callCount;
+int MoveOnly::nConstruct;
+int MoveOnly::nAssign;
+int MoveOnly::nDestruct;
+
+int NoAssign::nConstruct;
+int NoAssign::nCopyConstr;
+int NoAssign::nDestruct;
 
 namespace
 {
@@ -44,25 +50,32 @@ TEST_F(dynarrayTest, construct)
 
 TEST_F(dynarrayTest, push_back)
 {
-	Deleter::callCount = 0;
+	MoveOnly::ClearCount();
 	{
-		dynarray<DoublePtr> up;
+		dynarray<MoveOnly> up;
 
 		double const VALUES[] = {-1.1, 2.0};
 
-		up.push_back( DoublePtr(new double(VALUES[0])) );
+		up.push_back( MoveOnly(new double(VALUES[0])) );
 		ASSERT_EQ(1, up.size());
 
-		up.push_back( DoublePtr(new double(VALUES[1])) );
+		EXPECT_THROW( up.emplace_back(ThrowOnConstruct), TestException );
+		ASSERT_EQ(1, up.size());
 
-		up.push_back( move(up.back()) );
+		up.push_back( MoveOnly(new double(VALUES[1])) );
+		ASSERT_EQ(2, up.size());
+
+		EXPECT_THROW( up.emplace_back(ThrowOnConstruct), TestException );
+		ASSERT_EQ(2, up.size());
+
+		up.push_back( std::move(up.back()) );
 		ASSERT_EQ(3, up.size());
 
 		EXPECT_EQ(VALUES[0], *up[0]);
 		EXPECT_EQ(nullptr, up[1]);
 		EXPECT_EQ(VALUES[1], *up[2]);
 	}
-	EXPECT_EQ(2, Deleter::callCount);
+	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 }
 
 TEST_F(dynarrayTest, assign)
@@ -108,12 +121,12 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(das[4], copyDest[2]);
 	}
 
-	Deleter::callCount = 0;
+	MoveOnly::ClearCount();
 	{
 		double const VALUES[] = {-1.1, 0.4};
-		DoublePtr src[] { DoublePtr{new double{VALUES[0]}},
-						  DoublePtr{new double{VALUES[1]}} };
-		dynarray<DoublePtr> test;
+		MoveOnly src[] { MoveOnly{new double{VALUES[0]}},
+						  MoveOnly{new double{VALUES[1]}} };
+		dynarray<MoveOnly> test;
 
 		test.assign(oetl::move_range(src));
 
@@ -124,7 +137,7 @@ TEST_F(dynarrayTest, assign)
 		test.assign(oetl::make_move_iter(src), 0);
 		EXPECT_EQ(0, test.size());
 	}
-	EXPECT_EQ(2, Deleter::callCount);
+	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 }
 
 TEST_F(dynarrayTest, append)
@@ -187,19 +200,28 @@ TEST_F(dynarrayTest, append)
 // Test insert.
 TEST_F(dynarrayTest, insert)
 {
-	Deleter::callCount = 0;
+	MoveOnly::ClearCount();
 	{
-		dynarray<DoublePtr> up;
+		dynarray<MoveOnly> up;
 
 		double const VALUES[] = {-1.1, 0.4, 1.3, 2.2};
 
-		auto & p = *up.insert(begin(up), DoublePtr(new double(VALUES[2])));
+		auto & p = *up.insert(begin(up), MoveOnly(new double(VALUES[2])));
 		EXPECT_EQ(VALUES[2], *p);
 		ASSERT_EQ(1, up.size());
-		up.insert( begin(up), DoublePtr(new double(VALUES[0])) );
-		up.insert( end(up), DoublePtr(new double(VALUES[3])) );
-		ASSERT_EQ(3, up.size());
-		up.insert( begin(up) + 1, DoublePtr(new double(VALUES[1])) );
+
+		EXPECT_THROW( up.emplace(begin(up), ThrowOnConstruct), TestException );
+		ASSERT_EQ(1, up.size());
+
+		up.insert( begin(up), MoveOnly(new double(VALUES[0])) );
+		ASSERT_EQ(2, up.size());
+
+		EXPECT_THROW( up.emplace(begin(up) + 1, ThrowOnConstruct), TestException );
+		ASSERT_EQ(2, up.size());
+
+		up.insert( end(up), MoveOnly(new double(VALUES[3])) );
+		auto & p2 = *up.insert( begin(up) + 1, MoveOnly(new double(VALUES[1])) );
+		EXPECT_EQ(VALUES[1], *p2);
 		ASSERT_EQ(4, up.size());
 
 		auto v = std::begin(VALUES);
@@ -209,17 +231,17 @@ TEST_F(dynarrayTest, insert)
 			++v;
 		}
 
-		auto it = up.insert( begin(up) + 2, move(up[2]) );
+		auto it = up.insert( begin(up) + 2, std::move(up[2]) );
 		EXPECT_EQ(up[2], *it);
 		EXPECT_EQ(nullptr, up[3]);
 
 		auto const val = *up.back();
-		up.insert( end(up) - 1, move(up.back()) );
+		up.insert( end(up) - 1, std::move(up.back()) );
 		ASSERT_EQ(6, up.size());
 		EXPECT_EQ(nullptr, up.back());
 		EXPECT_EQ(val, *end(up)[-2]);
 	}
-	EXPECT_EQ(4, Deleter::callCount);
+	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 }
 
 // Test resize.
@@ -258,13 +280,6 @@ TEST_F(dynarrayTest, erase)
 	for (int i = 0; i < 5; ++i)
 		d.push_back(i);
 
-	//auto r = t.erase(t.begin() + 2, t.begin() + 1);
-
-	//dynarray<int> dest;
-	//auto it = t.begin();
-	//t.append(it, 5);
-	//dest.append(it, 5);
-
 	auto const s = d.size();
 	auto r = d.erase(begin(d) + 1, begin(d) + 3);
 	ASSERT_EQ(s - 2, d.size());
@@ -301,16 +316,18 @@ TEST_F(dynarrayTest, misc)
 	dest1.append(fASrc);
 	dest1.append(dequeSrc);
 
+	{
+		dynarray<int> di{1, -2};
+		auto it = begin(di);
+		it = erase_unordered(di, it);
+		EXPECT_EQ(-2, *it);
+		it = erase_unordered(di, it);
+		EXPECT_EQ(end(di), it);
+	}
+
 	auto cap = dest1.capacity();
 	dest1.pop_back();
 	dest1.pop_back();
 	dest1.shrink_to_fit();
 	EXPECT_GT(cap, dest1.capacity());
-}
-
-
-int main(int argc, char **argv)
-{
-	::testing::InitGoogleTest(&argc, argv);
-	return RUN_ALL_TESTS();
 }
