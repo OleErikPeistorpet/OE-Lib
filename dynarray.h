@@ -43,7 +43,6 @@ using std::out_of_range;
 
 /// Type to indicate that a container constructor must allocate storage. A static instance named reserve is provided to pass
 struct reserve_tag {};
-
 static reserve_tag const reserve;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -159,12 +158,12 @@ public:
 	InputIterator append(InputIterator first, size_type count);
 	/**
 	* @brief Add at end the elements from range (in same order)
-	* @param range object which begin and end can be called on (an array, STL container or iterator_range)
+	* @param source object which begin and end can be called on (an array, STL container or iterator_range)
 	* @return iterator pointing to first of the new elements in dynarray, or end if range is empty
 	*
 	* Otherwise same as append(InputIterator, size_type)  */
 	template<typename InputRange>
-	iterator      append(const InputRange & range);
+	iterator      append(const InputRange & source);
 	/// Equivalent to calling append(const InputRange &) with il as argument  */
 	iterator      append(std::initializer_list<T> il);
 
@@ -575,7 +574,7 @@ dynarray<T, Alloc>::dynarray(std::initializer_list<T> init) :
 	_data( _alloc(init.size()) )
 {
 	_uninitCopyData(is_trivially_copyable<T>(),
-					other.begin(), other.end(), other.size());
+					init.begin(), init.end(), init.size());
 }
 
 template<typename T, typename Alloc>
@@ -600,7 +599,7 @@ ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_t
 	static_assert(boost::is_convertible< iterator_traversal_t<ForwardTravIterator>, forward_traversal_tag >::value,
 				  "Type of first must meet requirements of Forward Traversal Iterator");
 #endif
-	auto last = std::next(first, count);
+	auto const last = std::next(first, count);
 	_assignImpl(can_memmove_ranges_with(data(), first),
 				first, last, count);
 	return last;
@@ -622,14 +621,14 @@ OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, s
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & range)
+OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & source)
 {
 	_staticAssertRelocate();
 
-	auto first = adl_begin(range);
+	auto first = adl_begin(source);
 	return _append(can_memmove_ranges_with(data(), first),
 				   iterator_traversal_t<decltype(first)>(),
-				   range);
+				   source);
 }
 
 template<typename T, typename Alloc>
