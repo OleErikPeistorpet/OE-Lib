@@ -172,6 +172,33 @@ template<typename ForwardIterable, typename T, typename Compare>
 auto find_sorted(ForwardIterable & ib, const T & val, Compare comp) -> decltype(begin(ib));
 
 
+/// Functor for operator== with operator * on arguments
+template<class Derefable = void>
+struct equal_to_deref
+{
+	bool operator()(const Derefable & a, const Derefable & b) const  { return *a == *b; }
+};
+/// Functor for operator < with operator * on arguments
+template<class Derefable = void>
+struct less_deref
+{
+	bool operator()(const Derefable & a, const Derefable & b) const  { return *a < *b; }
+};
+/// Transparent functor for operator== with operator * on arguments
+template<> struct equal_to_deref<void>
+{
+	template<class T, class U>
+	bool operator()(const T & a, const U & b) const  { return *a == *b; }
+};
+/// Transparent functor for operator < with operator * on arguments
+template<> struct less_deref<void>
+{
+	template<class T, class U>
+	bool operator()(const T & a, const U & b) const  { return *a < *b; }
+};
+
+
+
 template<typename BidirectionIterable, typename Func> inline
 Func for_each_reverse(BidirectionIterable && ib, Func func)
 {	// perform function while it returns true for each element in reverse
