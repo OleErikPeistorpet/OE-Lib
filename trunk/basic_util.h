@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright © 2014 Ole Erik Peistorpet
+// Copyright Â© 2014 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -114,23 +114,24 @@ namespace _detail
 {
 	template<typename T> inline   // (target, source)
 	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
-}
 
 #if _MSC_VER
 #	pragma warning(push)
 #	pragma warning(disable: 4100)
 #endif
-/// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
-template<typename OutIterator, typename InIterator> inline
-auto can_memmove_ranges_with(OutIterator dest, InIterator source)
- -> decltype( _detail::CanMemmoveArrays(to_ptr(dest), to_ptr(source)) )  { return {}; }
+	// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
+	template<typename OutIterator, typename InIterator> inline
+	auto CanMemmoveRangesWith(OutIterator dest, InIterator source, int)
+	 -> decltype( CanMemmoveArrays(to_ptr(dest), to_ptr(source)) ) { return {}; }
 
 #if _MSC_VER
 #	pragma warning(pop)
 #endif
 
-// SFINAE fallback for cases where to_ptr(iterator) is not declared or value types are not the same
-inline std::false_type can_memmove_ranges_with(...)  { return {}; }
+	// SFINAE fallback for cases where to_ptr(iterator) is not declared or value types are not the same
+	template<typename OutIterator, typename InIterator> inline
+	std::false_type CanMemmoveRangesWith(OutIterator, InIterator, long) { return {}; }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
