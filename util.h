@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright © 2014 Ole Erik Peistorpet
+// Copyright Â© 2014 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -166,7 +166,7 @@ namespace _detail
 template<typename InputRange, typename OutputIterator>
 inline OutputIterator oetl::copy_nonoverlap(const InputRange & source, OutputIterator dest)
 {
-	return _detail::Copy(can_memmove_ranges_with(dest, begin(source)),
+	return _detail::Copy(_detail::CanMemmoveRangesWith(dest, begin(source), int{}),
 						 begin(source), end(source), dest);
 }
 
@@ -174,7 +174,7 @@ template<typename InputIterator, typename Count, typename OutputIterator>
 inline oetl::range_ends<InputIterator, OutputIterator>  oetl::
 	copy_nonoverlap(InputIterator first, Count count, OutputIterator dest)
 {
-	return _detail::CopyN(can_memmove_ranges_with(dest, first),
+	return _detail::CopyN(_detail::CanMemmoveRangesWith(dest, first, int{}),
 						  first, count, dest);
 }
 

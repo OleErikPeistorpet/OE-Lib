@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright © 2014 Ole Erik Peistorpet
+// Copyright Â© 2014 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -359,7 +359,7 @@ private:
 	void _assign(const ForwTravRange & range, forward_traversal_tag)
 	{
 		auto first = adl_begin(range);
-		_assignImpl(can_memmove_ranges_with(data(), first),
+		_assignImpl(_detail::CanMemmoveRangesWith(data(), first, int{}),
 					first, adl_end(range), oetl::count(range));
 	}
 
@@ -600,7 +600,7 @@ ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_t
 				  "Type of first must meet requirements of Forward Traversal Iterator");
 #endif
 	auto const last = std::next(first, count);
-	_assignImpl(can_memmove_ranges_with(data(), first),
+	_assignImpl(_detail::CanMemmoveRangesWith(data(), first, int{}),
 				first, last, count);
 	return last;
 }
@@ -617,7 +617,7 @@ OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, s
 {
 	_staticAssertRelocate();
 
-	return _appendN(can_memmove_ranges_with(data(), first), first, count);
+	return _appendN(_detail::CanMemmoveRangesWith(data(), first, int{}), first, count);
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
@@ -626,7 +626,7 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 	_staticAssertRelocate();
 
 	auto first = adl_begin(source);
-	return _append(can_memmove_ranges_with(data(), first),
+	return _append(_detail::CanMemmoveRangesWith(data(), first, int{}),
 				   iterator_traversal_t<decltype(first)>(),
 				   source);
 }
