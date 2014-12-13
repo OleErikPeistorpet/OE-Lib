@@ -51,7 +51,6 @@ struct is_trivially_relocatable< std::basic_string<C, Tr> >
 
 /// Tag to select a specific constructor. The static instance ini_size is provided as a convenience
 struct ini_size_tag {};
-
 static ini_size_tag const ini_size;
 
 
@@ -63,13 +62,12 @@ static ini_size_tag const ini_size;
 namespace _detail
 {
 	template<size_t Align>
-	struct CanDefaultAlloc : std::integral_constant< bool,
+	using CanDefaultAlloc = std::integral_constant< bool,
 #		if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
-			Align <= 16 >
+			Align <= 16 >;
 #		else
-			Align <= ALIGNOF(std::max_align_t) >
+			Align <= ALIGNOF(std::max_align_t) >;
 #		endif
-	{};
 
 	template<size_t> inline
 	void * OpNew(std::true_type, size_t nBytes)

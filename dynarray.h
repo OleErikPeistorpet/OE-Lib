@@ -358,9 +358,9 @@ private:
 	template<typename ForwTravRange>
 	void _assign(const ForwTravRange & range, forward_traversal_tag)
 	{
-		auto first = adl_begin(range);
-		_assignImpl(_detail::CanMemmoveRangesWith(data(), first, int{}),
-					first, adl_end(range), oetl::count(range));
+		using IterSrc = decltype(adl_begin(range));
+		_assignImpl(can_memmove_with<pointer, IterSrc>(),
+					adl_begin(range), adl_end(range), oetl::count(range));
 	}
 
 	template<typename InputRange>
@@ -487,7 +487,6 @@ private:
 			erase_back(begin() + oldSize);
 			throw;
 		}
-
 		return begin() + oldSize;
 	}
 
@@ -600,7 +599,7 @@ ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_t
 				  "Type of first must meet requirements of Forward Traversal Iterator");
 #endif
 	auto const last = std::next(first, count);
-	_assignImpl(_detail::CanMemmoveRangesWith(data(), first, int{}),
+	_assignImpl(can_memmove_with<pointer, ForwardTravIterator>(),
 				first, last, count);
 	return last;
 }
@@ -617,7 +616,7 @@ OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, s
 {
 	_staticAssertRelocate();
 
-	return _appendN(_detail::CanMemmoveRangesWith(data(), first, int{}), first, count);
+	return _appendN(can_memmove_with<pointer, InputIterator>(), first, count);
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
@@ -625,9 +624,9 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 {
 	_staticAssertRelocate();
 
-	auto first = adl_begin(source);
-	return _append(_detail::CanMemmoveRangesWith(data(), first, int{}),
-				   iterator_traversal_t<decltype(first)>(),
+	using IterSrc = decltype(adl_begin(source));
+	return _append(can_memmove_with<pointer, IterSrc>(),
+				   iterator_traversal_t<IterSrc>(),
 				   source);
 }
 
@@ -679,7 +678,6 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		T tmp = T(std::forward<Params>(args)...);
-
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
 		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
 		++_end;
@@ -697,11 +695,11 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		size_type const nBeforePos = posPtr - data();
 		pointer const newPos = newData.get() + nBeforePos;
 		::new(newPos) T(std::forward<Params>(args)...);		// add new
-		_end = newPos + 1;
+		pointer const next = newPos + 1;
 		// Behaviour undefined by standard if data is null
 		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // relocate prefix
-		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // relocate suffix
-		_end += nAfterPos;
+		::memcpy(next, posPtr, nAfterPos * sizeof(T));  // relocate suffix
+		_end = next + nAfterPos;
 
 		_reserveEnd = newData.get() + newCapacity;
 
