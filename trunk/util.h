@@ -166,7 +166,7 @@ namespace _detail
 template<typename InputRange, typename OutputIterator>
 inline OutputIterator oetl::copy_nonoverlap(const InputRange & source, OutputIterator dest)
 {
-	return _detail::Copy(_detail::CanMemmoveRangesWith(dest, begin(source), int{}),
+	return _detail::Copy(can_memmove_with<OutputIterator, decltype(begin(source))>(),
 						 begin(source), end(source), dest);
 }
 
@@ -174,7 +174,7 @@ template<typename InputIterator, typename Count, typename OutputIterator>
 inline oetl::range_ends<InputIterator, OutputIterator>  oetl::
 	copy_nonoverlap(InputIterator first, Count count, OutputIterator dest)
 {
-	return _detail::CopyN(_detail::CanMemmoveRangesWith(dest, first, int{}),
+	return _detail::CopyN(can_memmove_with<OutputIterator, InputIterator>(),
 						  first, count, dest);
 }
 

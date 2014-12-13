@@ -73,12 +73,11 @@ struct range_ends
 
 #if __GLIBCXX__
 	template<typename T>
-	struct is_trivially_copyable : std::integral_constant< bool,
-				__has_trivial_copy(T) && __has_trivial_assign(T) > {};
+	using is_trivially_copyable = std::integral_constant< bool,
+									__has_trivial_copy(T) && __has_trivial_assign(T) >;
 #else
 	using std::is_trivially_copyable;
 #endif
-
 
 
 /// Convert iterator to pointer. This is overloaded for each contiguous memory iterator class
@@ -110,28 +109,24 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 	T * to_ptr(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
 #endif
 
+
 namespace _detail
 {
-	template<typename T> inline   // (target, source)
+	template<typename T>   // (target, source)
 	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
 
-#if _MSC_VER
-#	pragma warning(push)
-#	pragma warning(disable: 4100)
-#endif
-	// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
-	template<typename OutIterator, typename InIterator> inline
-	auto CanMemmoveRangesWith(OutIterator dest, InIterator source, int)
-	 -> decltype( CanMemmoveArrays(to_ptr(dest), to_ptr(source)) ) { return {}; }
-
-#if _MSC_VER
-#	pragma warning(pop)
-#endif
+	template<typename IterDest, typename IterSrc>
+	auto CanMemmoveWith(IterDest dest, IterSrc src)
+	 -> decltype( CanMemmoveArrays(to_ptr(dest), to_ptr(src)) ) { return {}; }
 
 	// SFINAE fallback for cases where to_ptr(iterator) is not declared or value types are not the same
-	template<typename OutIterator, typename InIterator> inline
-	std::false_type CanMemmoveRangesWith(OutIterator, InIterator, long) { return {}; }
+	inline std::false_type CanMemmoveWith(...) { return {}; }
 }
+
+/// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
+template<typename IteratorDest, typename IteratorSource>
+using can_memmove_with =
+	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(), std::declval<IteratorSource>()) );
 
 ////////////////////////////////////////////////////////////////////////////////
 

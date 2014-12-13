@@ -119,6 +119,12 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(das[2], copyDest[0]);
 		EXPECT_EQ(das[3], copyDest[1]);
 		EXPECT_EQ(das[4], copyDest[2]);
+
+		copyDest = {std::string()};
+		EXPECT_EQ("", copyDest.at(0));
+		copyDest = {das[0], das[4]};
+		EXPECT_EQ(2, copyDest.size());
+		EXPECT_EQ(das[4], copyDest.at(1));
 	}
 
 	MoveOnly::ClearCount();
@@ -148,6 +154,8 @@ TEST_F(dynarrayTest, append)
 		std::deque<double> src;
 		dest.append(src);
 
+		dest.append({});
+
 		double const TEST_VAL = 6.6;
 		dest.resize(2, TEST_VAL);
 		dest.append(dest.begin(), dest.size());
@@ -157,14 +165,13 @@ TEST_F(dynarrayTest, append)
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
-	const int arrayB[] = {1, 2, 3, 4};
 
 	dynarray<double> double_dynarr;
 	double_dynarr.append(oetl::begin(arrayA), oetl::count(arrayA));
 
 	{
 		dynarray<int> int_dynarr;
-		int_dynarr.append(arrayB);
+		int_dynarr.append({1, 2, 3, 4});
 
 		double_dynarr.append(int_dynarr);
 	}
@@ -176,10 +183,10 @@ TEST_F(dynarrayTest, append)
 	EXPECT_EQ(arrayA[2], double_dynarr[2]);
 	EXPECT_EQ(arrayA[3], double_dynarr[3]);
 
-	EXPECT_DOUBLE_EQ(arrayB[0], double_dynarr[4]);
-	EXPECT_DOUBLE_EQ(arrayB[1], double_dynarr[5]);
-	EXPECT_DOUBLE_EQ(arrayB[2], double_dynarr[6]);
-	EXPECT_DOUBLE_EQ(arrayB[3], double_dynarr[7]);
+	EXPECT_DOUBLE_EQ(1, double_dynarr[4]);
+	EXPECT_DOUBLE_EQ(2, double_dynarr[5]);
+	EXPECT_DOUBLE_EQ(3, double_dynarr[6]);
+	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
 
 	{
 		std::stringstream ss("1 2 3 4 5");
