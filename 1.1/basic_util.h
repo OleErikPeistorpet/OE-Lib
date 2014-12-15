@@ -141,9 +141,11 @@ namespace _detail
 
 } // namespace oetl
 
+/// @cond FALSE
 template<typename IteratorDest, typename IteratorSource>
 struct oetl::can_memmove_with :	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
 																  std::declval<IteratorSource>()) ) {};
+/// @endcond
 
 
 template<typename Range>
