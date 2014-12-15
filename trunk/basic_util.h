@@ -66,10 +66,6 @@ struct range_ends
 };
 
 
-////////////////////////////////////////////////////////////////////////////////
-
-// The rest are advanced utilities, not for users
-
 
 #if __GLIBCXX__
 	template<typename T>
@@ -80,13 +76,24 @@ struct range_ends
 #endif
 
 
-/// Convert iterator to pointer. This is overloaded for each contiguous memory iterator class
+/// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
+template<typename IteratorDest, typename IteratorSource>
+struct can_memmove_with;
+
+
+/// Convert iterator to pointer. This should be overloaded for each contiguous memory iterator class
 template<typename T> inline
 T * to_ptr(T * ptr)  { return ptr; }
 
 template<typename Iterator> inline
 auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
  -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+// The rest are implementation details
+
 
 #if _MSC_VER
 	template<typename T, size_t S> inline
@@ -109,7 +116,6 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 	T * to_ptr(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
 #endif
 
-
 namespace _detail
 {
 	template<typename T>   // (target, source)
@@ -121,29 +127,38 @@ namespace _detail
 
 	// SFINAE fallback for cases where to_ptr(iterator) is not declared or value types are not the same
 	inline std::false_type CanMemmoveWith(...) { return {}; }
-}
-
-/// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
-template<typename IteratorDest, typename IteratorSource>
-using can_memmove_with =
-	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(), std::declval<IteratorSource>()) );
 
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace _detail
-{
 	template<typename HasSizeRange> inline // pass dummy int to prefer this overload
 	auto Count(const HasSizeRange & r, int) -> decltype(r.size()) { return r.size(); }
 
 	template<typename Range> inline
 	auto Count(const Range & r, long) -> decltype( std::distance(begin(r), end(r)) )
-										  { return std::distance(begin(r), end(r)); }
+										  { return std::distance(begin(r), end(r)); }										  
 }
 
 } // namespace oetl
+
+template<typename IteratorDest, typename IteratorSource>
+struct oetl::can_memmove_with :	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
+																  std::declval<IteratorSource>()) ) {};
+
 
 template<typename Range>
 inline auto oetl::count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
 {
 	return _detail::Count(r, int{});
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+#if __GNUC__
+#	define OETL_PUSH_IGNORE_UNUSED_VALUE  \
+		_Pragma("GCC diagnostic push")  \
+		_Pragma("GCC diagnostic ignored \"-Wunused-value\"")
+#	define OETL_POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
+#else
+#	define OETL_PUSH_IGNORE_UNUSED_VALUE
+#	define OETL_POP_DIAGNOSTIC
+#endif
