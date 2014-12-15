@@ -125,8 +125,10 @@ namespace _detail
 #	if OETL_MEM_BOUND_DEBUG_LVL
 		if (0 != count)
 		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
+		OETL_PUSH_IGNORE_UNUSED_VALUE
 			*first; *dest;
 			*(dest + (count - 1));
+		OETL_POP_DIAGNOSTIC
 		}
 #	endif
 		::memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
@@ -139,8 +141,10 @@ namespace _detail
 		if (0 < count)
 		{
 #		if OETL_MEM_BOUND_DEBUG_LVL
+			OETL_PUSH_IGNORE_UNUSED_VALUE
 			*(first + (count - 1));        // Dereference iterators at bounds, this detects
 			*dest; *(dest + (count - 1));  // out of range errors if they are checked iterators
+			OETL_POP_DIAGNOSTIC
 #		endif
 			::memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
 			first += count;

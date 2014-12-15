@@ -312,10 +312,12 @@ private:
 	void _assignImpl(std::true_type, CntigusIter const first, CntigusIter, size_type const count)
 	{	// fast assign
 #	if OETL_MEM_BOUND_DEBUG_LVL
+		OETL_PUSH_IGNORE_UNUSED_VALUE
 		if (count > 0)
 		{	*first;  // Dereference to catch out of range errors if the iterators have internal checks
 			*(first + (count - 1));
 		}
+		OETL_POP_DIAGNOSTIC
 #	endif
 		if (capacity() < count)
 		{
@@ -403,9 +405,11 @@ private:
 #	if OETL_MEM_BOUND_DEBUG_LVL
 		CntigusIter last = first + count;
 
+		OETL_PUSH_IGNORE_UNUSED_VALUE
 		if (count > 0)  // Dereference to catch out of range errors if the iterators have internal checks
 		{	*first; *(last - 1);
 		}
+		OETL_POP_DIAGNOSTIC
 #	endif
 		if (_unusedCapacity() >= count)
 		{
