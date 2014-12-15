@@ -116,6 +116,7 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 	T * to_ptr(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
 #endif
 
+
 namespace _detail
 {
 	template<typename T>   // (target, source)
@@ -135,7 +136,7 @@ namespace _detail
 
 	template<typename Range> inline
 	auto Count(const Range & r, long) -> decltype( std::distance(begin(r), end(r)) )
-										  { return std::distance(begin(r), end(r)); }										  
+										  { return std::distance(begin(r), end(r)); }
 }
 
 } // namespace oetl
