@@ -73,6 +73,14 @@ std::unique_ptr<T> make_unique_default();
 template<typename T>
 std::unique_ptr<T> make_unique_default(size_t arraySize);
 
+/// Calls new T using constructor syntax with args as the parameter list and wraps it in a std::unique_ptr.
+template<typename T, typename... Params, typename = std::enable_if_t<!std::is_array<T>::value> >
+void reset(std::unique_ptr<T> & ptr, Params &&... args);
+
+/// Calls new T[arraySize]() and wraps it in a std::unique_ptr. The array is value-initialized.
+template<typename T>
+void reset(std::unique_ptr<T[]> & ptr, size_t arraySize);
+
 
 /**
 * @brief Erase the element at index from subscriptable without maintaining order of elements.
@@ -448,7 +456,7 @@ inline std::unique_ptr<T>  oetl::make_unique(size_t arraySize)
 {
 	static_assert(std::extent<T>::value == 0, "make_unique forbids T[size]. Please use T[]");
 
-	typedef typename std::remove_extent<T>::type Elem;
+	using Elem = typename std::remove_extent<T>::type;
 	return std::unique_ptr<T>( new Elem[arraySize]() ); // value-initialize
 }
 
@@ -476,6 +484,18 @@ inline std::unique_ptr<T>  oetl::make_unique_default(size_t arraySize)
 	static_assert(std::is_array<T>::value, "make_unique_default(size_t arraySize) requires T[]");
 	static_assert(std::extent<T>::value == 0, "make_unique_default forbids T[size]. Please use T[]");
 
-	typedef typename std::remove_extent<T>::type Elem;
+	using Elem = typename std::remove_extent<T>::type;
 	return std::unique_ptr<T>(new Elem[arraySize]);  // default-initialize
+}
+
+template<typename T, typename... Params, typename>
+inline void oetl::reset(std::unique_ptr<T> & up, Params &&... args)
+{
+	up.reset( new T(std::forward<Params>(args)...) );
+}
+
+template<typename T>
+inline void oetl::reset(std::unique_ptr<T[]> & up, size_t arraySize)
+{
+	up.reset( new T[arraySize]() );
 }

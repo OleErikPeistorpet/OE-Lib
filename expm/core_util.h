@@ -81,31 +81,37 @@ template<class EraseIterable>
 void erase_back(EraseIterable & ei, typename EraseIterable::iterator first);
 
 
-////////////////////////////////////////////////////////////////////////////////
-
-// The rest are advanced utilities, not for users
-
 
 template<bool Value>
 using bool_constant = std::integral_constant<bool, Value>;
 
 
-
 #if __GLIBCXX__
 	template<typename T>
-	struct is_trivially_copyable : bool_constant<__has_trivial_copy(T) && __has_trivial_assign(T)> {};
+	using is_trivially_copyable = bool_constant<__has_trivial_copy(T) && __has_trivial_assign(T)>;
 #else
 	using std::is_trivially_copyable;
 #endif
 
 
-/// Convert iterator to pointer. This is overloaded for each contiguous memory iterator class
+/// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
+template<typename IteratorDest, typename IteratorSource>
+struct can_memmove_with;
+
+
+/// Convert iterator to pointer. This should be overloaded for each contiguous memory iterator class
 template<typename T> inline
 T * to_ptr(T * ptr)  { return ptr; }
 
 template<typename Iterator> inline
 auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
  -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+// The rest are implementation details
+
 
 #if _MSC_VER
 	template<typename T, size_t S> inline
@@ -131,30 +137,18 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 
 namespace _detail
 {
-	template<typename T> inline   // (target, source)
+	template<typename T>   // (target, source)
 	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
-}
 
-#if _MSC_VER
-#	pragma warning(push)
-#	pragma warning(disable: 4100)
-#endif
-/// If an InIterator range can be copied to an OutIterator range with memmove, returns std::true_type, else false_type
-template<typename IteratorDest, typename IteratorSrc> inline
-auto can_memmove_ranges_with(IteratorDest dest, IteratorSrc source)
- -> decltype( _detail::CanMemmoveArrays(to_ptr(dest), to_ptr(source)) )  { return {}; }
+	template<typename IterDest, typename IterSrc>
+	auto CanMemmoveWith(IterDest dest, IterSrc src)
+	 -> decltype( CanMemmoveArrays(to_ptr(dest), to_ptr(src)) ) { return {}; }
 
-#if _MSC_VER
-#	pragma warning(pop)
-#endif
-
-// SFINAE fallback for cases where to_ptr(iterator) is not declared or value types are not the same
-inline std::false_type can_memmove_ranges_with(...)  { return {}; }
+	// SFINAE fallback for cases where to_ptr(iterator) is not declared or value types are not the same
+	inline std::false_type CanMemmoveWith(...) { return {}; }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace _detail
-{
 	template<typename HasSize> inline // pass dummy int to prefer this overload
 	auto Count(const HasSize & ib, int) -> decltype(ib.size()) { return ib.size(); }
 
@@ -172,6 +166,13 @@ namespace _detail
 
 } // namespace oetl
 
+/// @cond FALSE
+template<typename IteratorDest, typename IteratorSource>
+struct oetl::can_memmove_with :	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
+																  std::declval<IteratorSource>()) ) {};
+/// @endcond
+
+
 template<typename Iterable>
 inline auto oetl::count(const Iterable & ib) -> difference_type<decltype(begin(ib))>
 {
@@ -184,3 +185,15 @@ inline void oetl::erase_back(EraseIterable & ei, typename EraseIterable::iterato
 {
 	_detail::EraseBack(ei, first, int{});
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+#if __GNUC__
+#	define OETL_PUSH_IGNORE_UNUSED_VALUE  \
+		_Pragma("GCC diagnostic push")  \
+		_Pragma("GCC diagnostic ignored \"-Wunused-value\"")
+#	define OETL_POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
+#else
+#	define OETL_PUSH_IGNORE_UNUSED_VALUE
+#	define OETL_POP_DIAGNOSTIC
+#endif
