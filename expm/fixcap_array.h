@@ -136,9 +136,11 @@ public:
 
 	iterator        begin() NOEXCEPT;
 	const_iterator  begin() const NOEXCEPT;
+	const_iterator  cbegin() const NOEXCEPT  { return begin(); }
 
 	iterator        end() NOEXCEPT;
 	const_iterator  end() const NOEXCEPT;
+	const_iterator  cend() const NOEXCEPT  { return end(); }
 
 	pointer         data() NOEXCEPT;
 	const_pointer   data() const NOEXCEPT;
