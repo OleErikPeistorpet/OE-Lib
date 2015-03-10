@@ -351,7 +351,7 @@ private:
 	{
 		using IterSrc = decltype(adl_begin(src));
 		_assignImpl(can_memmove_with<pointer, IterSrc>(),
-					first, adl_end(src), oetl::count(src));
+					adl_begin(src), adl_end(src), oetl::count(src));
 	}
 
 	template<typename InputIterable>
@@ -715,7 +715,8 @@ template<typename T, typename Alloc> template<typename ContiguousTIterator>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 	insert(const_iterator pos, ContiguousTIterator first, size_type count)
 {
-	static_assert(can_memmove_with<pointer, ContiguousTIterator>::value, "Temp");
+	static_assert(can_memmove_with<pointer, ContiguousTIterator>::value,
+				  "insert multiple requires that range beginning at first can be trivially copied");
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
 	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);
@@ -740,10 +741,10 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 		size_type const nBeforePos = posPtr - data();
 		pointer const newPos = newData + nBeforePos;
 		::memcpy(newPos, to_ptr(first), count);		// add new
-		_end = newPos + count;
+		pointer const next = newPos + count;
 		::memcpy(newData, data(), nBeforePos * sizeof(T)); // relocate prefix
 		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // relocate suffix
-		_end += nAfterPos;
+		_end = next + nAfterPos;
 
 		_reserveEnd = newData + newCapacity;
 
