@@ -52,9 +52,30 @@ struct is_trivially_relocatable< std::basic_string<C, Tr> >
 #endif
 
 
+
 /// Tag to select a specific constructor. The static instance ini_size is provided as a convenience
 struct ini_size_tag {};
 static ini_size_tag const ini_size;
+
+
+
+/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
+*
+* For use in implementation of classes with begin member  */
+template<typename Range> inline
+auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
+/// Const version of adl_begin
+template<typename Range> inline
+auto adl_begin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+
+/** @brief Argument-dependent lookup non-member end, defaults to std::end
+*
+* For use in implementation of classes with end member  */
+template<typename Range> inline
+auto adl_end(Range & r)       -> decltype(end(r))  { return end(r); }
+/// Const version of adl_end
+template<typename Range> inline
+auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -120,26 +141,6 @@ struct allocator
 		_detail::OpDelete(_detail::CanDefaultAlloc<ALIGNOF(T)>(), ptr);
 	}
 };
-
-////////////////////////////////////////////////////////////////////////////////
-
-/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
-*
-* For use in implementation of classes with begin member  */
-template<typename Range> inline
-auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
-/// Const version of adl_begin
-template<typename Range> inline
-auto adl_begin(const Range & r) -> decltype(begin(r))  { return begin(r); }
-
-/** @brief Argument-dependent lookup non-member end, defaults to std::end
-*
-* For use in implementation of classes with end member  */
-template<typename Range> inline
-auto adl_end(Range & r)       -> decltype(end(r))  { return end(r); }
-/// Const version of adl_end
-template<typename Range> inline
-auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 
 ////////////////////////////////////////////////////////////////////////////////
 
