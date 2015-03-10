@@ -30,22 +30,6 @@ template<typename T> inline
 typename std::make_unsigned<T>::type  as_unsigned(T val) NOEXCEPT  { return typename std::make_unsigned<T>::type(val); }
 
 
-
-template<bool Condition>
-using enable_if_t = typename std::enable_if<Condition>::type;
-
-
-/// Check if index is valid (can be used with operator[]) for array or other range.
-template< typename T, typename Range, typename = enable_if_t<std::is_unsigned<T>::value> >
-bool index_valid(const Range & range, T index);
-/// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename Range>
-bool index_valid(const Range & range, std::int32_t index);
-/// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename Range>
-bool index_valid(const Range & range, std::int64_t index);
-
-
 /**
 * @brief Erase the element at index from container without maintaining order of elements.
 *
@@ -80,7 +64,7 @@ void erase_back(Container & ctr, typename Container::iterator first)  { ctr.eras
 template<class Container>
 void erase_successive_dup(Container & ctr)
 {
-	erase_back( ctr, std::unique(ctr.begin(), ctr.end()) );
+	erase_back( ctr, std::unique(begin(ctr), end(ctr)) );
 }
 
 
@@ -100,11 +84,43 @@ template<typename InputIterator, typename Count, typename OutputIterator>
 range_ends<InputIterator, OutputIterator>  copy_nonoverlap(InputIterator first, Count count, OutputIterator dest);
 
 
+
+template<bool Condition>
+using enable_if_t = typename std::enable_if<Condition>::type;
+
+
+/// Check if index is valid (can be used with operator[]) for array or other range.
+template< typename T, typename Range, typename = enable_if_t<std::is_unsigned<T>::value> >
+bool index_valid(const Range & range, T index);
+/// Check if index is valid (can be used with operator[]) for array or other range.
+template<typename Range>
+bool index_valid(const Range & range, std::int32_t index);
+/// Check if index is valid (can be used with operator[]) for array or other range.
+template<typename Range>
+bool index_valid(const Range & range, std::int64_t index);
+
+
+
+#if _MSC_VER
+
+	using std::make_unique;
+#else
+	/// Calls new T using constructor syntax with args as the parameter list and wraps it in a std::unique_ptr.
+	template<typename T, typename... Params, typename = enable_if_t<!std::is_array<T>::value> >
+	std::unique_ptr<T>  make_unique(Params &&... args);
+
+	/// Calls new T[arraySize]() and wraps it in a std::unique_ptr. The array is value-initialized.
+	template< typename T, typename = enable_if_t<std::is_array<T>::value> >
+	std::unique_ptr<T> make_unique(size_t arraySize);
+#endif
+
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implementation only in rest of the file
 
 
+/// @cond INTERNAL
 namespace _detail
 {
 	template<typename InputIter, typename OutputIter> inline
@@ -164,6 +180,7 @@ namespace _detail
 		return {first, dest};
 	}
 }
+/// @endcond
 
 } // namespace oetl
 
@@ -202,3 +219,25 @@ inline bool oetl::index_valid(const Range & r, std::int64_t idx)
 	auto idxU = static_cast<std::uint64_t>(idx);
 	return idxU < as_unsigned(oetl::count(r)); // assumes that r size is never greater than INT64_MAX
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+#if !_MSC_VER
+
+template<typename T, typename... Params, typename>
+inline std::unique_ptr<T>  oetl::make_unique(Params &&... args)
+{
+	T * p = new T(std::forward<Params>(args)...); // direct-initialize, or value-initialize if no args
+	return std::unique_ptr<T>(p);
+}
+
+template<typename T, typename>
+inline std::unique_ptr<T>  oetl::make_unique(size_t arraySize)
+{
+	static_assert(std::extent<T>::value == 0, "make_unique forbids T[size]. Please use T[]");
+
+	using Elem = typename std::remove_extent<T>::type;
+	return std::unique_ptr<T>( new Elem[arraySize]() ); // value-initialize
+}
+
+#endif

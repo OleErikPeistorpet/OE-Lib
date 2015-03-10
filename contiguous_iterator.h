@@ -30,14 +30,14 @@ class cntigus_ctr_dbg_iterator
 #endif
 
 public:
-	typedef std::random_access_iterator_tag iterator_category;
+	using iterator_category = std::random_access_iterator_tag;
 
-	typedef typename Container::value_type value_type;
-	typedef ConstQualValT *                pointer;
-	typedef ConstQualValT &                reference;
-	typedef std::ptrdiff_t                 difference_type;
+	using value_type      = typename Container::value_type;
+	using pointer         = ConstQualValT *;
+	using reference       = ConstQualValT &;
+	using difference_type = std::ptrdiff_t;
 
-	typedef cntigus_ctr_dbg_iterator<value_type const, Container> const_iterator;
+	using const_iterator = cntigus_ctr_dbg_iterator<value_type const, Container>;
 
 	cntigus_ctr_dbg_iterator() : _myCont(nullptr) {
 	}
