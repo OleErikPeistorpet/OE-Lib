@@ -129,7 +129,6 @@ struct is_trivially_relocatable< boost::intrusive_ptr<T> > : std::true_type {};
 
 /// Tag to select a specific constructor. The static instance ini_size is provided as a convenience
 struct ini_size_tag {};
-
 static ini_size_tag const ini_size;
 
 
@@ -175,13 +174,12 @@ OETL_STORAGE_ALIGNED_TO(64);
 namespace _detail
 {
 	template<size_t Align>
-	struct CanDefaultAlloc : bool_constant<
+	using CanDefaultAlloc = bool_constant<
 #		if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
-			Align <= 16 >
+			Align <= 16 >;
 #		else
-			Align <= ALIGNOF(std::max_align_t) >
+			Align <= ALIGNOF(std::max_align_t) >;
 #		endif
-	{};
 
 	template<size_t> inline
 	void * OpNew(std::true_type, size_t nBytes)
@@ -279,7 +277,7 @@ namespace _detail
 	template<typename ForwardItor> inline
 	void Destroy(ForwardItor first, ForwardItor last) NOEXCEPT
 	{
-		typedef typename std::iterator_traits<ForwardItor>::value_type ValT;
+		using ValT = typename std::iterator_traits<ForwardItor>::value_type;
 		Destroy<ValT>(std::has_trivial_destructor<ValT>(), first, last);
 	}
 
@@ -339,7 +337,7 @@ namespace _detail
 template<typename ForwardIterator> inline
 void uninitialized_fill_default(ForwardIterator first, ForwardIterator last)
 {
-	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
+	using ValT = typename std::iterator_traits<ForwardIterator>::value_type;
 	_detail::UninitFillDefault<ValT>(std::is_nothrow_default_constructible<ValT>(), first, last);
 }
 
@@ -348,7 +346,7 @@ template<typename InputIterator, typename Count, typename ForwardIterator>
 end_iterators<InputIterator, ForwardIterator>
 	uninitialized_copy_n(InputIterator first, Count count, ForwardIterator dest)
 {
-	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
+	using ValT = typename std::iterator_traits<ForwardIterator>::value_type;
 	return _detail::UninitCopyN<ValT>(std::is_nothrow_constructible<ValT, decltype(*first)>(),
 									  first, count, dest);
 }

@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <memory>
 #include <limits>
+#include <array>
 #include <string.h>
 
 /**
@@ -33,8 +34,38 @@ typename std::make_unsigned<T>::type  as_unsigned(T val) NOEXCEPT  { return type
 
 
 /// Check if index is valid (can be used with operator[]) for array or other iterable.
-template<typename T, typename CountableIterable>
-bool index_valid(const CountableIterable & ci, T index);
+template<typename Integer, typename CountableIterable>
+bool index_valid(const CountableIterable & ci, Integer index);
+
+
+template<size_t I, typename T, size_t N>
+T &       get(T (&arr)[N]);
+
+template<size_t I, typename T, size_t N>
+const T & get(const T (&arr)[N]);
+
+
+struct default_array_type_t;
+
+template<typename T, typename...>
+struct deduce_array_type
+{
+	using type = T;
+};
+
+template<typename... T>
+struct deduce_array_type<default_array_type_t, T...>
+{
+	using type = typename std::decay< typename std::common_type<T...>::type >::type;
+};
+
+template<typename T = default_array_type_t, typename... Params>
+auto make_array(Params &&... args)
+ -> std::array<typename deduce_array_type<T, Params...>::type, sizeof...(Params)>
+{
+	using U = typename deduce_array_type<T, Params...>::type;
+	return { static_cast<U>(std::forward<Params>(args))... };
+}
 
 
 
@@ -75,11 +106,11 @@ std::unique_ptr<T> make_unique_default(size_t arraySize);
 
 /// Calls new T using constructor syntax with args as the parameter list and wraps it in a std::unique_ptr.
 template<typename T, typename... Params, typename = std::enable_if_t<!std::is_array<T>::value> >
-void reset(std::unique_ptr<T> & ptr, Params &&... args);
+void set_new(std::unique_ptr<T> & ptr, Params &&... args);
 
 /// Calls new T[arraySize]() and wraps it in a std::unique_ptr. The array is value-initialized.
 template<typename T>
-void reset(std::unique_ptr<T[]> & ptr, size_t arraySize);
+void set_new(std::unique_ptr<T[]> & ptr, size_t arraySize);
 
 
 /**
@@ -223,6 +254,7 @@ Func for_each_reverse(BidirectionIterable && ib, Func func)
 // Implementation only in rest of the file
 
 
+/// @cond INTERNAL
 namespace _detail
 {
 	template<class HasUnique> inline
@@ -255,8 +287,10 @@ namespace _detail
 #	if OETL_MEM_BOUND_DEBUG_LVL
 		if (0 != count)
 		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
+		OETL_PUSH_IGNORE_UNUSED_VALUE
 			*first; *dest;
 			*(dest + (count - 1));
+		OETL_POP_DIAGNOSTIC
 		}
 #	endif
 		doCopy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
@@ -270,8 +304,10 @@ namespace _detail
 		if (0 < count)
 		{
 #		if OETL_MEM_BOUND_DEBUG_LVL
+			OETL_PUSH_IGNORE_UNUSED_VALUE
 			*(first + (count - 1));        // Dereference iterators at bounds, this detects
 			*dest; *(dest + (count - 1));  // out of range errors if they are checked iterators
+			OETL_POP_DIAGNOSTIC
 #		endif
 			doCopy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
 			first += count;
@@ -291,6 +327,7 @@ namespace _detail
 		return {first, dest};
 	}
 } // namespace _detail
+/// @endcond
 
 } // namespace oetl
 
@@ -432,12 +469,27 @@ namespace oetl
   }
 }
 
-template<typename T, typename CountableIterable>
-inline bool oetl::index_valid(const CountableIterable & ci, T idx)
+template<typename Integer, typename CountableIterable>
+inline bool oetl::index_valid(const CountableIterable & ci, Integer idx)
 {
 	using LimUChar = std::numeric_limits<unsigned char>;
-	return _detail::IdxValid(bool_constant< std::is_signed<T>::value && (sizeof(T) * LimUChar::digits < 60) >(),
+	return _detail::IdxValid(bool_constant< std::is_signed<Integer>::value && (sizeof(Integer) * LimUChar::digits < 60) >(),
 							 ci, idx);
+}
+
+
+template<size_t I, typename T, size_t N>
+inline T & oetl::get(T (&arr)[N])
+{
+	static_assert(I < N, "Invalid array index");
+	return a[I];
+}
+
+template<size_t I, typename T, size_t N>
+inline const T & oetl::get(const T (&arr)[N])
+{
+	static_assert(I < N, "Invalid array index");
+	return a[I];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -489,13 +541,13 @@ inline std::unique_ptr<T>  oetl::make_unique_default(size_t arraySize)
 }
 
 template<typename T, typename... Params, typename>
-inline void oetl::reset(std::unique_ptr<T> & up, Params &&... args)
+inline void oetl::set_new(std::unique_ptr<T> & up, Params &&... args)
 {
 	up.reset( new T(std::forward<Params>(args)...) );
 }
 
 template<typename T>
-inline void oetl::reset(std::unique_ptr<T[]> & up, size_t arraySize)
+inline void oetl::set_new(std::unique_ptr<T[]> & up, size_t arraySize)
 {
 	up.reset( new T[arraySize]() );
 }

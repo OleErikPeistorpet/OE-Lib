@@ -41,6 +41,9 @@ struct is_trivially_relocatable< std::unique_ptr<T, Del> >
 template<typename T>
 struct is_trivially_relocatable< std::shared_ptr<T> > : std::true_type {};
 
+template<typename T>
+struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
+
 #if _MSC_VER && _MSC_VER < 1900
 /// Might not be safe with all std library implementations, only verified for Visual C++ 2013
 template<typename C, typename Tr>
@@ -185,7 +188,7 @@ namespace _detail
 template<typename InputIterator, typename ForwardIterator>
 range_ends<InputIterator, ForwardIterator> uninitialized_copy_n(InputIterator first, size_t count, ForwardIterator dest)
 {
-	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
+	using ValT = typename std::iterator_traits<ForwardIterator>::value_type;
 	ForwardIterator destBegin = dest;
 	try
 	{
@@ -209,7 +212,7 @@ range_ends<InputIterator, ForwardIterator> uninitialized_copy_n(InputIterator fi
 template<typename ForwardIterator> inline
 void uninitialized_fill_default(ForwardIterator first, ForwardIterator last)
 {
-	typedef typename std::iterator_traits<ForwardIterator>::value_type ValT;
+	using ValT = typename std::iterator_traits<ForwardIterator>::value_type;
 	_detail::UninitFillDefault<ValT>(std::has_trivial_default_constructor<ValT>(), first, last);
 }
 

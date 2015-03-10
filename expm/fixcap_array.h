@@ -268,7 +268,7 @@ private:
 		if (Capacity >= count)
 		{
 			auto first = adl_begin(range);
-			_assignInternal(can_memmove_ranges_with(data(), first), first, count);
+			_assignInternal(can_memmove_with<pointer, decltype(first)>, first, count);
 		}
 		else
 		{	throw _lengthExc();
@@ -285,9 +285,11 @@ private:
 	template<typename CntigusIter>
 	CntigusIter _appendN(std::true_type, CntigusIter first, size_type const count)
 	{	// use memcpy
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#	if OETL_MEM_BOUND_DEBUG_LVL
+		OETL_PUSH_IGNORE_UNUSED_VALUE
 		if (count > 0)				// Dereference iterator to the last element to append,
 			*(first + (count - 1)); // this catches out of range errors with checked iterators
+		OETL_POP_DIAGNOSTIC
 #	endif
 		::memcpy(data() + _size, to_ptr(first), count * sizeof(T));
 		_size += count;
@@ -322,7 +324,7 @@ private:
 		if (_unusedCapacity() >= count)
 		{
 			auto first = adl_begin(range);
-			_appendInternal(can_memmove_ranges_with(data(), first),
+			_appendInternal(can_memmove_with<pointer, decltype(first)>,
 							first, adl_end(range), count);
 		}
 		else
@@ -407,7 +409,7 @@ InputIterator  fixcap_array<T, Capacity>::
 	assign(InputIterator first, size_type count)
 {
 	if (Capacity >= count)
-		return _assignInternal(can_memmove_ranges_with(data(), first), first, count);
+		return _assignInternal(can_memmove_with<pointer, InputIterator>, first, count);
 	else
 		throw _lengthExc();
 }
@@ -423,7 +425,7 @@ InputIterator  fixcap_array<T, Capacity>::
 	append(InputIterator first, size_type count)
 {
 	if (_unusedCapacity() >= count)
-		return _appendN(can_memmove_ranges_with(data(), first), first, count);
+		return _appendN(can_memmove_with<pointer, InputIterator>, first, count);
 	else
 		throw _lengthExc();
 }
@@ -499,10 +501,10 @@ void  fixcap_array<T, Capacity>::
 	resize(size_type newSize, const T & addVal)
 {
 	_resizeImpl( newSize,
-		[&addVal](pointer first, pointer last)
-		{
-			std::uninitialized_fill(first, last, addVal);
-		} );
+			[&addVal](pointer first, pointer last)
+			{
+				std::uninitialized_fill(first, last, addVal);
+			} );
 }
 
 template<typename T, size_t Capacity>

@@ -44,7 +44,6 @@ using std::out_of_range;
 
 /// Type to indicate that a container constructor must allocate storage. A static instance named reserve is provided to pass
 struct reserve_tag {};
-
 static reserve_tag const reserve;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -302,10 +301,12 @@ private:
 	void _assignImpl(std::true_type, CntigusItor const first, CntigusItor, size_type const count)
 	{	// fast assign
 #	if OETL_MEM_BOUND_DEBUG_LVL
+		OETL_PUSH_IGNORE_UNUSED_VALUE
 		if (count > 0)
 		{	*first;  // Dereference to catch out of range errors if the iterators have internal checks
 			*(first + (count - 1));
 		}
+		OETL_POP_DIAGNOSTIC
 #	endif
 		if (capacity() < count)
 		{
@@ -348,8 +349,8 @@ private:
 	template<typename ForwTravIterable>
 	void _assign(const ForwTravIterable & src, forward_traversal_tag)
 	{
-		auto first = adl_begin(src);
-		_assignImpl(can_memmove_ranges_with(data(), first),
+		using IterSrc = decltype(adl_begin(src));
+		_assignImpl(can_memmove_with<pointer, IterSrc>(),
 					first, adl_end(src), oetl::count(src));
 	}
 
@@ -362,7 +363,7 @@ private:
 	}
 
 	template<typename CopyFunc>
-	OETL_FORCEINLINE pointer _appendNonTrivial(size_type const count, CopyFunc makeNewElems)
+	pointer _appendNonTrivial(size_type const count, CopyFunc makeNewElems)
 	{
 		pointer appendPos;
 		if (_unusedCapacity() >= count)
@@ -393,9 +394,11 @@ private:
 #	if OETL_MEM_BOUND_DEBUG_LVL
 		CntigusItor last = first + count;
 
+		OETL_PUSH_IGNORE_UNUSED_VALUE
 		if (count > 0)  // Dereference to catch out of range errors if the iterators have internal checks
 		{	*first; *(last - 1);
 		}
+		OETL_POP_DIAGNOSTIC
 #	endif
 		if (_unusedCapacity() >= count)
 		{
@@ -576,7 +579,7 @@ dynarray<T, Alloc>::dynarray(std::initializer_list<T> init) :
 	_data( _alloc(init.size()) )
 {
 	_uninitCopyData(is_trivially_copyable<T>(),
-					other.begin(), other.end(), other.size());
+					init.begin(), init.end(), init.size());
 }
 
 template<typename T, typename Alloc>
@@ -601,16 +604,16 @@ ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_t
 	BOOST_CONCEPT_ASSERT((boost_concepts::ForwardTraversal<ForwardTravIterator>));
 #endif
 	auto const last = std::next(first, count);
-	_assignImpl(can_memmove_ranges_with(data(), first),
+	_assignImpl(can_memmove_with<pointer, ForwardTravIterator>(),
 				first, last, count);
 	return last;
 }
 
 template<typename T, typename Alloc> template<typename InputIterable>
-void dynarray<T, Alloc>::assign(const InputIterable & source)
+void dynarray<T, Alloc>::assign(const InputIterable & src)
 {
-	using InIter = decltype(adl_begin(source));
-	_assign(source, iterator_traversal_t<InIter>());
+	using InIter = decltype(adl_begin(src));
+	_assign(src, iterator_traversal_t<InIter>());
 }
 
 template<typename T, typename Alloc> template<typename InputIterator>
@@ -618,7 +621,7 @@ OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, s
 {
 	_detail::AssertRelocate<T>();
 
-	return _appendN(can_memmove_ranges_with(data(), first), first, count);
+	return _appendN(can_memmove_with<pointer, InputIterator>(), first, count);
 }
 
 template<typename T, typename Alloc> template<typename InputIterable>
@@ -626,9 +629,9 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 {
 	_detail::AssertRelocate<T>();
 
-	auto first = adl_begin(src);
-	return _append(can_memmove_ranges_with(data(), first),
-				   iterator_traversal_t<decltype(first)>(),
+	using IterSrc = decltype(adl_begin(src));
+	return _append(can_memmove_with<pointer, IterSrc>(),
+				   iterator_traversal_t<IterSrc>(),
 				   src);
 }
 
@@ -677,7 +680,6 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		T tmp = T(std::forward<Params>(args)...);
-
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
 		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
 		++_end;
@@ -695,11 +697,11 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		size_type const nBeforePos = posPtr - data();
 		pointer const newPos = newData.get() + nBeforePos;
 		::new(newPos) T(std::forward<Params>(args)...);		// add new
-		_end = newPos + 1;
+		pointer const next = newPos + 1;
 		// Behaviour undefined by standard if data is null
 		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // relocate prefix
-		::memcpy(_end, posPtr, nAfterPos * sizeof(T));  // relocate suffix
-		_end += nAfterPos;
+		::memcpy(next, posPtr, nAfterPos * sizeof(T));  // relocate suffix
+		_end = next + nAfterPos;
 
 		_reserveEnd = newData.get() + newCapacity;
 
@@ -713,7 +715,7 @@ template<typename T, typename Alloc> template<typename ContiguousTIterator>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 	insert(const_iterator pos, ContiguousTIterator first, size_type count)
 {
-	std::true_type{can_memmove_ranges_with(data(), first)};
+	static_assert(can_memmove_with<pointer, ContiguousTIterator>::value, "Temp");
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
 	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);

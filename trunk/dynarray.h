@@ -528,6 +528,19 @@ private:
 			_data.swap(newData);
 		}
 	}
+
+	void _relocateData(std::true_type, pointer newData)
+	{
+		::memcpy(newData, data(), size() * sizeof(T));
+	}
+
+	void _relocateData(std::false_type, pointer newData)
+	{
+		static_assert(std::is_nothrow_move_constructible<T>::value,
+					  "T must be trivially relocatable or have noexcept move constructor");
+		for (pointer p = data(); p < _end; ++p)
+			::new(newData++) T(std::move(*p));
+	}
 };
 
 // Definitions of public functions
@@ -654,14 +667,13 @@ void dynarray<T, Alloc>::emplace_back(Params &&... args)
 		size_type const newCapacity = _insertOneCalcCap();
 		_smartPtr newData{_alloc(newCapacity)};
 
-		size_type const oldSize = size();
-		pointer const newEnd = newData.get() + oldSize;
+		pointer const newEnd = newData.get() + size();
 		::new(newEnd) T(std::forward<Params>(args)...);
-		_end = newEnd;
+		// Exception free from here
 		_reserveEnd = newData.get() + newCapacity;
-
 		// Make new element before reallocating old data to support push_back from this
-		::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
+		_relocateData(is_trivially_relocatable<T>(), newData.get());
+		_end = newEnd;
 		_data.swap(newData);
 	}
 	++_end;
