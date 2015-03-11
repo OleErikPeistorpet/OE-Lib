@@ -129,8 +129,8 @@ void erase_unordered(PopBackSubscriptable & ps, Index index)
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template<class PopBackIterable> inline
-void erase_unordered(PopBackIterable & ib, typename PopBackIterable::iterator position)
+template<class PopBackIterable, typename OutputIterator> inline
+void erase_unordered(PopBackIterable & ib, OutputIterator position)
 {
 	*position = std::move(ib.back());
 	ib.pop_back();
@@ -174,6 +174,22 @@ OutputIterator move(InputIterator first, InputIterator last, OutputIterator dest
 * To move instead of copy, pass make_move_iter(first)  */
 template<typename InputIterator, typename Count, typename OutputIterator>
 end_iterators<InputIterator, OutputIterator> copy_n(InputIterator first, Count count, OutputIterator dest);
+
+
+
+template<typename T>
+struct identity { using type = T; };
+
+template<typename T>
+using identity_t = typename identity<T>::type;
+
+/**
+* @brief Bring the value into the range [lo, hi].
+*
+* @return If val is less than lo, return lo. If val is greater than hi, return hi. Otherwise, return val. */
+template<typename T>
+const T & clamp(const T & val, const identity_t<T> & lo,
+							   const identity_t<T> & hi)  { return val < lo ? lo : (hi < val ? hi : val); }
 
 
 

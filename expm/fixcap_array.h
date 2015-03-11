@@ -32,9 +32,8 @@ struct is_trivially_relocatable< fixcap_array<T, C> > :
 * Constant complexity (compared to linear in the distance between position and last for normal erase).
 * @return Iterator pointing to the location that followed the element erased,
 * which is the end if position was at the last element. */
-template<typename T, size_t C>
-typename fixcap_array<T, C>::iterator  erase_unordered(fixcap_array<T, C> & ctr,
-													   typename fixcap_array<T, C>::iterator position);
+template<typename T, size_t C, typename OutputIterator>
+OutputIterator erase_unordered(fixcap_array<T, C> & ctr, OutputIterator position);
 
 template<typename T1, typename T2, size_t C1, size_t C2>
 bool operator==(const fixcap_array<T1, C1> & left, const fixcap_array<T2, C2> & right);
@@ -638,9 +637,8 @@ inline typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capa
 
 } // namespace oetl
 
-template<typename T, size_t C>
-inline typename oetl::fixcap_array<T, C>::iterator  oetl::
-	erase_unordered(fixcap_array<T, C> & ctr, typename fixcap_array<T, C>::iterator pos)
+template<typename T, size_t C, typename OutputIterator>
+inline OutputIterator oetl::erase_unordered(fixcap_array<T, C> & ctr, OutputIterator pos)
 {
 	*pos = std::move(ctr.back());
 	ctr.pop_back();

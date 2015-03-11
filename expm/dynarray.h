@@ -63,8 +63,8 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) NOEXCEPT  { a.swap(b); }
 * Constant complexity (compared to linear in the distance between position and last for normal erase).
 * @return Iterator pointing to the location that followed the element erased,
 *	which is the end if position was at the last element. */
-template<typename T, typename A>
-typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator position);
+template<typename T, typename A, typename OutputIterator>
+OutputIterator erase_unordered(dynarray<T, A> & ctr, OutputIterator position);
 
 template<typename T1, typename T2, typename A1, typename A2>
 bool operator==(const dynarray<T1, A1> & left, const dynarray<T2, A2> & right);
@@ -933,9 +933,8 @@ inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operato
 
 } // namespace oetl
 
-template<typename T, typename A>
-inline typename oetl::dynarray<T, A>::iterator  oetl::
-	erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator pos)
+template<typename T, typename A, typename OutputIterator>
+inline OutputIterator oetl::erase_unordered(dynarray<T, A> & ctr, OutputIterator pos)
 {
 	*pos = std::move(ctr.back());
 	ctr.pop_back();
