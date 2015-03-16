@@ -19,7 +19,7 @@
 * Designed to interface with the standard library. Contains erase functions, copy functions and more.
 */
 
-namespace oetl
+namespace oel
 {
 
 /// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
@@ -123,13 +123,13 @@ namespace _detail
 	IterDest Copy(std::true_type, IterSrc const first, IterSrc const last, IterDest const dest)
 	{	// can use memcpy
 		auto const count = last - first;
-#	if OETL_MEM_BOUND_DEBUG_LVL
+#	if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != count)
 		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
-		OETL_PUSH_IGNORE_UNUSED_VALUE
+		OEL_PUSH_IGNORE_UNUSED_VALUE
 			*first; *dest;
 			*(dest + (count - 1));
-		OETL_POP_DIAGNOSTIC
+		OEL_POP_DIAGNOSTIC
 		}
 #	endif
 		::memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
@@ -141,11 +141,11 @@ namespace _detail
 	{	// can use memcpy
 		if (0 < count)
 		{
-#		if OETL_MEM_BOUND_DEBUG_LVL
-			OETL_PUSH_IGNORE_UNUSED_VALUE
+#		if OEL_MEM_BOUND_DEBUG_LVL
+			OEL_PUSH_IGNORE_UNUSED_VALUE
 			*(first + (count - 1));        // Dereference iterators at bounds, this detects
 			*dest; *(dest + (count - 1));  // out of range errors if they are checked iterators
-			OETL_POP_DIAGNOSTIC
+			OEL_POP_DIAGNOSTIC
 #		endif
 			::memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
 			first += count;
@@ -167,17 +167,17 @@ namespace _detail
 }
 /// @endcond
 
-} // namespace oetl
+} // namespace oel
 
 template<typename InputRange, typename OutputIterator>
-inline OutputIterator oetl::copy_nonoverlap(const InputRange & source, OutputIterator dest)
+inline OutputIterator oel::copy_nonoverlap(const InputRange & source, OutputIterator dest)
 {
 	return _detail::Copy(can_memmove_with<OutputIterator, decltype(begin(source))>(),
 						 begin(source), end(source), dest);
 }
 
 template<typename InputIterator, typename Count, typename OutputIterator>
-inline oetl::range_ends<InputIterator, OutputIterator>  oetl::
+inline oel::range_ends<InputIterator, OutputIterator>  oel::
 	copy_nonoverlap(InputIterator first, Count count, OutputIterator dest)
 {
 	return _detail::CopyN(can_memmove_with<OutputIterator, InputIterator>(),
@@ -187,20 +187,20 @@ inline oetl::range_ends<InputIterator, OutputIterator>  oetl::
 ////////////////////////////////////////////////////////////////////////////////
 
 template<typename T, typename Range, typename>
-inline bool oetl::index_valid(const Range & r, T idx)
+inline bool oel::index_valid(const Range & r, T idx)
 {
-	return idx < as_unsigned(oetl::count(r));
+	return idx < as_unsigned(oel::count(r));
 }
 
 template<typename Range>
-inline bool oetl::index_valid(const Range & r, std::int32_t idx)
+inline bool oel::index_valid(const Range & r, std::int32_t idx)
 {
-	return 0 <= idx && idx < oetl::count(r);
+	return 0 <= idx && idx < oel::count(r);
 }
 
 template<typename Range>
-inline bool oetl::index_valid(const Range & r, std::int64_t idx)
+inline bool oel::index_valid(const Range & r, std::int64_t idx)
 {
 	auto idxU = static_cast<std::uint64_t>(idx);
-	return idxU < as_unsigned(oetl::count(r)); // assumes that r size is never greater than INT64_MAX
+	return idxU < as_unsigned(oel::count(r)); // assumes that r size is never greater than INT64_MAX
 }

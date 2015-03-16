@@ -9,7 +9,7 @@
 #include "basic_util.h"
 
 
-namespace oetl
+namespace oel
 {
 
 /** @brief Debug iterator for container with contiguous memory
@@ -18,15 +18,15 @@ namespace oetl
 template<typename ConstQualValT, typename Container>
 class cntigus_ctr_dbg_iterator
 {
-#define OETL_ARRITER_CHECK_DEREFABLE  \
+#define OEL_ARRITER_CHECK_DEREFABLE  \
 	MEM_BOUND_ASSERT( static_cast<typename Container::size_type>(_pElem - _myCont->data()) < _myCont->size() )
 
-#if OETL_MEM_BOUND_DEBUG_LVL >= 3
+#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 	// test for iterator pair pointing to same container
-#	define OETL_ARRITER_CHECK_COMPAT(right)  \
+#	define OEL_ARRITER_CHECK_COMPAT(right)  \
 		MEM_BOUND_ASSERT(_myCont && right._myCont == _myCont)
 #else
-#	define OETL_ARRITER_CHECK_COMPAT(right)
+#	define OEL_ARRITER_CHECK_COMPAT(right)
 #endif
 
 public:
@@ -54,19 +54,19 @@ public:
 
 	reference operator*() const
 	{
-		OETL_ARRITER_CHECK_DEREFABLE;
+		OEL_ARRITER_CHECK_DEREFABLE;
 		return *_pElem;
 	}
 
 	pointer operator->() const
 	{
-		OETL_ARRITER_CHECK_DEREFABLE;
+		OEL_ARRITER_CHECK_DEREFABLE;
 		return _pElem;
 	}
 
 	cntigus_ctr_dbg_iterator & operator++()
 	{	// preincrement
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 3
+#	if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT( _pElem < to_ptr(_myCont->end()) );
 #	endif
 		++_pElem;
@@ -82,7 +82,7 @@ public:
 
 	cntigus_ctr_dbg_iterator & operator--()
 	{	// predecrement
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 3
+#	if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT(_myCont->data() < _pElem);
 #	endif
 		--_pElem;
@@ -98,7 +98,7 @@ public:
 
 	cntigus_ctr_dbg_iterator & operator+=(difference_type offset)
 	{	// add integer to pointer
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 3
+#	if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT( offset >= _myCont->data() - _pElem
 					   && offset <= to_ptr(_myCont->end()) - _pElem );
 #	endif
@@ -108,7 +108,7 @@ public:
 
 	cntigus_ctr_dbg_iterator & operator-=(difference_type offset)
 	{	// subtract integer from pointer
-#	if OETL_MEM_BOUND_DEBUG_LVL >= 3
+#	if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT( offset <= _pElem - _myCont->data()
 					   && offset >= _pElem - to_ptr(_myCont->end()) );
 #	endif
@@ -131,7 +131,7 @@ public:
 	template<typename ValT2>
 	difference_type operator -(const cntigus_ctr_dbg_iterator<ValT2, Container> & right) const
 	{	// return difference of iterators
-		OETL_ARRITER_CHECK_COMPAT(right);
+		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem - right._pElem;
 	}
 
@@ -155,14 +155,14 @@ public:
 	template<typename ValT2>
 	bool operator <(const cntigus_ctr_dbg_iterator<ValT2, Container> & right) const
 	{
-		OETL_ARRITER_CHECK_COMPAT(right);
+		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem < right._pElem;
 	}
 
 	template<typename ValT2>
 	bool operator >(const cntigus_ctr_dbg_iterator<ValT2, Container> & right) const
 	{
-		OETL_ARRITER_CHECK_COMPAT(right);
+		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem > right._pElem;
 	}
 
@@ -190,8 +190,8 @@ protected:
 	template<typename, typename>
 	friend class cntigus_ctr_dbg_iterator;
 
-#undef OETL_ARRITER_CHECK_COMPAT
-#undef OETL_ARRITER_CHECK_DEREFABLE
+#undef OEL_ARRITER_CHECK_COMPAT
+#undef OEL_ARRITER_CHECK_DEREFABLE
 };
 
 template<typename T, typename C> inline
@@ -201,4 +201,4 @@ cntigus_ctr_dbg_iterator<T, C> operator +(typename cntigus_ctr_dbg_iterator<T, C
 	return iter += offset;
 }
 
-} // namespace oetl
+} // namespace oel

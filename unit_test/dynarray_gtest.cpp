@@ -13,7 +13,7 @@ int NoAssign::nDestruct;
 namespace
 {
 
-using oetl::dynarray;
+using oel::dynarray;
 
 }
 
@@ -41,7 +41,7 @@ TEST_F(dynarrayTest, construct)
 	dynarray<std::string> a;
 	decltype(a) b(a);
 
-	static_assert(oetl::is_trivially_copyable<Iter>::value, "");
+	static_assert(oel::is_trivially_copyable<Iter>::value, "");
 	static_assert(std::is_convertible<Iter, ConstIter>::value, "");
 	static_assert(!std::is_convertible<ConstIter, Iter>::value, "");
 
@@ -84,7 +84,7 @@ TEST_F(dynarrayTest, assign)
 		dynarray<std::string> das;
 
 		std::string * p = nullptr;
-		das.assign(oetl::make_range(p, p));
+		das.assign(oel::make_range(p, p));
 
 		EXPECT_EQ(0, das.size());
 
@@ -92,7 +92,7 @@ TEST_F(dynarrayTest, assign)
 		std::istream_iterator<std::string> begin{ss};
 		std::istream_iterator<std::string> end;
 		//das.assign(begin, 5);  should not compile
-		das.assign(oetl::make_range(begin, end));
+		das.assign(oel::make_range(begin, end));
 
 		EXPECT_EQ(5, das.size());
 
@@ -108,7 +108,7 @@ TEST_F(dynarrayTest, assign)
 
 		EXPECT_TRUE(das == copyDest);
 
-		copyDest.assign(oetl::make_range(cbegin(das), cbegin(das) + 1));
+		copyDest.assign(oel::make_range(cbegin(das), cbegin(das) + 1));
 
 		EXPECT_EQ(1, copyDest.size());
 		EXPECT_EQ(das[0], copyDest[0]);
@@ -134,13 +134,13 @@ TEST_F(dynarrayTest, assign)
 						  MoveOnly{new double{VALUES[1]}} };
 		dynarray<MoveOnly> test;
 
-		test.assign(oetl::move_range(src));
+		test.assign(oel::move_range(src));
 
 		EXPECT_EQ(2, test.size());
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(oetl::make_move_iter(src), 0);
+		test.assign(oel::make_move_iter(src), 0);
 		EXPECT_EQ(0, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
@@ -149,7 +149,7 @@ TEST_F(dynarrayTest, assign)
 TEST_F(dynarrayTest, append)
 {
 	{
-		oetl::dynarray<double> dest;
+		oel::dynarray<double> dest;
 		// Test append empty std iterator range to empty dynarray
 		std::deque<double> src;
 		dest.append(src);
@@ -167,7 +167,7 @@ TEST_F(dynarrayTest, append)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr;
-	double_dynarr.append(oetl::begin(arrayA), oetl::count(arrayA));
+	double_dynarr.append(oel::begin(arrayA), oel::count(arrayA));
 
 	{
 		dynarray<int> int_dynarr;
@@ -298,7 +298,7 @@ TEST_F(dynarrayTest, misc)
 {
 	size_t fASrc[] = { 2, 3 };
 
-	dynarray<size_t> daSrc(oetl::reserve, 2);
+	dynarray<size_t> daSrc(oel::reserve, 2);
 	daSrc.push_back(0);
 	daSrc.push_back(2);
 	daSrc.insert(begin(daSrc) + 1, 1);

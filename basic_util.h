@@ -22,8 +22,8 @@
 #endif
 
 
-/// Obscure Efficient Template Library
-namespace oetl
+/// Obscure Efficient Library
+namespace oel
 {
 
 using std::size_t;
@@ -139,17 +139,17 @@ namespace _detail
 										  { return std::distance(begin(r), end(r)); }
 }
 
-} // namespace oetl
+} // namespace oel
 
 /// @cond FALSE
 template<typename IteratorDest, typename IteratorSource>
-struct oetl::can_memmove_with :	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
-																  std::declval<IteratorSource>()) ) {};
+struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
+																 std::declval<IteratorSource>()) ) {};
 /// @endcond
 
 
 template<typename Range>
-inline auto oetl::count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
+inline auto oel::count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
 {
 	return _detail::Count(r, int{});
 }
@@ -157,11 +157,11 @@ inline auto oetl::count(const Range & r) -> typename std::iterator_traits<declty
 ////////////////////////////////////////////////////////////////////////////////
 
 #if __GNUC__
-#	define OETL_PUSH_IGNORE_UNUSED_VALUE  \
+#	define OEL_PUSH_IGNORE_UNUSED_VALUE  \
 		_Pragma("GCC diagnostic push")  \
 		_Pragma("GCC diagnostic ignored \"-Wunused-value\"")
-#	define OETL_POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
+#	define OEL_POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
 #else
-#	define OETL_PUSH_IGNORE_UNUSED_VALUE
-#	define OETL_POP_DIAGNOSTIC
+#	define OEL_PUSH_IGNORE_UNUSED_VALUE
+#	define OEL_POP_DIAGNOSTIC
 #endif

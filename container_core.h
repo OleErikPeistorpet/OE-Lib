@@ -8,14 +8,14 @@
 
 #include "basic_util.h"
 
-#ifndef OETL_NO_BOOST
-#include <boost/align/aligned_alloc.hpp>
+#ifndef OEL_NO_BOOST
+#	include <boost/align/aligned_alloc.hpp>
 #endif
 #include <memory>
 #include <string.h>
 
 
-namespace oetl
+namespace oel
 {
 /**
 * @brief Trait that specifies that T does not have a pointer member to any of its data members, including
@@ -26,7 +26,7 @@ namespace oetl
 * @par
 * To specify that a type is trivially relocatable define a specialization like this:
 @code
-namespace oetl {
+namespace oel {
 template<> struct is_trivially_relocatable<MyType> : std::true_type {};
 }
 @endcode  */
@@ -104,7 +104,7 @@ namespace _detail
 		::operator delete[](ptr);
 	}
 
-#ifndef OETL_NO_BOOST
+#ifndef OEL_NO_BOOST
 	// TODO: Should use new_handler or let both OpNew overloads use custom failure function
 	template<size_t Align>
 	void * OpNew(std::false_type, size_t nBytes)
@@ -217,4 +217,4 @@ void uninitialized_fill_default(ForwardIterator first, ForwardIterator last)
 	_detail::UninitFillDefault<ValT>(std::has_trivial_default_constructor<ValT>(), first, last);
 }
 
-} // namespace oetl
+} // namespace oel

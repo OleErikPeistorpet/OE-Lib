@@ -93,7 +93,7 @@ struct NoAssign
 	std::ptrdiff_t val = 0;
 };
 
-namespace oetl {
+namespace oel {
 template<> struct is_trivially_relocatable<MoveOnly> : std::true_type {};
 template<> struct is_trivially_relocatable<NoAssign> : std::true_type {};
 }
@@ -104,5 +104,5 @@ class ForwDeclared;
 class Outer
 {
 public:
-	oetl::dynarray<ForwDeclared> test;
+	oel::dynarray<ForwDeclared> test;
 };

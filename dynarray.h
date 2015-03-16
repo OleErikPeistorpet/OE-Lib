@@ -9,17 +9,17 @@
 #include "contiguous_iterator.h"
 #include "container_core.h"
 
-#ifndef OETL_NO_BOOST
-#include <boost/iterator/iterator_categories.hpp>
+#ifndef OEL_NO_BOOST
+#	include <boost/iterator/iterator_categories.hpp>
 #endif
 #include <stdexcept>
 #include <algorithm>
 
 
-namespace oetl
+namespace oel
 {
 
-#ifdef OETL_NO_BOOST
+#ifdef OEL_NO_BOOST
 
 template<typename Iterator>
 using iterator_traversal_t = typename std::iterator_traits<Iterator>::iterator_category;
@@ -92,7 +92,7 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 
-#if OETL_MEM_BOUND_DEBUG_LVL >= 2
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	using iterator       = cntigus_ctr_dbg_iterator< T, dynarray<T, Alloc> >;
 	using const_iterator = cntigus_ctr_dbg_iterator< T const, dynarray<T, Alloc> >;
 #else
@@ -255,18 +255,18 @@ private:
 	pointer   _reserveEnd; // Pointer to end of allocated memory
 
 
-#if _MSC_VER && OETL_MEM_BOUND_DEBUG_LVL < 2 && _ITERATOR_DEBUG_LEVEL == 0
-#	define OETL_FORCEINLINE __forceinline
+#if _MSC_VER && OEL_MEM_BOUND_DEBUG_LVL < 2 && _ITERATOR_DEBUG_LEVEL == 0
+#	define OEL_FORCEINLINE __forceinline
 #else
-#	define OETL_FORCEINLINE inline
+#	define OEL_FORCEINLINE inline
 #endif
 
-#if OETL_MEM_BOUND_DEBUG_LVL >= 2
-#	define OETL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
-#	define OETL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+#	define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
+#	define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
 #else
-#	define OETL_DYNARR_ITERATOR(ptr)        (ptr)
-#	define OETL_DYNARR_CONST_ITER(constPtr) (constPtr)
+#	define OEL_DYNARR_ITERATOR(ptr)        (ptr)
+#	define OEL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
 
 	struct _staticAssertRelocate
@@ -313,13 +313,13 @@ private:
 	template<typename CntigusIter>
 	void _assignImpl(std::true_type, CntigusIter const first, CntigusIter, size_type const count)
 	{	// fast assign
-#	if OETL_MEM_BOUND_DEBUG_LVL
-		OETL_PUSH_IGNORE_UNUSED_VALUE
+#	if OEL_MEM_BOUND_DEBUG_LVL
+		OEL_PUSH_IGNORE_UNUSED_VALUE
 		if (count > 0)
 		{	*first;  // Dereference to catch out of range errors if the iterators have internal checks
 			*(first + (count - 1));
 		}
-		OETL_POP_DIAGNOSTIC
+		OEL_POP_DIAGNOSTIC
 #	endif
 		if (capacity() < count)
 		{
@@ -348,7 +348,7 @@ private:
 		else if (size() >= count)
 		{	// enough elements, copy new and destroy old
 			pointer newEnd = std::copy(first, last, data());
-			erase_back(OETL_DYNARR_ITERATOR(newEnd));
+			erase_back(OEL_DYNARR_ITERATOR(newEnd));
 		}
 		else
 		{	// enough room, assign to old elements and construct rest
@@ -364,7 +364,7 @@ private:
 	{
 		using IterSrc = decltype(adl_begin(range));
 		_assignImpl(can_memmove_with<pointer, IterSrc>(),
-					adl_begin(range), adl_end(range), oetl::count(range));
+					adl_begin(range), adl_end(range), oel::count(range));
 	}
 
 	template<typename InputRange>
@@ -402,16 +402,16 @@ private:
 	}
 
 	template<typename CntigusIter>
-	OETL_FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
+	OEL_FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
 	{	// use memcpy
-#	if OETL_MEM_BOUND_DEBUG_LVL
+#	if OEL_MEM_BOUND_DEBUG_LVL
 		CntigusIter last = first + count;
 
-		OETL_PUSH_IGNORE_UNUSED_VALUE
+		OEL_PUSH_IGNORE_UNUSED_VALUE
 		if (count > 0)  // Dereference to catch out of range errors if the iterators have internal checks
 		{	*first; *(last - 1);
 		}
-		OETL_POP_DIAGNOSTIC
+		OEL_POP_DIAGNOSTIC
 #	endif
 		if (_unusedCapacity() >= count)
 		{
@@ -433,7 +433,7 @@ private:
 		}
 		_end += count;
 
-#	if OETL_MEM_BOUND_DEBUG_LVL
+#	if OEL_MEM_BOUND_DEBUG_LVL
 		return last; // in the case of append self, bypasses check in iterator's operator +
 #	else
 		return first + count;
@@ -446,7 +446,7 @@ private:
 		_appendNonTrivial( count,
 				[&first](pointer dest, size_type count)
 				{
-					auto const res = oetl::uninitialized_copy_n(first, count, dest);
+					auto const res = oel::uninitialized_copy_n(first, count, dest);
 					first = res.src_end;
 					return res.dest_end;
 				} );
@@ -454,9 +454,9 @@ private:
 	}
 
 	template<typename CntigusRange>
-	OETL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & range)
+	OEL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & range)
 	{	// use memcpy
-		auto const nElems = oetl::count(range);
+		auto const nElems = oel::count(range);
 		_appendN(std::true_type{}, adl_begin(range), nElems);
 
 		return end() - nElems;
@@ -467,7 +467,7 @@ private:
 	{	// multi-pass iterator
 		auto first = adl_begin(range);
 		auto last = adl_end(range);
-		pointer const pos = _appendNonTrivial( oetl::count(range),
+		pointer const pos = _appendNonTrivial( oel::count(range),
 				[=](pointer dest, size_type)
 				{
 					return
@@ -476,7 +476,7 @@ private:
 #					endif
 						std::uninitialized_copy(first, last, dest);
 				} );
-		return OETL_DYNARR_ITERATOR(pos);
+		return OEL_DYNARR_ITERATOR(pos);
 	}
 
 	template<typename InputRange>
@@ -546,7 +546,7 @@ inline dynarray<T, Alloc>::dynarray(ini_size_tag, size_type size) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
-	oetl::uninitialized_fill_default(data(), _end);
+	oel::uninitialized_fill_default(data(), _end);
 }
 
 template<typename T, typename Alloc>
@@ -600,7 +600,7 @@ void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
 template<typename T, typename Alloc> template<typename ForwardTravIterator>
 ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
 {
-#ifndef OETL_NO_BOOST
+#ifndef OEL_NO_BOOST
 	static_assert(boost::is_convertible< iterator_traversal_t<ForwardTravIterator>, forward_traversal_tag >::value,
 				  "Type of first must meet requirements of Forward Traversal Iterator");
 #endif
@@ -618,7 +618,7 @@ void dynarray<T, Alloc>::assign(const InputRange & source)
 }
 
 template<typename T, typename Alloc> template<typename InputIterator>
-OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
+OEL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
 {
 	_staticAssertRelocate();
 
@@ -626,7 +626,7 @@ OETL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, s
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & source)
+OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & source)
 {
 	_staticAssertRelocate();
 
@@ -637,7 +637,7 @@ OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appe
 }
 
 template<typename T, typename Alloc>
-OETL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(std::initializer_list<T> il)
+OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(std::initializer_list<T> il)
 {
 	return append<>(il);
 }
@@ -690,7 +690,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 		::new(posPtr) T(std::move(tmp)); // move construct the new element at uninitialized location pos
 
-		return OETL_DYNARR_ITERATOR(posPtr);
+		return OEL_DYNARR_ITERATOR(posPtr);
 	}
 	else
 	{	// not enough room, reallocate
@@ -711,7 +711,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 		_data.swap(newData);
 
-		return OETL_DYNARR_ITERATOR(newPos);
+		return OEL_DYNARR_ITERATOR(newPos);
 	}
 }
 
@@ -764,7 +764,7 @@ inline void dynarray<T, Alloc>::pop_back() NOEXCEPT
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::resize(size_type newSize)
 {
-	_resizeImpl(newSize, oetl::uninitialized_fill_default<pointer>);
+	_resizeImpl(newSize, oel::uninitialized_fill_default<pointer>);
 }
 
 template<typename T, typename Alloc>
@@ -824,37 +824,37 @@ inline void dynarray<T, Alloc>::erase_back(iterator first) NOEXCEPT
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::begin() NOEXCEPT
 {
-	return OETL_DYNARR_ITERATOR(_data.get());
+	return OEL_DYNARR_ITERATOR(_data.get());
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_iterator  dynarray<T, Alloc>::begin() const NOEXCEPT
 {
-	return OETL_DYNARR_CONST_ITER(_data.get());
+	return OEL_DYNARR_CONST_ITER(_data.get());
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::end() NOEXCEPT
 {
-	return OETL_DYNARR_ITERATOR(_end);
+	return OEL_DYNARR_ITERATOR(_end);
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_iterator  dynarray<T, Alloc>::end() const NOEXCEPT
 {
-	return OETL_DYNARR_CONST_ITER(_end);
+	return OEL_DYNARR_CONST_ITER(_end);
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::back() NOEXCEPT
 {
-	return *OETL_DYNARR_ITERATOR(_end - 1);
+	return *OEL_DYNARR_ITERATOR(_end - 1);
 }
 
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::back() const NOEXCEPT
 {
-	return *OETL_DYNARR_CONST_ITER(_end - 1);
+	return *OEL_DYNARR_CONST_ITER(_end - 1);
 }
 
 template<typename T, typename Alloc>
@@ -887,13 +887,13 @@ inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operato
 	return _data[index];
 }
 
-#undef OETL_DYNARR_ITERATOR
-#undef OETL_DYNARR_CONST_ITER
+#undef OEL_DYNARR_ITERATOR
+#undef OEL_DYNARR_CONST_ITER
 
-} // namespace oetl
+} // namespace oel
 
 template<typename T, typename A>
-inline typename oetl::dynarray<T, A>::iterator  oetl::
+inline typename oel::dynarray<T, A>::iterator  oel::
 	erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator pos)
 {
 	*pos = std::move(ctr.back());
@@ -902,10 +902,10 @@ inline typename oetl::dynarray<T, A>::iterator  oetl::
 }
 
 template<typename T, typename A>
-bool oetl::operator==(const dynarray<T, A> & left, const dynarray<T, A> & right)
+bool oel::operator==(const dynarray<T, A> & left, const dynarray<T, A> & right)
 {
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());
 }
 
-#undef OETL_FORCEINLINE
+#undef OEL_FORCEINLINE
