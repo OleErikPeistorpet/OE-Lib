@@ -100,21 +100,6 @@ template<typename Range>
 bool index_valid(const Range & range, std::int64_t index);
 
 
-
-#if _MSC_VER
-
-	using std::make_unique;
-#else
-	/// Calls new T using constructor syntax with args as the parameter list and wraps it in a std::unique_ptr.
-	template<typename T, typename... Params, typename = enable_if_t<!std::is_array<T>::value> >
-	std::unique_ptr<T>  make_unique(Params &&... args);
-
-	/// Calls new T[arraySize]() and wraps it in a std::unique_ptr. The array is value-initialized.
-	template< typename T, typename = enable_if_t<std::is_array<T>::value> >
-	std::unique_ptr<T> make_unique(size_t arraySize);
-#endif
-
-
 ////////////////////////////////////////////////////////////////////////////////
 
 // Implementation only in rest of the file
@@ -219,25 +204,3 @@ inline bool oetl::index_valid(const Range & r, std::int64_t idx)
 	auto idxU = static_cast<std::uint64_t>(idx);
 	return idxU < as_unsigned(oetl::count(r)); // assumes that r size is never greater than INT64_MAX
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-#if !_MSC_VER
-
-template<typename T, typename... Params, typename>
-inline std::unique_ptr<T>  oetl::make_unique(Params &&... args)
-{
-	T * p = new T(std::forward<Params>(args)...); // direct-initialize, or value-initialize if no args
-	return std::unique_ptr<T>(p);
-}
-
-template<typename T, typename>
-inline std::unique_ptr<T>  oetl::make_unique(size_t arraySize)
-{
-	static_assert(std::extent<T>::value == 0, "make_unique forbids T[size]. Please use T[]");
-
-	using Elem = typename std::remove_extent<T>::type;
-	return std::unique_ptr<T>( new Elem[arraySize]() ); // value-initialize
-}
-
-#endif
