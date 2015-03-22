@@ -9,7 +9,9 @@
 #include "basic_util.h"
 
 #ifndef OEL_NO_BOOST
-#	include <boost/align/aligned_alloc.hpp>
+	#include <boost/align/aligned_alloc.hpp>
+	#include <boost/circular_buffer_fwd.hpp>
+	#include <boost/optional/optional_fwd.hpp>
 #endif
 #include <memory>
 #include <string.h>
@@ -45,10 +47,18 @@ template<typename T>
 struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
 
 #if _MSC_VER && _MSC_VER < 1900
-/// Might not be safe with all std library implementations, only verified for Visual C++ 2013
-template<typename C, typename Tr>
-struct is_trivially_relocatable< std::basic_string<C, Tr> >
- :	std::true_type {};
+	/// Might not be safe with all std library implementations, only verified for Visual C++ 2013
+	template<typename C, typename Tr>
+	struct is_trivially_relocatable< std::basic_string<C, Tr> >
+	 :	std::true_type {};
+#endif
+
+#ifndef OEL_NO_BOOST
+	template<typename T>
+	struct is_trivially_relocatable< boost::circular_buffer<T> > : std::true_type {};
+
+	template<typename T>
+	struct is_trivially_relocatable< boost::optional<T> > : is_trivially_relocatable<T> {};
 #endif
 
 
@@ -58,8 +68,8 @@ struct ini_size_tag {};
 static ini_size_tag const ini_size;
 
 
-
-/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
+/**
+* @brief Argument-dependent lookup non-member begin, defaults to std::begin
 *
 * For use in implementation of classes with begin member  */
 template<typename Range> inline
@@ -67,8 +77,8 @@ auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
 /// Const version of adl_begin
 template<typename Range> inline
 auto adl_begin(const Range & r) -> decltype(begin(r))  { return begin(r); }
-
-/** @brief Argument-dependent lookup non-member end, defaults to std::end
+/**
+* @brief Argument-dependent lookup non-member end, defaults to std::end
 *
 * For use in implementation of classes with end member  */
 template<typename Range> inline
@@ -87,11 +97,11 @@ namespace _detail
 {
 	template<size_t Align>
 	using CanDefaultAlloc = std::integral_constant< bool,
-#		if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
+		#if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16 >;
-#		else
+		#else
 			Align <= ALIGNOF(std::max_align_t) >;
-#		endif
+		#endif
 
 	template<size_t> inline
 	void * OpNew(std::true_type, size_t nBytes)
@@ -147,7 +157,7 @@ struct allocator
 namespace _detail
 {
 	template<typename T> inline
-	void Destroy(std::true_type, T *, T *) {}  // optimization for non-optimized builds
+	void Destroy(std::true_type, T *, T *) {}  // for speed with optimizations off (debug build)
 
 	template<typename T> inline
 	void Destroy(std::false_type, T * first, T * last)
@@ -164,7 +174,7 @@ namespace _detail
 
 
 	template<typename, typename Iter> inline
-	void UninitFillDefault(std::true_type, Iter, Iter) {}  // optimization for non-optimized builds
+	void UninitFillDefault(std::true_type, Iter, Iter) {}  // for speed with optimizations off
 
 	template<typename ValT, typename ForwardIter>
 	void UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
