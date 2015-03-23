@@ -100,8 +100,9 @@ template<typename Range>
 bool index_valid(const Range & range, std::int64_t index);
 
 
-////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////
+//
 // Implementation only in rest of the file
 
 
@@ -123,7 +124,7 @@ namespace _detail
 	IterDest Copy(std::true_type, IterSrc const first, IterSrc const last, IterDest const dest)
 	{	// can use memcpy
 		auto const count = last - first;
-#	if OEL_MEM_BOUND_DEBUG_LVL
+	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != count)
 		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
 		OEL_PUSH_IGNORE_UNUSED_VALUE
@@ -131,7 +132,7 @@ namespace _detail
 			*(dest + (count - 1));
 		OEL_POP_DIAGNOSTIC
 		}
-#	endif
+	#endif
 		::memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
 		return dest + count;
 	}
@@ -141,12 +142,12 @@ namespace _detail
 	{	// can use memcpy
 		if (0 < count)
 		{
-#		if OEL_MEM_BOUND_DEBUG_LVL
+		#if OEL_MEM_BOUND_DEBUG_LVL
 			OEL_PUSH_IGNORE_UNUSED_VALUE
 			*(first + (count - 1));        // Dereference iterators at bounds, this detects
 			*dest; *(dest + (count - 1));  // out of range errors if they are checked iterators
 			OEL_POP_DIAGNOSTIC
-#		endif
+		#endif
 			::memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
 			first += count;
 			dest += count;

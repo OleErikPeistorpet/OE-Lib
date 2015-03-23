@@ -88,9 +88,10 @@ template<typename Range> inline
 auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 
 
-////////////////////////////////////////////////////////////////////////////////
 
-// The rest are advanced utilities, not for users
+////////////////////////////////////////////////////////////////////////////////
+//
+// The rest of the file is not for users (implementation details)
 
 
 namespace _detail

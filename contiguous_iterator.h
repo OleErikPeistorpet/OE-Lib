@@ -23,10 +23,10 @@ class cntigus_ctr_dbg_iterator
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 3
 	// test for iterator pair pointing to same container
-#	define OEL_ARRITER_CHECK_COMPAT(right)  \
+	#define OEL_ARRITER_CHECK_COMPAT(right)  \
 		MEM_BOUND_ASSERT(_myCont && right._myCont == _myCont)
 #else
-#	define OEL_ARRITER_CHECK_COMPAT(right)
+	#define OEL_ARRITER_CHECK_COMPAT(right)
 #endif
 
 public:
@@ -66,9 +66,9 @@ public:
 
 	cntigus_ctr_dbg_iterator & operator++()
 	{	// preincrement
-#	if OEL_MEM_BOUND_DEBUG_LVL >= 3
+	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT( _pElem < to_ptr(_myCont->end()) );
-#	endif
+	#endif
 		++_pElem;
 		return *this;
 	}
@@ -82,9 +82,9 @@ public:
 
 	cntigus_ctr_dbg_iterator & operator--()
 	{	// predecrement
-#	if OEL_MEM_BOUND_DEBUG_LVL >= 3
+	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT(_myCont->data() < _pElem);
-#	endif
+	#endif
 		--_pElem;
 		return *this;
 	}
@@ -98,20 +98,20 @@ public:
 
 	cntigus_ctr_dbg_iterator & operator+=(difference_type offset)
 	{	// add integer to pointer
-#	if OEL_MEM_BOUND_DEBUG_LVL >= 3
+	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT( offset >= _myCont->data() - _pElem
 					   && offset <= to_ptr(_myCont->end()) - _pElem );
-#	endif
+	#endif
 		_pElem += offset;
 		return *this;
 	}
 
 	cntigus_ctr_dbg_iterator & operator-=(difference_type offset)
 	{	// subtract integer from pointer
-#	if OEL_MEM_BOUND_DEBUG_LVL >= 3
+	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT( offset <= _pElem - _myCont->data()
 					   && offset >= _pElem - to_ptr(_myCont->end()) );
-#	endif
+	#endif
 		_pElem -= offset;
 		return *this;
 	}

@@ -10,7 +10,7 @@
 #include "container_core.h"
 
 #ifndef OEL_NO_BOOST
-#	include <boost/iterator/iterator_categories.hpp>
+	#include <boost/iterator/iterator_categories.hpp>
 #endif
 #include <stdexcept>
 #include <algorithm>
@@ -230,8 +230,9 @@ public:
 	const_reference operator[](size_type index) const NOEXCEPT;
 
 
-////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////
+//
 // Implementation only in rest of the file
 
 
@@ -256,17 +257,17 @@ private:
 
 
 #if _MSC_VER && OEL_MEM_BOUND_DEBUG_LVL < 2 && _ITERATOR_DEBUG_LEVEL == 0
-#	define OEL_FORCEINLINE __forceinline
+	#define OEL_FORCEINLINE __forceinline
 #else
-#	define OEL_FORCEINLINE inline
+	#define OEL_FORCEINLINE inline
 #endif
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-#	define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
-#	define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
+	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
+	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
 #else
-#	define OEL_DYNARR_ITERATOR(ptr)        (ptr)
-#	define OEL_DYNARR_CONST_ITER(constPtr) (constPtr)
+	#define OEL_DYNARR_ITERATOR(ptr)        (ptr)
+	#define OEL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
 
 	struct _staticAssertRelocate
@@ -313,14 +314,14 @@ private:
 	template<typename CntigusIter>
 	void _assignImpl(std::true_type, CntigusIter const first, CntigusIter, size_type const count)
 	{	// fast assign
-#	if OEL_MEM_BOUND_DEBUG_LVL
+	#if OEL_MEM_BOUND_DEBUG_LVL
 		OEL_PUSH_IGNORE_UNUSED_VALUE
 		if (count > 0)
 		{	*first;  // Dereference to catch out of range errors if the iterators have internal checks
 			*(first + (count - 1));
 		}
 		OEL_POP_DIAGNOSTIC
-#	endif
+	#endif
 		if (capacity() < count)
 		{
 			_data.reset(_alloc(count));
@@ -404,7 +405,7 @@ private:
 	template<typename CntigusIter>
 	OEL_FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
 	{	// use memcpy
-#	if OEL_MEM_BOUND_DEBUG_LVL
+	#if OEL_MEM_BOUND_DEBUG_LVL
 		CntigusIter last = first + count;
 
 		OEL_PUSH_IGNORE_UNUSED_VALUE
@@ -412,7 +413,7 @@ private:
 		{	*first; *(last - 1);
 		}
 		OEL_POP_DIAGNOSTIC
-#	endif
+	#endif
 		if (_unusedCapacity() >= count)
 		{
 			// Behaviour undefined by standard if first points to null
@@ -433,11 +434,11 @@ private:
 		}
 		_end += count;
 
-#	if OEL_MEM_BOUND_DEBUG_LVL
+	#if OEL_MEM_BOUND_DEBUG_LVL
 		return last; // in the case of append self, bypasses check in iterator's operator +
-#	else
+	#else
 		return first + count;
-#	endif
+	#endif
 	}
 
 	template<typename InputIter>
@@ -471,9 +472,9 @@ private:
 				[=](pointer dest, size_type)
 				{
 					return
-#					if _ITERATOR_DEBUG_LEVEL >= 2
+					#if _ITERATOR_DEBUG_LEVEL >= 2
 						(first == last) ? dest :  // workaround for MSVC asserting dest != nullptr
-#					endif
+					#endif
 						std::uninitialized_copy(first, last, dest);
 				} );
 		return OEL_DYNARR_ITERATOR(pos);

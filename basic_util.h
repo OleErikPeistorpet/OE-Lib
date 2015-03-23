@@ -12,13 +12,13 @@
 
 
 #if !_MSC_VER || _MSC_VER >= 1900
-#	define NOEXCEPT noexcept
+	#define NOEXCEPT noexcept
 
-#	define ALIGNOF alignof
+	#define ALIGNOF alignof
 #else
-#	define NOEXCEPT throw()
+	#define NOEXCEPT throw()
 
-#	define ALIGNOF __alignof
+	#define ALIGNOF __alignof
 #endif
 
 
@@ -90,9 +90,10 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
  -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
 
 
-////////////////////////////////////////////////////////////////////////////////
 
-// The rest are implementation details
+////////////////////////////////////////////////////////////////////////////////
+//
+// The rest of the file is implementation details
 
 
 #if _MSC_VER
@@ -157,11 +158,11 @@ inline auto oel::count(const Range & r) -> typename std::iterator_traits<decltyp
 ////////////////////////////////////////////////////////////////////////////////
 
 #if __GNUC__
-#	define OEL_PUSH_IGNORE_UNUSED_VALUE  \
+	#define OEL_PUSH_IGNORE_UNUSED_VALUE  \
 		_Pragma("GCC diagnostic push")  \
 		_Pragma("GCC diagnostic ignored \"-Wunused-value\"")
-#	define OEL_POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
+	#define OEL_POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
 #else
-#	define OEL_PUSH_IGNORE_UNUSED_VALUE
-#	define OEL_POP_DIAGNOSTIC
+	#define OEL_PUSH_IGNORE_UNUSED_VALUE
+	#define OEL_POP_DIAGNOSTIC
 #endif
