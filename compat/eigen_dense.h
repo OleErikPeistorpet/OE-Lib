@@ -9,8 +9,9 @@
 #include <Eigen/Dense>
 
 
-namespace oetl
+namespace oel
 {
 template<typename S, int R, int C, int O, int MR, int MC>
-struct is_trivially_relocatable< Eigen::Matrix<S, R, C, O, MR, MC> > : std::true_type {};
+struct is_trivially_relocatable< Eigen::Matrix<S, R, C, O, MR, MC> >
+ :	std::true_type {};
 }
