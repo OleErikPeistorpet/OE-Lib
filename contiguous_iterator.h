@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "basic_util.h"
+#include "core_util.h"
 
 
 namespace oel
@@ -197,6 +197,14 @@ cntigus_ctr_dbg_iterator<T, C> operator +(typename cntigus_ctr_dbg_iterator<T, C
 {
 	return iter += offset;
 }
+
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	template<typename ConstQualValT, typename Container>
+	using contiguous_iterator = cntigus_ctr_dbg_iterator<ConstQualValT, Container>;
+#else
+	template<typename ConstQualValT, typename>
+	using contiguous_iterator = ConstQualValT *;
+#endif
 
 } // namespace oel
 

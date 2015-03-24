@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "basic_util.h"
+#include "core_util.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -17,7 +17,7 @@
 * @file util.h
 * @brief Utilities, including algorithms
 *
-* Designed to interface with the standard library. Contains erase functions, copy functions and more.
+* Designed to interface with the standard library. Contains erase functions, copy functions, make_unique and more.
 */
 
 namespace oel
@@ -54,10 +54,6 @@ void erase_unordered(Container & ctr, typename Container::iterator position)
 	*position = std::move(ctr.back());
 	ctr.pop_back();
 }
-
-/// Erase the elements from first to the end of container, making first the new end
-template<class Container> inline
-void erase_back(Container & ctr, typename Container::iterator first)  { ctr.erase(first, ctr.end()); }
 
 /**
 * @brief Erase consecutive duplicate elements in container.

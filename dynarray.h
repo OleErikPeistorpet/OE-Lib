@@ -7,7 +7,7 @@
 
 
 #include "contiguous_iterator.h"
-#include "container_core.h"
+#include "container_shared.h"
 
 #ifndef OEL_NO_BOOST
 	#include <boost/iterator/iterator_categories.hpp>
@@ -61,10 +61,6 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) NOEXCEPT  { a.swap(b); }
 template<typename T, typename A>
 typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator position);
 
-/// Non-member erase_back, overloads generic erase_back(Container &, Container::iterator)
-template<typename T, typename A> inline
-void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first)  { ctr.erase_back(first); }
-
 template<typename T, typename A>
 bool operator==(const dynarray<T, A> & left, const dynarray<T, A> & right)
 {
@@ -92,16 +88,12 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 
+	using iterator       = contiguous_iterator< T, dynarray<T, Alloc> >;
+	using const_iterator = contiguous_iterator< T const, dynarray<T, Alloc> >;
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	using iterator       = cntigus_ctr_dbg_iterator< T, dynarray<T, Alloc> >;
-	using const_iterator = cntigus_ctr_dbg_iterator< T const, dynarray<T, Alloc> >;
-
 	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
 	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
 #else
-	using iterator       = T *;
-	using const_iterator = const T *;
-
 	#define OEL_DYNARR_ITERATOR(ptr)        (ptr)
 	#define OEL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
@@ -279,13 +271,6 @@ private:
 	#define OEL_FORCEINLINE inline
 #endif
 
-	struct _staticAssertRelocate
-	{
-		static_assert(is_trivially_relocatable<T>::value,
-			"Template argument T must be trivially relocatable, see documentation for is_trivially_relocatable");
-	};
-
-
 	void _uninitCopyData(std::false_type, const_pointer first, const_pointer last, size_type)
 	{	// not trivially copyable T
 		_end = _detail::UninitCopy(first, last, data());
@@ -303,7 +288,7 @@ private:
 		return _reserveEnd - _end;
 	}
 
-	size_type _insertOneCalcCap() const
+	size_type _calcCapAddOne() const
 	{
 		enum { MIN_GROW = sizeof(pointer) >= sizeof(T) ?
 				2 * sizeof(pointer) / sizeof(T) :
@@ -507,7 +492,7 @@ private:
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
 	{
-		_staticAssertRelocate();
+		_detail::AssertRelocate<T>();
 
 		size_type allocSize = capacity();
 		if (newSize < allocSize)
@@ -537,6 +522,19 @@ private:
 			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
 			_data.swap(newData);
 		}
+	}
+
+	void _relocateData(std::true_type, pointer newData)
+	{
+		::memcpy(newData, data(), size() * sizeof(T));
+	}
+
+	void _relocateData(std::false_type, pointer newData)
+	{
+		static_assert(std::is_nothrow_move_constructible<T>::value,
+					  "T must be trivially relocatable or have noexcept move constructor");
+		for (pointer p = data(); p < _end; ++p)
+			::new(newData++) T(std::move(*p));
 	}
 };
 
@@ -628,7 +626,7 @@ void dynarray<T, Alloc>::assign(const InputRange & source)
 template<typename T, typename Alloc> template<typename InputIterator>
 OEL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
 {
-	_staticAssertRelocate();
+	_detail::AssertRelocate<T>();
 
 	return _appendN(can_memmove_with<pointer, InputIterator>(), first, count);
 }
@@ -636,7 +634,7 @@ OEL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, si
 template<typename T, typename Alloc> template<typename InputRange>
 OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & source)
 {
-	_staticAssertRelocate();
+	_detail::AssertRelocate<T>();
 
 	using IterSrc = decltype(adl_begin(source));
 	return _append(can_memmove_with<pointer, IterSrc>(),
@@ -653,7 +651,7 @@ OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appen
 template<typename T, typename Alloc> template<typename... ArgTs>
 void dynarray<T, Alloc>::emplace_back(ArgTs &&... args)
 {
-	_staticAssertRelocate();
+	_detail::AssertRelocate<T>();
 
 	if (_end < _reserveEnd)
 	{
@@ -661,17 +659,16 @@ void dynarray<T, Alloc>::emplace_back(ArgTs &&... args)
 	}
 	else
 	{
-		size_type const newCapacity = _insertOneCalcCap();
+		size_type const newCapacity = _calcCapAddOne();
 		_smartPtr newData{_alloc(newCapacity)};
 
-		size_type const oldSize = size();
-		pointer const newEnd = newData.get() + oldSize;
+		pointer const newEnd = newData.get() + size();
 		::new(newEnd) T(std::forward<ArgTs>(args)...);
-		_end = newEnd;
+		// Exception free from here
 		_reserveEnd = newData.get() + newCapacity;
-
 		// Make new element before reallocating old data to support push_back from this
-		::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
+		_relocateData(is_trivially_relocatable<T>(), newData.get());
+		_end = newEnd;
 		_data.swap(newData);
 	}
 	++_end;
@@ -680,7 +677,7 @@ void dynarray<T, Alloc>::emplace_back(ArgTs &&... args)
 template<typename T, typename Alloc> template<typename... ArgTs>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, ArgTs &&... args)
 {
-	_staticAssertRelocate();
+	_detail::AssertRelocate<T>();
 
 	auto const posPtr = const_cast<pointer>(to_pointer_contiguous(pos));
 	MEM_BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);
@@ -703,7 +700,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	}
 	else
 	{	// not enough room, reallocate
-		size_type const newCapacity = _insertOneCalcCap();
+		size_type const newCapacity = _calcCapAddOne();
 
 		_smartPtr newData{_alloc(newCapacity)};
 
@@ -727,7 +724,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::reserve(size_type minCapacity)
 {
-	_staticAssertRelocate();
+	_detail::AssertRelocate<T>();
 
 	if (capacity() < minCapacity)
 	{
@@ -745,7 +742,7 @@ void dynarray<T, Alloc>::reserve(size_type minCapacity)
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::shrink_to_fit()
 {
-	_staticAssertRelocate();
+	_detail::AssertRelocate<T>();
 
 	size_type const usedSize = size();
 	pointer newData;
@@ -789,7 +786,7 @@ void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) NOEXCEPT
 {
-	_staticAssertRelocate();
+	_detail::AssertRelocate<T>();
 
 	pointer const posPtr = to_pointer_contiguous(pos);
 	MEM_BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr < _end);
@@ -804,7 +801,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) NOEXCEPT
 {
-	_staticAssertRelocate();
+	_detail::AssertRelocate<T>();
 
 	pointer const pFirst = to_pointer_contiguous(first);
 	pointer const pLast = to_pointer_contiguous(last);
