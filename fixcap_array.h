@@ -117,6 +117,7 @@ public:
 	* Otherwise same as append(InputIterator, size_type)  */
 	template<typename InputRange>
 	iterator      append(const InputRange & range);
+<<<<<<< HEAD
 	/// Equivalent to calling append(const InputRange &) with il as argument  */
 	iterator      append(std::initializer_list<T> il)  { return append<>(il); }
 

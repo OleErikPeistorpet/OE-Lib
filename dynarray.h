@@ -384,7 +384,7 @@ private:
 		else
 		{
 			size_type const oldSize = size();
-			size_type const newCapacity = _appendCalcCap(count);
+			size_type const newCapacity = _calcCapAdd(count);
 			_smartPtr newData{_alloc(newCapacity)};
 
 			appendPos = newData.get() + oldSize;
@@ -417,7 +417,7 @@ private:
 		}
 		else
 		{
-			size_type const newCapacity = _appendCalcCap(count);
+			size_type const newCapacity = _calcCapAdd(count);
 			pointer const newData = _alloc(newCapacity);
 
 			_reserveEnd = newData + newCapacity;

@@ -72,6 +72,12 @@ default_init_tag const default_init;
 
 
 
+
+/// Like std::aligned_storage<Size, Align>::type, but guaranteed to support alignment of up to 64
+template<size_t Size, size_t Align>
+struct aligned_storage_t {};
+
+
 /**
 * @brief Argument-dependent lookup non-member begin, defaults to std::begin
 *
