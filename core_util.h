@@ -6,128 +6,77 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "user_traits.h"
+#include "debug.h"
 
 #include <iterator>
 
 
-/** @file
-*/
+#if !_MSC_VER || _MSC_VER >= 1900
+	#define NOEXCEPT noexcept
 
-#if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
-/** @brief Undefined/0: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
-*
-* Warning: 0 (or undefined by NDEBUG defined) is not binary compatible with levels 1 and 2. */
-	#define OEL_MEM_BOUND_DEBUG_LVL 2
-#endif
-
-#if defined(NDEBUG) && OEL_MEM_BOUND_DEBUG_LVL == 0
-	#define OEL_NOEXCEPT_NDEBUG noexcept
+	#define ALIGNOF alignof
 #else
-	#define OEL_NOEXCEPT_NDEBUG
+	#define NOEXCEPT throw()
+
+	#define ALIGNOF __alignof
 #endif
 
 
-#if _MSC_VER
-	#define OEL_CONST_COND __pragma(warning(suppress : 4127))
-#else
-	#define OEL_CONST_COND
-#endif
-
-
-#ifndef OEL_HALT
-	/// Could throw an exception. Or write to log with __FILE__ and __LINE__, show a message, then abort.
-	#if _MSC_VER
-		#define OEL_HALT(failedCond) __debugbreak()
-	#else
-		#define OEL_HALT(failedCond) __asm__("int $3")
-	#endif
-#endif
-
-#ifndef OEL_ALWAYS_ASSERT
-	/// Just breaks into debugger on failure. Could be defined to standard from \c <cassert>
-	#define OEL_ALWAYS_ASSERT(expr)  \
-		OEL_CONST_COND  \
-		do {  \
-			if (!(expr)) OEL_HALT(#expr);  \
-		} while (false)
-#endif
-
-
+/// Obscure Efficient Library
 namespace oel
 {
 
 using std::size_t;
 
-
-using std::iterator_traits;
-
-
 using std::begin;
 using std::end;
 
-#if __cplusplus >= 201402L || _MSC_VER || __GNUC__ >= 5
-	using std::cbegin;   using std::cend;
-	using std::crbegin;  using std::crend;
+#if _MSC_VER
+	using std::cbegin;
+	using std::cend;
 #else
-	/// Equivalent to std::cbegin found in C++14
+	/**
+	* @brief Const version of std::begin.
+	* @return An iterator addressing the (const) first element in the range r. */
 	template<typename Range> inline
-	constexpr auto cbegin(const Range & r) -> decltype(std::begin(r))  { return std::begin(r); }
-	/// Equivalent to std::cend found in C++14
+	auto cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+	/**
+	* @brief Const version of std::end.
+	* @return An iterator positioned one beyond the (const) last element in the range r. */
 	template<typename Range> inline
-	constexpr auto cend(const Range & r) -> decltype(std::end(r))      { return std::end(r); }
+	auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
 #endif
 
-/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
-*
-* Note the global using-directive  @code
-	auto it = container.begin();     // Fails with types that don't have begin member such as built-in arrays
-	auto it = std::begin(container); // Fails with types that have only non-member begin outside of namespace std
-	// Argument-dependent lookup, as generic as it gets
-	using std::begin; auto it = begin(container);
-	auto it = adl_begin(container);  // Equivalent to line above
-@endcode  */
-template<typename Range> inline
-constexpr auto adl_begin(Range & r) -> decltype(begin(r))         { return begin(r); }
-/// Const version of adl_begin
-template<typename Range> inline
-constexpr auto adl_cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
 
-/// Argument-dependent lookup non-member end, defaults to std::end
-template<typename Range> inline
-constexpr auto adl_end(Range & r) -> decltype(end(r))         { return end(r); }
-/// Const version of adl_end
-template<typename Range> inline
-constexpr auto adl_cend(const Range & r) -> decltype(end(r))  { return end(r); }
+/// Returns number of elements in r (array, container or iterator_range), signed type
+template<typename Range>
+auto count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type;
 
-} // namespace oel
 
-using oel::adl_begin;
-using oel::adl_cbegin;
-using oel::adl_end;
-using oel::adl_cend;
 
-namespace oel
+/// For copy functions that return the end of both source and destination ranges
+template<typename InIterator, typename OutIterator>
+struct range_ends
 {
-
-/// Returns r.size() as signed (SizedRange::difference_type)
-template<typename SizedRange> inline
-constexpr auto ssize(const SizedRange & r)
- -> decltype( static_cast<typename SizedRange::difference_type>(r.size()) )
-     { return static_cast<typename SizedRange::difference_type>(r.size()); }
-/// Returns number of elements in array as signed type
-template<typename T, std::ptrdiff_t Size> inline
-constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
+	InIterator  src_end;
+	OutIterator dest_end;
+};
 
 
 
-/// Convert iterator to pointer. This should be overloaded for each class of contiguous iterator (C++17 concept)
-template<typename T> inline
-T * to_pointer_contiguous(T * ptr) noexcept  { return ptr; }
+/// Erase the elements from first to the end of container, making first the new end
+template<class Container>
+void erase_back(Container & ctr, typename Container::iterator first);
 
-template<typename Iterator> inline
-auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
- -> decltype( to_pointer_contiguous(it.base()) )  { return to_pointer_contiguous(it.base()); }
+
+
+#if __GLIBCXX__
+	template<typename T>
+	using is_trivially_copyable = std::integral_constant< bool,
+									__has_trivial_copy(T) && __has_trivial_assign(T) >;
+#else
+	using std::is_trivially_copyable;
+#endif
 
 
 /// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
@@ -135,90 +84,70 @@ template<typename IteratorDest, typename IteratorSource>
 struct can_memmove_with;
 
 
+/// Convert iterator to pointer. This should be overloaded for each contiguous memory iterator class
+template<typename T> inline
+T * to_ptr(T * ptr)  { return ptr; }
 
-/// Tag to select a constructor that allocates a minimum amount of storage
-struct reserve_tag
-{	explicit reserve_tag() {}
-}
-const reserve; ///< An instance of reserve_tag to pass
-
-/// Tag to specify default initialization
-struct default_init_tag
-{	explicit default_init_tag() {}
-}
-const default_init; ///< An instance of default_init_tag to pass
-
-
-
-/// Exists in std with C++14
-template<bool Condition>
-using enable_if_t = typename std::enable_if<Condition>::type;
+template<typename Iterator> inline
+auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
+ -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
 
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// The rest of the file is not for users (implementation)
+// The rest of the file is implementation details
 
-
-#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
-	#define OEL_THROW(exception)      throw exception
-	#define OEL_TRY_                  try
-	#define OEL_CATCH_ALL             catch (...)
-	#define OEL_WHEN_EXCEPTIONS_ON(x) x
-#else
-	#define OEL_THROW(exception)      std::terminate()
-	#define OEL_TRY_
-	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
-	#define OEL_WHEN_EXCEPTIONS_ON(x)
-#endif
-
-#if OEL_MEM_BOUND_DEBUG_LVL
-	#define OEL_ASSERT_MEM_BOUND  OEL_ALWAYS_ASSERT
-#else
-	#define OEL_ASSERT_MEM_BOUND(expr) ((void) 0)
-#endif
-#if !defined(NDEBUG)
-	#define OEL_ASSERT  OEL_ALWAYS_ASSERT
-#else
-	#define OEL_ASSERT(expr) ((void) 0)
-#endif
-
-////////////////////////////////////////////////////////////////////////////////
 
 #if _MSC_VER
 	template<typename T, size_t S> inline
-	T *       to_pointer_contiguous(std::_Array_iterator<T, S> it)       { return it._Unchecked(); }
+	T *       to_ptr(std::_Array_iterator<T, S> it)        { return it._Unchecked(); }
 	template<typename T, size_t S> inline
-	const T * to_pointer_contiguous(std::_Array_const_iterator<T, S> it) { return it._Unchecked(); }
+	const T * to_ptr(std::_Array_const_iterator<T, S> it)  { return it._Unchecked(); }
 
 	template<typename S> inline
-	typename std::_String_iterator<S>::pointer  to_pointer_contiguous(std::_String_iterator<S> it)
+	typename std::_String_iterator<S>::pointer  to_ptr(std::_String_iterator<S> it)
 	{
 		return it._Unchecked();
 	}
 	template<typename S> inline
-	typename std::_String_const_iterator<S>::pointer  to_pointer_contiguous(std::_String_const_iterator<S> it)
+	typename std::_String_const_iterator<S>::pointer  to_ptr(std::_String_const_iterator<S> it)
 	{
 		return it._Unchecked();
 	}
 #elif __GLIBCXX__
 	template<typename T, typename U> inline
-	T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, U> it) noexcept { return it.base(); }
+	T * to_ptr(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
 #endif
 
 
 namespace _detail
 {
 	template<typename T>   // (target, source)
-	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *);
+	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
 
 	template<typename IterDest, typename IterSrc>
 	auto CanMemmoveWith(IterDest dest, IterSrc src)
-	 -> decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
+	 -> decltype( CanMemmoveArrays(to_ptr(dest), to_ptr(src)) ) { return {}; }
 
-	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
-	inline std::false_type CanMemmoveWith(...);
+	// SFINAE fallback for cases where to_ptr(iterator) is not declared or value types are not the same
+	inline std::false_type CanMemmoveWith(...) { return {}; }
+
+////////////////////////////////////////////////////////////////////////////////
+
+	template<typename HasSizeRange> inline // pass dummy int to prefer this overload
+	auto Count(const HasSizeRange & r, int) -> decltype(r.size()) { return r.size(); }
+
+	template<typename Range> inline
+	auto Count(const Range & r, long) -> decltype( std::distance(begin(r), end(r)) )
+										  { return std::distance(begin(r), end(r)); }
+
+
+	template<class HasEraseBack> inline
+	auto EraseBack(HasEraseBack & ctr, typename HasEraseBack::iterator first, int) -> decltype(ctr.erase_back(first))
+																					  { return ctr.erase_back(first); }
+	template<class Container> inline
+	void EraseBack(Container & ctr, typename Container::iterator first, long) { ctr.erase(first, ctr.end()); }
 }
 
 } // namespace oel
@@ -229,5 +158,28 @@ struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<It
 																 std::declval<IteratorSource>()) ) {};
 /// @endcond
 
-template<typename T>
-struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};
+
+template<typename Range>
+inline auto oel::count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
+{
+	return _detail::Count(r, int{});
+}
+
+
+template<class Container>
+inline void oel::erase_back(Container & ctr, typename Container::iterator first)
+{
+	_detail::EraseBack(ctr, first, int{});
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+#if __GNUC__
+	#define OEL_PUSH_IGNORE_UNUSED_VALUE  \
+		_Pragma("GCC diagnostic push")  \
+		_Pragma("GCC diagnostic ignored \"-Wunused-value\"")
+	#define OEL_POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
+#else
+	#define OEL_PUSH_IGNORE_UNUSED_VALUE
+	#define OEL_POP_DIAGNOSTIC
+#endif
