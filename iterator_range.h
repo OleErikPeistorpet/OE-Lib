@@ -8,33 +8,75 @@
 
 #include "basic_util.h"
 
-#include <boost/range/iterator_range_core.hpp>
+#ifndef OEL_NO_BOOST
+	#include <boost/range/iterator_range_core.hpp>
+#endif
 
 
 namespace oel
 {
 
+#ifndef OEL_NO_BOOST
+	using boost::iterator_range;
+#else
+	template<typename Iterator>
+	struct iterator_range
+	{
+		Iterator first;
+		Iterator last;
+
+		Iterator begin() const  { return first; }
+		Iterator end() const    { return last; }
+	};
+#endif
+
+
 /// Create a std::move_iterator from InputIterator
 template<typename InputIterator> inline
-std::move_iterator<InputIterator> make_move_iter(InputIterator it)  { return std::make_move_iterator(it); }
+std::move_iterator<InputIterator> make_move_iter(InputIterator it)  { return std::move_iterator<InputIterator>(it); }
 
 
 /// Create an iterator_range from two iterators
 template<typename Iterator> inline
-boost::iterator_range<Iterator> make_range(Iterator first, Iterator last)  { return {first, last}; }
+iterator_range<Iterator> make_range(Iterator first, Iterator last)  { return {first, last}; }
 
-/// Create an iterator_range of move_iterator from range reference
-template<typename InputRange> inline
-auto move_range(InputRange && range) -> boost::iterator_range< std::move_iterator<decltype(begin(range))> >
+/// Create an iterator_range of move_iterator from range reference (array or STL container)
+template<typename InputRange>
+auto move_range(InputRange & range) -> iterator_range< std::move_iterator<decltype(begin(range))> >;
+/// Create an iterator_range of move_iterator from iterator_range
+template<typename InputIterator>
+iterator_range< std::move_iterator<InputIterator> >  move_range(const iterator_range<InputIterator> & range);
+/// Create an iterator_range of move_iterator from two iterators
+template<typename InputIterator>
+iterator_range< std::move_iterator<InputIterator> >  move_range(InputIterator first, InputIterator last);
+
+} // namespace oel
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Implementation only in rest of the file
+
+
+template<typename InputRange>
+inline auto oel::move_range(InputRange & range) -> iterator_range< std::move_iterator<decltype(begin(range))> >
 {
 	return oel::make_range( make_move_iter(begin(range)), make_move_iter(end(range)) );
 }
 
+/// Create an iterator_range of move_iterator from iterator_range
+template<typename InputIterator>
+inline oel::iterator_range< std::move_iterator<InputIterator> >  oel::
+	move_range(const iterator_range<InputIterator> & range)
+{
+	return oel::make_range( make_move_iter(range.begin()), make_move_iter(range.end()) );
+}
+
 /// Create an iterator_range of move_iterator from two iterators
-template<typename InputIterator> inline
-boost::iterator_range< std::move_iterator<InputIterator> >  move_range(InputIterator first, InputIterator last)
+template<typename InputIterator>
+inline oel::iterator_range< std::move_iterator<InputIterator> >  oel::
+	move_range(InputIterator first, InputIterator last)
 {
 	return oel::make_range(make_move_iter(first), make_move_iter(last));
 }
-
-} // namespace oel

@@ -19,22 +19,18 @@
 namespace oel
 {
 
-#ifdef OEL_NO_BOOST
+#ifndef OEL_NO_BOOST
+	template<typename Iterator>
+	using iterator_traversal_t = typename boost::iterator_traversal<Iterator>::type;
 
-template<typename Iterator>
-using iterator_traversal_t = typename std::iterator_traits<Iterator>::iterator_category;
-
-using forward_traversal_tag = std::forward_iterator_tag;
-using single_pass_traversal_tag = std::input_iterator_tag;
-
+	using boost::forward_traversal_tag;
+	using boost::single_pass_traversal_tag;
 #else
+	template<typename Iterator>
+	using iterator_traversal_t = typename std::iterator_traits<Iterator>::iterator_category;
 
-template<typename Iterator>
-using iterator_traversal_t = typename boost::iterator_traversal<Iterator>::type;
-
-using boost::forward_traversal_tag;
-using boost::single_pass_traversal_tag;
-
+	using forward_traversal_tag = std::forward_iterator_tag;
+	using single_pass_traversal_tag = std::input_iterator_tag;
 #endif
 
 
