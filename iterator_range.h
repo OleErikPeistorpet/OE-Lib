@@ -60,17 +60,17 @@ iterator_range< std::move_iterator<InputIterator> >  move_range(InputIterator fi
 
 
 template<typename InputRange>
-inline auto oel::move_range(InputRange & range) -> iterator_range< std::move_iterator<decltype(begin(range))> >
+inline auto oel::move_range(InputRange & r) -> iterator_range< std::move_iterator<decltype(begin(r))> >
 {
-	return oel::make_range( make_move_iter(begin(range)), make_move_iter(end(range)) );
+	return oel::make_range( make_move_iter(begin(r)), make_move_iter(end(r)) );
 }
 
 /// Create an iterator_range of move_iterator from iterator_range
 template<typename InputIterator>
 inline oel::iterator_range< std::move_iterator<InputIterator> >  oel::
-	move_range(const iterator_range<InputIterator> & range)
+	move_range(const iterator_range<InputIterator> & r)
 {
-	return oel::make_range( make_move_iter(range.begin()), make_move_iter(range.end()) );
+	return oel::make_range( make_move_iter(r.begin()), make_move_iter(r.end()) );
 }
 
 /// Create an iterator_range of move_iterator from two iterators
