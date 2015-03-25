@@ -56,7 +56,7 @@ iterator_range< std::move_iterator<InputIterator> >  move_range(InputIterator fi
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Implementation only in rest of the file
+// Implementation
 
 
 template<typename InputRange>
@@ -65,7 +65,6 @@ inline auto oel::move_range(InputRange & r) -> iterator_range< std::move_iterato
 	return oel::make_range( make_move_iter(begin(r)), make_move_iter(end(r)) );
 }
 
-/// Create an iterator_range of move_iterator from iterator_range
 template<typename InputIterator>
 inline oel::iterator_range< std::move_iterator<InputIterator> >  oel::
 	move_range(const iterator_range<InputIterator> & r)
@@ -73,7 +72,6 @@ inline oel::iterator_range< std::move_iterator<InputIterator> >  oel::
 	return oel::make_range( make_move_iter(r.begin()), make_move_iter(r.end()) );
 }
 
-/// Create an iterator_range of move_iterator from two iterators
 template<typename InputIterator>
 inline oel::iterator_range< std::move_iterator<InputIterator> >  oel::
 	move_range(InputIterator first, InputIterator last)
