@@ -163,14 +163,14 @@ public:
 	/// Equivalent to calling append(const InputRange &) with il as argument  */
 	iterator      append(std::initializer_list<T> il);
 
-	template<typename... Params>
-	void       emplace_back(Params &&... args);
+	template<typename... ArgTs>
+	void       emplace_back(ArgTs &&... args);
 
 	void       push_back(T && val)       { emplace_back(std::move(val)); }
 	void       push_back(const T & val)  { emplace_back(val); }
 
-	template<typename... Params>
-	iterator   emplace(const_iterator position, Params &&... args);
+	template<typename... ArgTs>
+	iterator   emplace(const_iterator position, ArgTs &&... args);
 
 	iterator   insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
 	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
@@ -639,14 +639,14 @@ OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appen
 	return append<>(il);
 }
 
-template<typename T, typename Alloc> template<typename... Params>
-void dynarray<T, Alloc>::emplace_back(Params &&... args)
+template<typename T, typename Alloc> template<typename... ArgTs>
+void dynarray<T, Alloc>::emplace_back(ArgTs &&... args)
 {
 	_staticAssertRelocate();
 
 	if (_end < _reserveEnd)
 	{
-		::new(_end) T(std::forward<Params>(args)...);
+		::new(_end) T(std::forward<ArgTs>(args)...);
 	}
 	else
 	{
@@ -655,7 +655,7 @@ void dynarray<T, Alloc>::emplace_back(Params &&... args)
 
 		size_type const oldSize = size();
 		pointer const newEnd = newData.get() + oldSize;
-		::new(newEnd) T(std::forward<Params>(args)...);
+		::new(newEnd) T(std::forward<ArgTs>(args)...);
 		_end = newEnd;
 		_reserveEnd = newData.get() + newCapacity;
 
@@ -666,8 +666,8 @@ void dynarray<T, Alloc>::emplace_back(Params &&... args)
 	++_end;
 }
 
-template<typename T, typename Alloc> template<typename... Params>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Params &&... args)
+template<typename T, typename Alloc> template<typename... ArgTs>
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, ArgTs &&... args)
 {
 	static_assert(std::is_nothrow_move_constructible<T>::value, "insert/emplace require that T has noexcept move constructor");
 	_staticAssertRelocate();
@@ -680,7 +680,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	if (_end < _reserveEnd) // then new element fits
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
-		T tmp = T(std::forward<Params>(args)...);
+		T tmp = T(std::forward<ArgTs>(args)...);
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
 		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
 		++_end;
@@ -697,7 +697,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 		size_type const nBeforePos = posPtr - data();
 		pointer const newPos = newData.get() + nBeforePos;
-		::new(newPos) T(std::forward<Params>(args)...);		// add new
+		::new(newPos) T(std::forward<ArgTs>(args)...);		// add new
 		pointer const next = newPos + 1;
 		// Behaviour undefined by standard if data is null
 		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // relocate prefix
