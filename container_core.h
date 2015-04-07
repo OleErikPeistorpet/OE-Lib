@@ -10,7 +10,6 @@
 
 #ifndef OEL_NO_BOOST
 	#include <boost/align/aligned_alloc.hpp>
-	#include <boost/circular_buffer_fwd.hpp>
 	#include <boost/optional/optional_fwd.hpp>
 #endif
 #include <memory>
@@ -53,9 +52,6 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
 #endif
 
 #ifndef OEL_NO_BOOST
-	template<typename T>
-	struct is_trivially_relocatable< boost::circular_buffer<T> > : std::true_type {};
-
 	template<typename T>
 	struct is_trivially_relocatable< boost::optional<T> > : is_trivially_relocatable<T> {};
 #endif
