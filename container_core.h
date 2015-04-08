@@ -58,9 +58,9 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
 
 
 
-/// Tag to select a specific constructor. The static instance ini_size is provided as a convenience
+/// Tag to select a specific constructor. The const instance ini_size is provided as a convenience
 struct ini_size_tag {};
-static ini_size_tag const ini_size;
+ini_size_tag const ini_size;
 
 
 /**

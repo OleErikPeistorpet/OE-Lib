@@ -37,9 +37,9 @@ namespace oel
 using std::out_of_range;
 
 
-/// Type to indicate that a container constructor must allocate storage. A static instance named reserve is provided to pass
+/// Type to indicate that a container constructor must allocate storage. A const instance named reserve is provided to pass
 struct reserve_tag {};
-static reserve_tag const reserve;
+reserve_tag const reserve;
 
 ////////////////////////////////////////////////////////////////////////////////
 
