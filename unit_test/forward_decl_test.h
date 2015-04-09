@@ -1,11 +1,9 @@
 #include "dynarray.h"
-#include "iterator_range.h"
 #include "gtest/gtest.h"
-#include <deque>
 
 
-struct ThrowOnConstructT {} static const ThrowOnConstruct;
-struct ThrowOnMoveOrCopyT {} static const ThrowOnMoveOrCopy;
+struct ThrowOnConstructT {} const ThrowOnConstruct;
+struct ThrowOnMoveOrCopyT {} const ThrowOnMoveOrCopy;
 
 class TestException : public std::exception {};
 

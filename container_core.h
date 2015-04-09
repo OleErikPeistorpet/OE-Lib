@@ -32,7 +32,11 @@ template<> struct is_trivially_relocatable<MyType> : std::true_type {};
 }
 @endcode  */
 template<typename T>
-struct is_trivially_relocatable : is_trivially_copyable<T> {};
+#if !OEL_TRIVIAL_RELOCATE_DEFAULT
+	struct is_trivially_relocatable : is_trivially_copyable<T> {};
+#else
+	struct is_trivially_relocatable : std::true_type {};
+#endif
 
 /// std::unique_ptr assumed trivially relocatable if the deleter is
 template<typename T, typename Del>

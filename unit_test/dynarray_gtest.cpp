@@ -1,4 +1,6 @@
 #include "forward_decl_test.h"
+#include "iterator_range.h"
+#include <deque>
 
 class ForwDeclared { char c; };
 
@@ -44,8 +46,6 @@ TEST_F(dynarrayTest, construct)
 	static_assert(oel::is_trivially_copyable<Iter>::value, "");
 	static_assert(std::is_convertible<Iter, ConstIter>::value, "");
 	static_assert(!std::is_convertible<ConstIter, Iter>::value, "");
-
-	dynarray< dynarray<int> > nested;
 }
 
 TEST_F(dynarrayTest, push_back)
@@ -76,6 +76,12 @@ TEST_F(dynarrayTest, push_back)
 		EXPECT_EQ(VALUES[1], *up[2]);
 	}
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
+
+	dynarray< dynarray<int> > nested;
+	nested.emplace_back(oel::ini_size, 3);
+	EXPECT_EQ(3, nested.back().size());
+	nested.emplace_back(std::initializer_list<int>{1, 2});
+	EXPECT_EQ(2, nested.back().size());
 }
 
 TEST_F(dynarrayTest, assign)
@@ -131,7 +137,7 @@ TEST_F(dynarrayTest, assign)
 	{
 		double const VALUES[] = {-1.1, 0.4};
 		MoveOnly src[] { MoveOnly{new double{VALUES[0]}},
-						  MoveOnly{new double{VALUES[1]}} };
+						 MoveOnly{new double{VALUES[1]}} };
 		dynarray<MoveOnly> test;
 
 		test.assign(oel::move_range(src));
