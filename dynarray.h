@@ -66,7 +66,11 @@ template<typename T, typename A> inline
 void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first)  { ctr.erase_back(first); }
 
 template<typename T, typename A>
-bool operator==(const dynarray<T, A> & left, const dynarray<T, A> & right);
+bool operator==(const dynarray<T, A> & left, const dynarray<T, A> & right)
+{
+	return left.size() == right.size() &&
+		   std::equal(left.begin(), left.end(), right.begin());
+}
 template<typename T, typename A> inline
 bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { return !(left == right); }
 
@@ -91,10 +95,17 @@ public:
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	using iterator       = cntigus_ctr_dbg_iterator< T, dynarray<T, Alloc> >;
 	using const_iterator = cntigus_ctr_dbg_iterator< T const, dynarray<T, Alloc> >;
+
+	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
+	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
 #else
 	using iterator       = T *;
 	using const_iterator = const T *;
+
+	#define OEL_DYNARR_ITERATOR(ptr)        (ptr)
+	#define OEL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
+
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
 	using size_type       = typename Alloc::size_type;
 
@@ -202,12 +213,12 @@ public:
 
 	size_type  capacity() const NOEXCEPT  { return _reserveEnd - data(); }
 
-	iterator        begin() NOEXCEPT;
-	const_iterator  begin() const NOEXCEPT;
+	iterator        begin() NOEXCEPT         { return OEL_DYNARR_ITERATOR(_data.get()); }
+	const_iterator  begin() const NOEXCEPT   { return OEL_DYNARR_CONST_ITER(_data.get()); }
 	const_iterator  cbegin() const NOEXCEPT  { return begin(); }
 
-	iterator        end() NOEXCEPT;
-	const_iterator  end() const NOEXCEPT;
+	iterator        end() NOEXCEPT         { return OEL_DYNARR_ITERATOR(_end); }
+	const_iterator  end() const NOEXCEPT   { return OEL_DYNARR_CONST_ITER(_end); }
 	const_iterator  cend() const NOEXCEPT  { return end(); }
 
 	pointer         data() NOEXCEPT        { return _data.get(); }
@@ -216,8 +227,8 @@ public:
 	reference       front() NOEXCEPT        { return *begin(); }
 	const_reference front() const NOEXCEPT  { return *begin(); }
 
-	reference       back() NOEXCEPT;
-	const_reference back() const NOEXCEPT;
+	reference       back() NOEXCEPT        { return *OEL_DYNARR_ITERATOR(_end - 1); }
+	const_reference back() const NOEXCEPT  { return *OEL_DYNARR_CONST_ITER(_end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -256,14 +267,6 @@ private:
 	#define OEL_FORCEINLINE __forceinline
 #else
 	#define OEL_FORCEINLINE inline
-#endif
-
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
-	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
-#else
-	#define OEL_DYNARR_ITERATOR(ptr)        (ptr)
-	#define OEL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
 
 	struct _staticAssertRelocate
@@ -819,42 +822,6 @@ inline void dynarray<T, Alloc>::erase_back(iterator first) NOEXCEPT
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::begin() NOEXCEPT
-{
-	return OEL_DYNARR_ITERATOR(_data.get());
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::const_iterator  dynarray<T, Alloc>::begin() const NOEXCEPT
-{
-	return OEL_DYNARR_CONST_ITER(_data.get());
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::end() NOEXCEPT
-{
-	return OEL_DYNARR_ITERATOR(_end);
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::const_iterator  dynarray<T, Alloc>::end() const NOEXCEPT
-{
-	return OEL_DYNARR_CONST_ITER(_end);
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::back() NOEXCEPT
-{
-	return *OEL_DYNARR_ITERATOR(_end - 1);
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::back() const NOEXCEPT
-{
-	return *OEL_DYNARR_CONST_ITER(_end - 1);
-}
-
-template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type index)
 {
 	if (size() > index)
@@ -896,13 +863,6 @@ inline typename oel::dynarray<T, A>::iterator  oel::
 	*pos = std::move(ctr.back());
 	ctr.pop_back();
 	return pos;
-}
-
-template<typename T, typename A>
-bool oel::operator==(const dynarray<T, A> & left, const dynarray<T, A> & right)
-{
-	return left.size() == right.size() &&
-		   std::equal(left.begin(), left.end(), right.begin());
 }
 
 #undef OEL_FORCEINLINE

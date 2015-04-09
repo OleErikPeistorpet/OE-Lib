@@ -91,11 +91,12 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 
 
 /// Check if index is valid (can be used with operator[]) for array or other range.
-template< typename T, typename Range, typename = enable_if_t<std::is_unsigned<T>::value> >
-bool index_valid(const Range & range, T index);
+template< typename UnsignedInt, typename Range,
+		  typename = enable_if_t<std::is_unsigned<UnsignedInt>::value> > inline
+bool index_valid(const Range & range, UnsignedInt index)   { return index < as_unsigned(oel::count(range)); }
 /// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename Range>
-bool index_valid(const Range & range, std::int32_t index);
+template<typename Range> inline
+bool index_valid(const Range & range, std::int32_t index)  { return 0 <= index && index < oel::count(range); }
 /// Check if index is valid (can be used with operator[]) for array or other range.
 template<typename Range>
 bool index_valid(const Range & range, std::int64_t index);
@@ -103,8 +104,12 @@ bool index_valid(const Range & range, std::int64_t index);
 
 
 /// Equivalent to std::make_unique.
-template< typename T, typename... ArgTs, typename = enable_if_t<!std::is_array<T>::value> >
-std::unique_ptr<T> make_unique(ArgTs &&... args);
+template< typename T, typename... ArgTs, typename = enable_if_t<!std::is_array<T>::value> > inline
+std::unique_ptr<T> make_unique(ArgTs &&... args)
+{
+	T * p = new T(std::forward<ArgTs>(args)...); // direct-initialize, or value-initialize if no args
+	return std::unique_ptr<T>(p);
+}
 /// Equivalent to std::make_unique (array version).
 template< typename T, typename = enable_if_t<std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(size_t arraySize);
@@ -197,18 +202,6 @@ inline oel::range_ends<InputIterator, OutputIterator>  oel::
 
 ////////////////////////////////////////////////////////////////////////////////
 
-template<typename T, typename Range, typename>
-inline bool oel::index_valid(const Range & r, T idx)
-{
-	return idx < as_unsigned(oel::count(r));
-}
-
-template<typename Range>
-inline bool oel::index_valid(const Range & r, std::int32_t idx)
-{
-	return 0 <= idx && idx < oel::count(r);
-}
-
 template<typename Range>
 inline bool oel::index_valid(const Range & r, std::int64_t idx)
 {
@@ -217,13 +210,6 @@ inline bool oel::index_valid(const Range & r, std::int64_t idx)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-template<typename T, typename... ArgTs, typename>
-inline std::unique_ptr<T>  oel::make_unique(ArgTs &&... args)
-{
-	T * p = new T(std::forward<ArgTs>(args)...); // direct-initialize, or value-initialize if no args
-	return std::unique_ptr<T>(p);
-}
 
 template<typename T, typename>
 inline std::unique_ptr<T>  oel::make_unique(size_t arraySize)
