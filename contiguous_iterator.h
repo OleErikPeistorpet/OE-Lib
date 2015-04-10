@@ -39,10 +39,9 @@ public:
 
 	using const_iterator = cntigus_ctr_dbg_iterator<value_type const, Container>;
 
-	cntigus_ctr_dbg_iterator() : _myCont(nullptr) {
-	}
+	cntigus_ctr_dbg_iterator()  : _myCont(nullptr) {}
 
-	// construct with position in data and pointer to container
+	/// Construct with position in data and pointer to container
 	cntigus_ctr_dbg_iterator(pointer pos, const Container * container)
 	 :	_pElem(pos), _myCont(container) {
 	}
@@ -97,7 +96,7 @@ public:
 	}
 
 	cntigus_ctr_dbg_iterator & operator+=(difference_type offset)
-	{	// add integer to pointer
+	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT( offset >= _myCont->data() - _pElem
 					   && offset <= to_ptr(_myCont->end()) - _pElem );
@@ -107,7 +106,7 @@ public:
 	}
 
 	cntigus_ctr_dbg_iterator & operator-=(difference_type offset)
-	{	// subtract integer from pointer
+	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		MEM_BOUND_ASSERT( offset <= _pElem - _myCont->data()
 					   && offset >= _pElem - to_ptr(_myCont->end()) );
@@ -117,7 +116,7 @@ public:
 	}
 
 	cntigus_ctr_dbg_iterator operator +(difference_type offset) const
-	{	// return this + integer
+	{
 		auto tmp = *this;
 		return tmp += offset;
 	}
@@ -178,13 +177,11 @@ public:
 		return !(*this < right);
 	}
 
-	friend pointer to_ptr(cntigus_ctr_dbg_iterator it) NOEXCEPT
-	{	// return pointer (unchecked)
-		return it._pElem;
-	}
+	/// Return pointer (unchecked)
+	friend pointer to_ptr(cntigus_ctr_dbg_iterator it) NOEXCEPT  { return it._pElem; }
 
 protected:
-	pointer           _pElem;  // wrapped pointer
+	pointer           _pElem;  ///< Wrapped pointer
 	const Container * _myCont;
 
 	template<typename, typename>
@@ -197,8 +194,15 @@ protected:
 template<typename T, typename C> inline
 cntigus_ctr_dbg_iterator<T, C> operator +(typename cntigus_ctr_dbg_iterator<T, C>::difference_type offset,
 										  cntigus_ctr_dbg_iterator<T, C> iter)
-{	// add offset to iterator
+{
 	return iter += offset;
 }
 
 } // namespace oel
+
+#if _MSC_VER
+	/// Mark cntigus_ctr_dbg_iterator as checked
+	template<typename T, typename C>
+	struct std::_Is_checked_helper< oel::cntigus_ctr_dbg_iterator<T, C> >
+	 :	public std::true_type {};
+#endif
