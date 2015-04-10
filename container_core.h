@@ -173,6 +173,17 @@ namespace _detail
 	}
 
 
+	template<typename InputIter, typename DestT>
+	DestT * UninitCopy(InputIter first, InputIter last, DestT * dest)
+	{
+		return std::uninitialized_copy( first, last,
+			#if _ITERATOR_DEBUG_LEVEL
+				stdext::make_unchecked_array_iterator(dest) ).base();
+			#else
+				dest );
+			#endif
+	}
+
 	template<typename, typename Iter> inline
 	void UninitFillDefault(std::true_type, Iter, Iter) {}  // for speed with optimizations off
 

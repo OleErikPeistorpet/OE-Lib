@@ -278,7 +278,7 @@ private:
 
 	void _uninitCopyData(std::false_type, const_pointer first, const_pointer last, size_type)
 	{	// not trivially copyable T
-		_end = std::uninitialized_copy(first, last, data());
+		_end = _detail::UninitCopy(first, last, data());
 		_reserveEnd = _end;
 	}
 
@@ -340,22 +340,24 @@ private:
 		if (capacity() < count)
 		{	// not enough room, allocate new array and construct new
 			_smartPtr newData{_alloc(count)};
-			pointer const newEnd = std::uninitialized_copy(first, last, newData.get());
+			pointer const newEnd = _detail::UninitCopy(first, last, newData.get());
 			_detail::Destroy(data(), _end);
 			_reserveEnd = _end = newEnd;
 			_data.swap(newData);
 		}
 		else if (size() >= count)
 		{	// enough elements, copy new and destroy old
-			pointer newEnd = std::copy(first, last, data());
-			erase_back(OEL_DYNARR_ITERATOR(newEnd));
+			iterator newEnd = std::copy(first, last, begin());
+			erase_back(newEnd);
 		}
 		else
 		{	// enough room, assign to old elements and construct rest
-			for (pointer dest = data(); dest != _end; ++dest, ++first)
+			for (pointer dest = data(); dest != _end; ++dest)
+			{
 				*dest = *first;
-
-			_end = std::uninitialized_copy(first, last, _end);
+				++first;
+			}
+			_end = _detail::UninitCopy(first, last, _end);
 		}
 	}
 
@@ -470,11 +472,7 @@ private:
 		pointer const pos = _appendNonTrivial( oel::count(range),
 				[=](pointer dest, size_type)
 				{
-					return
-					#if _ITERATOR_DEBUG_LEVEL >= 2
-						(first == last) ? dest :  // workaround for MSVC asserting dest != nullptr
-					#endif
-						std::uninitialized_copy(first, last, dest);
+					return _detail::UninitCopy(first, last, dest);
 				} );
 		return OEL_DYNARR_ITERATOR(pos);
 	}
