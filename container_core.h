@@ -24,7 +24,7 @@ namespace oel
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation
 * http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
-* @par
+*
 * To specify that a type is trivially relocatable define a specialization like this:
 @code
 namespace oel {
