@@ -282,7 +282,7 @@ private:
 		_reserveEnd = _end;
 	}
 
-	void _uninitCopyData(std::true_type, const_pointer first, const_pointer, size_type count)
+	void _uninitCopyData(std::true_type, const_pointer first, const_pointer, size_type const count)
 	{
 		::memcpy(data(), first, count * sizeof(T));
 		_reserveEnd = _end = data() + count;
@@ -303,7 +303,7 @@ private:
 		return reserved + std::max(reserved / 2, size_type(MIN_GROW));
 	}
 
-	size_type _appendCalcCap(size_type toAdd) const
+	size_type _appendCalcCap(size_type const toAdd) const
 	{
 		size_type reserved = capacity();
 		reserved += reserved / 2;
