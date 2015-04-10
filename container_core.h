@@ -173,19 +173,45 @@ namespace _detail
 	}
 
 
-	template<typename InputIter, typename DestT>
-	DestT * UninitCopy(InputIter first, InputIter last, DestT * dest)
+	template<typename InputIter, typename T>
+	T * UninitCopy(InputIter first, InputIter const last, T * dest)
 	{
-		return std::uninitialized_copy( first, last,
-			#if _ITERATOR_DEBUG_LEVEL
-				stdext::make_unchecked_array_iterator(dest) ).base();
-			#else
-				dest );
-			#endif
+		T *const destBegin = dest;
+		try
+		{
+			while (first != last)
+			{
+				::new(dest) T(*first);
+				++dest; ++first;
+			}
+		}
+		catch (...)
+		{
+			_detail::Destroy(destBegin, dest);
+			throw;
+		}
+		return dest;
 	}
 
-	template<typename, typename Iter> inline
-	void UninitFillDefault(std::true_type, Iter, Iter) {}  // for speed with optimizations off
+	template<typename InputIter, typename T>
+	range_ends<InputIter, T *> UninitCopyN(InputIter first, size_t count, T * dest)
+	{
+		T *const destBegin = dest;
+		try
+		{
+			for (; 0 < count; --count)
+			{
+				::new(dest) T(*first);
+				++dest; ++first;
+			}
+		}
+		catch (...)
+		{
+			_detail::Destroy(destBegin, dest);
+			throw;
+		}
+		return {first, dest};
+	}
 
 	template<typename ValT, typename ForwardIter>
 	void UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
@@ -204,30 +230,9 @@ namespace _detail
 			throw;
 		}
 	}
-}
 
-/// Copies count elements from a range beginning at first to an uninitialized memory area beginning at dest
-template<typename InputIterator, typename ForwardIterator>
-range_ends<InputIterator, ForwardIterator> uninitialized_copy_n(InputIterator first, size_t count, ForwardIterator dest)
-{
-	using ValT = typename std::iterator_traits<ForwardIterator>::value_type;
-	ForwardIterator destBegin = dest;
-	try
-	{
-		for (; 0 < count; --count)
-		{
-			::new(std::addressof(*dest)) ValT(*first);
-			++dest; ++first;
-		}
-	}
-	catch (...)
-	{	// Destroy the objects constructed before the exception
-		for (; destBegin != dest; ++destBegin)
-			(*destBegin).~ValT();
-
-		throw;
-	}
-	return {first, dest};
+	template<typename, typename Iter> inline
+	void UninitFillDefault(std::true_type, Iter, Iter) {}  // for speed with optimizations off
 }
 
 /// Default initializes objects (in uninitialized memory) in range [first, last)

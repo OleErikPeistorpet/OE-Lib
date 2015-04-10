@@ -448,7 +448,7 @@ private:
 		_appendNonTrivial( count,
 				[&first](pointer dest, size_type count)
 				{
-					auto const res = oel::uninitialized_copy_n(first, count, dest);
+					auto const res = _detail::UninitCopyN(first, count, dest);
 					first = res.src_end;
 					return res.dest_end;
 				} );
