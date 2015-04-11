@@ -26,28 +26,28 @@ TEST_F(utilTest, erase_successive_dup)
 	uniqueTest.append(li);
 
 	erase_successive_dup(li);
-	EXPECT_EQ(4, li.size());
+	EXPECT_EQ(4U, li.size());
 	erase_successive_dup(uniqueTest);
-	EXPECT_EQ(4, uniqueTest.size());
+	EXPECT_EQ(4U, uniqueTest.size());
 }
 
 TEST_F(utilTest, erase_back)
 {
 	std::list<int> li{1, 1, 2, 2, 2, 1, 3};
 	erase_back(li, std::remove(begin(li), end(li), 1));
-	EXPECT_EQ(4, li.size());
+	EXPECT_EQ(4U, li.size());
 }
 
 TEST_F(utilTest, index_valid)
 {
 	std::list<std::string> li{"aa", "bb"};
 
-	EXPECT_TRUE(index_valid(li, 1LL));
+	EXPECT_TRUE( index_valid(li, std::int64_t(1)) );
 	EXPECT_FALSE(index_valid(li, 2));
-	EXPECT_FALSE( index_valid(li, uint64_t(-1)) );
+	EXPECT_FALSE( index_valid(li, std::uint64_t(-1)) );
 
-	long l = 1L;
-	EXPECT_TRUE(index_valid(li, l));
+	//long l = 1L;
+	//EXPECT_TRUE(index_valid(li, l));
 }
 
 TEST_F(utilTest, copy_nonoverlap)
@@ -73,7 +73,7 @@ TEST_F(utilTest, make_unique)
 		EXPECT_TRUE(p1[i].empty());
 
 	auto p2 = make_unique<std::list<int>>(4, 6);
-	EXPECT_EQ(4, p2->size());
+	EXPECT_EQ(4U, p2->size());
 	EXPECT_EQ(6, p2->front());
 	EXPECT_EQ(6, p2->back());
 }

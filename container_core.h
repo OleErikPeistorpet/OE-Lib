@@ -169,7 +169,7 @@ namespace _detail
 	template<typename T> inline
 	void Destroy(T * first, T * last) NOEXCEPT
 	{	// first > last is OK, does nothing
-		Destroy(std::has_trivial_destructor<T>(), first, last);
+		Destroy(is_trivially_destructible<T>(), first, last);
 	}
 
 

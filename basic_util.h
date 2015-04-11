@@ -32,22 +32,19 @@ using std::begin;
 using std::end;
 
 #if _MSC_VER
-
-using std::cbegin;
-using std::cend;
-
+	using std::cbegin;
+	using std::cend;
 #else
-/**
-* @brief Const version of std::begin.
-* @return An iterator addressing the (const) first element in the range r. */
-template<typename Range> inline
-auto cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
-/**
-* @brief Const version of std::end.
-* @return An iterator positioned one beyond the (const) last element in the range r. */
-template<typename Range> inline
-auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
-
+	/**
+	* @brief Const version of std::begin.
+	* @return An iterator addressing the (const) first element in the range r. */
+	template<typename Range> inline
+	auto cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+	/**
+	* @brief Const version of std::end.
+	* @return An iterator positioned one beyond the (const) last element in the range r. */
+	template<typename Range> inline
+	auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
 #endif
 
 
@@ -67,15 +64,6 @@ struct range_ends
 
 
 
-#if __GLIBCXX__
-	template<typename T>
-	using is_trivially_copyable = std::integral_constant< bool,
-									__has_trivial_copy(T) && __has_trivial_assign(T) >;
-#else
-	using std::is_trivially_copyable;
-#endif
-
-
 /// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
 template<typename IteratorDest, typename IteratorSource>
 struct can_memmove_with;
@@ -88,6 +76,22 @@ T * to_ptr(T * ptr)  { return ptr; }
 template<typename Iterator> inline
 auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
  -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
+
+
+#if __GLIBCXX__
+	template<typename T>
+	using is_trivially_copyable = std::integral_constant< bool,
+									__has_trivial_copy(T) && __has_trivial_assign(T) >;
+#else
+	using std::is_trivially_copyable;
+#endif
+
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 8 && !__clang__
+	template<typename T>
+	using is_trivially_destructible = std::has_trivial_destructor<T>;
+#else
+	using std::is_trivially_destructible;
+#endif
 
 
 

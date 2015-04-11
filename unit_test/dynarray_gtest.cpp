@@ -1,5 +1,6 @@
 #include "forward_decl_test.h"
 #include "iterator_range.h"
+#include "util.h"
 #include <deque>
 
 class ForwDeclared { char c; };
@@ -16,6 +17,8 @@ namespace
 {
 
 using oel::dynarray;
+using oel::cbegin;
+using oel::cend;
 
 }
 
@@ -57,19 +60,19 @@ TEST_F(dynarrayTest, push_back)
 		double const VALUES[] = {-1.1, 2.0};
 
 		up.push_back( MoveOnly(new double(VALUES[0])) );
-		ASSERT_EQ(1, up.size());
+		ASSERT_EQ(1U, up.size());
 
 		EXPECT_THROW( up.emplace_back(ThrowOnConstruct), TestException );
-		ASSERT_EQ(1, up.size());
+		ASSERT_EQ(1U, up.size());
 
 		up.push_back( MoveOnly(new double(VALUES[1])) );
-		ASSERT_EQ(2, up.size());
+		ASSERT_EQ(2U, up.size());
 
 		EXPECT_THROW( up.emplace_back(ThrowOnConstruct), TestException );
-		ASSERT_EQ(2, up.size());
+		ASSERT_EQ(2U, up.size());
 
 		up.push_back( std::move(up.back()) );
-		ASSERT_EQ(3, up.size());
+		ASSERT_EQ(3U, up.size());
 
 		EXPECT_EQ(VALUES[0], *up[0]);
 		EXPECT_EQ(nullptr, up[1]);
@@ -79,13 +82,14 @@ TEST_F(dynarrayTest, push_back)
 
 	dynarray< dynarray<int> > nested;
 	nested.emplace_back(oel::ini_size, 3);
-	EXPECT_EQ(3, nested.back().size());
+	EXPECT_EQ(3U, nested.back().size());
 	nested.emplace_back(std::initializer_list<int>{1, 2});
-	EXPECT_EQ(2, nested.back().size());
+	EXPECT_EQ(2U, nested.back().size());
 }
 
 TEST_F(dynarrayTest, assign)
 {
+#if _MSC_VER
 	{
 		dynarray<std::string> das;
 
@@ -100,7 +104,7 @@ TEST_F(dynarrayTest, assign)
 		//das.assign(begin, 5);  should not compile
 		das.assign(oel::make_range(begin, end));
 
-		EXPECT_EQ(5, das.size());
+		EXPECT_EQ(5U, das.size());
 
 		EXPECT_EQ("My", das.at(0));
 		EXPECT_EQ("computer", das.at(1));
@@ -116,12 +120,12 @@ TEST_F(dynarrayTest, assign)
 
 		copyDest.assign(oel::make_range(cbegin(das), cbegin(das) + 1));
 
-		EXPECT_EQ(1, copyDest.size());
+		EXPECT_EQ(1U, copyDest.size());
 		EXPECT_EQ(das[0], copyDest[0]);
 
 		copyDest.assign(cbegin(das) + 2, 3);
 
-		EXPECT_EQ(3, copyDest.size());
+		EXPECT_EQ(3U, copyDest.size());
 		EXPECT_EQ(das[2], copyDest[0]);
 		EXPECT_EQ(das[3], copyDest[1]);
 		EXPECT_EQ(das[4], copyDest[2]);
@@ -129,9 +133,10 @@ TEST_F(dynarrayTest, assign)
 		copyDest = {std::string()};
 		EXPECT_EQ("", copyDest.at(0));
 		copyDest = {das[0], das[4]};
-		EXPECT_EQ(2, copyDest.size());
+		EXPECT_EQ(2U, copyDest.size());
 		EXPECT_EQ(das[4], copyDest.at(1));
 	}
+#endif
 
 	MoveOnly::ClearCount();
 	{
@@ -142,12 +147,12 @@ TEST_F(dynarrayTest, assign)
 
 		test.assign(oel::move_range(src));
 
-		EXPECT_EQ(2, test.size());
+		EXPECT_EQ(2U, test.size());
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
 		test.assign(oel::make_move_iter(src), 0);
-		EXPECT_EQ(0, test.size());
+		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 }
@@ -165,7 +170,7 @@ TEST_F(dynarrayTest, append)
 		double const TEST_VAL = 6.6;
 		dest.resize(2, TEST_VAL);
 		dest.append(dest.begin(), dest.size());
-		EXPECT_EQ(4, dest.size());
+		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
 			EXPECT_EQ(TEST_VAL, d);
 	}
@@ -182,7 +187,7 @@ TEST_F(dynarrayTest, append)
 		double_dynarr.append(int_dynarr);
 	}
 
-	ASSERT_EQ(8, double_dynarr.size());
+	ASSERT_EQ(8U, double_dynarr.size());
 
 	EXPECT_EQ(arrayA[0], double_dynarr[0]);
 	EXPECT_EQ(arrayA[1], double_dynarr[1]);
@@ -205,7 +210,7 @@ TEST_F(dynarrayTest, append)
 
 		dest.append(it, 2);
 
-		for (decltype(dest.size()) i = 0; i < dest.size(); ++i)
+		for (int i = 0; i < static_cast<int>(dest.size()); ++i)
 			EXPECT_EQ(i + 1, dest[i]);
 	}
 }
@@ -221,21 +226,21 @@ TEST_F(dynarrayTest, insert)
 
 		auto & p = *up.insert(begin(up), MoveOnly(new double(VALUES[2])));
 		EXPECT_EQ(VALUES[2], *p);
-		ASSERT_EQ(1, up.size());
+		ASSERT_EQ(1U, up.size());
 
 		EXPECT_THROW( up.emplace(begin(up), ThrowOnConstruct), TestException );
-		ASSERT_EQ(1, up.size());
+		ASSERT_EQ(1U, up.size());
 
 		up.insert( begin(up), MoveOnly(new double(VALUES[0])) );
-		ASSERT_EQ(2, up.size());
+		ASSERT_EQ(2U, up.size());
 
 		EXPECT_THROW( up.emplace(begin(up) + 1, ThrowOnConstruct), TestException );
-		ASSERT_EQ(2, up.size());
+		ASSERT_EQ(2U, up.size());
 
 		up.insert( end(up), MoveOnly(new double(VALUES[3])) );
 		auto & p2 = *up.insert( begin(up) + 1, MoveOnly(new double(VALUES[1])) );
 		EXPECT_EQ(VALUES[1], *p2);
-		ASSERT_EQ(4, up.size());
+		ASSERT_EQ(4U, up.size());
 
 		auto v = std::begin(VALUES);
 		for (const auto & p : up)
@@ -250,7 +255,7 @@ TEST_F(dynarrayTest, insert)
 
 		auto const val = *up.back();
 		up.insert( end(up) - 1, std::move(up.back()) );
-		ASSERT_EQ(6, up.size());
+		ASSERT_EQ(6U, up.size());
 		EXPECT_EQ(nullptr, up.back());
 		EXPECT_EQ(val, *end(up)[-2]);
 	}
@@ -268,7 +273,7 @@ TEST_F(dynarrayTest, resize)
 	d.resize(S1, VAL);
 	ASSERT_EQ(S1, d.size());
 
-	unsigned int nExcept = 0;
+	int nExcept = 0;
 	try
 	{
 		d.resize((size_t)-8);
@@ -282,7 +287,7 @@ TEST_F(dynarrayTest, resize)
 	EXPECT_EQ(S1, d.size());
 	for (const auto & e : d)
 	{
-		EXPECT_EQ(VAL, e);
+		EXPECT_EQ(VAL, oel::as_unsigned(e));
 	}
 }
 
@@ -308,8 +313,7 @@ TEST_F(dynarrayTest, misc)
 	daSrc.push_back(0);
 	daSrc.push_back(2);
 	daSrc.insert(begin(daSrc) + 1, 1);
-	auto sz = daSrc.size();
-	ASSERT_EQ(3, sz);
+	ASSERT_EQ(3U, daSrc.size());
 
 	std::deque<size_t> dequeSrc;
 	dequeSrc.push_back(4);
@@ -322,7 +326,7 @@ TEST_F(dynarrayTest, misc)
 	dest0.append(cbegin(daSrc), daSrc.size());
 	dest0.append(fASrc, 2);
 	auto srcEnd = dest0.append(dequeSrc.begin(), dequeSrc.size());
-	EXPECT_EQ(end(dequeSrc), srcEnd);
+	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;
 	dynarray<size_t>::const_iterator it = dest1.append(daSrc);
