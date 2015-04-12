@@ -49,7 +49,7 @@ struct is_trivially_relocatable< std::shared_ptr<T> > : std::true_type {};
 template<typename T>
 struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
 
-#if _MSC_VER && _MSC_VER < 1900
+#if _MSC_VER
 	/// Might not be safe with all std library implementations, only verified for Visual C++ 2013
 	template<typename C, typename Tr>
 	struct is_trivially_relocatable< std::basic_string<C, Tr> > : std::true_type {};
@@ -88,9 +88,42 @@ auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 
 
 
+/// Like std::aligned_storage<Size, Align>::type, but guaranteed to support alignment of up to 64
+template<size_t Size, size_t Align>
+struct aligned_storage_t {};
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is not for users (implementation details)
+
+
+#if _MSC_VER
+	#define OEL_STORAGE_ALIGNED_TO(alignment)  \
+		template<size_t Size>  \
+		struct aligned_storage_t<Size, alignment>  \
+		{  \
+			__declspec(align(alignment)) unsigned char data[Size];  \
+		}
+#else
+	#define OEL_STORAGE_ALIGNED_TO(alignment)  \
+		template<size_t Size>  \
+		struct aligned_storage_t<Size, alignment>  \
+		{  \
+			unsigned char data[Size];  \
+		} __attribute__(( aligned(alignment) ))
+#endif
+
+OEL_STORAGE_ALIGNED_TO(1);
+OEL_STORAGE_ALIGNED_TO(2);
+OEL_STORAGE_ALIGNED_TO(4);
+OEL_STORAGE_ALIGNED_TO(8);
+OEL_STORAGE_ALIGNED_TO(16);
+OEL_STORAGE_ALIGNED_TO(32);
+OEL_STORAGE_ALIGNED_TO(64);
+
+#undef OEL_STORAGE_ALIGNED_TO
 
 
 namespace _detail

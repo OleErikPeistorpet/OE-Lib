@@ -670,7 +670,6 @@ void dynarray<T, Alloc>::emplace_back(ArgTs &&... args)
 template<typename T, typename Alloc> template<typename... ArgTs>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, ArgTs &&... args)
 {
-	static_assert(std::is_nothrow_move_constructible<T>::value, "insert/emplace require that T has noexcept move constructor");
 	_staticAssertRelocate();
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
@@ -681,12 +680,14 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	if (_end < _reserveEnd) // then new element fits
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
-		T tmp = T(std::forward<ArgTs>(args)...);
+		using RawStore = aligned_storage_t<sizeof(T), ALIGNOF(T)>;
+		RawStore local;
+		::new(&local) T(std::forward<ArgTs>(args)...);
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
 		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
 		++_end;
 
-		::new(posPtr) T(std::move(tmp)); // move construct the new element at uninitialized location pos
+		*reinterpret_cast<RawStore *>(posPtr) = local; // relocate the new element to pos
 
 		return OEL_DYNARR_ITERATOR(posPtr);
 	}
@@ -698,11 +699,11 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 		size_type const nBeforePos = posPtr - data();
 		pointer const newPos = newData.get() + nBeforePos;
-		::new(newPos) T(std::forward<ArgTs>(args)...);		// add new
+		::new(newPos) T(std::forward<ArgTs>(args)...);   // add new
 		pointer const next = newPos + 1;
 		// Behaviour undefined by standard if data is null
 		::memcpy(newData.get(), data(), nBeforePos * sizeof(T)); // relocate prefix
-		::memcpy(next, posPtr, nAfterPos * sizeof(T));  // relocate suffix
+		::memcpy(next, posPtr, nAfterPos * sizeof(T));   // relocate suffix
 		_end = next + nAfterPos;
 
 		_reserveEnd = newData.get() + newCapacity;
