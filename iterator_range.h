@@ -40,17 +40,23 @@ std::move_iterator<InputIterator> make_move_iter(InputIterator it)  { return std
 template<typename Iterator> inline
 iterator_range<Iterator> make_range(Iterator first, Iterator last)  { return {first, last}; }
 
-/// Create an iterator_range of move_iterator from two iterators
-template<typename InputIterator> inline
-iterator_range< std::move_iterator<InputIterator> >
-	move_range(InputIterator first, InputIterator last)  { return {make_move_iter(first), make_move_iter(last)}; }
 /// Create an iterator_range of move_iterator from range reference (array or STL container)
 template<typename InputRange> inline
-auto move_range(InputRange & r)
- -> iterator_range< std::move_iterator<decltype(begin(r))> >  { return oel::move_range(begin(r), end(r)); }
+auto move_range(InputRange & r) -> iterator_range< std::move_iterator<decltype(begin(r))> >
+{
+	return oel::make_range( make_move_iter(begin(r)), make_move_iter(end(r)) );
+}
 /// Create an iterator_range of move_iterator from iterator_range
 template<typename InputIterator> inline
-iterator_range< std::move_iterator<InputIterator> >
-	move_range(const iterator_range<InputIterator> & r)  { return oel::move_range(r.begin(), r.end()); }
+iterator_range< std::move_iterator<InputIterator> >  move_range(const iterator_range<InputIterator> & r)
+{
+	return oel::make_range( make_move_iter(r.begin()), make_move_iter(r.end()) );
+}
+/// Create an iterator_range of move_iterator from two iterators
+template<typename InputIterator> inline
+iterator_range< std::move_iterator<InputIterator> >  move_range(InputIterator first, InputIterator last)
+{
+	return oel::make_range(make_move_iter(first), make_move_iter(last));
+}
 
 } // namespace oel
