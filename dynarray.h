@@ -105,6 +105,8 @@ public:
 	#define OEL_DYNARR_ITERATOR(ptr)        (ptr)
 	#define OEL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
+	using reverse_iterator       = std::reverse_iterator<iterator>;
+	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
 	using size_type       = typename Alloc::size_type;
@@ -220,6 +222,12 @@ public:
 	iterator        end() NOEXCEPT         { return OEL_DYNARR_ITERATOR(_end); }
 	const_iterator  end() const NOEXCEPT   { return OEL_DYNARR_CONST_ITER(_end); }
 	const_iterator  cend() const NOEXCEPT  { return end(); }
+
+	reverse_iterator       rbegin() NOEXCEPT        { return reverse_iterator{end()}; }
+	const_reverse_iterator rbegin() const NOEXCEPT  { return const_reverse_iterator{end()}; }
+
+	reverse_iterator       rend() NOEXCEPT        { return reverse_iterator{begin()}; }
+	const_reverse_iterator rend() const NOEXCEPT  { return const_reverse_iterator{begin()}; }
 
 	pointer         data() NOEXCEPT        { return _data.get(); }
 	const_pointer   data() const NOEXCEPT  { return _data.get(); }

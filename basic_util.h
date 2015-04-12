@@ -34,6 +34,10 @@ using std::end;
 #if _MSC_VER
 	using std::cbegin;
 	using std::cend;
+	using std::rbegin;
+	using std::crbegin;
+	using std::rend;
+	using std::crend;
 #else
 	/**
 	* @brief Const version of std::begin.
@@ -45,6 +49,30 @@ using std::end;
 	* @return An iterator positioned one beyond the (const) last element in the range r. */
 	template<typename Range> inline
 	auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
+
+	/**
+	* @brief Like std::begin, but reverse iterator.
+	* @return An iterator to the reverse-beginning of the range r. */
+	template<typename Range> inline
+	auto rbegin(Range & r) -> decltype(r.rbegin())  { return r.rbegin(); }
+	/// Same as crbegin(const Range &)
+	template<typename Range> inline
+	auto rbegin(const Range & r) -> decltype(r.rbegin())  { return r.rbegin(); }
+	/// Returns a const-qualified iterator to the reverse-beginning of the range r
+	template<typename Range> inline
+	auto crbegin(const Range & r) -> decltype(rbegin(r))  { return rbegin(r); }
+
+	/**
+	* @brief Like std::end, but reverse iterator.
+	* @return An iterator to the reverse-end of the range r. */
+	template<typename Range> inline
+	auto rend(Range & r) -> decltype(r.rend())  { return r.rend(); }
+	/// Same as crend(const Range &)
+	template<typename Range> inline
+	auto rend(const Range & r) -> decltype(r.rend())  { return r.rend(); }
+	/// Returns a const-qualified iterator to the reverse-end of the range r
+	template<typename Range> inline
+	auto crend(const Range & r) -> decltype(rend(r))  { return rend(r); }
 #endif
 
 
