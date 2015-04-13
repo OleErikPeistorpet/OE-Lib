@@ -556,7 +556,7 @@ dynarray<T, Alloc>::dynarray(ini_size_tag, size_type size, const T & val) :
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(dynarray<T, Alloc> && other) NOEXCEPT :
+inline dynarray<T, Alloc>::dynarray(dynarray && other) NOEXCEPT :
 	_data(std::move(other._data)),
 	_end(other._end),
 	_reserveEnd(other._reserveEnd)
@@ -565,7 +565,7 @@ inline dynarray<T, Alloc>::dynarray(dynarray<T, Alloc> && other) NOEXCEPT :
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(const dynarray<T, Alloc> & other) :
+dynarray<T, Alloc>::dynarray(const dynarray & other) :
 	_data( _alloc(other.size()) )
 {
 	_uninitCopyData(is_trivially_copyable<T>(),
@@ -587,7 +587,7 @@ dynarray<T, Alloc>::~dynarray() NOEXCEPT
 }
 
 template<typename T, typename Alloc>
-void dynarray<T, Alloc>::swap(dynarray<T, Alloc> & other) NOEXCEPT
+void dynarray<T, Alloc>::swap(dynarray & other) NOEXCEPT
 {
 	using std::swap;
 	swap(_data, other._data);

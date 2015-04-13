@@ -13,14 +13,9 @@ int NoAssign::nConstruct;
 int NoAssign::nCopyConstr;
 int NoAssign::nDestruct;
 
-namespace
-{
-
 using oel::dynarray;
 using oel::cbegin;
 using oel::cend;
-
-}
 
 // The fixture for testing dynarray.
 class dynarrayTest : public ::testing::Test
@@ -89,19 +84,18 @@ TEST_F(dynarrayTest, push_back)
 
 TEST_F(dynarrayTest, assign)
 {
-#if _MSC_VER
 	{
 		dynarray<std::string> das;
 
 		std::string * p = nullptr;
 		das.assign(oel::make_range(p, p));
 
-		EXPECT_EQ(0, das.size());
+		EXPECT_EQ(0U, das.size());
 
 		std::stringstream ss{"My computer emits Hawking radiation"};
 		std::istream_iterator<std::string> begin{ss};
 		std::istream_iterator<std::string> end;
-		//das.assign(begin, 5);  should not compile
+		//das.assign(begin, 5); // should not compile unless no boost
 		das.assign(oel::make_range(begin, end));
 
 		EXPECT_EQ(5U, das.size());
@@ -136,7 +130,6 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(2U, copyDest.size());
 		EXPECT_EQ(das[4], copyDest.at(1));
 	}
-#endif
 
 	MoveOnly::ClearCount();
 	{

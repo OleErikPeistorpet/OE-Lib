@@ -49,8 +49,8 @@ struct is_trivially_relocatable< std::shared_ptr<T> > : std::true_type {};
 template<typename T>
 struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
 
-#if _MSC_VER
-	/// Might not be safe with all std library implementations, only verified for Visual C++ 2013
+#if _MSC_VER || __GLIBCXX__
+	/// Might not be safe with all std library implementations, only verified for Visual C++ 2013 and GCC 4
 	template<typename C, typename Tr>
 	struct is_trivially_relocatable< std::basic_string<C, Tr> > : std::true_type {};
 #endif
