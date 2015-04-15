@@ -17,6 +17,25 @@ using oel::dynarray;
 using oel::cbegin;
 using oel::cend;
 
+template<typename T>
+struct throwingAlloc
+{
+	using size_type = std::size_t;
+
+	T * allocate(size_type nObjs)
+	{
+		if (nObjs > 999)
+			throw std::bad_alloc{};
+
+		return static_cast<T *>(::operator new[](sizeof(T) * nObjs));
+	}
+
+	void deallocate(T * ptr)
+	{
+		::operator delete[](ptr);
+	}
+};
+
 // The fixture for testing dynarray.
 class dynarrayTest : public ::testing::Test
 {
@@ -258,7 +277,7 @@ TEST_F(dynarrayTest, insert)
 // Test resize.
 TEST_F(dynarrayTest, resize)
 {
-	dynarray<int> d;
+	dynarray<int, throwingAlloc<int>> d;
 
 	size_t const S1 = 4;
 	size_t const VAL = 313;

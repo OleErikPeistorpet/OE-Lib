@@ -214,7 +214,7 @@ public:
 
 	void       clear() NOEXCEPT        { erase_back(begin()); }
 
-	bool       empty() const NOEXCEPT  { return data() == _end; }
+	bool       empty() const NOEXCEPT  { return _data.get() == _end; }
 
 	size_type  size() const NOEXCEPT   { return _end - _data.get(); }
 
