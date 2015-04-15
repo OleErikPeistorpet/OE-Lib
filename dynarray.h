@@ -691,7 +691,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	_staticAssertRelocate();
 
 	auto const posPtr = const_cast<pointer>(to_ptr(pos));
-	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);
+	MEM_BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);
 
 	size_type const nAfterPos = _end - posPtr;
 
@@ -773,7 +773,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::pop_back() NOEXCEPT
 {
-	MEM_BOUND_ASSERT(data() < _end);
+	OEL_MEM_BOUND_ASSERT(data() < _end);
 	--_end;
 	_end-> ~T();
 }
@@ -800,7 +800,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 	_staticAssertRelocate();
 
 	pointer const posPtr = to_ptr(pos);
-	BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr < _end);
+	MEM_BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr < _end);
 
 	posPtr-> ~T();
 	pointer const next = posPtr + 1;
@@ -816,8 +816,8 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 
 	pointer const pFirst = to_ptr(first);
 	pointer const pLast = to_ptr(last);
-	BOUND_ASSERT_CHEAP(data() <= pFirst);  // if pLast > _end, caller will find out when memmove crashes
-	MEM_BOUND_ASSERT(pFirst <= pLast && pLast <= _end);
+	MEM_BOUND_ASSERT_CHEAP(data() <= pFirst);  // if pLast > _end, caller will find out when memmove crashes
+	OEL_MEM_BOUND_ASSERT(pFirst <= pLast && pLast <= _end);
 	if (pFirst < pLast)
 	{
 		_detail::Destroy(pFirst, pLast);
@@ -833,7 +833,7 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_back(iterator first) NOEXCEPT
 {
 	pointer const newEnd = to_ptr(first);
-	BOUND_ASSERT_CHEAP(data() <= newEnd && newEnd <= _end);
+	MEM_BOUND_ASSERT_CHEAP(data() <= newEnd && newEnd <= _end);
 	_detail::Destroy(newEnd, _end);
 	_end = newEnd;
 }
@@ -858,13 +858,13 @@ typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::operator[](size_type index) NOEXCEPT
 {
-	MEM_BOUND_ASSERT(size() > index);
+	OEL_MEM_BOUND_ASSERT(size() > index);
 	return _data[index];
 }
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operator[](size_type index) const NOEXCEPT
 {
-	MEM_BOUND_ASSERT(size() > index);
+	OEL_MEM_BOUND_ASSERT(size() > index);
 	return _data[index];
 }
 

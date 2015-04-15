@@ -19,12 +19,12 @@ template<typename ConstQualValT, typename Container>
 class cntigus_ctr_dbg_iterator
 {
 #define OEL_ARRITER_CHECK_DEREFABLE  \
-	MEM_BOUND_ASSERT( static_cast<typename Container::size_type>(_pElem - _myCont->data()) < _myCont->size() )
+	OEL_MEM_BOUND_ASSERT( static_cast<typename Container::size_type>(_pElem - _myCont->data()) < _myCont->size() )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 3
 	// test for iterator pair pointing to same container
 	#define OEL_ARRITER_CHECK_COMPAT(right)  \
-		MEM_BOUND_ASSERT(_myCont && right._myCont == _myCont)
+		OEL_MEM_BOUND_ASSERT(_myCont && right._myCont == _myCont)
 #else
 	#define OEL_ARRITER_CHECK_COMPAT(right)
 #endif
@@ -66,7 +66,7 @@ public:
 	cntigus_ctr_dbg_iterator & operator++()
 	{	// preincrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
-		MEM_BOUND_ASSERT( _pElem < to_ptr(_myCont->end()) );
+		OEL_MEM_BOUND_ASSERT( _pElem < to_ptr(_myCont->end()) );
 	#endif
 		++_pElem;
 		return *this;
@@ -82,7 +82,7 @@ public:
 	cntigus_ctr_dbg_iterator & operator--()
 	{	// predecrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
-		MEM_BOUND_ASSERT(_myCont->data() < _pElem);
+		OEL_MEM_BOUND_ASSERT(_myCont->data() < _pElem);
 	#endif
 		--_pElem;
 		return *this;
@@ -98,8 +98,8 @@ public:
 	cntigus_ctr_dbg_iterator & operator+=(difference_type offset)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
-		MEM_BOUND_ASSERT( offset >= _myCont->data() - _pElem
-					   && offset <= to_ptr(_myCont->end()) - _pElem );
+		OEL_MEM_BOUND_ASSERT( offset >= _myCont->data() - _pElem
+						   && offset <= to_ptr(_myCont->end()) - _pElem );
 	#endif
 		_pElem += offset;
 		return *this;
@@ -108,8 +108,8 @@ public:
 	cntigus_ctr_dbg_iterator & operator-=(difference_type offset)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
-		MEM_BOUND_ASSERT( offset <= _pElem - _myCont->data()
-					   && offset >= _pElem - to_ptr(_myCont->end()) );
+		OEL_MEM_BOUND_ASSERT( offset <= _pElem - _myCont->data()
+						   && offset >= _pElem - to_ptr(_myCont->end()) );
 	#endif
 		_pElem -= offset;
 		return *this;

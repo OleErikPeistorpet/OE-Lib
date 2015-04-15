@@ -15,7 +15,7 @@
 	#define ASSERT_ALWAYS(expr)  \
 		do {  \
 			if (!(expr)) OEL_HALT();  \
-		} while((void) 0, false)
+		} while ((void) 0, false)
 #endif
 
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
@@ -25,15 +25,15 @@
 	#define OEL_MEM_BOUND_DEBUG_LVL 3
 #endif
 
-#undef MEM_BOUND_ASSERT
-#undef BOUND_ASSERT_CHEAP
+#undef OEL_MEM_BOUND_ASSERT
+#undef MEM_BOUND_ASSERT_CHEAP
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	#define MEM_BOUND_ASSERT ASSERT_ALWAYS
+	#define OEL_MEM_BOUND_ASSERT ASSERT_ALWAYS
 #else
-	#define MEM_BOUND_ASSERT(expr) ((void) 0)
+	#define OEL_MEM_BOUND_ASSERT(expr) ((void) 0)
 #endif
 #if OEL_MEM_BOUND_DEBUG_LVL
-	#define BOUND_ASSERT_CHEAP ASSERT_ALWAYS
+	#define MEM_BOUND_ASSERT_CHEAP ASSERT_ALWAYS
 #else
-	#define BOUND_ASSERT_CHEAP(expr) ((void) 0)
+	#define MEM_BOUND_ASSERT_CHEAP(expr) ((void) 0)
 #endif
