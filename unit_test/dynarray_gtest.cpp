@@ -76,7 +76,7 @@ TEST_F(dynarrayTest, push_back)
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 
 	dynarray< dynarray<int> > nested;
-	nested.emplace_back(oel::ini_size, 3);
+	nested.emplace_back(3);
 	EXPECT_EQ(3U, nested.back().size());
 	nested.emplace_back(std::initializer_list<int>{1, 2});
 	EXPECT_EQ(2U, nested.back().size());

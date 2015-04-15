@@ -62,9 +62,10 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
 
 
 
-/// Tag to select a specific constructor. The const instance ini_size is provided as a convenience
-struct ini_size_tag {};
-ini_size_tag const ini_size;
+/// Tag to select a specific constructor. The const instance init_fill is provided as a convenience
+struct init_fill_tag {};
+init_fill_tag const init_fill;
+
 
 
 /**
@@ -76,6 +77,7 @@ auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
 /// Const version of adl_begin
 template<typename Range> inline
 auto adl_begin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+
 /**
 * @brief Argument-dependent lookup non-member end, defaults to std::end
 *

@@ -112,13 +112,23 @@ public:
 	using size_type       = typename Alloc::size_type;
 
 	dynarray() NOEXCEPT  : _data(nullptr), _end(nullptr), _reserveEnd(nullptr) {}
-	/**
-	* @brief Construct empty dynarray with space reserved for at least capacity elements
-	* @throw std::bad_alloc if the allocation request does not succeed (same for all functions that expand the dynarray)  */
+
+	/** @brief Construct empty dynarray with space reserved for at least capacity elements
+	* @throw std::bad_alloc if the allocation request does not succeed (same for all operations that add capacity)  */
 	dynarray(reserve_tag, size_type capacity);
+
 	/// Elements are default initialized, meaning non-class T produces indeterminate values
-	dynarray(ini_size_tag, size_type size);
-	dynarray(ini_size_tag, size_type size, const T & fillVal);
+	explicit dynarray(size_type size);
+	/**
+	* @brief Same as dynarray(size_type). For uniform initialization syntax {}
+	*
+	* Example: @code
+	dynarray<int> a{3};            // dynarray(std::initializer_list<T>) constructor, a.size() equals 1
+	dynarray<int> b{3, init_fill}; // b.size() equals 3
+	@endcode  */
+	dynarray(size_type size, init_fill_tag)                                : dynarray(size) {}
+	dynarray(size_type size, const T & fillVal, init_fill_tag = init_fill);
+
 	dynarray(std::initializer_list<T> init);
 
 	dynarray(dynarray && other) NOEXCEPT;
@@ -219,15 +229,15 @@ public:
 	const_iterator  begin() const NOEXCEPT   { return OEL_DYNARR_CONST_ITER(_data.get()); }
 	const_iterator  cbegin() const NOEXCEPT  { return begin(); }
 
-	iterator        end() NOEXCEPT         { return OEL_DYNARR_ITERATOR(_end); }
-	const_iterator  end() const NOEXCEPT   { return OEL_DYNARR_CONST_ITER(_end); }
-	const_iterator  cend() const NOEXCEPT  { return end(); }
+	iterator        end() NOEXCEPT           { return OEL_DYNARR_ITERATOR(_end); }
+	const_iterator  end() const NOEXCEPT     { return OEL_DYNARR_CONST_ITER(_end); }
+	const_iterator  cend() const NOEXCEPT    { return end(); }
 
 	reverse_iterator       rbegin() NOEXCEPT        { return reverse_iterator{end()}; }
 	const_reverse_iterator rbegin() const NOEXCEPT  { return const_reverse_iterator{end()}; }
 
-	reverse_iterator       rend() NOEXCEPT        { return reverse_iterator{begin()}; }
-	const_reverse_iterator rend() const NOEXCEPT  { return const_reverse_iterator{begin()}; }
+	reverse_iterator       rend() NOEXCEPT          { return reverse_iterator{begin()}; }
+	const_reverse_iterator rend() const NOEXCEPT    { return const_reverse_iterator{begin()}; }
 
 	pointer         data() NOEXCEPT        { return _data.get(); }
 	const_pointer   data() const NOEXCEPT  { return _data.get(); }
@@ -235,8 +245,8 @@ public:
 	reference       front() NOEXCEPT        { return *begin(); }
 	const_reference front() const NOEXCEPT  { return *begin(); }
 
-	reference       back() NOEXCEPT        { return *OEL_DYNARR_ITERATOR(_end - 1); }
-	const_reference back() const NOEXCEPT  { return *OEL_DYNARR_CONST_ITER(_end - 1); }
+	reference       back() NOEXCEPT         { return *OEL_DYNARR_ITERATOR(_end - 1); }
+	const_reference back() const NOEXCEPT   { return *OEL_DYNARR_CONST_ITER(_end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -548,7 +558,7 @@ inline dynarray<T, Alloc>::dynarray(reserve_tag, size_type capacity) :
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(ini_size_tag, size_type size) :
+inline dynarray<T, Alloc>::dynarray(size_type size) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
@@ -556,7 +566,7 @@ inline dynarray<T, Alloc>::dynarray(ini_size_tag, size_type size) :
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(ini_size_tag, size_type size, const T & val) :
+dynarray<T, Alloc>::dynarray(size_type size, const T & val, init_fill_tag) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
