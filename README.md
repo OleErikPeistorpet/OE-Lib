@@ -9,3 +9,5 @@ For better display of dynarray and the iterators in the Visual Studio debugger, 
 `<My Documents>\Visual Studio 2013\Visualizers` (should also work for newer Visual Studio, just different year in path)
 
 To use dense matrixes, quaternions, etc. from the Eigen library in dynarray: include `compat/eigen_dense.h`
+
+You may want to customize what happens when an assert fails; this can be done by defining OEL_HALT() to a custom action. Or do whatever suitable, see 'debug.h'.
