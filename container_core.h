@@ -111,7 +111,7 @@ struct aligned_storage_t {};
 	template<size_t Size>  \
 	struct aligned_storage_t<Size, alignment>  \
 	{  \
-		OEL_ALIGN_AS( alignment, unsigned char data[Size]; )  \
+		OEL_ALIGN_AS(alignment, unsigned char data[Size]);  \
 	}
 
 OEL_STORAGE_ALIGNED_TO(1);
