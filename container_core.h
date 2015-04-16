@@ -132,7 +132,7 @@ namespace _detail
 		#if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16 >;
 		#else
-			Align <= ALIGNOF(std::max_align_t) >;
+			Align <= OEL_ALIGNOF(std::max_align_t) >;
 		#endif
 
 	template<size_t> inline
@@ -173,14 +173,14 @@ struct allocator
 
 	T * allocate(size_type nObjs)
 	{
-		void * p = _detail::OpNew<ALIGNOF(T)>(_detail::CanDefaultAlloc<ALIGNOF(T)>(),
-											  nObjs * sizeof(T));
+		void * p = _detail::OpNew<OEL_ALIGNOF(T)>(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(),
+												  nObjs * sizeof(T));
 		return static_cast<T *>(p);
 	}
 
 	void deallocate(T * ptr)
 	{
-		_detail::OpDelete(_detail::CanDefaultAlloc<ALIGNOF(T)>(), ptr);
+		_detail::OpDelete(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(), ptr);
 	}
 };
 

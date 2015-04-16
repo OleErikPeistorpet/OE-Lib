@@ -12,13 +12,16 @@
 
 
 #if !_MSC_VER || _MSC_VER >= 1900
+	#undef NOEXCEPT
 	#define NOEXCEPT noexcept
 
-	#define ALIGNOF alignof
+	#define OEL_ALIGNOF alignof
 #else
-	#define NOEXCEPT throw()
+	#ifndef NOEXCEPT
+		#define NOEXCEPT throw()
+	#endif
 
-	#define ALIGNOF __alignof
+	#define OEL_ALIGNOF __alignof
 #endif
 
 
@@ -106,13 +109,14 @@ auto to_pointer_contiguous(std::move_iterator<Iterator> it) NOEXCEPT
  -> decltype( to_pointer_contiguous(it.base()) )  { return to_pointer_contiguous(it.base()); }
 
 
-#if __GLIBCXX__
-	template<typename T>
-	using is_trivially_copyable = std::integral_constant< bool,
-									__has_trivial_copy(T) && __has_trivial_assign(T) >;
-#else
-	using std::is_trivially_copyable;
-#endif
+/// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
+template<typename T>
+struct is_trivially_copyable :
+	#if __GLIBCXX__
+		std::integral_constant< bool, __has_trivial_copy(T) && __has_trivial_assign(T) > {};
+	#else
+		std::is_trivially_copyable<T> {};
+	#endif
 
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 8 && !__clang__
 	template<typename T>
@@ -157,7 +161,7 @@ namespace _detail
 
 	template<typename IterDest, typename IterSrc>
 	auto CanMemmoveWith(IterDest dest, IterSrc src)
-	 -> decltype( CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) ) { return {}; }
+	 -> decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) ) { return {}; }
 
 	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
 	inline std::false_type CanMemmoveWith(...) { return {}; }

@@ -698,7 +698,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	if (_end < _reserveEnd) // then new element fits
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
-		using RawStore = aligned_storage_t<sizeof(T), ALIGNOF(T)>;
+		using RawStore = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
 		RawStore local;
 		::new(&local) T(std::forward<ArgTs>(args)...);
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
