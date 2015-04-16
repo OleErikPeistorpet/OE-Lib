@@ -349,7 +349,7 @@ private:
 		{	_end = data() + count;
 		}
 		// Not portable. Check for self assignment or use memmove?
-		::memcpy(data(), to_ptr(first), count * sizeof(T));
+		::memcpy(data(), to_pointer_contiguous(first), count * sizeof(T));
 	}
 
 	template<typename InputIter>
@@ -436,7 +436,7 @@ private:
 		if (_unusedCapacity() >= count)
 		{
 			// Behaviour undefined by standard if first points to null
-			::memcpy(_end, to_ptr(first), count * sizeof(T));
+			::memcpy(_end, to_pointer_contiguous(first), count * sizeof(T));
 		}
 		else
 		{
@@ -447,7 +447,7 @@ private:
 
 			::memcpy(newData, data(), size() * sizeof(T));
 			_end = newData + size();
-			::memcpy(_end, to_ptr(first), count * sizeof(T));
+			::memcpy(_end, to_pointer_contiguous(first), count * sizeof(T));
 			// Copy new elements before deallocating old buffer, in case this->_data is the source
 			_data.reset(newData);
 		}
@@ -690,7 +690,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 {
 	_staticAssertRelocate();
 
-	auto const posPtr = const_cast<pointer>(to_ptr(pos));
+	auto const posPtr = const_cast<pointer>(to_pointer_contiguous(pos));
 	MEM_BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _end);
 
 	size_type const nAfterPos = _end - posPtr;
@@ -799,7 +799,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 {
 	_staticAssertRelocate();
 
-	pointer const posPtr = to_ptr(pos);
+	pointer const posPtr = to_pointer_contiguous(pos);
 	MEM_BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr < _end);
 
 	posPtr-> ~T();
@@ -814,8 +814,8 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 {
 	_staticAssertRelocate();
 
-	pointer const pFirst = to_ptr(first);
-	pointer const pLast = to_ptr(last);
+	pointer const pFirst = to_pointer_contiguous(first);
+	pointer const pLast = to_pointer_contiguous(last);
 	MEM_BOUND_ASSERT_CHEAP(data() <= pFirst);  // if pLast > _end, caller will find out when memmove crashes
 	OEL_MEM_BOUND_ASSERT(pFirst <= pLast && pLast <= _end);
 	if (pFirst < pLast)
@@ -832,7 +832,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_back(iterator first) NOEXCEPT
 {
-	pointer const newEnd = to_ptr(first);
+	pointer const newEnd = to_pointer_contiguous(first);
 	MEM_BOUND_ASSERT_CHEAP(data() <= newEnd && newEnd <= _end);
 	_detail::Destroy(newEnd, _end);
 	_end = newEnd;

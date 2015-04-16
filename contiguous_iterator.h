@@ -66,7 +66,7 @@ public:
 	cntigus_ctr_dbg_iterator & operator++()
 	{	// preincrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
-		OEL_MEM_BOUND_ASSERT( _pElem < to_ptr(_myCont->end()) );
+		OEL_MEM_BOUND_ASSERT( _pElem < to_pointer_contiguous(_myCont->end()) );
 	#endif
 		++_pElem;
 		return *this;
@@ -99,7 +99,7 @@ public:
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		OEL_MEM_BOUND_ASSERT( offset >= _myCont->data() - _pElem
-						   && offset <= to_ptr(_myCont->end()) - _pElem );
+						   && offset <= to_pointer_contiguous(_myCont->end()) - _pElem );
 	#endif
 		_pElem += offset;
 		return *this;
@@ -109,7 +109,7 @@ public:
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		OEL_MEM_BOUND_ASSERT( offset <= _pElem - _myCont->data()
-						   && offset >= _pElem - to_ptr(_myCont->end()) );
+						   && offset >= _pElem - to_pointer_contiguous(_myCont->end()) );
 	#endif
 		_pElem -= offset;
 		return *this;
@@ -178,7 +178,7 @@ public:
 	}
 
 	/// Return pointer (unchecked)
-	friend pointer to_ptr(cntigus_ctr_dbg_iterator it) NOEXCEPT  { return it._pElem; }
+	friend pointer to_pointer_contiguous(cntigus_ctr_dbg_iterator it) NOEXCEPT  { return it._pElem; }
 
 protected:
 	pointer           _pElem;  ///< Wrapped pointer

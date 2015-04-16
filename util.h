@@ -31,6 +31,7 @@ template<typename T> inline
 typename std::make_unsigned<T>::type  as_unsigned(T val) NOEXCEPT  { return typename std::make_unsigned<T>::type(val); }
 
 
+
 /**
 * @brief Erase the element at index from container without maintaining order of elements.
 *
@@ -148,7 +149,7 @@ namespace _detail
 		OEL_POP_DIAGNOSTIC
 		}
 	#endif
-		::memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
+		::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), count * sizeof(*first));
 		return dest + count;
 	}
 
@@ -163,7 +164,7 @@ namespace _detail
 			*dest; *(dest + (count - 1));  // out of range errors if they are checked iterators
 			OEL_POP_DIAGNOSTIC
 		#endif
-			::memcpy(to_ptr(dest), to_ptr(first), count * sizeof(*first));
+			::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), count * sizeof(*first));
 			first += count;
 			dest += count;
 		}

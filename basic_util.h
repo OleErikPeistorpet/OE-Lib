@@ -99,11 +99,11 @@ struct can_memmove_with;
 
 /// Convert iterator to pointer. This should be overloaded for each contiguous memory iterator class
 template<typename T> inline
-T * to_ptr(T * ptr)  { return ptr; }
+T * to_pointer_contiguous(T * ptr)  { return ptr; }
 
 template<typename Iterator> inline
-auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
- -> decltype( to_ptr(it.base()) )  { return to_ptr(it.base()); }
+auto to_pointer_contiguous(std::move_iterator<Iterator> it) NOEXCEPT
+ -> decltype( to_pointer_contiguous(it.base()) )  { return to_pointer_contiguous(it.base()); }
 
 
 #if __GLIBCXX__
@@ -130,23 +130,23 @@ auto to_ptr(std::move_iterator<Iterator> it) NOEXCEPT
 
 #if _MSC_VER
 	template<typename T, size_t S> inline
-	T *       to_ptr(std::_Array_iterator<T, S> it)        { return it._Unchecked(); }
+	T *       to_pointer_contiguous(std::_Array_iterator<T, S> it)        { return it._Unchecked(); }
 	template<typename T, size_t S> inline
-	const T * to_ptr(std::_Array_const_iterator<T, S> it)  { return it._Unchecked(); }
+	const T * to_pointer_contiguous(std::_Array_const_iterator<T, S> it)  { return it._Unchecked(); }
 
 	template<typename S> inline
-	typename std::_String_iterator<S>::pointer  to_ptr(std::_String_iterator<S> it)
+	typename std::_String_iterator<S>::pointer  to_pointer_contiguous(std::_String_iterator<S> it)
 	{
 		return it._Unchecked();
 	}
 	template<typename S> inline
-	typename std::_String_const_iterator<S>::pointer  to_ptr(std::_String_const_iterator<S> it)
+	typename std::_String_const_iterator<S>::pointer  to_pointer_contiguous(std::_String_const_iterator<S> it)
 	{
 		return it._Unchecked();
 	}
 #elif __GLIBCXX__
 	template<typename T, typename U> inline
-	T * to_ptr(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
+	T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
 #endif
 
 
@@ -157,9 +157,9 @@ namespace _detail
 
 	template<typename IterDest, typename IterSrc>
 	auto CanMemmoveWith(IterDest dest, IterSrc src)
-	 -> decltype( CanMemmoveArrays(to_ptr(dest), to_ptr(src)) ) { return {}; }
+	 -> decltype( CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) ) { return {}; }
 
-	// SFINAE fallback for cases where to_ptr(iterator) is not declared or value types are not the same
+	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
 	inline std::false_type CanMemmoveWith(...) { return {}; }
 
 ////////////////////////////////////////////////////////////////////////////////
