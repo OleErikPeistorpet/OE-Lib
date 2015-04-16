@@ -102,16 +102,16 @@ struct aligned_storage_t {};
 
 
 #if _MSC_VER
-	#define OEL_ALIGN_AS(amount, alignee) __declspec(align(amount)) alignee
+	#define OEL_ALIGNAS(amount, alignee) __declspec(align(amount)) alignee
 #else
-	#define OEL_ALIGN_AS(amount, alignee) alignee __attribute__(( aligned(amount) ))
+	#define OEL_ALIGNAS(amount, alignee) alignee __attribute__(( aligned(amount) ))
 #endif
 
 #define OEL_STORAGE_ALIGNED_TO(alignment)  \
 	template<size_t Size>  \
 	struct aligned_storage_t<Size, alignment>  \
 	{  \
-		OEL_ALIGN_AS(alignment, unsigned char data[Size]);  \
+		OEL_ALIGNAS(alignment, unsigned char data[Size]);  \
 	}
 
 OEL_STORAGE_ALIGNED_TO(1);
