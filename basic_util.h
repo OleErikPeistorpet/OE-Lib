@@ -109,21 +109,22 @@ auto to_pointer_contiguous(std::move_iterator<Iterator> it) NOEXCEPT
  -> decltype( to_pointer_contiguous(it.base()) )  { return to_pointer_contiguous(it.base()); }
 
 
-/// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
-template<typename T>
-struct is_trivially_copyable :
-	#if __GLIBCXX__
-		std::integral_constant< bool, __has_trivial_copy(T) && __has_trivial_assign(T) > {};
-	#else
-		std::is_trivially_copyable<T> {};
-	#endif
-
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 8 && !__clang__
 	template<typename T>
 	using is_trivially_destructible = std::has_trivial_destructor<T>;
 #else
 	using std::is_trivially_destructible;
 #endif
+
+/// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
+template<typename T>
+struct is_trivially_copyable :
+	#if __GNUC__ == 4
+		std::integral_constant< bool,
+				__has_trivial_copy(T) && is_trivially_destructible<T>::value && std::is_copy_assignable<T>::value > {};
+	#else
+		std::is_trivially_copyable<T> {};
+	#endif
 
 
 
