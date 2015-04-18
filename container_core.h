@@ -11,6 +11,7 @@
 #ifndef OEL_NO_BOOST
 	#include <boost/align/aligned_alloc.hpp>
 	#include <boost/optional/optional_fwd.hpp>
+	#include <boost/smart_ptr/intrusive_ptr.hpp>
 #endif
 #include <memory>
 #include <string.h>
@@ -58,6 +59,9 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
 #ifndef OEL_NO_BOOST
 	template<typename T>
 	struct is_trivially_relocatable< boost::optional<T> > : is_trivially_relocatable<T> {};
+
+	template<typename T>
+	struct is_trivially_relocatable< boost::intrusive_ptr<T> > : std::true_type {};
 #endif
 
 
