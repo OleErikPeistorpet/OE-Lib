@@ -117,6 +117,7 @@ public:
 	* @throw std::bad_alloc if the allocation request does not succeed (same for all operations that add capacity)  */
 	dynarray(reserve_tag, size_type capacity);
 
+	/// Elements are default initialized, meaning non-class T produces indeterminate values
 	explicit dynarray(size_type size);
 	dynarray(size_type size, const T & fillVal);
 
@@ -199,6 +200,7 @@ public:
 	/// Equivalent to erase(first, end()) (but potentially faster)
 	void       erase_back(iterator first) NOEXCEPT;
 
+	/// Added elements are default initialized, meaning non-class T produces indeterminate values
 	void       resize(size_type newSize);
 	void       resize(size_type newSize, const T & addVal);
 
@@ -552,7 +554,7 @@ inline dynarray<T, Alloc>::dynarray(size_type size) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
-	oel::uninitialized_fill(data(), _end);
+	oel::uninitialized_fill_default(data(), _end);
 }
 
 template<typename T, typename Alloc>
@@ -771,7 +773,7 @@ inline void dynarray<T, Alloc>::pop_back() NOEXCEPT
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::resize(size_type newSize)
 {
-	_resizeImpl(newSize, oel::uninitialized_fill<pointer>);
+	_resizeImpl(newSize, oel::uninitialized_fill_default<pointer>);
 }
 
 template<typename T, typename Alloc>

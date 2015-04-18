@@ -243,36 +243,34 @@ namespace _detail
 		return {first, dest};
 	}
 
-	template<typename T>
-	void ValueInit(std::false_type, T * first, T *const last)
-	{	// not POD
-		T *const init = first;
+	template<typename ValT, typename ForwardIter>
+	void UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
+	{	// not trivial default constructor
+		ForwardIter init = first;
 		try
 		{
 			for (; first != last; ++first)
-				::new(first) T();
+				::new(std::addressof(*first)) ValT;
 		}
 		catch (...)
-		{
-			_detail::Destroy(init, first);
+		{	// Destroy the objects constructed before the exception
+			for (; init != first; ++init)
+				(*init).~ValT();
+
 			throw;
 		}
 	}
 
-	template<typename T> inline
-	void ValueInit(std::true_type, T *const first, T * last)
-	{
-		auto count = last - first;
-		::memset(first, 0, sizeof(T) * count);
-	}
+	template<typename, typename Iter> inline
+	void UninitFillDefault(std::true_type, Iter, Iter) {}  // for speed with optimizations off
 }
 
-/// Value initializes objects (in uninitialized memory) in range [first, last)
-template<typename ContiguousIterator> inline
-void uninitialized_fill(ContiguousIterator first, ContiguousIterator last)
+/// Default initializes objects (in uninitialized memory) in range [first, last)
+template<typename ForwardIterator> inline
+void uninitialized_fill_default(ForwardIterator first, ForwardIterator last)
 {
-	using ValT = std::iterator_traits<ContiguousIterator>::value_type;
-	_detail::ValueInit(std::is_pod<ValT>(), to_pointer_contiguous(first), to_pointer_contiguous(last));
+	using ValT = typename std::iterator_traits<ForwardIterator>::value_type;
+	_detail::UninitFillDefault<ValT>(std::has_trivial_default_constructor<ValT>(), first, last);
 }
 
 } // namespace oel
