@@ -66,12 +66,6 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
 
 
 
-/// Tag to select a specific constructor. The const instance init_fill is provided as a convenience
-struct init_fill_tag {};
-init_fill_tag const init_fill;
-
-
-
 /**
 * @brief Argument-dependent lookup non-member begin, defaults to std::begin
 *

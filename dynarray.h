@@ -119,15 +119,7 @@ public:
 
 	/// Elements are default initialized, meaning non-class T produces indeterminate values
 	explicit dynarray(size_type size);
-	/**
-	* @brief Same as dynarray(size_type). For uniform initialization syntax {}
-	*
-	* Example: @code
-	dynarray<int> a{3};            // dynarray(std::initializer_list<T>) constructor, a.size() equals 1
-	dynarray<int> b{3, init_fill}; // b.size() equals 3
-	@endcode  */
-	dynarray(size_type size, init_fill_tag)                                : dynarray(size) {}
-	dynarray(size_type size, const T & fillVal, init_fill_tag = init_fill);
+	dynarray(size_type size, const T & fillVal);
 
 	dynarray(std::initializer_list<T> init);
 
@@ -566,7 +558,7 @@ inline dynarray<T, Alloc>::dynarray(size_type size) :
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, const T & val, init_fill_tag) :
+dynarray<T, Alloc>::dynarray(size_type size, const T & val) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
