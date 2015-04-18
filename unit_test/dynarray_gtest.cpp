@@ -16,6 +16,7 @@ int NoAssign::nDestruct;
 using oel::dynarray;
 using oel::cbegin;
 using oel::cend;
+using oel::default_init;
 
 template<typename T>
 struct throwingAlloc
@@ -95,7 +96,7 @@ TEST_F(dynarrayTest, push_back)
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 
 	dynarray< dynarray<int> > nested;
-	nested.emplace_back(3);
+	nested.emplace_back(3, default_init);
 	EXPECT_EQ(3U, nested.back().size());
 	nested.emplace_back(std::initializer_list<int>{1, 2});
 	EXPECT_EQ(2U, nested.back().size());
@@ -288,7 +289,7 @@ TEST_F(dynarrayTest, resize)
 	int nExcept = 0;
 	try
 	{
-		d.resize((size_t)-8);
+		d.resize((size_t)-8, default_init);
 	}
 	catch (std::bad_alloc &)
 	{

@@ -118,7 +118,7 @@ public:
 	dynarray(reserve_tag, size_type capacity);
 
 	/// Elements are default initialized, meaning non-class T produces indeterminate values
-	explicit dynarray(size_type size);
+	dynarray(size_type size, default_init_tag);
 	dynarray(size_type size, const T & fillVal);
 
 	dynarray(std::initializer_list<T> init);
@@ -201,7 +201,7 @@ public:
 	void       erase_back(iterator first) NOEXCEPT;
 
 	/// Added elements are default initialized, meaning non-class T produces indeterminate values
-	void       resize(size_type newSize);
+	void       resize(size_type newSize, default_init_tag);
 	void       resize(size_type newSize, const T & addVal);
 
 	void       clear() NOEXCEPT        { erase_back(begin()); }
@@ -550,7 +550,7 @@ inline dynarray<T, Alloc>::dynarray(reserve_tag, size_type capacity) :
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(size_type size) :
+inline dynarray<T, Alloc>::dynarray(size_type size, default_init_tag) :
 	_data(_alloc(size)),
 	_end(data() + size), _reserveEnd(_end)
 {
@@ -771,7 +771,7 @@ inline void dynarray<T, Alloc>::pop_back() NOEXCEPT
 }
 
 template<typename T, typename Alloc>
-void dynarray<T, Alloc>::resize(size_type newSize)
+void dynarray<T, Alloc>::resize(size_type newSize, default_init_tag)
 {
 	_resizeImpl(newSize, oel::uninitialized_fill_default<pointer>);
 }
