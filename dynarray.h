@@ -374,18 +374,18 @@ private:
 	}
 
 	template<typename ForwTravRange>
-	void _assign(const ForwTravRange & range, forward_traversal_tag)
+	void _assign(const ForwTravRange & src, forward_traversal_tag)
 	{
-		using IterSrc = decltype(adl_begin(range));
+		using IterSrc = decltype(adl_begin(src));
 		_assignImpl(can_memmove_with<pointer, IterSrc>(),
-					adl_begin(range), adl_end(range), oel::count(range));
+					adl_begin(src), adl_end(src), oel::count(src));
 	}
 
 	template<typename InputRange>
-	void _assign(const InputRange & range, single_pass_traversal_tag)
+	void _assign(const InputRange & src, single_pass_traversal_tag)
 	{	// cannot count input objects before assigning
 		clear();
-		for (auto && v : range)
+		for (auto && v : src)
 			emplace_back( std::forward<decltype(v)>(v) );
 	}
 
@@ -468,20 +468,20 @@ private:
 	}
 
 	template<typename CntigusRange>
-	OEL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & range)
+	OEL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & src)
 	{	// use memcpy
-		auto const nElems = oel::count(range);
-		_appendN(std::true_type{}, adl_begin(range), nElems);
+		auto const nElems = oel::count(src);
+		_appendN(std::true_type{}, adl_begin(src), nElems);
 
 		return end() - nElems;
 	}
 
 	template<typename ForwTravRange>
-	iterator _append(std::false_type, forward_traversal_tag, const ForwTravRange & range)
+	iterator _append(std::false_type, forward_traversal_tag, const ForwTravRange & src)
 	{	// multi-pass iterator
-		auto first = adl_begin(range);
-		auto last = adl_end(range);
-		pointer const pos = _appendNonTrivial( oel::count(range),
+		auto first = adl_begin(src);
+		auto last = adl_end(src);
+		pointer const pos = _appendNonTrivial( oel::count(src),
 				[=](pointer dest, size_type)
 				{
 					return _detail::UninitCopy(first, last, dest);
@@ -490,12 +490,12 @@ private:
 	}
 
 	template<typename InputRange>
-	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & range)
+	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & src)
 	{	// slowest
 		size_type const oldSize = size();
 		try
 		{
-			for (auto && v : range)
+			for (auto && v : src)
 				emplace_back( std::forward<decltype(v)>(v) );
 		}
 		catch (...)
@@ -621,10 +621,10 @@ ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_t
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-void dynarray<T, Alloc>::assign(const InputRange & source)
+void dynarray<T, Alloc>::assign(const InputRange & src)
 {
-	using InIter = decltype(adl_begin(source));
-	_assign(source, iterator_traversal_t<InIter>());
+	using InIter = decltype(adl_begin(src));
+	_assign(src, iterator_traversal_t<InIter>());
 }
 
 template<typename T, typename Alloc> template<typename InputIterator>
@@ -636,14 +636,14 @@ OEL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, si
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & source)
+OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & src)
 {
 	_staticAssertRelocate();
 
-	using IterSrc = decltype(adl_begin(source));
+	using IterSrc = decltype(adl_begin(src));
 	return _append(can_memmove_with<pointer, IterSrc>(),
 				   iterator_traversal_t<IterSrc>(),
-				   source);
+				   src);
 }
 
 template<typename T, typename Alloc>
