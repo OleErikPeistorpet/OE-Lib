@@ -70,15 +70,6 @@ void erase_back(Container & ctr, typename Container::iterator first);
 
 
 
-#if __GLIBCXX__
-	template<typename T>
-	using is_trivially_copyable = std::integral_constant< bool,
-									__has_trivial_copy(T) && __has_trivial_assign(T) >;
-#else
-	using std::is_trivially_copyable;
-#endif
-
-
 /// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
 template<typename IteratorDest, typename IteratorSource>
 struct can_memmove_with;
