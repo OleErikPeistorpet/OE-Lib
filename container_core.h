@@ -67,8 +67,10 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
 
 
 /// Tag to specify default initialization. The const instance default_init is provided for convenience
-struct default_init_tag {};
-default_init_tag const default_init;
+struct default_init_tag
+{	explicit default_init_tag() {}
+}
+const default_init;
 
 
 

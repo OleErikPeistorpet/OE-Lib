@@ -38,8 +38,10 @@ using std::out_of_range;
 
 
 /// Type to indicate that a container constructor must allocate storage. A const instance named reserve is provided to pass
-struct reserve_tag {};
-reserve_tag const reserve;
+struct reserve_tag
+{	explicit reserve_tag() {}
+}
+const reserve;
 
 ////////////////////////////////////////////////////////////////////////////////
 
