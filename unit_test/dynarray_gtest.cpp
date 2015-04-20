@@ -58,12 +58,21 @@ TEST_F(dynarrayTest, construct)
 	using Iter = dynarray<std::string>::iterator;
 	using ConstIter = dynarray<std::string>::const_iterator;
 
-	dynarray<std::string> a;
-	decltype(a) b(a);
-
 	static_assert(oel::is_trivially_copyable<Iter>::value, "");
 	static_assert(std::is_convertible<Iter, ConstIter>::value, "");
 	static_assert(!std::is_convertible<ConstIter, Iter>::value, "");
+
+	dynarray<std::string> a;
+	decltype(a) b(a);
+	ASSERT_EQ(0, b.size());
+
+	dynarray<int> ints(0, {});
+	EXPECT_TRUE(b.empty());
+
+	using Internal = std::deque<double *>;
+	dynarray<Internal> test{Internal(5), Internal()};
+	EXPECT_EQ(2, test.size());
+	EXPECT_EQ(5, test[0].size());
 }
 
 TEST_F(dynarrayTest, push_back)

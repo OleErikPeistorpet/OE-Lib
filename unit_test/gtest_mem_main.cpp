@@ -8,11 +8,14 @@
  */
 
 #include <iostream>
-#include <crtdbg.h>
 #include <gtest/gtest.h>
 
 using namespace std;
 using namespace testing;
+
+#if _MSC_VER
+
+#include <crtdbg.h>
 
 namespace testing
 {
@@ -44,12 +47,16 @@ namespace testing
   };
 }
 
+#endif // _MSC_VER
+
 GTEST_API_ int main(int argc, char **argv)
 {
   cout << "Running main() from gtest_mld_main.cpp" << endl;
 
   InitGoogleTest(&argc, argv);
+#if _MSC_VER
   UnitTest::GetInstance()->listeners().Append(new MemoryLeakDetector());
+#endif
 
   return RUN_ALL_TESTS();
 }
