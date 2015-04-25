@@ -217,7 +217,7 @@ namespace _detail
 		{
 			while (first != last)
 			{
-				::new(dest) T(*first);
+				::new(static_cast<void *>(dest)) T(*first);
 				++dest; ++first;
 			}
 		}
@@ -237,7 +237,7 @@ namespace _detail
 		{
 			for (; 0 < count; --count)
 			{
-				::new(dest) T(*first);
+				::new(static_cast<void *>(dest)) T(*first);
 				++dest; ++first;
 			}
 		}
@@ -249,34 +249,39 @@ namespace _detail
 		return {first, dest};
 	}
 
-	template<typename ValT, typename ForwardIter>
-	void UninitFillDefault(std::false_type, ForwardIter first, ForwardIter const last)
-	{	// not trivial default constructor
-		ForwardIter init = first;
+
+	template<typename T, typename InitFunc> inline
+	void UninitFillImpl(std::false_type, T * first, T * last, InitFunc construct)
+	{
+		T *const init = first;
 		try
 		{
 			for (; first != last; ++first)
-				::new(std::addressof(*first)) ValT;
+				construct(first);
 		}
 		catch (...)
-		{	// Destroy the objects constructed before the exception
-			for (; init != first; ++init)
-				(*init).~ValT();
-
+		{
+			_detail::Destroy(init, first);
 			throw;
 		}
 	}
 
-	template<typename, typename Iter> inline
-	void UninitFillDefault(std::true_type, Iter, Iter) {}  // for speed with optimizations off
-}
+	template<typename T, typename Unused> inline
+	void UninitFillImpl(std::true_type, T *, T *, Unused) {}  // for speed with optimizations off
 
-/// Default initializes objects (in uninitialized memory) in range [first, last)
-template<typename ForwardIterator> inline
-void uninitialized_fill_default(ForwardIterator first, ForwardIterator last)
-{
-	using ValT = typename std::iterator_traits<ForwardIterator>::value_type;
-	_detail::UninitFillDefault<ValT>(std::has_trivial_default_constructor<ValT>(), first, last);
+	template<typename T> inline
+	void UninitFillDefault(T * first, T * last)
+	{
+		_detail::UninitFillImpl( std::has_trivial_default_constructor<T>(), first, last,
+								 [](void * p) { ::new(p) T; } );
+	}
+
+	template<typename T> inline
+	void UninitFill(T * first, T * last)
+	{
+		_detail::UninitFillImpl( std::false_type{}, first, last,
+								 [](void * p) { ::new(p) T{}; } );
+	}
 }
 
 } // namespace oel

@@ -189,12 +189,11 @@ TEST_F(dynarrayTest, append)
 
 		dest.append({});
 
-		double const TEST_VAL = 6.6;
-		dest.resize(2, TEST_VAL);
+		dest.resize(2);
 		dest.append(dest.begin(), dest.size());
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
-			EXPECT_EQ(TEST_VAL, d);
+			EXPECT_EQ(0.0, d);
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
@@ -290,9 +289,8 @@ TEST_F(dynarrayTest, resize)
 	dynarray<int, throwingAlloc<int>> d;
 
 	size_t const S1 = 4;
-	size_t const VAL = 313;
 
-	d.resize(S1, VAL);
+	d.resize(S1);
 	ASSERT_EQ(S1, d.size());
 
 	int nExcept = 0;
@@ -309,7 +307,7 @@ TEST_F(dynarrayTest, resize)
 	EXPECT_EQ(S1, d.size());
 	for (const auto & e : d)
 	{
-		EXPECT_EQ(VAL, oel::as_unsigned(e));
+		EXPECT_EQ(0, e);
 	}
 }
 

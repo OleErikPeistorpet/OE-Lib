@@ -119,8 +119,11 @@ public:
 	* @throw std::bad_alloc if the allocation request does not succeed (same for all operations that add capacity)  */
 	dynarray(reserve_tag, size_type capacity);
 
-	/// Elements are default initialized, meaning non-class T produces indeterminate values
+	/** @brief Elements are default initialized, can be significantly faster than dynarray(size_type size)
+	*
+	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 	dynarray(size_type size, default_init_tag);
+	explicit dynarray(size_type size);  ///< (Elements are value initialized, same as std::vector)
 	dynarray(size_type size, const T & fillVal);
 
 	dynarray(std::initializer_list<T> init);
@@ -179,6 +182,14 @@ public:
 	iterator      append(const InputRange & source);
 	/// Equivalent to calling append(const InputRange &) with il as argument  */
 	iterator      append(std::initializer_list<T> il);
+	/// Equivalent to std::vector::insert(end(), count, val)
+	void          append(size_type count, const T & val);
+
+	/** @brief Added elements are default initialized, can be significantly faster than other resize
+	*
+	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
+	void       resize(size_type newSize, default_init_tag);
+	void       resize(size_type newSize);  ///< (Value initializes added elements, same as std::vector::resize)
 
 	template<typename... Args>
 	void       emplace_back(Args &&... elemInitArgs);
@@ -201,10 +212,6 @@ public:
 
 	/// Equivalent to erase(first, end()) (but potentially faster)
 	void       erase_back(iterator first) NOEXCEPT;
-
-	/// Added elements are default initialized, meaning non-class T produces indeterminate values
-	void       resize(size_type newSize, default_init_tag);
-	void       resize(size_type newSize, const T & addVal);
 
 	void       clear() NOEXCEPT        { erase_back(begin()); }
 
@@ -503,7 +510,7 @@ private:
 			pointer const newEnd = _data.get() + newSize;
 			if (_end < newEnd) // then construct new
 				initNewElems(_end, newEnd);
-			else // destroy old
+			else // downsizing
 				_detail::Destroy(newEnd, _end);
 
 			_end = newEnd;
@@ -518,11 +525,11 @@ private:
 			size_type const oldSize = size();
 			pointer const newEnd = newData.get() + newSize;
 			initNewElems(newData.get() + oldSize, newEnd);
+
 			_end = newEnd;
 			_reserveEnd = newData.get() + allocSize;
-
-			// Fill new elements before reallocating old data, in case of copying an element from this
-			::memcpy(newData.get(), _data.get(), sizeof(T) * oldSize);  // relocate old
+			// Fill new elements before relocating old data, in case of copying an element from this
+			::memcpy(newData.get(), _data.get(), sizeof(T) * oldSize);
 			_data.swap(newData);
 		}
 	}
@@ -542,7 +549,15 @@ inline dynarray<T, Alloc>::dynarray(size_type size, default_init_tag) :
 	_data(_alloc(size)),
 	_end(_data.get() + size), _reserveEnd(_end)
 {
-	oel::uninitialized_fill_default(_data.get(), _end);
+	_detail::UninitFillDefault(_data.get(), _end);
+}
+
+template<typename T, typename Alloc>
+dynarray<T, Alloc>::dynarray(size_type size) :
+	_data(_alloc(size)),
+	_end(_data.get() + size), _reserveEnd(_end)
+{
+	_detail::UninitFill(_data.get(), _end);
 }
 
 template<typename T, typename Alloc>
@@ -611,6 +626,16 @@ void dynarray<T, Alloc>::assign(const InputRange & src)
 {
 	using InIter = decltype(adl_begin(src));
 	_assign(src, iterator_traversal_t<InIter>());
+}
+
+template<typename T, typename Alloc>
+void dynarray<T, Alloc>::append(size_type count, const T & val)
+{
+	_appendImpl( count,
+			[&val](pointer dest, size_type nElems)
+			{
+				std::uninitialized_fill_n(dest, nElems, val);
+			} );
 }
 
 template<typename T, typename Alloc> template<typename InputIterator>
@@ -761,17 +786,13 @@ inline void dynarray<T, Alloc>::pop_back() NOEXCEPT
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::resize(size_type newSize, default_init_tag)
 {
-	_resizeImpl(newSize, oel::uninitialized_fill_default<pointer>);
+	_resizeImpl(newSize, _detail::UninitFillDefault<T>);
 }
 
 template<typename T, typename Alloc>
-void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)
+void dynarray<T, Alloc>::resize(size_type newSize)
 {
-	_resizeImpl( newSize,
-			[&addVal](pointer first, pointer last)
-			{
-				std::uninitialized_fill(first, last, addVal);
-			} );
+	_resizeImpl(newSize, _detail::UninitFill<T>);
 }
 
 template<typename T, typename Alloc>
