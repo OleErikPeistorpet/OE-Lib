@@ -74,8 +74,7 @@ const default_init;
 
 
 
-/**
-* @brief Argument-dependent lookup non-member begin, defaults to std::begin
+/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
 *
 * For use in implementation of classes with begin member  */
 template<typename Range> inline
@@ -84,8 +83,7 @@ auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
 template<typename Range> inline
 auto adl_begin(const Range & r) -> decltype(begin(r))  { return begin(r); }
 
-/**
-* @brief Argument-dependent lookup non-member end, defaults to std::end
+/** @brief Argument-dependent lookup non-member end, defaults to std::end
 *
 * For use in implementation of classes with end member  */
 template<typename Range> inline
