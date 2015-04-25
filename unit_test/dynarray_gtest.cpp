@@ -64,15 +64,15 @@ TEST_F(dynarrayTest, construct)
 
 	dynarray<std::string> a;
 	decltype(a) b(a);
-	ASSERT_EQ(0, b.size());
+	ASSERT_EQ(0U, b.size());
 
 	dynarray<int> ints(0, {});
 	EXPECT_TRUE(b.empty());
 
 	using Internal = std::deque<double *>;
 	dynarray<Internal> test{Internal(5), Internal()};
-	EXPECT_EQ(2, test.size());
-	EXPECT_EQ(5, test[0].size());
+	EXPECT_EQ(2U, test.size());
+	EXPECT_EQ(5U, test[0].size());
 }
 
 TEST_F(dynarrayTest, push_back)
