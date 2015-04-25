@@ -95,6 +95,11 @@ struct range_ends
 
 
 
+template<bool Condition>
+using enable_if_t = typename std::enable_if<Condition>::type;
+
+
+
 /// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
 template<typename IteratorDest, typename IteratorSource>
 struct can_memmove_with;

@@ -189,11 +189,12 @@ TEST_F(dynarrayTest, append)
 
 		dest.append({});
 
-		dest.resize(2);
+		double const TEST_VAL = 6.6;
+		dest.append(2, TEST_VAL);
 		dest.append(dest.begin(), dest.size());
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
-			EXPECT_EQ(0.0, d);
+			EXPECT_EQ(TEST_VAL, d);
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};

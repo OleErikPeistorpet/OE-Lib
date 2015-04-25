@@ -170,7 +170,7 @@ public:
 	* Causes reallocation if the pre-call size + count is greater than capacity. On reallocation, all iterators
 	* and references are invalidated. Otherwise, any previous end iterator will point to the first element added.
 	* Strong exception safety, aka. commit or rollback semantics. */
-	template<typename InputIterator>
+	template< typename InputIterator, typename = enable_if_t<!std::is_arithmetic<InputIterator>::value> >
 	InputIterator append(InputIterator first, size_type count);
 	/**
 	* @brief Add at end the elements from range (in same order)
@@ -638,7 +638,7 @@ void dynarray<T, Alloc>::append(size_type count, const T & val)
 			} );
 }
 
-template<typename T, typename Alloc> template<typename InputIterator>
+template<typename T, typename Alloc> template<typename InputIterator, typename>
 OEL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
 {
 	_staticAssertRelocate();

@@ -250,7 +250,7 @@ namespace _detail
 	}
 
 
-	template<typename T, typename InitFunc> inline
+	template<typename T, typename InitFunc>
 	void UninitFillImpl(std::false_type, T * first, T * last, InitFunc construct)
 	{
 		T *const init = first;
