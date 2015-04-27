@@ -17,7 +17,7 @@
 * @file util.h
 * @brief Utilities, including algorithms
 *
-* Designed to interface with the standard library. Contains erase functions, copy functions and more.
+* Designed to interface with the standard library. Contains erase functions, copy functions, make_unique and more.
 */
 
 namespace oel
@@ -25,10 +25,11 @@ namespace oel
 
 /// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T> inline
-typename std::make_signed<T>::type    as_signed(T val) NOEXCEPT    { return typename std::make_signed<T>::type(val); }
+constexpr typename std::make_signed<T>::type   as_signed(T val) noexcept  { return (typename std::make_signed<T>::type)val; }
 /// Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
 template<typename T> inline
-typename std::make_unsigned<T>::type  as_unsigned(T val) NOEXCEPT  { return typename std::make_unsigned<T>::type(val); }
+constexpr typename std::make_unsigned<T>::type as_unsigned(T val) noexcept
+	{ return (typename std::make_unsigned<T>::type)val; }
 
 
 
@@ -36,7 +37,7 @@ typename std::make_unsigned<T>::type  as_unsigned(T val) NOEXCEPT  { return type
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template<class RandomAccessContainer> inline
+template<typename RandomAccessContainer> inline
 void erase_unordered(RandomAccessContainer & ctr, typename RandomAccessContainer::size_type index)
 {
 	ctr[index] = std::move(ctr.back());
@@ -47,26 +48,24 @@ void erase_unordered(RandomAccessContainer & ctr, typename RandomAccessContainer
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template<class Container> inline
-void erase_unordered(Container & ctr, typename Container::iterator position)
+template< typename OutputIterator, typename Container,
+		  typename = enable_if_t<!std::is_convertible<OutputIterator, size_t>::value> > inline
+void erase_unordered(Container & ctr, OutputIterator position)
 {
 	*position = std::move(ctr.back());
 	ctr.pop_back();
 }
 
 /// Erase the elements from first to the end of container, making first the new end
-template<class Container> inline
+template<typename Container> inline
 void erase_back(Container & ctr, typename Container::iterator first)  { ctr.erase(first, ctr.end()); }
 
 /**
 * @brief Erase consecutive duplicate elements in container.
 *
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
-template<class Container>
-void erase_successive_dup(Container & ctr)
-{
-	erase_back( ctr, std::unique(begin(ctr), end(ctr)) );
-}
+template<typename Container>
+void erase_successive_dup(Container & ctr);
 
 
 /**
@@ -80,7 +79,7 @@ OutputIterator copy_nonoverlap(const InputRange & source, OutputIterator dest);
 * @brief Copies count elements from range beginning at first into the range beginning at dest
 * @return a struct with iterators to the end of both ranges
 *
-* The ranges shall not overlap. To move instead of copy, pass a move_iterator as first  */
+* The ranges shall not overlap. To move instead of copy, pass a std::move_iterator as first  */
 template<typename InputIterator, typename Count, typename OutputIterator>
 range_ends<InputIterator, OutputIterator>  copy_nonoverlap(InputIterator first, Count count, OutputIterator dest);
 
@@ -89,26 +88,35 @@ range_ends<InputIterator, OutputIterator>  copy_nonoverlap(InputIterator first, 
 /// Check if index is valid (can be used with operator[]) for array or other range.
 template< typename UnsignedInt, typename Range,
 		  typename = enable_if_t<std::is_unsigned<UnsignedInt>::value> > inline
-bool index_valid(const Range & range, UnsignedInt index)   { return index < as_unsigned(oel::count(range)); }
+bool index_valid(const Range & r, UnsignedInt index)   { return index < oel::as_unsigned(oel::ssize(r)); }
 /// Check if index is valid (can be used with operator[]) for array or other range.
 template<typename Range> inline
-bool index_valid(const Range & range, std::int32_t index)  { return 0 <= index && index < oel::count(range); }
+bool index_valid(const Range & r, std::int32_t index)  { return 0 <= index && index < oel::ssize(r); }
 /// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename Range>
-bool index_valid(const Range & range, std::int64_t index);
+template<typename Range> inline
+bool index_valid(const Range & r, std::int64_t index)
+{	// assumes that r.size() is never greater than INT64_MAX
+	return static_cast<std::uint64_t>(index) < oel::as_unsigned(oel::ssize(r));
+}
 
 
 
 /// Equivalent to std::make_unique.
-template< typename T, typename... ArgTs, typename = enable_if_t<!std::is_array<T>::value> > inline
-std::unique_ptr<T> make_unique(ArgTs &&... args)
+template< typename T, typename... Args, typename = enable_if_t<!std::is_array<T>::value> > inline
+std::unique_ptr<T> make_unique(Args &&... args)
 {
-	T * p = new T(std::forward<ArgTs>(args)...); // direct-initialize, or value-initialize if no args
+	T * p = new T(std::forward<Args>(args)...); // direct-initialize, or value-initialize if no args
 	return std::unique_ptr<T>(p);
 }
 /// Equivalent to std::make_unique (array version).
 template< typename T, typename = enable_if_t<std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(size_t arraySize);
+/**
+* @brief Array is default-initialized, can be significantly faster for non-class elements
+*
+* Non-class elements get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
+template< typename T, typename = enable_if_t<std::is_array<T>::value> >
+std::unique_ptr<T> make_unique_default(size_t arraySize);
 
 
 
@@ -120,6 +128,17 @@ std::unique_ptr<T> make_unique(size_t arraySize);
 /// @cond INTERNAL
 namespace _detail
 {
+	template<typename HasUnique> inline // pass dummy int to prefer this overload
+	auto Unique(HasUnique & ctr, int) -> decltype(ctr.unique()) { return ctr.unique(); }
+
+	template<typename Container>
+	void Unique(Container & ctr, long)
+	{
+		erase_back( ctr, std::unique(begin(ctr), end(ctr)) );
+	}
+
+////////////////////////////////////////////////////////////////////////////////
+
 	template<typename InputIter, typename OutputIter> inline
 	OutputIter Copy(std::false_type, InputIter first, InputIter last, OutputIter dest)
 	{
@@ -138,13 +157,11 @@ namespace _detail
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != count)
 		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
-		OEL_PUSH_IGNORE_UNUSED_VALUE
-			*first; *dest;
-			*(dest + (count - 1));
-		OEL_POP_DIAGNOSTIC
+			(void)*first; (void)*dest;
+			(void)*(dest + (count - 1));
 		}
 	#endif
-		::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), count * sizeof(*first));
+		::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), sizeof(*first) * count);
 		return dest + count;
 	}
 
@@ -154,12 +171,11 @@ namespace _detail
 		if (0 < count)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
-			OEL_PUSH_IGNORE_UNUSED_VALUE
-			*(first + (count - 1));        // Dereference iterators at bounds, this detects
-			*dest; *(dest + (count - 1));  // out of range errors if they are checked iterators
-			OEL_POP_DIAGNOSTIC
+			(void)*(first + (count - 1)); // Dereference iterators at bounds, this detects
+			(void)*dest;                  // out of range errors if they are checked iterators
+			(void)*(dest + (count - 1));
 		#endif
-			::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), count * sizeof(*first));
+			::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), sizeof(*first) * count);
 			first += count;
 			dest += count;
 		}
@@ -196,22 +212,30 @@ inline oel::range_ends<InputIterator, OutputIterator>  oel::
 						  first, count, dest);
 }
 
-////////////////////////////////////////////////////////////////////////////////
 
-template<typename Range>
-inline bool oel::index_valid(const Range & r, std::int64_t idx)
+template<typename Container>
+inline void oel::erase_successive_dup(Container & ctr)
 {
-	auto idxU = static_cast<std::uint64_t>(idx);
-	return idxU < as_unsigned(oel::count(r)); // assumes that r size is never greater than INT64_MAX
+	_detail::Unique(ctr, int{});
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+#define OEL_MAKE_UNIQUE(newExpr)  \
+	static_assert(std::extent<T>::value == 0, "make_unique forbids T[size]. Please use T[]");  \
+	using Elem = typename std::remove_extent<T>::type;  \
+	return std::unique_ptr<T>(newExpr)
 
 template<typename T, typename>
-inline std::unique_ptr<T>  oel::make_unique(size_t arraySize)
+inline std::unique_ptr<T>  oel::make_unique(size_t size)
 {
-	static_assert(std::extent<T>::value == 0, "make_unique forbids T[size]. Please use T[]");
-
-	using Elem = typename std::remove_extent<T>::type;
-	return std::unique_ptr<T>( new Elem[arraySize]() ); // value-initialize
+	OEL_MAKE_UNIQUE( new Elem[size]() ); // value-initialize
 }
+
+template<typename T, typename>
+inline std::unique_ptr<T>  oel::make_unique_default(size_t size)
+{
+	OEL_MAKE_UNIQUE(new Elem[size]);
+}
+
+#undef OEL_MAKE_UNIQUE

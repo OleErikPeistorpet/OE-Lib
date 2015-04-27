@@ -11,17 +11,21 @@
 #include <iterator>
 
 
-#if !_MSC_VER || _MSC_VER >= 1900
-	#undef NOEXCEPT
-	#define NOEXCEPT noexcept
-
-	#define OEL_ALIGNOF alignof
-#else
-	#ifndef NOEXCEPT
-		#define NOEXCEPT throw()
+#if _MSC_VER && _MSC_VER < 1900
+	#ifndef _ALLOW_KEYWORD_MACROS
+		#define _ALLOW_KEYWORD_MACROS 1
 	#endif
 
+	#ifndef noexcept
+		#define noexcept throw()
+	#endif
+
+	#undef constexpr
+	#define constexpr
+
 	#define OEL_ALIGNOF __alignof
+#else
+	#define OEL_ALIGNOF alignof
 #endif
 
 
@@ -31,10 +35,11 @@ namespace oel
 
 using std::size_t;
 
+
 using std::begin;
 using std::end;
 
-#if _MSC_VER
+#if _MSC_VER || __GNUC__ >= 5
 	using std::cbegin;
 	using std::cend;
 	using std::rbegin;
@@ -57,7 +62,7 @@ using std::end;
 	* @brief Like std::begin, but reverse iterator.
 	* @return An iterator to the reverse-beginning of the range r. */
 	template<typename Range> inline
-	auto rbegin(Range & r) -> decltype(r.rbegin())  { return r.rbegin(); }
+	auto rbegin(Range & r) -> decltype(r.rbegin())        { return r.rbegin(); }
 	/// Same as crbegin(const Range &)
 	template<typename Range> inline
 	auto rbegin(const Range & r) -> decltype(r.rbegin())  { return r.rbegin(); }
@@ -69,7 +74,7 @@ using std::end;
 	* @brief Like std::end, but reverse iterator.
 	* @return An iterator to the reverse-end of the range r. */
 	template<typename Range> inline
-	auto rend(Range & r) -> decltype(r.rend())  { return r.rend(); }
+	auto rend(Range & r) -> decltype(r.rend())        { return r.rend(); }
 	/// Same as crend(const Range &)
 	template<typename Range> inline
 	auto rend(const Range & r) -> decltype(r.rend())  { return r.rend(); }
@@ -78,10 +83,22 @@ using std::end;
 	auto crend(const Range & r) -> decltype(rend(r))  { return rend(r); }
 #endif
 
+template<typename Iterator>
+using difference_type = typename std::iterator_traits<Iterator>::difference_type;
 
-/// Returns number of elements in r (array, container or iterator_range), signed type
-template<typename Range>
-auto count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type;
+/// Returns r.size() as signed (difference_type of begin(r))
+template<typename SizedRange>
+constexpr auto ssize(const SizedRange & r)
+ -> decltype( r.size(), difference_type<decltype(begin(r))>() )  { return r.size(); }
+/// Returns number of elements in array as signed
+template<typename T, size_t Size>
+constexpr std::ptrdiff_t ssize(const T (&)[Size]) noexcept  { return Size; }
+
+/** @brief Returns number of elements in r as signed (difference_type of begin(r))
+*
+* Calls ssize(r) if possible, otherwise equivalent to std::distance(begin(r), end(r))  */
+template<typename InputRange>
+auto count(const InputRange & r) -> difference_type<decltype(begin(r))>;
 
 
 
@@ -107,10 +124,10 @@ struct can_memmove_with;
 
 /// Convert iterator to pointer. This should be overloaded for each contiguous memory iterator class
 template<typename T> inline
-T * to_pointer_contiguous(T * ptr)  { return ptr; }
+T * to_pointer_contiguous(T * ptr) noexcept  { return ptr; }
 
 template<typename Iterator> inline
-auto to_pointer_contiguous(std::move_iterator<Iterator> it) NOEXCEPT
+auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
  -> decltype( to_pointer_contiguous(it.base()) )  { return to_pointer_contiguous(it.base()); }
 
 
@@ -174,12 +191,12 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename HasSizeRange> inline // pass dummy int to prefer this overload
-	auto Count(const HasSizeRange & r, int) -> decltype(r.size()) { return r.size(); }
+	template<typename SizedRange> inline // pass dummy int to prefer this overload
+	auto Count(const SizedRange & r, int) -> decltype(oel::ssize(r)) { return oel::ssize(r); }
 
-	template<typename Range> inline
-	auto Count(const Range & r, long) -> decltype( std::distance(begin(r), end(r)) )
-										  { return std::distance(begin(r), end(r)); }
+	template<typename InputRange> inline
+	auto Count(const InputRange & r, long) -> decltype( std::distance(begin(r), end(r)) )
+											   { return std::distance(begin(r), end(r)); }
 }
 
 } // namespace oel
@@ -191,20 +208,8 @@ struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<It
 /// @endcond
 
 
-template<typename Range>
-inline auto oel::count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
+template<typename InputRange>
+inline auto oel::count(const InputRange & r) -> difference_type<decltype(begin(r))>
 {
 	return _detail::Count(r, int{});
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-#if __GNUC__
-	#define OEL_PUSH_IGNORE_UNUSED_VALUE  \
-		_Pragma("GCC diagnostic push")  \
-		_Pragma("GCC diagnostic ignored \"-Wunused-value\"")
-	#define OEL_POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
-#else
-	#define OEL_PUSH_IGNORE_UNUSED_VALUE
-	#define OEL_POP_DIAGNOSTIC
-#endif

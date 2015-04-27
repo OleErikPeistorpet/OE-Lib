@@ -178,7 +178,7 @@ public:
 	}
 
 	/// Return pointer (unchecked)
-	friend pointer to_pointer_contiguous(cntigus_ctr_dbg_iterator it) NOEXCEPT  { return it._pElem; }
+	friend pointer to_pointer_contiguous(cntigus_ctr_dbg_iterator it) noexcept  { return it._pElem; }
 
 protected:
 	pointer           _pElem;  ///< Wrapped pointer

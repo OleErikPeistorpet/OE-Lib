@@ -30,12 +30,12 @@ public:
 	MoveOnly(ThrowOnMoveOrCopyT)
 	{	++nConstruct;
 	}
-	MoveOnly(MoveOnly && other) NOEXCEPT
+	MoveOnly(MoveOnly && other) noexcept
 	{
 		val = std::move(other.val);
 		++nConstruct;
 	}
-	MoveOnly & operator =(MoveOnly && other) NOEXCEPT
+	MoveOnly & operator =(MoveOnly && other) noexcept
 	{
 		val = std::move(other.val);
 		++nAssign;

@@ -11,11 +11,18 @@
 #endif
 
 #ifndef ASSERT_ALWAYS
-/// The standard assert macro doesn't break on the line of the assert, so we roll our own
+	#if _MSC_VER
+		#define OEL_SUPPRESS_CONDITIONAL_CONSTANT __pragma(warning(suppress : 4127))
+	#else
+		#define OEL_SUPPRESS_CONDITIONAL_CONSTANT
+	#endif
+
+	/// The standard assert macro rarely breaks on the line of the assert, so we roll our own
 	#define ASSERT_ALWAYS(expr)  \
+		OEL_SUPPRESS_CONDITIONAL_CONSTANT  \
 		do {  \
 			if (!(expr)) OEL_HALT();  \
-		} while ((void) 0, false)
+		} while (false)
 #endif
 
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)

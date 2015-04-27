@@ -58,9 +58,9 @@ TEST_F(dynarrayTest, construct)
 	using Iter = dynarray<std::string>::iterator;
 	using ConstIter = dynarray<std::string>::const_iterator;
 
-	static_assert(oel::is_trivially_copyable<Iter>::value, "");
-	static_assert(std::is_convertible<Iter, ConstIter>::value, "");
-	static_assert(!std::is_convertible<ConstIter, Iter>::value, "");
+	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
+	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
+	static_assert(!std::is_convertible<ConstIter, Iter>::value, "?");
 
 	dynarray<std::string> a;
 	decltype(a) b(a);
@@ -158,6 +158,9 @@ TEST_F(dynarrayTest, assign)
 		copyDest = {das[0], das[4]};
 		EXPECT_EQ(2U, copyDest.size());
 		EXPECT_EQ(das[4], copyDest.at(1));
+
+		copyDest = std::initializer_list<std::string>{};
+		EXPECT_TRUE(copyDest.empty());
 	}
 
 	MoveOnly::ClearCount();
@@ -199,8 +202,9 @@ TEST_F(dynarrayTest, append)
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
-	dynarray<double> double_dynarr;
+	dynarray<double> double_dynarr, double_dynarr2;
 	double_dynarr.append(oel::begin(arrayA), oel::count(arrayA));
+	double_dynarr.append(double_dynarr2);
 
 	{
 		dynarray<int> int_dynarr;
@@ -320,9 +324,12 @@ TEST_F(dynarrayTest, erase)
 		d.push_back(i);
 
 	auto const s = d.size();
-	auto r = d.erase(begin(d) + 1, begin(d) + 3);
+	auto ret = d.erase(begin(d) + 1, begin(d) + 3);
+	ASSERT_EQ(begin(d) + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
-	r = d.erase(end(d) - 1);
+
+	ret = d.erase(end(d) - 1);
+	ASSERT_EQ(end(d), ret);
 	ASSERT_EQ(s - 3, d.size());
 }
 

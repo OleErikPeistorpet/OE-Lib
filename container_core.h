@@ -203,7 +203,7 @@ namespace _detail
 	}
 
 	template<typename T> inline
-	void Destroy(T * first, T * last) NOEXCEPT
+	void Destroy(T * first, T * last) noexcept
 	{	// first > last is OK, does nothing
 		_detail::Destroy(is_trivially_destructible<T>(), first, last);
 	}
@@ -251,8 +251,8 @@ namespace _detail
 
 
 	template<typename T, typename InitFunc>
-	void UninitFillImpl(std::false_type, T * first, T * last, InitFunc construct)
-	{
+	void UninitFillImpl(std::false_type, T * first, T *const last, InitFunc construct)
+	{	// not trivial default constructor
 		T *const init = first;
 		try
 		{
