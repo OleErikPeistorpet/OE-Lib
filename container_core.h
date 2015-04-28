@@ -193,19 +193,13 @@ struct allocator
 namespace _detail
 {
 	template<typename T> inline
-	void Destroy(std::true_type, T *, T *) {}  // for speed with optimizations off (debug build)
-
-	template<typename T> inline
-	void Destroy(std::false_type, T * first, T * last)
-	{
-		for (; first < last; ++first)
-			first-> ~T();
-	}
-
-	template<typename T> inline
 	void Destroy(T * first, T * last) noexcept
 	{	// first > last is OK, does nothing
-		_detail::Destroy(is_trivially_destructible<T>(), first, last);
+		OEL_STATIC_IF (!is_trivially_destructible<T>::value) // for speed with optimizations off (debug build)
+		{
+			for (; first < last; ++first)
+				first-> ~T();
+		}
 	}
 
 
@@ -251,7 +245,7 @@ namespace _detail
 
 
 	template<typename T, typename InitFunc>
-	void UninitFillImpl(std::false_type, T * first, T *const last, InitFunc construct)
+	void UninitFillImpl(T * first, T *const last, InitFunc construct)
 	{	// not trivial default constructor
 		T *const init = first;
 		try
@@ -266,20 +260,20 @@ namespace _detail
 		}
 	}
 
-	template<typename T, typename Unused> inline
-	void UninitFillImpl(std::true_type, T *, T *, Unused) {}  // for speed with optimizations off
-
 	template<typename T> inline
 	void UninitFillDefault(T * first, T * last)
 	{
-		_detail::UninitFillImpl( std::has_trivial_default_constructor<T>(), first, last,
-								 [](void * p) { ::new(p) T; } );
+		OEL_STATIC_IF (!std::has_trivial_default_constructor<T>::value) // for speed with optimizations off
+		{
+			_detail::UninitFillImpl( first, last,
+									 [](void * p) { ::new(p) T; } );
+		}
 	}
 
 	template<typename T> inline
 	void UninitFill(T * first, T * last)
 	{
-		_detail::UninitFillImpl( std::false_type{}, first, last,
+		_detail::UninitFillImpl( first, last,
 								 [](void * p) { ::new(p) T{}; } );
 	}
 }

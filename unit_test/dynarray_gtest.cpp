@@ -176,7 +176,7 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(oel::make_move_iter(src), 0);
+		test.assign(std::make_move_iterator(src), 0);
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);

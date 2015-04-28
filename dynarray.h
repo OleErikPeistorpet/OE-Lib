@@ -296,16 +296,18 @@ private:
 	};
 
 
-	void _uninitCopyData(std::false_type, const_pointer first, const_pointer last, size_type)
-	{	// not trivially copyable T
-		_end = _detail::UninitCopy(first, last, _data.get());
-		_reserveEnd = _end;
-	}
-
-	void _uninitCopyData(std::true_type, const_pointer first, const_pointer, size_type const count)
+	void _uninitCopyData(const_pointer const first, const_pointer const last, size_type const count)
 	{
-		::memcpy(_data.get(), first, sizeof(T) * count);
-		_reserveEnd = _end = _data.get() + count;
+		OEL_STATIC_IF (is_trivially_copyable<T>::value)
+		{	// Behaviour undefined by standard if first is null
+			::memcpy(_data.get(), first, sizeof(T) * count);
+			_reserveEnd = _end = _data.get() + count;
+		}
+		else
+		{
+			_end = _detail::UninitCopy(first, last, _data.get());
+			_reserveEnd = _end;
+		}
 	}
 
 	size_type _unusedCapacity() const
@@ -401,31 +403,7 @@ private:
 	}
 
 	template<typename... Args>
-	void _emplaceBackRealloc(std::false_type, Args &&... args)
-	{	// non-trivially-relocatable T
-		size_type const newCapacity = _insertOneCalcCap();
-		_smartPtr newData{_alloc(newCapacity)};
-
-		pointer const pos = newData.get() + size();
-		::new(pos) T(std::forward<Args>(args)...);
-
-		try
-		{	_detail::UninitCopy(std::make_move_iterator(_data.get()), std::make_move_iterator(_end), newData.get());
-		}
-		catch (...)
-		{
-			pos-> ~T();
-			throw;
-		}
-		_detail::Destroy(_data.get(), _end);
-
-		_data.swap(newData);
-		_end = pos;
-		_reserveEnd = _data.get() + newCapacity;
-	}
-
-	template<typename... Args>
-	void _emplaceBackRealloc(std::true_type, Args &&... args)
+	void _emplaceBackRealloc(Args &&... args)
 	{
 		size_type const newCapacity = _insertOneCalcCap();
 		_smartPtr newData{_alloc(newCapacity)};
@@ -434,10 +412,24 @@ private:
 		pointer const pos = newData.get() + oldSize;
 		::new(pos) T(std::forward<Args>(args)...);
 
+		OEL_STATIC_IF (is_trivially_relocatable<T>::value)
+		{
+			::memcpy(newData.get(), _data.get(), sizeof(T) * oldSize);
+		}
+		else
+		{	// relocate elements by move constructor and destructor
+			try
+			{	_detail::UninitCopy(std::make_move_iterator(_data.get()), std::make_move_iterator(_end), newData.get());
+			}
+			catch (...)
+			{
+				pos-> ~T();
+				throw;
+			}
+			_detail::Destroy(_data.get(), _end);
+		}
 		_end = pos;
 		_reserveEnd = newData.get() + newCapacity;
-		// Make new element before relocating old data to support push_back from this
-		::memcpy(newData.get(), _data.get(), sizeof(T) * oldSize);
 		_data.swap(newData);
 	}
 
@@ -458,11 +450,12 @@ private:
 			size_type const oldSize = size();
 			pos = newData.get() + oldSize;
 			makeNewElems(pos, count);
-			// Do not assign member variables until after copy of new elements in case of exception
+			// Exception free from here
 			_end = pos;
 			_reserveEnd = newData.get() + newCapacity;
 
 			::memcpy(newData.get(), _data.get(), sizeof(T) * oldSize);  // relocate old
+
 			_data.swap(newData);
 		}
 		_end += count;
@@ -569,11 +562,12 @@ private:
 			size_type const oldSize = size();
 			pointer const newEnd = newData.get() + newSize;
 			initNewElems(newData.get() + oldSize, newEnd);
-
+			// Exception free from here
 			_end = newEnd;
 			_reserveEnd = newData.get() + allocSize;
-			// Fill new elements before relocating old data, in case of copying an element from this
-			::memcpy(newData.get(), _data.get(), sizeof(T) * oldSize);
+
+			::memcpy(newData.get(), _data.get(), sizeof(T) * oldSize);  // relocate old
+
 			_data.swap(newData);
 		}
 	}
@@ -589,7 +583,7 @@ inline dynarray<T, Alloc>::dynarray(reserve_tag, size_type capacity) :
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(size_type size, default_init_tag) :
+dynarray<T, Alloc>::dynarray(size_type size, default_init_tag) :
 	_data(_alloc(size)),
 	_end(_data.get() + size), _reserveEnd(_end)
 {
@@ -625,16 +619,14 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(const dynarray & other) :
 	_data( _alloc(other.size()) )
 {
-	_uninitCopyData(is_trivially_copyable<T>(),
-					other.data(), other._end, other.size());
+	_uninitCopyData(other.data(), other._end, other.size());
 }
 
 template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(std::initializer_list<T> init) :
 	_data( _alloc(init.size()) )
 {
-	_uninitCopyData(is_trivially_copyable<T>(),
-					init.begin(), init.end(), init.size());
+	_uninitCopyData(init.begin(), init.end(), init.size());
 }
 
 template<typename T, typename Alloc>
@@ -666,14 +658,14 @@ ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_t
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-void dynarray<T, Alloc>::assign(const InputRange & src)
+inline void dynarray<T, Alloc>::assign(const InputRange & src)
 {
 	using InIter = decltype(oel::adl_begin(src));
 	_assign(src, iterator_traversal_t<InIter>());
 }
 
 template<typename T, typename Alloc>
-void dynarray<T, Alloc>::append(size_type count, const T & val)
+inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 {
 	_appendImpl( count,
 			[&val](pointer dest, size_type nElems)
@@ -708,12 +700,12 @@ OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appen
 }
 
 template<typename T, typename Alloc> template<typename... Args>
-inline void dynarray<T, Alloc>::emplace_back(Args &&... args)
+void dynarray<T, Alloc>::emplace_back(Args &&... args)
 {
 	if (_end < _reserveEnd)
 		::new(_end) T(std::forward<Args>(args)...);
 	else
-		_emplaceBackRealloc(is_trivially_relocatable<T>(), std::forward<Args>(args)...);
+		_emplaceBackRealloc(std::forward<Args>(args)...);
 
 	++_end;
 }
@@ -745,20 +737,18 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	else
 	{	// not enough room, reallocate
 		size_type const newCapacity = _insertOneCalcCap();
-
 		_smartPtr newData{_alloc(newCapacity)};
 
 		size_type const nBeforePos = posPtr - _data.get();
 		pointer const newPos = newData.get() + nBeforePos;
 		::new(newPos) T(std::forward<Args>(args)...);   // add new
+		// Exception free from here
 		pointer const next = newPos + 1;
-		// Behaviour undefined by standard if data is null
 		::memcpy(newData.get(), _data.get(), nBeforePos * sizeof(T)); // relocate prefix
 		::memcpy(next, posPtr, nAfterPos * sizeof(T));   // relocate suffix
 		_end = next + nAfterPos;
 
 		_reserveEnd = newData.get() + newCapacity;
-
 		_data.swap(newData);
 
 		return OEL_DYNARR_ITERATOR(newPos);
@@ -793,7 +783,8 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	if (0 < used)
 	{
 		newData = _alloc(used);
-		::memcpy(newData, _data.get(), sizeof(T) * used); // relocate elements
+		// Relocate elements
+		::memcpy(newData, _data.get(), sizeof(T) * used);
 		_end = newData + used;
 	}
 	else
@@ -804,13 +795,13 @@ void dynarray<T, Alloc>::shrink_to_fit()
 }
 
 template<typename T, typename Alloc>
-void dynarray<T, Alloc>::resize(size_type newSize, default_init_tag)
+inline void dynarray<T, Alloc>::resize(size_type newSize, default_init_tag)
 {
 	_resizeImpl(newSize, _detail::UninitFillDefault<T>);
 }
 
 template<typename T, typename Alloc>
-void dynarray<T, Alloc>::resize(size_type newSize)
+inline void dynarray<T, Alloc>::resize(size_type newSize)
 {
 	_resizeImpl(newSize, _detail::UninitFill<T>);
 }
@@ -824,7 +815,7 @@ inline void dynarray<T, Alloc>::pop_back() noexcept
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) noexcept
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) noexcept
 {
 	_staticAssertRelocate();
 
@@ -835,6 +826,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 	pointer const next = posPtr + 1;
 	::memmove(posPtr, next, (_end - next) * sizeof(T)); // relocate [pos + 1, end) to [pos, end - 1)
 	--_end;
+
 	return pos;
 }
 
@@ -845,7 +837,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 
 	pointer const pFirst = to_pointer_contiguous(first);
 	pointer const pLast = to_pointer_contiguous(last);
-	MEM_BOUND_ASSERT_CHEAP(_data.get() <= pFirst);  // if pLast > _end, caller will find out when memmove crashes
+	MEM_BOUND_ASSERT_CHEAP(_data.get() <= pFirst);
 	OEL_MEM_BOUND_ASSERT(pFirst <= pLast && pLast <= _end);
 	if (pFirst < pLast)
 	{
@@ -870,10 +862,8 @@ inline void dynarray<T, Alloc>::erase_back(iterator first) noexcept
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type index)
 {
-	if (size() > index)
-		return _data[index];
-	else
-		throw out_of_range("Invalid index dynarray::at");
+	const auto & cThis = *this;
+	return const_cast<reference>(cThis.at(index));
 }
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
