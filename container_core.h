@@ -203,24 +203,15 @@ namespace _detail
 	}
 
 
-	template<typename InputIter, typename T>
-	T * UninitCopy(InputIter first, InputIter const last, T * dest)
+	template<typename InputIter, typename T> inline
+	T * UninitCopy(InputIter first, InputIter last, T *const dest)
 	{
-		T *const destBegin = dest;
-		try
-		{
-			while (first != last)
-			{
-				::new(static_cast<void *>(dest)) T(*first);
-				++dest; ++first;
-			}
-		}
-		catch (...)
-		{
-			_detail::Destroy(destBegin, dest);
-			throw;
-		}
-		return dest;
+		return std::uninitialized_copy( first, last,
+			#if _MSC_VER
+				stdext::make_unchecked_array_iterator(dest) ).base();
+			#else
+				dest );
+			#endif
 	}
 
 	template<typename InputIter, typename T>
