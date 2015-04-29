@@ -134,11 +134,6 @@ struct is_trivially_copyable :
 	#endif
 
 
-/// Exists in std with C++14
-template<bool Condition>
-using enable_if_t = typename std::enable_if<Condition>::type;
-
-
 
 /// For copy functions that return the end of both source and destination ranges
 template<typename InIterator, typename OutIterator>

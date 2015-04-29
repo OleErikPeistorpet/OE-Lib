@@ -186,7 +186,8 @@ public:
 	/// Equivalent to std::vector::insert(end(), count, val)
 	void          append(size_type count, const T & val);
 
-	/** @brief Does default initialization of added elements, can be significantly faster for non-class T
+	/**
+	* @brief Uses default initialization for added elements, can be significantly faster for non-class T
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 	void       resize(size_type newSize, default_init_tag);
@@ -292,7 +293,7 @@ private:
 	struct _staticAssertRelocate
 	{
 		static_assert(is_trivially_relocatable<T>::value,
-			"Template argument T must be trivially relocatable, see definition of is_trivially_relocatable");
+			"This function requires trivially relocatable T, see definition of is_trivially_relocatable");
 	};
 
 

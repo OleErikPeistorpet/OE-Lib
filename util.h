@@ -85,6 +85,11 @@ range_ends<InputIterator, OutputIterator>  copy_nonoverlap(InputIterator first, 
 
 
 
+/// Exists in std with C++14
+template<bool Condition>
+using enable_if_t = typename std::enable_if<Condition>::type;
+
+
 /// Check if index is valid (can be used with operator[]) for array or other range.
 template< typename UnsignedInt, typename Range,
 		  typename = enable_if_t<std::is_unsigned<UnsignedInt>::value> > inline
