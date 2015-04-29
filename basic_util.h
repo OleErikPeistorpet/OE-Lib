@@ -91,7 +91,7 @@ template<typename SizedRange>
 constexpr auto ssize(const SizedRange & r)
  -> decltype( r.size(), difference_type<decltype(begin(r))>() )  { return r.size(); }
 /// Returns number of elements in array as signed
-template<typename T, size_t Size>
+template<typename T, std::ptrdiff_t Size>
 constexpr std::ptrdiff_t ssize(const T (&)[Size]) noexcept  { return Size; }
 
 /** @brief Returns number of elements in r as signed (difference_type of begin(r))
@@ -102,26 +102,6 @@ auto count(const InputRange & r) -> difference_type<decltype(begin(r))>;
 
 
 
-/// For copy functions that return the end of both source and destination ranges
-template<typename InIterator, typename OutIterator>
-struct range_ends
-{
-	InIterator  src_end;
-	OutIterator dest_end;
-};
-
-
-
-template<bool Condition>
-using enable_if_t = typename std::enable_if<Condition>::type;
-
-
-
-/// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
-template<typename IteratorDest, typename IteratorSource>
-struct can_memmove_with;
-
-
 /// Convert iterator to pointer. This should be overloaded for each contiguous memory iterator class
 template<typename T> inline
 T * to_pointer_contiguous(T * ptr) noexcept  { return ptr; }
@@ -129,6 +109,11 @@ T * to_pointer_contiguous(T * ptr) noexcept  { return ptr; }
 template<typename Iterator> inline
 auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
  -> decltype( to_pointer_contiguous(it.base()) )  { return to_pointer_contiguous(it.base()); }
+
+
+/// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
+template<typename IteratorDest, typename IteratorSource>
+struct can_memmove_with;
 
 
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 8 && !__clang__
@@ -147,6 +132,21 @@ struct is_trivially_copyable :
 	#else
 		std::is_trivially_copyable<T> {};
 	#endif
+
+
+/// Exists in std with C++14
+template<bool Condition>
+using enable_if_t = typename std::enable_if<Condition>::type;
+
+
+
+/// For copy functions that return the end of both source and destination ranges
+template<typename InIterator, typename OutIterator>
+struct range_ends
+{
+	InIterator  src_end;
+	OutIterator dest_end;
+};
 
 
 

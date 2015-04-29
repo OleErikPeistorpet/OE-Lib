@@ -171,7 +171,7 @@ public:
 	* Causes reallocation if the pre-call size + count is greater than capacity. On reallocation, all iterators
 	* and references are invalidated. Otherwise, any previous end iterator will point to the first element added.
 	* Strong exception safety, aka. commit or rollback semantics. */
-	template< typename InputIterator, typename = enable_if_t<!std::is_convertible<InputIterator, size_type>::value> >
+	template<typename InputIterator, typename = decltype( *std::declval<InputIterator>() )>
 	InputIterator append(InputIterator first, size_type count);
 	/**
 	* @brief Add at end the elements from range (in same order)
@@ -860,7 +860,7 @@ inline void dynarray<T, Alloc>::erase_back(iterator first) noexcept
 }
 
 template<typename T, typename Alloc>
-typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type index)
+inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type index)
 {
 	const auto & cThis = *this;
 	return const_cast<reference>(cThis.at(index));
