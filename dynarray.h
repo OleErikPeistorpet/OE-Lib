@@ -299,7 +299,7 @@ private:
 
 	void _uninitCopyData(const_pointer const first, const_pointer const last, size_type const count)
 	{
-		OEL_STATIC_IF (is_trivially_copyable<T>::value)
+		OEL_CONST_COND if (is_trivially_copyable<T>::value)
 		{	// Behaviour undefined by standard if first is null
 			::memcpy(_data.get(), first, sizeof(T) * count);
 			_reserveEnd = _end = _data.get() + count;
@@ -403,32 +403,35 @@ private:
 			emplace_back( std::forward<decltype(v)>(v) );
 	}
 
+	void _relocateData(std::false_type, pointer const newData, pointer const pushedElem)
+	{	// relocate elements by move constructor and destructor
+		try
+		{	_detail::UninitCopy(std::make_move_iterator(_data.get()), std::make_move_iterator(_end), newData);
+		}
+		catch (...)
+		{
+			pushedElem-> ~T();
+			throw;
+		}
+		_detail::Destroy(_data.get(), _end);
+	}
+
+	void _relocateData(std::true_type, pointer newData, pointer)
+	{
+		::memcpy(newData, _data.get(), sizeof(T) * size());
+	}
+
 	template<typename... Args>
 	void _emplaceBackRealloc(Args &&... args)
 	{
 		size_type const newCapacity = _insertOneCalcCap();
 		_smartPtr newData{_alloc(newCapacity)};
 
-		size_type const oldSize = size();
-		pointer const pos = newData.get() + oldSize;
+		pointer const pos = newData.get() + size();
 		::new(pos) T(std::forward<Args>(args)...);
 
-		OEL_STATIC_IF (is_trivially_relocatable<T>::value)
-		{
-			::memcpy(newData.get(), _data.get(), sizeof(T) * oldSize);
-		}
-		else
-		{	// relocate elements by move constructor and destructor
-			try
-			{	_detail::UninitCopy(std::make_move_iterator(_data.get()), std::make_move_iterator(_end), newData.get());
-			}
-			catch (...)
-			{
-				pos-> ~T();
-				throw;
-			}
-			_detail::Destroy(_data.get(), _end);
-		}
+		_relocateData(is_trivially_relocatable<T>(), newData.get(), pos);
+
 		_end = pos;
 		_reserveEnd = newData.get() + newCapacity;
 		_data.swap(newData);

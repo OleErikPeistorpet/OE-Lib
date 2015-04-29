@@ -2,13 +2,12 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#ifndef OEL_STATIC_IF
+#ifndef OEL_CONST_COND
 	#if _MSC_VER
-		#define OEL_SUPPRESS_CONDITIONAL_CONSTANT __pragma(warning(suppress : 4127))
+		#define OEL_CONST_COND __pragma(warning(suppress : 4127))
 	#else
-		#define OEL_SUPPRESS_CONDITIONAL_CONSTANT
+		#define OEL_CONST_COND
 	#endif
-	#define OEL_STATIC_IF OEL_SUPPRESS_CONDITIONAL_CONSTANT if
 #endif
 
 
@@ -21,7 +20,7 @@
 
 	/// The standard assert macro rarely breaks on the line of the assert, so we roll our own
 	#define ASSERT_ALWAYS(expr)  \
-		OEL_SUPPRESS_CONDITIONAL_CONSTANT  \
+		OEL_CONST_COND  \
 		do {  \
 			if (!(expr)) OEL_HALT();  \
 		} while (false)
