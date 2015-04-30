@@ -2,7 +2,6 @@
 #include "iterator_range.h"
 #include "util.h"
 #include <deque>
-#include <vector>
 
 class ForwDeclared { char c; };
 
@@ -50,15 +49,16 @@ protected:
 	// Objects declared here can be used by all tests.
 };
 
-#if _MSC_VER
-TEST_F(dynarrayTest, stdVectorWithOelAlloc)
+TEST_F(dynarrayTest, stdDequeWithOelAlloc)
 {
-	std::vector<std::string, oel::allocator<std::string>> v{"Test"};
-	v.emplace_back();
-	EXPECT_EQ("Test", v.front());
-	EXPECT_TRUE(v.back().empty());
+	using MyAlloc = oel::allocator<std::string>;
+	static_assert(oel::is_trivially_copyable<MyAlloc>::value, "?");
+
+	std::deque<std::string, MyAlloc> v{"Test"};
+	v.emplace_front();
+	EXPECT_EQ("Test", v.back());
+	EXPECT_TRUE(v.front().empty());
 }
-#endif
 
 TEST_F(dynarrayTest, construct)
 {

@@ -110,7 +110,21 @@ struct allocator
 	T * allocate(size_type nObjs);
 
 	void deallocate(T * ptr, size_type);
+
+	allocator() = default;
+	template<typename U>
+	allocator(const allocator<U> &) {}
+
+	template<typename U> struct rebind
+	{
+		using other = allocator<U>;
+	};
 };
+
+template<typename T>
+bool operator==(allocator<T>, allocator<T>) { return true; }
+template<typename T>
+bool operator!=(allocator<T>, allocator<T>) { return false; }
 
 
 
