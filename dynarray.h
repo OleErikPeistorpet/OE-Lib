@@ -89,6 +89,7 @@ class dynarray
 {
 public:
 	using value_type      = T;
+	using allocator_type  = Alloc;
 	using pointer         = T *;
 	using const_pointer   = const T *;
 	using reference       = T &;
@@ -111,7 +112,7 @@ public:
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 	using difference_type = typename std::iterator_traits<iterator>::difference_type;
-	using size_type       = typename Alloc::size_type;
+	using size_type       = typename std::allocator_traits<Alloc>::size_type;
 
 	dynarray() NOEXCEPT  : _data(nullptr), _end(nullptr), _reserveEnd(nullptr) {}
 
@@ -271,7 +272,7 @@ private:
 	struct _dealloc
 	{	void operator()(pointer ptr)
 		{
-			Alloc{}.deallocate(ptr);
+			Alloc{}.deallocate(ptr, 0); // 0 should be capacity()
 		}
 	};
 
@@ -670,7 +671,7 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 
 	if (_end < _reserveEnd)
 	{
-		::new(_end) T(std::forward<Args>(args)...);
+		std::allocator_traits<Alloc>::construct(Alloc{}, _end, std::forward<Args>(args)...);
 	}
 	else
 	{
@@ -679,7 +680,7 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 
 		size_type const oldSize = size();
 		pointer const pos = newData.get() + oldSize;
-		::new(pos) T(std::forward<Args>(args)...);
+		std::allocator_traits<Alloc>::construct(Alloc{}, pos, std::forward<Args>(args)...);
 
 		_end = pos;
 		_reserveEnd = newData.get() + newCapacity;
@@ -704,13 +705,13 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		using RawStore = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
-		RawStore local;
-		::new(&local) T(std::forward<Args>(args)...);
+		RawStore tmp;
+		std::allocator_traits<Alloc>::construct(Alloc{}, reinterpret_cast<pointer>(&tmp), std::forward<Args>(args)...);
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
 		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
 		++_end;
 
-		*reinterpret_cast<RawStore *>(posPtr) = local; // relocate the new element to pos
+		*reinterpret_cast<RawStore *>(posPtr) = tmp; // relocate the new element to pos
 
 		return OEL_DYNARR_ITERATOR(posPtr);
 	}
@@ -722,7 +723,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 
 		size_type const nBeforePos = posPtr - _data.get();
 		pointer const newPos = newData.get() + nBeforePos;
-		::new(newPos) T(std::forward<Args>(args)...);   // add new
+		std::allocator_traits<Alloc>::construct(Alloc{}, newPos, std::forward<Args>(args)...);
 		pointer const next = newPos + 1;
 		// Behaviour undefined by standard if data is null
 		::memcpy(newData.get(), _data.get(), nBeforePos * sizeof(T)); // relocate prefix

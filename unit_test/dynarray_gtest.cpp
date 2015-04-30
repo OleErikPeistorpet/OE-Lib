@@ -2,6 +2,7 @@
 #include "iterator_range.h"
 #include "util.h"
 #include <deque>
+#include <vector>
 
 class ForwDeclared { char c; };
 
@@ -21,9 +22,9 @@ using oel::default_init;
 template<typename T>
 struct throwingAlloc
 {
-	using size_type = std::size_t;
+	using value_type = T;
 
-	T * allocate(size_type nObjs)
+	T * allocate(size_t nObjs)
 	{
 		if (nObjs > 999)
 			throw std::bad_alloc{};
@@ -31,7 +32,7 @@ struct throwingAlloc
 		return static_cast<T *>(::operator new[](sizeof(T) * nObjs));
 	}
 
-	void deallocate(T * ptr)
+	void deallocate(T * ptr, size_t)
 	{
 		::operator delete[](ptr);
 	}
@@ -48,6 +49,16 @@ protected:
 
 	// Objects declared here can be used by all tests.
 };
+
+#if _MSC_VER
+TEST_F(dynarrayTest, stdVectorWithOelAlloc)
+{
+	std::vector<std::string, oel::allocator<std::string>> v{"Test"};
+	v.emplace_back();
+	EXPECT_EQ("Test", v.front());
+	EXPECT_TRUE(v.back().empty());
+}
+#endif
 
 TEST_F(dynarrayTest, construct)
 {

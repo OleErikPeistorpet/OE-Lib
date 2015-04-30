@@ -100,6 +100,20 @@ struct aligned_storage_t {};
 
 
 
+/// An automatic alignment allocator. Does not compile if the alignment of T is not supported.
+template<typename T>
+struct allocator
+{
+	using value_type = T;
+	using size_type = size_t;
+
+	T * allocate(size_type nObjs);
+
+	void deallocate(T * ptr, size_type);
+};
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is not for users (implementation details)
@@ -169,24 +183,19 @@ namespace _detail
 #endif
 }
 
-/// An alignment-aware, non-standard allocator
 template<typename T>
-struct allocator
+inline T * allocator<T>::allocate(size_type nObjs)
 {
-	using size_type = size_t;
+	void * p = _detail::OpNew<OEL_ALIGNOF(T)>(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(),
+											  sizeof(T) * nObjs);
+	return static_cast<T *>(p);
+}
 
-	T * allocate(size_type nObjs)
-	{
-		void * p = _detail::OpNew<OEL_ALIGNOF(T)>(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(),
-												  nObjs * sizeof(T));
-		return static_cast<T *>(p);
-	}
-
-	void deallocate(T * ptr)
-	{
-		_detail::OpDelete(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(), ptr);
-	}
-};
+template<typename T>
+inline void allocator<T>::deallocate(T * ptr, size_type)
+{
+	_detail::OpDelete(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(), ptr);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
