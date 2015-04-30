@@ -90,10 +90,10 @@ class dynarray
 public:
 	using value_type      = T;
 	using allocator_type  = Alloc;
+	using pointer         = T *;
+	using const_pointer   = const T *;
 	using reference       = T &;
 	using const_reference = const T &;
-	using pointer         = typename std::allocator_traits<Alloc>::pointer;
-	using const_pointer   = typename std::allocator_traits<Alloc>::const_pointer;
 	using size_type       = typename std::allocator_traits<Alloc>::size_type;
 	using difference_type = typename std::allocator_traits<Alloc>::difference_type;
 
