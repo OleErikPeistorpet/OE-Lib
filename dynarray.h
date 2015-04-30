@@ -90,29 +90,28 @@ class dynarray
 public:
 	using value_type      = T;
 	using allocator_type  = Alloc;
-	using pointer         = T *;
-	using const_pointer   = const T *;
 	using reference       = T &;
 	using const_reference = const T &;
+	using pointer         = typename std::allocator_traits<Alloc>::pointer;
+	using const_pointer   = typename std::allocator_traits<Alloc>::const_pointer;
+	using size_type       = typename std::allocator_traits<Alloc>::size_type;
+	using difference_type = typename std::allocator_traits<Alloc>::difference_type;
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	using iterator       = cntigus_ctr_dbg_iterator< T, dynarray<T, Alloc> >;
-	using const_iterator = cntigus_ctr_dbg_iterator< T const, dynarray<T, Alloc> >;
+	using iterator       = cntigus_ctr_dbg_iterator< pointer, dynarray<T, Alloc> >;
+	using const_iterator = cntigus_ctr_dbg_iterator< const_pointer, dynarray<T, Alloc> >;
 
 	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
 	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
 #else
-	using iterator       = T *;
-	using const_iterator = const T *;
+	using iterator       = pointer;
+	using const_iterator = const_pointer;
 
 	#define OEL_DYNARR_ITERATOR(ptr)        (ptr)
 	#define OEL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
 	using reverse_iterator       = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-
-	using difference_type = typename std::iterator_traits<iterator>::difference_type;
-	using size_type       = typename std::allocator_traits<Alloc>::size_type;
 
 	dynarray() NOEXCEPT  : _data(nullptr), _end(nullptr), _reserveEnd(nullptr) {}
 

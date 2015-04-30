@@ -105,11 +105,10 @@ template<typename T>
 struct allocator
 {
 	using value_type = T;
-	using size_type = size_t;
 
-	T * allocate(size_type nObjs);
+	T * allocate(size_t nObjs);
 
-	void deallocate(T * ptr, size_type);
+	void deallocate(T * ptr, size_t);
 
 	allocator() = default;
 	template<typename U>
@@ -121,9 +120,9 @@ struct allocator
 	};
 };
 
-template<typename T>
+template<typename T> inline
 bool operator==(allocator<T>, allocator<T>) { return true; }
-template<typename T>
+template<typename T> inline
 bool operator!=(allocator<T>, allocator<T>) { return false; }
 
 
@@ -198,7 +197,7 @@ namespace _detail
 }
 
 template<typename T>
-inline T * allocator<T>::allocate(size_type nObjs)
+inline T * allocator<T>::allocate(size_t nObjs)
 {
 	void * p = _detail::OpNew<OEL_ALIGNOF(T)>(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(),
 											  sizeof(T) * nObjs);
@@ -206,7 +205,7 @@ inline T * allocator<T>::allocate(size_type nObjs)
 }
 
 template<typename T>
-inline void allocator<T>::deallocate(T * ptr, size_type)
+inline void allocator<T>::deallocate(T * ptr, size_t)
 {
 	_detail::OpDelete(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(), ptr);
 }
