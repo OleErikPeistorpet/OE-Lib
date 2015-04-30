@@ -105,6 +105,12 @@ template<typename T>
 struct allocator
 {
 	using value_type = T;
+	using propagate_on_container_move_assignment = std::true_type;
+
+	template<typename U> struct rebind
+	{
+		using other = allocator<U>;
+	};
 
 	T * allocate(size_t nObjs);
 
@@ -112,12 +118,7 @@ struct allocator
 
 	allocator() = default;
 	template<typename U>
-	allocator(const allocator<U> &) {}
-
-	template<typename U> struct rebind
-	{
-		using other = allocator<U>;
-	};
+	allocator(const allocator<U> &) NOEXCEPT {}
 };
 
 template<typename T> inline
