@@ -19,6 +19,28 @@ protected:
 	// Objects declared here can be used by all tests.
 };
 
+TEST_F(utilTest, erase_unordered)
+{
+	dynarray<std::string> da{"aa", "bb", "cc"};
+	{
+		std::list<std::string> li(begin(da), end(da));
+
+		auto it = begin(li);
+		erase_unordered(li, ++it);
+		EXPECT_EQ(2U, li.size());
+		EXPECT_EQ("cc", li.back());
+		erase_unordered(li, it);
+		EXPECT_EQ(1U, li.size());
+		EXPECT_EQ("aa", li.front());
+	}
+	erase_unordered(da, 1);
+	EXPECT_EQ(2U, da.size());
+	EXPECT_EQ("cc", da.back());
+	erase_unordered(da, 1);
+	EXPECT_EQ(1U, da.size());
+	EXPECT_EQ("aa", da.front());
+}
+
 TEST_F(utilTest, erase_successive_dup)
 {
 	std::list<int> li{1, 1, 2, 2, 2, 1, 3};
@@ -76,4 +98,21 @@ TEST_F(utilTest, make_unique)
 	EXPECT_EQ(4U, p2->size());
 	EXPECT_EQ(6, p2->front());
 	EXPECT_EQ(6, p2->back());
+}
+
+struct BlahBy
+{
+	int * begin() const  { return {}; }
+
+	size_t size() const  { return 2; }
+};
+
+TEST_F(utilTest, ssize)
+{
+	BlahBy qw;
+	auto test = oel::ssize(qw);
+
+	static_assert(std::is_same<decltype(test), std::ptrdiff_t>::value, "?");
+
+	ASSERT_EQ(2, test);
 }

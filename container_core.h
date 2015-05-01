@@ -118,7 +118,7 @@ struct allocator
 
 	allocator() = default;
 	template<typename U>
-	allocator(const allocator<U> &) NOEXCEPT {}
+	allocator(const allocator<U> &) noexcept {}
 };
 
 template<typename T> inline
@@ -216,40 +216,25 @@ inline void allocator<T>::deallocate(T * ptr, size_t)
 namespace _detail
 {
 	template<typename T> inline
-	void Destroy(std::true_type, T *, T *) {}  // for speed with optimizations off (debug build)
-
-	template<typename T> inline
-	void Destroy(std::false_type, T * first, T * last)
-	{
-		for (; first < last; ++first)
-			first-> ~T();
-	}
-
-	template<typename T> inline
-	void Destroy(T * first, T * last) NOEXCEPT
+	void Destroy(T * first, T * last) noexcept
 	{	// first > last is OK, does nothing
-		_detail::Destroy(is_trivially_destructible<T>(), first, last);
+		OEL_CONST_COND if (!is_trivially_destructible<T>::value) // for speed with optimizations off (debug build)
+		{
+			for (; first < last; ++first)
+				first-> ~T();
+		}
 	}
 
 
-	template<typename InputIter, typename T>
-	T * UninitCopy(InputIter first, InputIter const last, T * dest)
+	template<typename InputIter, typename T> inline
+	T * UninitCopy(InputIter first, InputIter last, T *const dest)
 	{
-		T *const destBegin = dest;
-		try
-		{
-			while (first != last)
-			{
-				::new(static_cast<void *>(dest)) T(*first);
-				++dest; ++first;
-			}
-		}
-		catch (...)
-		{
-			_detail::Destroy(destBegin, dest);
-			throw;
-		}
-		return dest;
+		return std::uninitialized_copy( first, last,
+			#if _MSC_VER
+				stdext::make_unchecked_array_iterator(dest) ).base();
+			#else
+				dest );
+			#endif
 	}
 
 	template<typename InputIter, typename T>
@@ -274,8 +259,8 @@ namespace _detail
 
 
 	template<typename T, typename InitFunc>
-	void UninitFillImpl(std::false_type, T * first, T * last, InitFunc construct)
-	{
+	void UninitFillImpl(T * first, T *const last, InitFunc construct)
+	{	// not trivial default constructor
 		T *const init = first;
 		try
 		{
@@ -289,20 +274,20 @@ namespace _detail
 		}
 	}
 
-	template<typename T, typename Unused> inline
-	void UninitFillImpl(std::true_type, T *, T *, Unused) {}  // for speed with optimizations off
-
 	template<typename T> inline
 	void UninitFillDefault(T * first, T * last)
 	{
-		_detail::UninitFillImpl( std::has_trivial_default_constructor<T>(), first, last,
-								 [](void * p) { ::new(p) T; } );
+		OEL_CONST_COND if (!std::has_trivial_default_constructor<T>::value) // for speed with non-optimized builds
+		{
+			_detail::UninitFillImpl( first, last,
+									 [](void * p) { ::new(p) T; } );
+		}
 	}
 
 	template<typename T> inline
 	void UninitFill(T * first, T * last)
 	{
-		_detail::UninitFillImpl( std::false_type{}, first, last,
+		_detail::UninitFillImpl( first, last,
 								 [](void * p) { ::new(p) T{}; } );
 	}
 }

@@ -2,20 +2,28 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#ifndef OEL_HALT
+#ifndef OEL_CONST_COND
+	#if _MSC_VER
+		#define OEL_CONST_COND __pragma(warning(suppress : 4127))
+	#else
+		#define OEL_CONST_COND
+	#endif
+#endif
+
+
+#ifndef ASSERT_ALWAYS
 	#if _MSC_VER
 		#define OEL_HALT() __debugbreak()
 	#else
 		#define OEL_HALT() __asm__("int $3")
 	#endif
-#endif
 
-#ifndef ASSERT_ALWAYS
-/// The standard assert macro doesn't break on the line of the assert, so we roll our own
+	/// The standard assert macro rarely breaks on the line of the assert, so we roll our own
 	#define ASSERT_ALWAYS(expr)  \
+		OEL_CONST_COND  \
 		do {  \
 			if (!(expr)) OEL_HALT();  \
-		} while ((void) 0, false)
+		} while (false)
 #endif
 
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
