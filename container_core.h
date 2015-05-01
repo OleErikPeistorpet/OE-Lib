@@ -258,14 +258,14 @@ namespace _detail
 	}
 
 
-	template<typename T, typename InitFunc>
-	void UninitFillImpl(T * first, T *const last, InitFunc construct)
+	template<typename T>
+	void UninitFill(T * first, T *const last)
 	{	// not trivial default constructor
 		T *const init = first;
 		try
 		{
 			for (; first != last; ++first)
-				construct(first);
+				::new(static_cast<void *>(first)) T{};
 		}
 		catch (...)
 		{
@@ -275,20 +275,10 @@ namespace _detail
 	}
 
 	template<typename T> inline
-	void UninitFillDefault(T * first, T * last)
+	void UninitFillDefault(T *const first, T *const last)
 	{
-		OEL_CONST_COND if (!std::has_trivial_default_constructor<T>::value) // for speed with non-optimized builds
-		{
-			_detail::UninitFillImpl( first, last,
-									 [](void * p) { ::new(p) T; } );
-		}
-	}
-
-	template<typename T> inline
-	void UninitFill(T * first, T * last)
-	{
-		_detail::UninitFillImpl( first, last,
-								 [](void * p) { ::new(p) T{}; } );
+		OEL_CONST_COND if (!std::has_trivial_default_constructor<T>::value)
+			_detail::UninitFill(first, last);
 	}
 }
 
