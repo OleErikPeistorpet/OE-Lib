@@ -98,8 +98,8 @@ public:
 	using difference_type = typename std::allocator_traits<Alloc>::difference_type;
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	using iterator       = cntigus_ctr_dbg_iterator< pointer, dynarray<T, Alloc> >;
-	using const_iterator = cntigus_ctr_dbg_iterator< const_pointer, dynarray<T, Alloc> >;
+	using iterator       = cntigus_ctr_dbg_iterator< T *, dynarray<T, Alloc> >;
+	using const_iterator = cntigus_ctr_dbg_iterator< const T *, dynarray<T, Alloc> >;
 
 	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
 	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}

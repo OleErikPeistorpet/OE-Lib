@@ -49,6 +49,7 @@ protected:
 	// Objects declared here can be used by all tests.
 };
 
+#if _MSC_VER || __GNUC__ >= 5
 TEST_F(dynarrayTest, stdDequeWithOelAlloc)
 {
 	using MyAlloc = oel::allocator<std::string>;
@@ -59,6 +60,7 @@ TEST_F(dynarrayTest, stdDequeWithOelAlloc)
 	EXPECT_EQ("Test", v.back());
 	EXPECT_TRUE(v.front().empty());
 }
+#endif
 
 TEST_F(dynarrayTest, construct)
 {
