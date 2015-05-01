@@ -160,7 +160,7 @@ OEL_STORAGE_ALIGNED_TO(64);
 namespace _detail
 {
 	template<size_t Align>
-	using CanDefaultAlloc = std::integral_constant< bool,
+	using CanDefaultAlloc = bool_constant<
 		#if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16 >;
 		#else
@@ -258,9 +258,15 @@ namespace _detail
 	}
 
 
+	template<typename T> inline
+	void UninitFillImpl(std::true_type, T * first, T * last)
+	{
+		::memset(first, 0, last - first);
+	}
+
 	template<typename T>
-	void UninitFill(T * first, T *const last)
-	{	// not trivial default constructor
+	void UninitFillImpl(std::false_type, T * first, T *const last)
+	{
 		T *const init = first;
 		try
 		{
@@ -275,10 +281,18 @@ namespace _detail
 	}
 
 	template<typename T> inline
+	void UninitFill(T *const first, T *const last)
+	{
+		// Could change to use memset for any POD type with most CPU architectures
+		_detail::UninitFillImpl(bool_constant<std::is_integral<T>::value && sizeof(T) == 1>(),
+								first, last);
+	}
+
+	template<typename T> inline
 	void UninitFillDefault(T *const first, T *const last)
 	{
 		OEL_CONST_COND if (!std::has_trivial_default_constructor<T>::value)
-			_detail::UninitFill(first, last);
+			_detail::UninitFillImpl(std::false_type{}, first, last);
 	}
 }
 

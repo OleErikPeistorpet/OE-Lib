@@ -116,6 +116,10 @@ template<typename IteratorDest, typename IteratorSource>
 struct can_memmove_with;
 
 
+template<bool Val>
+using bool_constant = std::integral_constant<bool, Val>;
+
+
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 8 && !__clang__
 	template<typename T>
 	using is_trivially_destructible = std::has_trivial_destructor<T>;
@@ -127,8 +131,7 @@ struct can_memmove_with;
 template<typename T>
 struct is_trivially_copyable :
 	#if __GNUC__ == 4
-		std::integral_constant< bool,
-				__has_trivial_copy(T) && is_trivially_destructible<T>::value && std::is_copy_assignable<T>::value > {};
+		bool_constant< __has_trivial_copy(T) && is_trivially_destructible<T>::value && std::is_copy_assignable<T>::value > {};
 	#else
 		std::is_trivially_copyable<T> {};
 	#endif
