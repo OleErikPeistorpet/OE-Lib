@@ -101,8 +101,8 @@ public:
 	using iterator       = cntigus_ctr_dbg_iterator< T *, dynarray<T, Alloc> >;
 	using const_iterator = cntigus_ctr_dbg_iterator< const T *, dynarray<T, Alloc> >;
 
-	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
-	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
+	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}            // these are macros to avoid function call
+	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this} // overhead in builds without inlining
 #else
 	using iterator       = pointer;
 	using const_iterator = const_pointer;
@@ -317,12 +317,12 @@ private:
 
 	size_type _insertOneCalcCap() const
 	{
-		enum { MIN_GROW = sizeof(pointer) >= sizeof(T) ?
+		enum { minGrow = sizeof(pointer) >= sizeof(T) ?
 				2 * sizeof(pointer) / sizeof(T) :
 				(sizeof(T) <= 2040 ? 2 : 1) };
 		size_type reserved = capacity();
-		// Grow by 50%, or at least MIN_GROW elements
-		return reserved + std::max(reserved / 2, size_type(MIN_GROW));
+		// Grow by 50%, or at least minGrow elements
+		return reserved + std::max(reserved / 2, size_type(minGrow));
 	}
 
 	size_type _appendCalcCap(size_type const toAdd) const
@@ -871,6 +871,7 @@ inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type 
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
 {
+	static_assert(std::is_unsigned<size_type>::value, "Requires Alloc::size_type to be unsigned");
 	if (size() > index)
 		return _data[index];
 	else

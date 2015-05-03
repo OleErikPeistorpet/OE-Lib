@@ -12,6 +12,7 @@
 
 
 #ifndef OEL_HALT
+	/// Do not throw an exception from OEL_HALT or ASSERT_ALWAYS, since they are used in noexcept functions
 	#if _MSC_VER
 		#define OEL_HALT() __debugbreak()
 	#else
