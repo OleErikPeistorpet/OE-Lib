@@ -98,6 +98,7 @@ public:
 	cntigus_ctr_dbg_iterator & operator+=(difference_type offset)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
+		// Check that adding offset keeps this in range [begin, end]
 		OEL_MEM_BOUND_ASSERT( offset >= _myCont->data() - _pElem
 						   && offset <= _myCont->end()._pElem - _pElem );
 	#endif
@@ -108,6 +109,7 @@ public:
 	cntigus_ctr_dbg_iterator & operator-=(difference_type offset)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
+		// Check that subtracting offset keeps this in range [begin, end]
 		OEL_MEM_BOUND_ASSERT( offset <= _pElem - _myCont->data()
 						   && offset >= _pElem - _myCont->end()._pElem );
 	#endif

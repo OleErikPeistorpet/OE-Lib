@@ -11,13 +11,15 @@
 #endif
 
 
-#ifndef ASSERT_ALWAYS
+#ifndef OEL_HALT
 	#if _MSC_VER
 		#define OEL_HALT() __debugbreak()
 	#else
 		#define OEL_HALT() __asm__("int $3")
 	#endif
+#endif
 
+#ifndef ASSERT_ALWAYS
 	/// The standard assert macro rarely breaks on the line of the assert, so we roll our own
 	#define ASSERT_ALWAYS(expr)  \
 		OEL_CONST_COND  \
