@@ -12,7 +12,7 @@
 
 
 #ifndef OEL_HALT
-	/// Do not throw an exception from OEL_HALT or ASSERT_ALWAYS, since they are used in noexcept functions
+	/// Do not throw an exception from OEL_HALT, since it is used in noexcept functions
 	#if _MSC_VER
 		#define OEL_HALT() __debugbreak()
 	#else
@@ -20,9 +20,9 @@
 	#endif
 #endif
 
-#ifndef ASSERT_ALWAYS
+#ifndef ASSERT_ALWAYS_NOEXCEPT
 	/// The standard assert macro rarely breaks on the line of the assert, so we roll our own
-	#define ASSERT_ALWAYS(expr)  \
+	#define ASSERT_ALWAYS_NOEXCEPT(expr)  \
 		OEL_CONST_COND  \
 		do {  \
 			if (!(expr)) OEL_HALT();  \
@@ -39,12 +39,12 @@
 #undef OEL_MEM_BOUND_ASSERT
 #undef MEM_BOUND_ASSERT_CHEAP
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	#define OEL_MEM_BOUND_ASSERT ASSERT_ALWAYS
+	#define OEL_MEM_BOUND_ASSERT ASSERT_ALWAYS_NOEXCEPT
 #else
 	#define OEL_MEM_BOUND_ASSERT(expr) ((void) 0)
 #endif
 #if OEL_MEM_BOUND_DEBUG_LVL
-	#define MEM_BOUND_ASSERT_CHEAP ASSERT_ALWAYS
+	#define MEM_BOUND_ASSERT_CHEAP ASSERT_ALWAYS_NOEXCEPT
 #else
 	#define MEM_BOUND_ASSERT_CHEAP(expr) ((void) 0)
 #endif
