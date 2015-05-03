@@ -871,8 +871,8 @@ inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type 
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
 {
-	static_assert(std::is_unsigned<size_type>::value, "Requires Alloc::size_type to be unsigned");
-	if (size() > index)
+	using USizeT = make_unsigned_t<size_type>;
+	if (static_cast<USizeT>(size()) > static_cast<USizeT>(index))
 		return _data[index];
 	else
 		throw out_of_range("Invalid index dynarray::at");
