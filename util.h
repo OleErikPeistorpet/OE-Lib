@@ -25,11 +25,10 @@ namespace oel
 
 /// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T> inline
-constexpr typename std::make_signed<T>::type   as_signed(T val) noexcept  { return (typename std::make_signed<T>::type)val; }
+constexpr make_signed_t<T>   as_signed(T val) noexcept    { return (make_signed_t<T>)val; }
 /// Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
 template<typename T> inline
-constexpr typename std::make_unsigned<T>::type as_unsigned(T val) noexcept
-	{ return (typename std::make_unsigned<T>::type)val; }
+constexpr make_unsigned_t<T> as_unsigned(T val) noexcept  { return (make_unsigned_t<T>)val; }
 
 
 

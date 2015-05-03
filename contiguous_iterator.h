@@ -18,8 +18,9 @@ namespace oel
 template<typename Pointer, typename Container>
 class cntigus_ctr_dbg_iterator
 {
+	using _sizeT = make_unsigned_t<typename Container::size_type>;
 #define OEL_ARRITER_CHECK_DEREFABLE  \
-	OEL_MEM_BOUND_ASSERT( static_cast<typename Container::size_type>(_pElem - _myCont->data()) < _myCont->size() )
+	OEL_MEM_BOUND_ASSERT( static_cast<_sizeT>(_pElem - _myCont->data()) < static_cast<_sizeT>(_myCont->size()) )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 3
 	// test for iterator pair pointing to same container
@@ -39,7 +40,7 @@ public:
 
 	using const_iterator = typename Container::const_iterator;
 
-	cntigus_ctr_dbg_iterator()  : _myCont(nullptr) {}
+	cntigus_ctr_dbg_iterator() noexcept  : _myCont(nullptr) {}
 
 	/// Construct with position in data and pointer to container
 	cntigus_ctr_dbg_iterator(pointer pos, const Container * container)

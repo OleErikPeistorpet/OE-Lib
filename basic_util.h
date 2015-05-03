@@ -148,6 +148,13 @@ struct range_ends
 
 
 
+template<typename T>
+using make_signed_t   = typename std::make_signed<T>::type;
+template<typename T>
+using make_unsigned_t = typename std::make_unsigned<T>::type;
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is implementation details
@@ -155,9 +162,9 @@ struct range_ends
 
 #if _MSC_VER
 	template<typename T, size_t S> inline
-	T *       to_pointer_contiguous(std::_Array_iterator<T, S> it)        { return it._Unchecked(); }
+	T *       to_pointer_contiguous(std::_Array_iterator<T, S> it)       { return it._Unchecked(); }
 	template<typename T, size_t S> inline
-	const T * to_pointer_contiguous(std::_Array_const_iterator<T, S> it)  { return it._Unchecked(); }
+	const T * to_pointer_contiguous(std::_Array_const_iterator<T, S> it) { return it._Unchecked(); }
 
 	template<typename S> inline
 	typename std::_String_iterator<S>::pointer  to_pointer_contiguous(std::_String_iterator<S> it)
