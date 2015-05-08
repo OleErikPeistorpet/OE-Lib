@@ -115,8 +115,7 @@ public:
 
 	dynarray() noexcept  : _data(nullptr), _end(nullptr), _reserveEnd(nullptr) {}
 
-	/** @brief Construct empty dynarray with space reserved for at least capacity elements
-	* @throw std::bad_alloc if the allocation request does not succeed (same for all operations that add capacity)  */
+	/// Construct empty dynarray with space reserved for at least capacity elements
 	dynarray(reserve_tag, size_type capacity);
 
 	/** @brief Uses default initialization for elements, can be significantly faster for non-class T
@@ -439,6 +438,8 @@ private:
 	template<typename CopyFunc>
 	OEL_FORCEINLINE iterator _appendImpl(size_type const count, CopyFunc makeNewElems)
 	{
+		_staticAssertRelocate();
+
 		pointer pos;
 		if (_unusedCapacity() >= count)
 		{
@@ -680,16 +681,12 @@ inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 template<typename T, typename Alloc> template<typename InputIterator, typename>
 OEL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
 {
-	_staticAssertRelocate();
-
 	return _appendN(can_memmove_with<pointer, InputIterator>(), first, count);
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
 OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & src)
 {
-	_staticAssertRelocate();
-
 	using IterSrc = decltype(oel::adl_begin(src));
 	return _append(can_memmove_with<pointer, IterSrc>(),
 				   iterator_traversal_t<IterSrc>(),
