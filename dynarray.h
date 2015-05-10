@@ -540,6 +540,27 @@ private:
 		return begin() + oldSize;
 	}
 
+	template<typename... Args>
+	iterator _emplaceRealloc(pointer const pos, size_type const nAfterPos, Args &&... args)
+	{
+		size_type const newCapacity = _insertOneCalcCap();
+		_smartPtr newData{_alloc(newCapacity)};
+
+		size_type const nBeforePos = pos - _data.get();
+		pointer const newPos = newData.get() + nBeforePos;
+		::new(newPos) T(std::forward<Args>(args)...);   // add new
+		// Exception free from here
+		pointer const next = newPos + 1;
+		::memcpy(newData.get(), _data.get(), nBeforePos * sizeof(T)); // relocate prefix
+		::memcpy(next, pos, nAfterPos * sizeof(T));   // relocate suffix
+		_end = next + nAfterPos;
+
+		_reserveEnd = newData.get() + newCapacity;
+		_data.swap(newData);
+
+		return OEL_DYNARR_ITERATOR(newPos);
+	}
+
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
 	{
@@ -735,23 +756,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		return OEL_DYNARR_ITERATOR(posPtr);
 	}
 	else
-	{	// not enough room, reallocate
-		size_type const newCapacity = _insertOneCalcCap();
-		_smartPtr newData{_alloc(newCapacity)};
-
-		size_type const nBeforePos = posPtr - _data.get();
-		pointer const newPos = newData.get() + nBeforePos;
-		::new(newPos) T(std::forward<Args>(args)...);   // add new
-		// Exception free from here
-		pointer const next = newPos + 1;
-		::memcpy(newData.get(), _data.get(), nBeforePos * sizeof(T)); // relocate prefix
-		::memcpy(next, posPtr, nAfterPos * sizeof(T));   // relocate suffix
-		_end = next + nAfterPos;
-
-		_reserveEnd = newData.get() + newCapacity;
-		_data.swap(newData);
-
-		return OEL_DYNARR_ITERATOR(newPos);
+	{	return _emplaceRealloc(posPtr, nAfterPos, std::forward<Args>(args)...);
 	}
 }
 

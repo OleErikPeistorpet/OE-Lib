@@ -122,9 +122,9 @@ struct allocator
 };
 
 template<typename T> inline
-bool operator==(allocator<T>, allocator<T>) { return true; }
+bool operator==(allocator<T>, allocator<T>) noexcept { return true; }
 template<typename T> inline
-bool operator!=(allocator<T>, allocator<T>) { return false; }
+bool operator!=(allocator<T>, allocator<T>) noexcept { return false; }
 
 
 
@@ -245,7 +245,7 @@ namespace _detail
 		{
 			for (; 0 < count; --count)
 			{
-				::new(static_cast<void *>(dest)) T(*first);
+				::new(dest) T(*first);
 				++dest; ++first;
 			}
 		}
@@ -271,7 +271,7 @@ namespace _detail
 		try
 		{
 			for (; first != last; ++first)
-				::new(static_cast<void *>(first)) T{};
+				::new(first) T{};
 		}
 		catch (...)
 		{
