@@ -79,9 +79,10 @@ bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { re
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
 *
-* Relocating objects of template argument T must be equivalent to memcpy without destructor call (true for most types).
-* This is checked when compiling with is_trivially_relocatable, a trait which must be specialized manually for each
-* type that is not trivially copyable.
+* Many functions require that relocating objects of template argument T is equivalent to memcpy without destructor call
+* (true for most types). This is checked when compiling with is_trivially_relocatable, a trait which must be
+* specialized manually for each type that is not trivially copyable. There are some notable exceptions for which
+* trivially relocatable T is not required: all constructors, operator =, swap, assign, emplace_back and push_back.
 *
 * The default allocator supports over-aligned types (e.g. __m256)  */
 template<typename T, typename Alloc = allocator<T> >
@@ -179,9 +180,9 @@ public:
 	* Otherwise same as append(InputIterator, size_type)  */
 	template<typename InputRange>
 	iterator      append(const InputRange & source);
-	/// Equivalent to calling append(const InputRange &) with il as argument  */
+	/// Equivalent to calling append(const InputRange &) with il as argument
 	iterator      append(std::initializer_list<T> il);
-	/// Equivalent to std::vector::insert(end(), count, val)
+	/// Equivalent to std::vector::insert(end(), count, val), but this has strong exception guarantee
 	void          append(size_type count, const T & val);
 
 	/**
