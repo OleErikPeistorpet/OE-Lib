@@ -81,8 +81,9 @@ bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { re
 *
 * Many functions require that relocating objects of template argument T is equivalent to memcpy without destructor call
 * (true for most types). This is checked when compiling with is_trivially_relocatable, a trait which must be
-* specialized manually for each type that is not trivially copyable. There are some notable exceptions for which
-* trivially relocatable T is not required: all constructors, operator =, swap, assign, emplace_back and push_back.
+* specialized manually for each type that is not trivially copyable.
+* There are some notable exceptions for which trivially relocatable T is not required:
+* all constructors, operator =, swap, assign, emplace_back, push_back, pop_back and erase_back.
 *
 * The default allocator supports over-aligned types (e.g. __m256)  */
 template<typename T, typename Alloc = allocator<T> >
@@ -169,7 +170,7 @@ public:
 	*
 	* Causes reallocation if the pre-call size + count is greater than capacity. On reallocation, all iterators
 	* and references are invalidated. Otherwise, any previous end iterator will point to the first element added.
-	* Strong exception safety, aka. commit or rollback semantics. */
+	* Strong exception guarantee, there are no effects if an exception is thrown. */
 	template<typename InputIterator, typename = decltype( *std::declval<InputIterator>() )>
 	InputIterator append(InputIterator first, size_type count);
 	/**
