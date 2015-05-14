@@ -314,21 +314,20 @@ private:
 		return _reserveEnd - _end;
 	}
 
-	size_type _insertOneCalcCap() const
+	size_type _calcCapAddOne() const
 	{
 		enum { minGrow = sizeof(pointer) >= sizeof(T) ?
-				2 * sizeof(pointer) / sizeof(T) :
-				(sizeof(T) <= 2040 ? 2 : 1) };
+				2 * sizeof(pointer) / sizeof(T) : // Want to grow by 2 * sizeof(pointer) bytes,
+				(sizeof(T) <= 2040 ? 2 : 1) };    // at least 2 elements if they fit in a 4K page
 		size_type reserved = capacity();
-		// Grow by 50%, or at least minGrow elements
+		// Growth factor is 1.5
 		return reserved + std::max(reserved / 2, size_type(minGrow));
 	}
 
-	size_type _appendCalcCap(size_type const toAdd) const
+	static size_type _calcCap(size_type reserved, size_type const newSize)
 	{
-		size_type reserved = capacity();
 		reserved += reserved / 2;
-		return std::max(reserved, size() + toAdd);
+		return std::max(reserved, newSize);
 	}
 
 	template<typename CntigusIter>
@@ -422,7 +421,7 @@ private:
 	template<typename... Args>
 	void _emplaceBackRealloc(Args &&... args)
 	{
-		size_type const newCapacity = _insertOneCalcCap();
+		size_type const newCapacity = _calcCapAddOne();
 		_smartPtr newData{_alloc(newCapacity)};
 
 		pointer const pos = newData.get() + size();
@@ -448,7 +447,7 @@ private:
 		}
 		else
 		{
-			size_type const newCapacity = _appendCalcCap(count);
+			size_type const newCapacity = _calcCap(capacity(), size() + count);
 			_smartPtr newData{_alloc(newCapacity)};
 
 			size_type const oldSize = size();
@@ -543,7 +542,7 @@ private:
 	template<typename... Args>
 	iterator _emplaceRealloc(pointer const pos, size_type const nAfterPos, Args &&... args)
 	{
-		size_type const newCapacity = _insertOneCalcCap();
+		size_type const newCapacity = _calcCapAddOne();
 		_smartPtr newData{_alloc(newCapacity)};
 
 		size_type const nBeforePos = pos - _data.get();
@@ -579,9 +578,7 @@ private:
 		}
 		else
 		{	// not enough room, reallocate
-			allocSize += allocSize / 2;
-			allocSize = std::max(allocSize, newSize);
-
+			allocSize = _calcCap(allocSize, newSize);
 			_smartPtr newData{_alloc(allocSize)};
 
 			size_type const oldSize = size();
@@ -598,7 +595,45 @@ private:
 	}
 };
 
-// Definitions of public functions
+template<typename T, typename Alloc> template<typename... Args>
+void dynarray<T, Alloc>::emplace_back(Args &&... args)
+{
+	if (_end < _reserveEnd)
+		::new(_end) T(std::forward<Args>(args)...);
+	else
+		_emplaceBackRealloc(std::forward<Args>(args)...);
+
+	++_end;
+}
+
+template<typename T, typename Alloc> template<typename... Args>
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
+{
+	_staticAssertRelocate();
+
+	auto const posPtr = const_cast<pointer>(to_pointer_contiguous(pos));
+	MEM_BOUND_ASSERT_CHEAP(_data.get() <= posPtr && posPtr <= _end);
+
+	size_type const nAfterPos = _end - posPtr;
+
+	if (_end < _reserveEnd) // then new element fits
+	{
+		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
+		using RawStore = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
+		RawStore local;
+		::new(&local) T(std::forward<Args>(args)...);
+		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
+		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
+		++_end;
+
+		*reinterpret_cast<RawStore *>(posPtr) = local; // relocate the new element to pos
+
+		return OEL_DYNARR_ITERATOR(posPtr);
+	}
+	else
+	{	return _emplaceRealloc(posPtr, nAfterPos, std::forward<Args>(args)...);
+	}
+}
 
 template<typename T, typename Alloc>
 inline dynarray<T, Alloc>::dynarray(reserve_tag, size_type capacity) :
@@ -718,46 +753,6 @@ template<typename T, typename Alloc>
 OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(std::initializer_list<T> il)
 {
 	return append<>(il);
-}
-
-template<typename T, typename Alloc> template<typename... Args>
-void dynarray<T, Alloc>::emplace_back(Args &&... args)
-{
-	if (_end < _reserveEnd)
-		::new(_end) T(std::forward<Args>(args)...);
-	else
-		_emplaceBackRealloc(std::forward<Args>(args)...);
-
-	++_end;
-}
-
-template<typename T, typename Alloc> template<typename... Args>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
-{
-	_staticAssertRelocate();
-
-	auto const posPtr = const_cast<pointer>(to_pointer_contiguous(pos));
-	MEM_BOUND_ASSERT_CHEAP(_data.get() <= posPtr && posPtr <= _end);
-
-	size_type const nAfterPos = _end - posPtr;
-
-	if (_end < _reserveEnd) // then new element fits
-	{
-		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
-		using RawStore = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
-		RawStore local;
-		::new(&local) T(std::forward<Args>(args)...);
-		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
-		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
-		++_end;
-
-		*reinterpret_cast<RawStore *>(posPtr) = local; // relocate the new element to pos
-
-		return OEL_DYNARR_ITERATOR(posPtr);
-	}
-	else
-	{	return _emplaceRealloc(posPtr, nAfterPos, std::forward<Args>(args)...);
-	}
 }
 
 template<typename T, typename Alloc>
