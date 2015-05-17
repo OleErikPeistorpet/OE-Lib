@@ -19,7 +19,7 @@ protected:
 	// Objects declared here can be used by all tests.
 };
 
-TEST_F(utilTest, erase_unordered)
+TEST_F(utilTest, eraseUnordered)
 {
 	dynarray<std::string> da{"aa", "bb", "cc"};
 	{
@@ -41,7 +41,7 @@ TEST_F(utilTest, erase_unordered)
 	EXPECT_EQ("aa", da.front());
 }
 
-TEST_F(utilTest, erase_successive_dup)
+TEST_F(utilTest, eraseSuccessiveDup)
 {
 	std::list<int> li{1, 1, 2, 2, 2, 1, 3};
 	dynarray<int> uniqueTest;
@@ -53,14 +53,14 @@ TEST_F(utilTest, erase_successive_dup)
 	EXPECT_EQ(4U, uniqueTest.size());
 }
 
-TEST_F(utilTest, erase_back)
+TEST_F(utilTest, eraseBack)
 {
 	std::list<int> li{1, 1, 2, 2, 2, 1, 3};
 	erase_back(li, std::remove(begin(li), end(li), 1));
 	EXPECT_EQ(4U, li.size());
 }
 
-TEST_F(utilTest, index_valid)
+TEST_F(utilTest, indexValid)
 {
 	std::list<std::string> li{"aa", "bb"};
 
@@ -72,7 +72,7 @@ TEST_F(utilTest, index_valid)
 	//EXPECT_TRUE(index_valid(li, l));
 }
 
-TEST_F(utilTest, copy_nonoverlap)
+TEST_F(utilTest, copyNonoverlap)
 {
 	dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
@@ -88,7 +88,7 @@ TEST_F(utilTest, copy_nonoverlap)
 	EXPECT_TRUE(li.back().empty());
 }
 
-TEST_F(utilTest, make_unique)
+TEST_F(utilTest, makeUnique)
 {
 	auto p1 = make_unique<std::string[]>(5);
 	for (size_t i = 0; i < 5; ++i)

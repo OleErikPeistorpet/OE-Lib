@@ -5,13 +5,8 @@
 
 class ForwDeclared { char c; };
 
-int MoveOnly::nConstruct;
-int MoveOnly::nAssign;
-int MoveOnly::nDestruct;
-
-int NoAssign::nConstruct;
-int NoAssign::nCopyConstr;
-int NoAssign::nDestruct;
+int MyCounter::nConstruct;
+int MyCounter::nDestruct;
 
 using oel::dynarray;
 using oel::cbegin;
@@ -88,7 +83,7 @@ TEST_F(dynarrayTest, construct)
 	EXPECT_EQ(5U, test[0].size());
 }
 
-TEST_F(dynarrayTest, push_back)
+TEST_F(dynarrayTest, pushBack)
 {
 	MoveOnly::ClearCount();
 	{
@@ -96,13 +91,13 @@ TEST_F(dynarrayTest, push_back)
 
 		double const VALUES[] = {-1.1, 2.0};
 
-		up.push_back( MoveOnly(new double(VALUES[0])) );
+		up.push_back(MoveOnly{VALUES[0]});
 		ASSERT_EQ(1U, up.size());
 
 		EXPECT_THROW( up.emplace_back(ThrowOnConstruct), TestException );
 		ASSERT_EQ(1U, up.size());
 
-		up.push_back( MoveOnly(new double(VALUES[1])) );
+		up.push_back(MoveOnly{VALUES[1]});
 		ASSERT_EQ(2U, up.size());
 
 		EXPECT_THROW( up.emplace_back(ThrowOnConstruct), TestException );
@@ -122,6 +117,77 @@ TEST_F(dynarrayTest, push_back)
 	EXPECT_EQ(3U, nested.back().size());
 	nested.emplace_back(std::initializer_list<int>{1, 2});
 	EXPECT_EQ(2U, nested.back().size());
+}
+
+TEST_F(dynarrayTest, pushBackNonTrivialReloc)
+{
+	using oel::as_signed;
+	NontrivialReloc::ClearCount();
+	{
+		dynarray<NontrivialReloc> mo;
+
+		double const VALUES[] = {-1.1, 2.0, -0.7, 9.6};
+		std::deque<double> expected;
+
+		mo.push_back(NontrivialReloc{VALUES[0]});
+		expected.push_back(VALUES[0]);
+		ASSERT_EQ(1U, mo.size());
+		EXPECT_EQ(NontrivialReloc::nConstruct - as_signed(mo.size()), NontrivialReloc::nDestruct);
+
+		mo.emplace_back(VALUES[1], ThrowOnMoveOrCopy);
+		expected.emplace_back(VALUES[1]);
+		ASSERT_EQ(2U, mo.size());
+		EXPECT_EQ(NontrivialReloc::nConstruct - as_signed(mo.size()), NontrivialReloc::nDestruct);
+
+		try
+		{
+			mo.push_back(NontrivialReloc{VALUES[2]});
+			expected.push_back(VALUES[2]);
+		}
+		catch (TestException &) {
+		}
+		ASSERT_EQ(expected.size(), mo.size());
+		EXPECT_EQ(NontrivialReloc::nConstruct - as_signed(mo.size()), NontrivialReloc::nDestruct);
+
+		try
+		{
+			mo.push_back(NontrivialReloc{VALUES[2]});
+			expected.push_back(VALUES[2]);
+		}
+		catch (TestException &) {
+		}
+		ASSERT_EQ(3U, mo.size());
+		EXPECT_EQ(NontrivialReloc::nConstruct - as_signed(mo.size()), NontrivialReloc::nDestruct);
+
+		mo.emplace_back(VALUES[3], ThrowOnMoveOrCopy);
+		expected.emplace_back(VALUES[3]);
+		ASSERT_EQ(4U, mo.size());
+		EXPECT_EQ(NontrivialReloc::nConstruct - as_signed(mo.size()), NontrivialReloc::nDestruct);
+
+		EXPECT_THROW( mo.emplace_back(ThrowOnConstruct), TestException );
+		ASSERT_EQ(4U, mo.size());
+
+		try
+		{
+			mo.push_back( std::move(mo.front()) );
+			expected.push_back(expected.front());
+		}
+		catch (TestException &) {
+		}
+		ASSERT_EQ(expected.size(), mo.size());
+
+		try
+		{
+			mo.push_back( std::move(mo.front()) );
+			expected.push_back(expected.front());
+		}
+		catch (TestException &) {
+		}
+		EXPECT_EQ(5U, mo.size());
+
+		EXPECT_TRUE( std::equal(begin(mo), end(mo), begin(expected)) );
+	}
+	EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
 }
 
 TEST_F(dynarrayTest, assign)
@@ -179,8 +245,8 @@ TEST_F(dynarrayTest, assign)
 	MoveOnly::ClearCount();
 	{
 		double const VALUES[] = {-1.1, 0.4};
-		MoveOnly src[] { MoveOnly{new double{VALUES[0]}},
-						 MoveOnly{new double{VALUES[1]}} };
+		MoveOnly src[] { MoveOnly{VALUES[0]},
+						 MoveOnly{VALUES[1]} };
 		dynarray<MoveOnly> test;
 
 		test.assign(oel::move_range(src));
@@ -263,21 +329,21 @@ TEST_F(dynarrayTest, insert)
 
 		double const VALUES[] = {-1.1, 0.4, 1.3, 2.2};
 
-		auto & p = *up.insert(begin(up), MoveOnly(new double(VALUES[2])));
+		auto & p = *up.insert(begin(up), MoveOnly{VALUES[2]});
 		EXPECT_EQ(VALUES[2], *p);
 		ASSERT_EQ(1U, up.size());
 
 		EXPECT_THROW( up.emplace(begin(up), ThrowOnConstruct), TestException );
 		ASSERT_EQ(1U, up.size());
 
-		up.insert( begin(up), MoveOnly(new double(VALUES[0])) );
+		up.insert(begin(up), MoveOnly{VALUES[0]});
 		ASSERT_EQ(2U, up.size());
 
 		EXPECT_THROW( up.emplace(begin(up) + 1, ThrowOnConstruct), TestException );
 		ASSERT_EQ(2U, up.size());
 
-		up.insert( end(up), MoveOnly(new double(VALUES[3])) );
-		auto & p2 = *up.insert( begin(up) + 1, MoveOnly(new double(VALUES[1])) );
+		up.insert(end(up), MoveOnly{VALUES[3]});
+		auto & p2 = *up.insert(begin(up) + 1, MoveOnly{VALUES[1]});
 		EXPECT_EQ(VALUES[1], *p2);
 		ASSERT_EQ(4U, up.size());
 

@@ -7,38 +7,36 @@ struct ThrowOnMoveOrCopyT {} const ThrowOnMoveOrCopy;
 
 class TestException : public std::exception {};
 
-class MoveOnly
+struct MyCounter
 {
-	std::unique_ptr<double> val;
-
-public:
 	static int nConstruct;
-	static int nAssign;
 	static int nDestruct;
 
 	static void ClearCount()
 	{
-		nConstruct = nAssign = nDestruct = 0;
+		nConstruct = nDestruct = 0;
 	}
+};
 
-	MoveOnly(double * val) : val(val)
+class MoveOnly : public MyCounter
+{
+	std::unique_ptr<double> val;
+
+public:
+	explicit MoveOnly(double val)
+	 :	val(new double{val})
 	{	++nConstruct;
 	}
-	MoveOnly(ThrowOnConstructT)
+	explicit MoveOnly(ThrowOnConstructT)
 	{	throw TestException{};
 	}
-	MoveOnly(ThrowOnMoveOrCopyT)
-	{	++nConstruct;
-	}
 	MoveOnly(MoveOnly && other) noexcept
-	{
-		val = std::move(other.val);
-		++nConstruct;
+	 :	val(std::move(other.val))
+	{	++nConstruct;
 	}
 	MoveOnly & operator =(MoveOnly && other) noexcept
 	{
 		val = std::move(other.val);
-		++nAssign;
 		return *this;
 	}
 	~MoveOnly() { ++nDestruct; }
@@ -46,54 +44,53 @@ public:
 	operator double *() const { return val.get(); }
 };
 
-struct NoAssign
+class NontrivialReloc : public MyCounter
 {
-	static int nConstruct;
-	static int nCopyConstr;
-	static int nDestruct;
+	double val;
+	bool throwOnMove = false;
 
-	static void ClearCount()
-	{
-		nConstruct = nCopyConstr = nDestruct = 0;
-	}
-
-	NoAssign(int val) : val(val)
+public:
+	explicit NontrivialReloc(double val) : val(val)
 	{	++nConstruct;
 	}
-	NoAssign(ThrowOnConstructT)
+	explicit NontrivialReloc(ThrowOnConstructT)
 	{	throw TestException{};
 	}
-	NoAssign(ThrowOnMoveOrCopyT) : throwOnMove(true)
+	NontrivialReloc(double val, ThrowOnMoveOrCopyT)
+	 :	val(val), throwOnMove(true)
 	{	++nConstruct;
 	}
-	NoAssign(const NoAssign & other)
-	 :	val(other.val)
+	NontrivialReloc(NontrivialReloc && other)
 	{
-		if (throwOnMove)
+		if (other.throwOnMove)
+		{
+			other.throwOnMove = false;
 			throw TestException{};
-
-		++nConstruct;
-		++nCopyConstr;
-	}
-	NoAssign(NoAssign && other)
-	 :	val(other.val)
-	{
-		if (throwOnMove)
-			throw TestException{};
-
-		other.val = 0;
+		}
+		val = other.val;
 		++nConstruct;
 	}
-	void operator =(const NoAssign &) = delete;
-	~NoAssign() { ++nDestruct; }
+	NontrivialReloc & operator =(NontrivialReloc && other)
+	{
+		if (throwOnMove || other.throwOnMove)
+		{
+			other.throwOnMove = throwOnMove = false;
+			throw TestException{};
+		}
+		val = other.val;
+		return *this;
+	}
+	~NontrivialReloc() { ++nDestruct; }
 
-	bool throwOnMove = false;
-	std::ptrdiff_t val = 0;
+	operator double() const
+	{
+		return val;
+	}
 };
 
 namespace oel {
 template<> struct is_trivially_relocatable<MoveOnly> : std::true_type {};
-template<> struct is_trivially_relocatable<NoAssign> : std::true_type {};
+template<> struct is_trivially_relocatable<NontrivialReloc> : std::false_type {};
 }
 
 
