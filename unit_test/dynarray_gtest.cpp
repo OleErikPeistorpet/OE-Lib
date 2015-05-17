@@ -76,6 +76,8 @@ TEST_F(dynarrayTest, stdDequeWithOelAlloc)
 
 TEST_F(dynarrayTest, construct)
 {
+	// TODO: Test exception safety of constructors
+
 	{
 		Outer o;
 	}
