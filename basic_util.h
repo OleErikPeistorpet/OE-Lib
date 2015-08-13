@@ -120,6 +120,13 @@ template<bool Val>
 using bool_constant = std::integral_constant<bool, Val>;
 
 
+#if __GNUC__ == 4
+	template<typename T>
+	using is_trivially_default_constructible = std::has_trivial_default_constructor<T>;
+#else
+	using std::is_trivially_default_constructible;
+#endif
+
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 8 && !__clang__
 	template<typename T>
 	using is_trivially_destructible = std::has_trivial_destructor<T>;

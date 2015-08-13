@@ -291,7 +291,7 @@ namespace _detail
 	template<typename T> inline
 	void UninitFillDefault(T *const first, T *const last)
 	{
-		OEL_CONST_COND if (!std::has_trivial_default_constructor<T>::value)
+		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
 			_detail::UninitFillImpl(std::false_type{}, first, last);
 	}
 }
