@@ -96,7 +96,7 @@ auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 
 /// Like std::aligned_storage<Size, Align>::type, but guaranteed to support alignment of up to 64
 template<size_t Size, size_t Align>
-struct aligned_storage_t {};
+struct aligned_storage_t;
 
 
 
