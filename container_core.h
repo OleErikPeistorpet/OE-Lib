@@ -94,7 +94,7 @@ auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 
 
 
-/// Like std::aligned_storage<Size, Align>::type, but guaranteed to support alignment of up to 64
+/// Like std::aligned_storage<Size, Align>::type, but supports alignment above that of std::max_align_t
 template<size_t Size, size_t Align>
 struct aligned_storage_t;
 
@@ -107,9 +107,9 @@ struct allocator
 	using value_type = T;
 	using propagate_on_container_move_assignment = std::true_type;
 
-	template<typename U> struct rebind
-	{
-		using other = allocator<U>;
+	template<typename U>
+	struct rebind
+	{	using other = allocator<U>;
 	};
 
 	T * allocate(size_t nObjs);
@@ -153,6 +153,7 @@ OEL_STORAGE_ALIGNED_TO(8);
 OEL_STORAGE_ALIGNED_TO(16);
 OEL_STORAGE_ALIGNED_TO(32);
 OEL_STORAGE_ALIGNED_TO(64);
+OEL_STORAGE_ALIGNED_TO(128);
 
 #undef OEL_STORAGE_ALIGNED_TO
 
