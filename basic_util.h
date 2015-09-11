@@ -105,15 +105,20 @@ using bool_constant = std::integral_constant<bool, Val>;
 
 #if __GLIBCXX__ && __GNUC__ == 4
 	template<typename T>
-	using is_trivially_default_constructible = std::has_trivial_default_constructor<T>;
+	using is_trivially_default_constructible = bool_constant< __has_trivial_constructor(T)
+		#if __INTEL_COMPILER
+			|| __is_pod(T)
+		#endif
+		>;
+
+	template<typename T>
+	using is_trivially_destructible = bool_constant< __has_trivial_destructor(T)
+		#if __INTEL_COMPILER
+			|| __is_pod(T)
+		#endif
+		>;
 #else
 	using std::is_trivially_default_constructible;
-#endif
-
-#if __GNUC__ == 4 && __GNUC_MINOR__ < 8 && !__clang__
-	template<typename T>
-	using is_trivially_destructible = std::has_trivial_destructor<T>;
-#else
 	using std::is_trivially_destructible;
 #endif
 
@@ -121,7 +126,11 @@ using bool_constant = std::integral_constant<bool, Val>;
 template<typename T>
 struct is_trivially_copyable :
 	#if __GLIBCXX__ && __GNUC__ == 4
-		bool_constant< __has_trivial_copy(T) && is_trivially_destructible<T>::value && std::is_copy_assignable<T>::value > {};
+		bool_constant< (__has_trivial_copy(T) && __has_trivial_assign(T))
+			#if __INTEL_COMPILER
+				|| __is_pod(T)
+			#endif
+			> {};
 	#else
 		std::is_trivially_copyable<T> {};
 	#endif
