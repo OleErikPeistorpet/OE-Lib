@@ -47,16 +47,12 @@ using std::end;
 	using std::rend;
 	using std::crend;
 #else
-	/**
-	* @brief Const version of std::begin.
-	* @return An iterator addressing the (const) first element in the range r. */
+	/// Equivalent to std::cbegin found in C++14
 	template<typename Range> inline
-	auto cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
-	/**
-	* @brief Const version of std::end.
-	* @return An iterator positioned one beyond the (const) last element in the range r. */
+	auto cbegin(const Range & r) -> decltype(std::begin(r))  { return std::begin(r); }
+	/// Equivalent to std::cend found in C++14
 	template<typename Range> inline
-	auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
+	auto cend(const Range & r) -> decltype(std::end(r))  { return std::end(r); }
 
 	/**
 	* @brief Like cbegin, but reverse iterator.
