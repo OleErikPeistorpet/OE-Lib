@@ -216,6 +216,26 @@ inline void allocator<T>::deallocate(T * ptr, size_t)
 
 namespace _detail
 {
+#if __GLIBCXX__ && __GNUC__ == 4
+	template<typename T>
+	using is_trivially_default_constructible = bool_constant< __has_trivial_constructor(T)
+		#if __INTEL_COMPILER
+			|| __is_pod(T)
+		#endif
+		>;
+
+	template<typename T>
+	using is_trivially_destructible = bool_constant< __has_trivial_destructor(T)
+		#if __INTEL_COMPILER
+			|| __is_pod(T)
+		#endif
+		>;
+#else
+	using std::is_trivially_default_constructible;
+	using std::is_trivially_destructible;
+#endif
+
+
 	template<typename T> inline
 	void Destroy(T * first, T * last) noexcept
 	{	// first > last is OK, does nothing
