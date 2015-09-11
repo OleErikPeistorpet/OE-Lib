@@ -59,28 +59,15 @@ using std::end;
 	auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
 
 	/**
-	* @brief Like std::begin, but reverse iterator.
-	* @return An iterator to the reverse-beginning of the range r. */
+	* @brief Like cbegin, but reverse iterator.
+	* @return A const-qualified iterator to the reverse-beginning of the range r. */
 	template<typename Range> inline
-	auto rbegin(Range & r) -> decltype(r.rbegin())        { return r.rbegin(); }
-	/// Same as crbegin(const Range &)
-	template<typename Range> inline
-	auto rbegin(const Range & r) -> decltype(r.rbegin())  { return r.rbegin(); }
-	/// Returns a const-qualified iterator to the reverse-beginning of the range r
-	template<typename Range> inline
-	auto crbegin(const Range & r) -> decltype(rbegin(r))  { return rbegin(r); }
-
+	auto crbegin(const Range & r) -> decltype(r.rbegin())  { return r.rbegin(); }
 	/**
-	* @brief Like std::end, but reverse iterator.
-	* @return An iterator to the reverse-end of the range r. */
+	* @brief Like cend, but reverse iterator.
+	* @return A const-qualified iterator to the reverse-end of the range r. */
 	template<typename Range> inline
-	auto rend(Range & r) -> decltype(r.rend())        { return r.rend(); }
-	/// Same as crend(const Range &)
-	template<typename Range> inline
-	auto rend(const Range & r) -> decltype(r.rend())  { return r.rend(); }
-	/// Returns a const-qualified iterator to the reverse-end of the range r
-	template<typename Range> inline
-	auto crend(const Range & r) -> decltype(rend(r))  { return rend(r); }
+	auto crend(const Range & r) -> decltype(r.rend())  { return r.rend(); }
 #endif
 
 template<typename Iterator>
