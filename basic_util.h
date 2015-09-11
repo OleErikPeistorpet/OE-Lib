@@ -120,7 +120,7 @@ template<bool Val>
 using bool_constant = std::integral_constant<bool, Val>;
 
 
-#if __GNUC__ == 4
+#if __GLIBCXX__ && __GNUC__ == 4
 	template<typename T>
 	using is_trivially_default_constructible = std::has_trivial_default_constructor<T>;
 #else
@@ -137,7 +137,7 @@ using bool_constant = std::integral_constant<bool, Val>;
 /// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
 template<typename T>
 struct is_trivially_copyable :
-	#if __GNUC__ == 4
+	#if __GLIBCXX__ && __GNUC__ == 4
 		bool_constant< __has_trivial_copy(T) && is_trivially_destructible<T>::value && std::is_copy_assignable<T>::value > {};
 	#else
 		std::is_trivially_copyable<T> {};
