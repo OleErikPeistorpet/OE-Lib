@@ -74,26 +74,6 @@ const default_init;
 
 
 
-/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
-*
-* For use in implementation of classes with begin member  */
-template<typename Range> inline
-auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
-/// Const version of adl_begin
-template<typename Range> inline
-auto adl_begin(const Range & r) -> decltype(begin(r))  { return begin(r); }
-
-/** @brief Argument-dependent lookup non-member end, defaults to std::end
-*
-* For use in implementation of classes with end member  */
-template<typename Range> inline
-auto adl_end(Range & r)       -> decltype(end(r))  { return end(r); }
-/// Const version of adl_end
-template<typename Range> inline
-auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
-
-
-
 /// Like std::aligned_storage<Size, Align>::type, but supports alignment above that of std::max_align_t
 template<size_t Size, size_t Align>
 struct aligned_storage_t;

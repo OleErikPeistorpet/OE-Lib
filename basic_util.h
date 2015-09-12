@@ -66,20 +66,49 @@ using std::end;
 	auto crend(const Range & r) -> decltype(r.rend())  { return r.rend(); }
 #endif
 
+/// Argument-dependent lookup non-member begin, defaults to std::begin
+template<typename Range> inline
+auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
+/// Const version of adl_begin
+template<typename Range> inline
+auto adl_begin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+
+/// Argument-dependent lookup non-member end, defaults to std::end
+template<typename Range> inline
+auto adl_end(Range & r)       -> decltype(end(r))  { return end(r); }
+/// Const version of adl_end
+template<typename Range> inline
+auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
+
+} // namespace oel
+
+/** @code
+	auto it = container.begin();     // Fails with types that don't have begin member such as built-in arrays
+	auto it = std::begin(container); // Fails with types that only have non-member begin outside of namespace std
+	using std::begin; auto it = begin(container); // Generic, good
+	auto it = adl_begin(container);  // Generic, good
+@endcode  */
+using oel::adl_begin;
+using oel::adl_end;
+
+namespace oel
+{
+
 template<typename Iterator>
 using difference_type = typename std::iterator_traits<Iterator>::difference_type;
 
-/// Returns r.size() as signed (difference_type of begin(r))
+/// Returns r.size() as signed (difference_type of iterator returned by begin(r))
 template<typename SizedRange>
 constexpr auto ssize(const SizedRange & r)
  -> decltype( r.size(), difference_type<decltype(begin(r))>() )  { return r.size(); }
-/// Returns number of elements in array as signed
+
+/// Returns number of elements in array as signed type
 template<typename T, std::ptrdiff_t Size>
 constexpr std::ptrdiff_t ssize(const T (&)[Size]) noexcept  { return Size; }
 
-/** @brief Returns number of elements in r as signed (difference_type of begin(r))
+/** @brief Count the elements in r
 *
-* Calls ssize(r) if possible, otherwise equivalent to std::distance(begin(r), end(r))  */
+* @return ssize(r) if possible, otherwise equivalent to std::distance(begin(r), end(r))  */
 template<typename InputRange>
 auto count(const InputRange & r) -> difference_type<decltype(begin(r))>;
 
