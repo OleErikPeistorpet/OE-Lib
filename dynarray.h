@@ -389,9 +389,9 @@ private:
 	template<typename ForwTravRange>
 	void _assign(const ForwTravRange & src, forward_traversal_tag)
 	{
-		using IterSrc = decltype(oel::adl_begin(src));
+		using IterSrc = decltype(::adl_begin(src));
 		_assignImpl(can_memmove_with<pointer, IterSrc>(),
-					oel::adl_begin(src), oel::adl_end(src), oel::count(src));
+					::adl_begin(src), ::adl_end(src), oel::count(src));
 	}
 
 	template<typename InputRange>
@@ -507,7 +507,7 @@ private:
 	OEL_FORCEINLINE iterator _append(std::true_type, forward_traversal_tag, const CntigusRange & src)
 	{	// use memcpy
 		auto const nElems = oel::count(src);
-		_appendN(std::true_type{}, oel::adl_begin(src), nElems);
+		_appendN(std::true_type{}, ::adl_begin(src), nElems);
 
 		return end() - nElems;
 	}
@@ -515,8 +515,8 @@ private:
 	template<typename ForwTravRange>
 	iterator _append(std::false_type, forward_traversal_tag, const ForwTravRange & src)
 	{	// multi-pass iterator
-		auto first = oel::adl_begin(src);
-		auto last = oel::adl_end(src);
+		auto first = ::adl_begin(src);
+		auto last = ::adl_end(src);
 		return _appendImpl( oel::count(src),
 				[=](pointer dest, size_type)
 				{
@@ -722,7 +722,7 @@ ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_t
 template<typename T, typename Alloc> template<typename InputRange>
 inline void dynarray<T, Alloc>::assign(const InputRange & src)
 {
-	using InIter = decltype(oel::adl_begin(src));
+	using InIter = decltype(::adl_begin(src));
 	_assign(src, iterator_traversal_t<InIter>());
 }
 
@@ -745,7 +745,7 @@ OEL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, si
 template<typename T, typename Alloc> template<typename InputRange>
 OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & src)
 {
-	using IterSrc = decltype(oel::adl_begin(src));
+	using IterSrc = decltype(::adl_begin(src));
 	return _append(can_memmove_with<pointer, IterSrc>(),
 				   iterator_traversal_t<IterSrc>(),
 				   src);
