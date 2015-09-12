@@ -80,7 +80,7 @@ TEST_F(utilTest, copyNonoverlap)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
-	copy_nonoverlap(begin(test), count(test), adl_begin(test2));
+	oel::copy_nonoverlap(begin(test), count(test), adl_begin(test2));
 	EXPECT_TRUE(std::equal(begin(test), end(test), test2));
 
 	std::list<std::string> li{"aa", "bb"};
