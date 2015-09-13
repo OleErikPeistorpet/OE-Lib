@@ -74,8 +74,8 @@ auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 /** @code
 	auto it = container.begin();     // Fails with types that don't have begin member such as built-in arrays
 	auto it = std::begin(container); // Fails with types that only have non-member begin outside of namespace std
-	using std::begin; auto it = begin(container); // Generic, good
-	auto it = adl_begin(container);  // Generic, good
+	using std::begin; auto it = begin(container); // Argument-dependent lookup, as generic as it gets
+	auto it = adl_begin(container);  // Equivalent to line above
 @endcode  */
 using oel::adl_begin;
 using oel::adl_end;
