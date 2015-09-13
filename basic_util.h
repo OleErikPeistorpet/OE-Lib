@@ -53,17 +53,6 @@ using std::end;
 	/// Equivalent to std::cend found in C++14
 	template<typename Range> inline
 	auto cend(const Range & r) -> decltype(std::end(r))  { return std::end(r); }
-
-	/**
-	* @brief Like cbegin, but reverse iterator.
-	* @return A const-qualified iterator to the reverse-beginning of the range r. */
-	template<typename Range> inline
-	auto crbegin(const Range & r) -> decltype(r.rbegin())  { return r.rbegin(); }
-	/**
-	* @brief Like cend, but reverse iterator.
-	* @return A const-qualified iterator to the reverse-end of the range r. */
-	template<typename Range> inline
-	auto crend(const Range & r) -> decltype(r.rend())  { return r.rend(); }
 #endif
 
 /// Argument-dependent lookup non-member begin, defaults to std::begin
