@@ -157,12 +157,14 @@ public:
 	template<typename Ptr1>
 	bool operator==(const cntigus_ctr_dbg_iterator<Ptr1, Container> & right) const
 	{
+		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem == right._pElem;
 	}
 
 	template<typename Ptr1>
 	bool operator!=(const cntigus_ctr_dbg_iterator<Ptr1, Container> & right) const
 	{
+		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem != right._pElem;
 	}
 
