@@ -4,7 +4,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../container_core.h"
+#include "../user_traits.h"
 
 #include <Eigen/Dense>
 
@@ -13,20 +13,18 @@ namespace oel
 {
 
 template<typename S, int R, int C, int O, int MR, int MC>
-struct is_trivially_relocatable< Eigen::Matrix<S, R, C, O, MR, MC> >
- :	std::true_type {};
+true_type specify_trivial_relocate(Eigen::Matrix<S, R, C, O, MR, MC>);
 
 template<typename S, int O>
-struct is_trivially_relocatable< Eigen::Quaternion<S, O> > : std::true_type {};
+true_type specify_trivial_relocate(Eigen::Quaternion<S, O>);
 
 template<typename S, int D, int M, int O>
-struct is_trivially_relocatable< Eigen::Transform<S, D, M, O> >
- :	std::true_type {};
+true_type specify_trivial_relocate(Eigen::Transform<S, D, M, O>);
 
 template<typename S>
-struct is_trivially_relocatable< Eigen::AngleAxis<S> > : std::true_type {};
+true_type specify_trivial_relocate(Eigen::AngleAxis<S>);
 
 template<typename S>
-struct is_trivially_relocatable< Eigen::Rotation2D<S> > : std::true_type {};
+true_type specify_trivial_relocate(Eigen::Rotation2D<S>);
 
 }

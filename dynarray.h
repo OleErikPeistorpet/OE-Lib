@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "contiguous_iterator.h"
-#include "container_core.h"
+#include "auxi/contiguous_container_iterator.h"
+#include "align_allocator.h"
 
 #ifndef OEL_NO_BOOST
 	#include <boost/iterator/iterator_categories.hpp>
@@ -45,11 +45,9 @@ const reserve;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-template<typename, typename> class dynarray;  // forward declare
-
 /// dynarray<dynarray<_>> is all right
 template<typename T, typename A>
-struct is_trivially_relocatable< dynarray<T, A> > : std::true_type {};
+true_type specify_trivial_relocate(dynarray<T, A>);
 
 template<typename T, typename A> inline
 void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
@@ -86,7 +84,7 @@ bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { re
 * all constructors, operator =, swap, assign, emplace_back, push_back, pop_back and erase_back.
 *
 * The default allocator supports over-aligned types (e.g. __m256)  */
-template<typename T, typename Alloc = allocator<T> >
+template<typename T, typename Alloc>
 class dynarray
 {
 public:
@@ -96,7 +94,7 @@ public:
 	using const_pointer   = const T *;
 	using reference       = T &;
 	using const_reference = const T &;
-	using size_type       = typename std::allocator_traits<Alloc>::size_type;
+	using size_type       = typename std::allocator_traits<Alloc>::size_type;  ///< Allowed to be signed
 	using difference_type = typename std::allocator_traits<Alloc>::difference_type;
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
@@ -170,7 +168,7 @@ public:
 	*
 	* Causes reallocation if the pre-call size + count is greater than capacity. On reallocation, all iterators
 	* and references are invalidated. Otherwise, any previous end iterator will point to the first element added.
-	* Strong exception guarantee, there are no effects if an exception is thrown. */
+	* Strong exception guarantee, the dynarray is not affected if an exception is thrown. */
 	template<typename InputIterator, typename = decltype( *std::declval<InputIterator>() )>
 	InputIterator append(InputIterator first, size_type count);
 	/**
@@ -183,7 +181,7 @@ public:
 	iterator      append(const InputRange & source);
 	/// Equivalent to calling append(const InputRange &) with il as argument
 	iterator      append(std::initializer_list<T> il);
-	/// Equivalent to std::vector::insert(end(), count, val), but this has strong exception guarantee
+	/// Equivalent to std::vector::insert(end(), count, val), but with strong exception guarantee
 	void          append(size_type count, const T & val);
 
 	/**
@@ -212,7 +210,7 @@ public:
 
 	iterator   erase(iterator first, iterator last) noexcept;
 
-	/// Equivalent to erase(first, end()) (but potentially faster)
+	/// Equivalent to erase(first, end()) (but potentially faster), making first the new end
 	void       erase_back(iterator first) noexcept;
 
 	void       clear() noexcept        { erase_back(begin()); }
@@ -242,8 +240,8 @@ public:
 	reverse_iterator       rend() noexcept          { return reverse_iterator{begin()}; }
 	const_reverse_iterator rend() const noexcept    { return const_reverse_iterator{begin()}; }
 
-	pointer         data() noexcept        { return _data.get(); }
-	const_pointer   data() const noexcept  { return _data.get(); }
+	T *             data() noexcept        { return _data.get(); }
+	const T *       data() const noexcept  { return _data.get(); }
 
 	reference       front() noexcept        { return *begin(); }
 	const_reference front() const noexcept  { return *begin(); }
@@ -265,15 +263,17 @@ public:
 
 
 private:
+	using _uSizeT = make_unsigned_t<std::ptrdiff_t>;
+
 	static pointer _alloc(size_type count)
 	{
 		return Alloc{}.allocate(count);
 	}
 
 	struct _dealloc
-	{	void operator()(pointer ptr)
+	{	void operator()(pointer p)
 		{
-			Alloc{}.deallocate(ptr, 0); // 0 should be capacity()
+			Alloc{}.deallocate(p, 0); // 0 should be capacity()
 		}
 	};
 
@@ -614,7 +614,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	_staticAssertRelocate();
 
 	auto const posPtr = const_cast<pointer>(to_pointer_contiguous(pos));
-	MEM_BOUND_ASSERT_CHEAP(_data.get() <= posPtr && posPtr <= _end);
+	OEL_BOUND_ASSERT_CHEAP(_data.get() <= posPtr && posPtr <= _end);
 
 	size_type const nAfterPos = _end - posPtr;
 
@@ -822,7 +822,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) n
 	_staticAssertRelocate();
 
 	pointer const posPtr = to_pointer_contiguous(pos);
-	MEM_BOUND_ASSERT_CHEAP(_data.get() <= posPtr && posPtr < _end);
+	OEL_BOUND_ASSERT_CHEAP(_data.get() <= posPtr && posPtr < _end);
 
 	posPtr-> ~T();
 	pointer const next = posPtr + 1;
@@ -839,7 +839,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 
 	pointer const pFirst = to_pointer_contiguous(first);
 	pointer const pLast = to_pointer_contiguous(last);
-	MEM_BOUND_ASSERT_CHEAP(_data.get() <= pFirst);
+	OEL_BOUND_ASSERT_CHEAP(_data.get() <= pFirst);
 	OEL_MEM_BOUND_ASSERT(pFirst <= pLast && pLast <= _end);
 	if (pFirst < pLast)
 	{
@@ -856,7 +856,7 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_back(iterator first) noexcept
 {
 	pointer const newEnd = to_pointer_contiguous(first);
-	MEM_BOUND_ASSERT_CHEAP(_data.get() <= newEnd && newEnd <= _end);
+	OEL_BOUND_ASSERT_CHEAP(_data.get() <= newEnd && newEnd <= _end);
 	_detail::Destroy(newEnd, _end);
 	_end = newEnd;
 }
@@ -870,8 +870,7 @@ inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type 
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
 {
-	using USizeT = make_unsigned_t<size_type>;
-	if (static_cast<USizeT>(size()) > static_cast<USizeT>(index))
+	if (static_cast<_uSizeT>(size()) > static_cast<_uSizeT>(index))
 		return _data[index];
 	else
 		throw out_of_range("Invalid index dynarray::at");
@@ -880,13 +879,14 @@ typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::operator[](size_type index) noexcept
 {
-	OEL_MEM_BOUND_ASSERT(size() > index);
+	// cast needed because size_type could be signed
+	OEL_MEM_BOUND_ASSERT(static_cast<_uSizeT>(size()) > static_cast<_uSizeT>(index));
 	return _data[index];
 }
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operator[](size_type index) const noexcept
 {
-	OEL_MEM_BOUND_ASSERT(size() > index);
+	OEL_MEM_BOUND_ASSERT(static_cast<_uSizeT>(size()) > static_cast<_uSizeT>(index));
 	return _data[index];
 }
 

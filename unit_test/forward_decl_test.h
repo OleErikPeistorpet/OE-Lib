@@ -88,8 +88,8 @@ public:
 	}
 };
 
+oel::true_type specify_trivial_relocate(MoveOnly);
 namespace oel {
-template<> struct is_trivially_relocatable<MoveOnly> : std::true_type {};
 template<> struct is_trivially_relocatable<NontrivialReloc> : std::false_type {};
 }
 

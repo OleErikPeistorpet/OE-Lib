@@ -6,30 +6,50 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "debug.h"
+#include "user_traits.h"
 
+#ifndef OEL_NO_BOOST
+	#include <boost/optional/optional_fwd.hpp>
+	#include <boost/smart_ptr/intrusive_ptr.hpp>
+#endif
 #include <iterator>
+#include <memory>
 
 
-#if _MSC_VER && _MSC_VER < 1900
-	#ifndef _ALLOW_KEYWORD_MACROS
-		#define _ALLOW_KEYWORD_MACROS 1
-	#endif
-
-	#ifndef noexcept
-		#define noexcept throw()
-	#endif
-
-	#undef constexpr
-	#define constexpr
-
-	#define OEL_ALIGNOF __alignof
-#else
-	#define OEL_ALIGNOF alignof
+#if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
+/** @brief Undefined: no array index and iterator checks. 1: fast checks. 2: most debug checks. 3: all checks, often slow.
+*
+* Warning: Undefined (by NDEBUG defined) and level 1 are not binary compatible with levels 2 and 3. */
+	#define OEL_MEM_BOUND_DEBUG_LVL 3
 #endif
 
 
-/// Obscure Efficient Library
+#if _MSC_VER
+	#define OEL_CONST_COND __pragma(warning(suppress : 4127))
+#else
+	#define OEL_CONST_COND
+#endif
+
+
+#ifndef OEL_HALT
+	/// Do not throw an exception from OEL_HALT, since it is used in noexcept functions
+	#if _MSC_VER
+		#define OEL_HALT() __debugbreak()
+	#else
+		#define OEL_HALT() __asm__("int $3")
+	#endif
+#endif
+
+#ifndef ASSERT_ALWAYS_NOEXCEPT
+	/// Standard assert implementations typically don't break on the line of the assert, so we roll our own
+	#define ASSERT_ALWAYS_NOEXCEPT(expr)  \
+		OEL_CONST_COND  \
+		do {  \
+			if (!(expr)) OEL_HALT();  \
+		} while (false)
+#endif
+
+
 namespace oel
 {
 
@@ -83,23 +103,46 @@ using oel::adl_end;
 namespace oel
 {
 
-template<typename Iterator>
-using difference_type = typename std::iterator_traits<Iterator>::difference_type;
-
-/// Returns r.size() as signed (difference_type of iterator returned by begin(r))
-template<typename SizedRange>
+/// Returns r.size() as signed (SizedRange::difference_type)
+template<typename SizedRange> inline
 constexpr auto ssize(const SizedRange & r)
- -> decltype( r.size(), difference_type<decltype(begin(r))>() )  { return r.size(); }
-
+ -> decltype( static_cast<typename SizedRange::difference_type>(r.size()) )
+	 { return static_cast<typename SizedRange::difference_type>(r.size()); }
 /// Returns number of elements in array as signed type
-template<typename T, std::ptrdiff_t Size>
+template<typename T, std::ptrdiff_t Size> inline
 constexpr std::ptrdiff_t ssize(const T (&)[Size]) noexcept  { return Size; }
 
 /** @brief Count the elements in r
 *
 * @return ssize(r) if possible, otherwise equivalent to std::distance(begin(r), end(r))  */
 template<typename InputRange>
-auto count(const InputRange & r) -> difference_type<decltype(begin(r))>;
+auto count(const InputRange & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type;
+
+
+
+/// std::unique_ptr assumed trivially relocatable if the deleter is
+template<typename T, typename Del>
+is_trivially_relocatable<Del> specify_trivial_relocate(std::unique_ptr<T, Del>);
+
+template<typename T>
+true_type specify_trivial_relocate(std::shared_ptr<T>);
+
+template<typename T>
+true_type specify_trivial_relocate(std::weak_ptr<T>);
+
+#if _MSC_VER || __GLIBCXX__
+	/// Might not be safe with all std library implementations, only verified for Visual C++ 2013 and GCC 4
+	template<typename C, typename Tr>
+	true_type specify_trivial_relocate(std::basic_string<C, Tr>);
+#endif
+
+#ifndef OEL_NO_BOOST
+	template<typename T>
+	struct is_trivially_relocatable< boost::optional<T> > : is_trivially_relocatable<T> {};
+
+	template<typename T>
+	true_type specify_trivial_relocate(boost::intrusive_ptr<T>);
+#endif
 
 
 
@@ -117,22 +160,12 @@ template<typename IteratorDest, typename IteratorSource>
 struct can_memmove_with;
 
 
-template<bool Val>
-using bool_constant = std::integral_constant<bool, Val>;
 
-
-/// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
-template<typename T>
-struct is_trivially_copyable :
-	#if __GLIBCXX__ && __GNUC__ == 4
-		bool_constant< (__has_trivial_copy(T) && __has_trivial_assign(T))
-			#if __INTEL_COMPILER
-				|| __is_pod(T)
-			#endif
-			> {};
-	#else
-		std::is_trivially_copyable<T> {};
-	#endif
+/// Tag to specify default initialization. The const instance default_init is provided for convenience
+struct default_init_tag
+{	explicit default_init_tag() {}
+}
+const default_init;
 
 
 
@@ -143,13 +176,6 @@ struct range_ends
 	InIterator  src_end;
 	OutIterator dest_end;
 };
-
-
-
-template<typename T>
-using make_signed_t   = typename std::make_signed<T>::type;
-template<typename T>
-using make_unsigned_t = typename std::make_unsigned<T>::type;
 
 
 
@@ -183,14 +209,14 @@ using make_unsigned_t = typename std::make_unsigned<T>::type;
 namespace _detail
 {
 	template<typename T>   // (target, source)
-	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *) { return {}; }
+	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *);
 
 	template<typename IterDest, typename IterSrc>
 	auto CanMemmoveWith(IterDest dest, IterSrc src)
-	 -> decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) ) { return {}; }
+	 -> decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
 
 	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
-	inline std::false_type CanMemmoveWith(...) { return {}; }
+	inline std::false_type CanMemmoveWith(...);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -210,9 +236,12 @@ struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<It
 																 std::declval<IteratorSource>()) ) {};
 /// @endcond
 
+template<typename T>
+struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};
+
 
 template<typename InputRange>
-inline auto oel::count(const InputRange & r) -> difference_type<decltype(begin(r))>
+inline auto oel::count(const InputRange & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
 {
 	return _detail::Count(r, int{});
 }

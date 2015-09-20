@@ -95,7 +95,7 @@ TEST_F(utilTest, copyNonoverlap)
 TEST_F(utilTest, makeUnique)
 {
 	auto p1 = oel::make_unique<std::string[]>(5);
-	for (size_t i = 0; i < 5; ++i)
+	for (int i = 0; i < 5; ++i)
 		EXPECT_TRUE(p1[i].empty());
 
 	auto p2 = oel::make_unique<std::list<int>>(4, 6);
@@ -106,17 +106,20 @@ TEST_F(utilTest, makeUnique)
 
 struct BlahBy
 {
-	int * begin() const  { return {}; }
+	using difference_type = long;
 
-	size_t size() const  { return 2; }
+	unsigned short size() const  { return 2; }
 };
 
 TEST_F(utilTest, ssize)
 {
-	BlahBy qw;
-	auto test = oel::ssize(qw);
+	BlahBy bb;
+	auto const test = oel::ssize(bb);
 
-	static_assert(std::is_same<decltype(test), std::ptrdiff_t>::value, "?");
+	static_assert(std::is_same<decltype(test), long const>::value, "?");
+
+	auto v = std::is_same<short, decltype( oel::as_signed(bb.size()) )>::value;
+	EXPECT_TRUE(v);
 
 	ASSERT_EQ(2, test);
 }

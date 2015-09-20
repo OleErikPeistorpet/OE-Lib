@@ -4,11 +4,12 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../container_core.h"
+#include "../user_traits.h"
 
 #include <array>
 #include <tuple>
 
+// std::array, tuple, pair
 
 namespace oel
 {
@@ -21,7 +22,7 @@ template<typename T, typename... Us>
 struct is_trivially_relocatable< std::tuple<T, Us...> > : bool_constant<
 	is_trivially_relocatable<T>::value && is_trivially_relocatable< std::tuple<Us...> >::value > {};
 
-template<> struct is_trivially_relocatable< std::tuple<> > : std::true_type {};
+template<> struct is_trivially_relocatable< std::tuple<> > : true_type {};
 
 template<typename T, typename U>
 struct is_trivially_relocatable< std::pair<T, U> > : bool_constant<

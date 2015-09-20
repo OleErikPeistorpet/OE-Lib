@@ -6,7 +6,19 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "basic_util.h"
+#include "../basic_util.h"
+
+
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	#define OEL_MEM_BOUND_ASSERT ASSERT_ALWAYS_NOEXCEPT
+#else
+	#define OEL_MEM_BOUND_ASSERT(expr) ((void) 0)
+#endif
+#if OEL_MEM_BOUND_DEBUG_LVL
+	#define OEL_BOUND_ASSERT_CHEAP ASSERT_ALWAYS_NOEXCEPT
+#else
+	#define OEL_BOUND_ASSERT_CHEAP(expr) ((void) 0)
+#endif
 
 
 namespace oel
@@ -18,9 +30,9 @@ namespace oel
 template<typename Pointer, typename Container>
 class cntigus_ctr_dbg_iterator
 {
-	using _sizeT = make_unsigned_t<typename Container::size_type>;
 #define OEL_ARRITER_CHECK_DEREFABLE  \
-	OEL_MEM_BOUND_ASSERT( static_cast<_sizeT>(_pElem - _myCont->data()) < static_cast<_sizeT>(_myCont->size()) )
+	using sizeT = make_unsigned_t<std::ptrdiff_t>;  \
+	OEL_MEM_BOUND_ASSERT( static_cast<sizeT>(_pElem - _myCont->data()) < static_cast<sizeT>(_myCont->size()) )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 3
 	// test for iterator pair pointing to same container

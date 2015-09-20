@@ -75,7 +75,7 @@ TEST_F(dynarrayTest, construct)
 	ASSERT_EQ(0U, b.size());
 
 	dynarray<int> ints(0, {});
-	EXPECT_TRUE(b.empty());
+	EXPECT_TRUE(ints.empty());
 
 	using Internal = std::deque<double *>;
 	dynarray<Internal> test{Internal(5), Internal()};

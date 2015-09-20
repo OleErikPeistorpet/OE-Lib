@@ -10,69 +10,12 @@
 
 #ifndef OEL_NO_BOOST
 	#include <boost/align/aligned_alloc.hpp>
-	#include <boost/optional/optional_fwd.hpp>
-	#include <boost/smart_ptr/intrusive_ptr.hpp>
 #endif
-#include <memory>
-#include <string.h>
+#include <string.h> // for memset
 
 
 namespace oel
 {
-/**
-* @brief Trait that specifies that T does not have a pointer member to any of its data members, including
-*	inherited, and a T object does not need to notify any observers if its memory address changes.
-*
-* https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
-*
-* To specify that a type is trivially relocatable define a specialization like this:
-@code
-namespace oel {
-template<> struct is_trivially_relocatable<MyType> : std::true_type {};
-}
-@endcode  */
-template<typename T>
-#if !OEL_TRIVIAL_RELOCATE_DEFAULT
-	struct is_trivially_relocatable : is_trivially_copyable<T> {};
-#else
-	struct is_trivially_relocatable : std::true_type {};
-#endif
-
-/// std::unique_ptr assumed trivially relocatable if the deleter is
-template<typename T, typename Del>
-struct is_trivially_relocatable< std::unique_ptr<T, Del> >
- :	is_trivially_relocatable<Del> {};
-
-template<typename T>
-struct is_trivially_relocatable< std::shared_ptr<T> > : std::true_type {};
-
-template<typename T>
-struct is_trivially_relocatable< std::weak_ptr<T> > : std::true_type {};
-
-#if _MSC_VER || __GLIBCXX__
-	/// Might not be safe with all std library implementations, only verified for Visual C++ 2013 and GCC 4
-	template<typename C, typename Tr>
-	struct is_trivially_relocatable< std::basic_string<C, Tr> > : std::true_type {};
-#endif
-
-#ifndef OEL_NO_BOOST
-	template<typename T>
-	struct is_trivially_relocatable< boost::optional<T> > : is_trivially_relocatable<T> {};
-
-	template<typename T>
-	struct is_trivially_relocatable< boost::intrusive_ptr<T> > : std::true_type {};
-#endif
-
-
-
-/// Tag to specify default initialization. The const instance default_init is provided for convenience
-struct default_init_tag
-{	explicit default_init_tag() {}
-}
-const default_init;
-
-
 
 /// Like std::aligned_storage<Size, Align>::type, but supports alignment above that of std::max_align_t
 template<size_t Size, size_t Align>
@@ -92,7 +35,7 @@ struct allocator
 	{	using other = allocator<U>;
 	};
 
-	T * allocate(size_t nObjs);
+	T * allocate(size_t nObjects);
 
 	void deallocate(T * ptr, size_t);
 
@@ -110,7 +53,7 @@ bool operator!=(allocator<T>, allocator<T>) noexcept { return false; }
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// The rest of the file is not for users (implementation details)
+// The rest of the file is not for users (implementation)
 
 
 #if _MSC_VER
@@ -179,10 +122,10 @@ namespace _detail
 }
 
 template<typename T>
-inline T * allocator<T>::allocate(size_t nObjs)
+inline T * allocator<T>::allocate(size_t nObjects)
 {
 	void * p = _detail::OpNew<OEL_ALIGNOF(T)>(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(),
-											  sizeof(T) * nObjs);
+											  sizeof(T) * nObjects);
 	return static_cast<T *>(p);
 }
 

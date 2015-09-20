@@ -11,11 +11,10 @@
 #include <algorithm>
 #include <cstdint>
 #include <string.h>
-#include <memory>
 
 /**
 * @file util.h
-* @brief Utilities, including algorithms
+* @brief Utilities, including highly efficient range algorithms
 *
 * Designed to interface with the standard library. Contains erase functions, copy functions, make_unique and more.
 */
@@ -25,10 +24,10 @@ namespace oel
 
 /// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T> inline
-constexpr make_signed_t<T>   as_signed(T val) noexcept    { return (make_signed_t<T>)val; }
+constexpr typename std::make_signed<T>::type  as_signed(T val) noexcept  { return (typename std::make_signed<T>::type)val; }
 /// Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
 template<typename T> inline
-constexpr make_unsigned_t<T> as_unsigned(T val) noexcept  { return (make_unsigned_t<T>)val; }
+constexpr make_unsigned_t<T>                  as_unsigned(T val) noexcept  { return (make_unsigned_t<T>)val; }
 
 
 
@@ -55,7 +54,7 @@ void erase_unordered(Container & ctr, OutputIterator position)
 	ctr.pop_back();
 }
 
-/// Erase the elements from first to the end of container, making first the new end
+/// Erase the elements from first to the end of container, useful for std::remove_if and similar
 template<typename Container> inline
 void erase_back(Container & ctr, typename Container::iterator first)  { ctr.erase(first, ctr.end()); }
 
