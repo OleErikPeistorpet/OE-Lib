@@ -130,8 +130,8 @@ true_type specify_trivial_relocate(std::shared_ptr<T>);
 template<typename T>
 true_type specify_trivial_relocate(std::weak_ptr<T>);
 
-#if _MSC_VER || __GLIBCXX__
-	/// Might not be safe with all std library implementations, only verified for Visual C++ 2013 and GCC 4
+// std::string in GCC 5 with _GLIBCXX_USE_CXX11_ABI is not trivially relocatable (uses pointer to internal buffer)
+#if _MSC_VER || (__GLIBCXX__ && !_GLIBCXX_USE_CXX11_ABI) || _LIBCPP_VERSION
 	template<typename C, typename Tr>
 	true_type specify_trivial_relocate(std::basic_string<C, Tr>);
 #endif
