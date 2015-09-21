@@ -93,6 +93,8 @@ struct is_trivially_relocatable;
 
 
 template<typename T>
+using make_signed_t   = typename std::make_signed<T>::type;  ///< std with C++14
+template<typename T>
 using make_unsigned_t = typename std::make_unsigned<T>::type; ///< std with C++14
 
 } // namespace oel
