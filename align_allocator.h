@@ -56,6 +56,8 @@ bool operator!=(allocator<T>, allocator<T>) noexcept { return false; }
 // The rest of the file is not for users (implementation)
 
 
+/// @cond INTERNAL
+
 #if _MSC_VER
 	#define OEL_ALIGNAS(amount, alignee) __declspec(align(amount)) alignee
 #else
@@ -120,6 +122,7 @@ namespace _detail
 	}
 #endif
 }
+/// @endcond
 
 template<typename T>
 inline T * allocator<T>::allocate(size_t nObjects)

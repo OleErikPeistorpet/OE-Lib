@@ -3,6 +3,8 @@
 #include "util.h"
 #include <deque>
 
+/// @cond INTERNAL
+
 class ForwDeclared { char c; };
 
 int MyCounter::nConstruct;
@@ -458,3 +460,5 @@ TEST_F(dynarrayTest, misc)
 	dest1.shrink_to_fit();
 	EXPECT_GT(cap, dest1.capacity());
 }
+
+/// @endcond

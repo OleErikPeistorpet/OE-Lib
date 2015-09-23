@@ -5,6 +5,8 @@
 #include <list>
 #include <array>
 
+/// @cond INTERNAL
+
 // The fixture for testing algorithms and utilities
 class utilTest : public ::testing::Test
 {
@@ -123,3 +125,5 @@ TEST_F(utilTest, ssize)
 
 	ASSERT_EQ(2, test);
 }
+
+/// @endcond
