@@ -168,7 +168,7 @@ public:
 	*
 	* Causes reallocation if the pre-call size + count is greater than capacity. On reallocation, all iterators
 	* and references are invalidated. Otherwise, any previous end iterator will point to the first element added.
-	* Strong exception guarantee, the dynarray is not affected if an exception is thrown. */
+	* Strong exception guarantee, this function has no effect if an exception is thrown. */
 	template<typename InputIterator, typename = decltype( *std::declval<InputIterator>() )>
 	InputIterator append(InputIterator first, size_type count);
 	/**

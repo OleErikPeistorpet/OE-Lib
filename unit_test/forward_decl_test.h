@@ -1,6 +1,7 @@
 #include "dynarray.h"
 #include "gtest/gtest.h"
 
+/// @cond INTERNAL
 
 struct ThrowOnConstructT {} const ThrowOnConstruct;
 struct ThrowOnMoveOrCopyT {} const ThrowOnMoveOrCopy;
@@ -101,3 +102,5 @@ class Outer
 public:
 	oel::dynarray<ForwDeclared> test;
 };
+
+/// @endcond

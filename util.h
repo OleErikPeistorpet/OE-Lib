@@ -14,7 +14,7 @@
 
 /**
 * @file util.h
-* @brief Utilities, including highly efficient range algorithms
+* @brief Utilities, including efficient range algorithms
 *
 * Designed to interface with the standard library. Contains erase functions, copy functions, make_unique and more.
 */

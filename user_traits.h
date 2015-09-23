@@ -67,7 +67,7 @@ struct is_trivially_copyable :
 * @brief Function declaration to specify that T does not have a pointer member to any of its data members, including
 *	inherited, and a T object does not need to notify any observers if its memory address changes.
 *
-* https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation
+* https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
 * http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
 *
 * Declare a function in the namespace of the type or in \c oel like this:
@@ -84,7 +84,7 @@ template<typename T>
 #endif
 	specify_trivial_relocate(T &&);
 
-/// Trait that tells if T can be trivially relocated. See specify_trivial_relocate
+/// Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
 template<typename T>
 struct is_trivially_relocatable;
 
