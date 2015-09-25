@@ -43,6 +43,7 @@ void erase_unordered(RandomAccessContainer & ctr, typename RandomAccessContainer
 }
 /**
 * @brief Erase the element at position from container without maintaining order of elements.
+* @param position dereferenceable iterator (not the end), can simply be a pointer to an element in ctr
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
