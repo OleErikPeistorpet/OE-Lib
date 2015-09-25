@@ -30,11 +30,6 @@ struct allocator
 	using value_type = T;
 	using propagate_on_container_move_assignment = std::true_type;
 
-	template<typename U>
-	struct rebind
-	{	using other = allocator<U>;
-	};
-
 	T * allocate(size_t nObjects);
 
 	void deallocate(T * ptr, size_t);
