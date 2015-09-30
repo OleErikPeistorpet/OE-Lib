@@ -9,6 +9,7 @@
 #include "basic_util.h"
 
 #include <algorithm>
+#include <memory>
 #include <cstdint>
 #include <string.h>
 

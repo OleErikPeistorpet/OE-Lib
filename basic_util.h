@@ -8,12 +8,7 @@
 
 #include "user_traits.h"
 
-#ifndef OEL_NO_BOOST
-	#include <boost/optional/optional_fwd.hpp>
-	#include <boost/smart_ptr/intrusive_ptr.hpp>
-#endif
 #include <iterator>
-#include <memory>
 
 
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
@@ -117,32 +112,6 @@ constexpr std::ptrdiff_t ssize(const T (&)[Size]) noexcept  { return Size; }
 * @return ssize(r) if possible, otherwise equivalent to std::distance(begin(r), end(r))  */
 template<typename InputRange>
 auto count(const InputRange & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type;
-
-
-
-/// std::unique_ptr assumed trivially relocatable if the deleter is
-template<typename T, typename Del>
-is_trivially_relocatable<Del> specify_trivial_relocate(std::unique_ptr<T, Del>);
-
-template<typename T>
-true_type specify_trivial_relocate(std::shared_ptr<T>);
-
-template<typename T>
-true_type specify_trivial_relocate(std::weak_ptr<T>);
-
-// std::string in GCC 5 with _GLIBCXX_USE_CXX11_ABI is not trivially relocatable (uses pointer to internal buffer)
-#if _MSC_VER || (__GLIBCXX__ && !_GLIBCXX_USE_CXX11_ABI) || _LIBCPP_VERSION
-	template<typename C, typename Tr>
-	true_type specify_trivial_relocate(std::basic_string<C, Tr>);
-#endif
-
-#ifndef OEL_NO_BOOST
-	template<typename T>
-	struct is_trivially_relocatable< boost::optional<T> > : is_trivially_relocatable<T> {};
-
-	template<typename T>
-	true_type specify_trivial_relocate(boost::intrusive_ptr<T>);
-#endif
 
 
 

@@ -7,6 +7,7 @@
 
 
 #include "auxi/contiguous_container_iterator.h"
+#include "compat/default.h"
 #include "align_allocator.h"
 
 #ifndef OEL_NO_BOOST

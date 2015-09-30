@@ -88,7 +88,7 @@ template<typename T>
 template<typename T>
 struct is_trivially_relocatable;
 
-// Many useful classes are declared trivially relocatable, see basic_util.h and compat folder
+// Many useful classes are declared trivially relocatable, see compat folder
 
 
 
