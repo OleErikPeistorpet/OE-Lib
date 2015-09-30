@@ -395,6 +395,30 @@ TEST_F(dynarrayTest, resize)
 	{
 		EXPECT_EQ(0, e);
 	}
+
+
+	dynarray< dynarray<int> > nested;
+	nested.resize(3);
+	EXPECT_EQ(3, nested.size());
+	EXPECT_TRUE(nested.back().empty());
+
+	nested.front().resize(S1);
+
+	nested.resize(1);
+	auto cap = nested.capacity();
+	EXPECT_EQ(1, nested.size());
+	for (auto i : nested.front())
+		EXPECT_EQ(0, i);
+
+	auto it = nested.begin();
+
+	nested.resize(cap);
+	// Check that no reallocation happened
+	EXPECT_EQ(cap, nested.capacity());
+	EXPECT_TRUE(nested.begin() == it);
+
+	EXPECT_EQ(S1, nested.front().size());
+	EXPECT_TRUE(nested.back().empty());
 }
 
 TEST_F(dynarrayTest, erase)

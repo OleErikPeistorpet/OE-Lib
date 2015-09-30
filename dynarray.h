@@ -569,7 +569,7 @@ private:
 		_staticAssertRelocate();
 
 		size_type allocSize = capacity();
-		if (newSize < allocSize)
+		if (newSize <= allocSize)
 		{
 			pointer const newEnd = _data.get() + newSize;
 			if (_end < newEnd) // then construct new
