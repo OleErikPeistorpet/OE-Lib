@@ -17,11 +17,11 @@
 
 #if _MSC_VER && _MSC_VER < 1900
 	#ifndef _ALLOW_KEYWORD_MACROS
-		#define _ALLOW_KEYWORD_MACROS 1
+	#define _ALLOW_KEYWORD_MACROS 1
 	#endif
 
 	#ifndef noexcept
-		#define noexcept throw()
+	#define noexcept throw()
 	#endif
 
 	#undef constexpr
@@ -30,6 +30,13 @@
 	#define OEL_ALIGNOF __alignof
 #else
 	#define OEL_ALIGNOF alignof
+#endif
+
+
+#if defined(__has_include)
+	#if !__has_include(<boost/config.hpp>)
+	#define OEL_NO_BOOST 1
+	#endif
 #endif
 
 
