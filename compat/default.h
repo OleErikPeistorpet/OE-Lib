@@ -10,8 +10,11 @@
 #include <string>
 #ifndef OEL_NO_BOOST
 	#include <boost/optional/optional_fwd.hpp>
-	#include <boost/smart_ptr/intrusive_ptr.hpp>
 	#include <boost/circular_buffer_fwd.hpp>
+
+	namespace boost {
+	template<typename T> class intrusive_ptr;
+	}
 #endif
 
 // std:: unique_ptr, shared_ptr, weak_ptr, basic_string
