@@ -17,12 +17,6 @@
 #include <algorithm>
 
 
-#ifdef max
-	#pragma message("warning: 'max' defined as macro. Should #define NOMINMAX before including Windows headers")
-	#undef max
-#endif
-
-
 namespace oel
 {
 
@@ -330,13 +324,13 @@ private:
 				(sizeof(T) <= 2040 ? 2 : 1) };    // at least 2 elements if they fit in a 4K page
 		size_type reserved = capacity();
 		// Growth factor is 1.5
-		return reserved + std::max(reserved / 2, size_type(minGrow));
+		return reserved + (std::max)(reserved / 2, size_type(minGrow));
 	}
 
 	static size_type _calcCap(size_type reserved, size_type const newSize)
 	{
 		reserved += reserved / 2;
-		return std::max(reserved, newSize);
+		return (std::max)(reserved, newSize);
 	}
 
 	template<typename CntigusIter>
