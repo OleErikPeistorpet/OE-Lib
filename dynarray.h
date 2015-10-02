@@ -17,6 +17,12 @@
 #include <algorithm>
 
 
+#ifdef max
+	#pragma message("warning: 'max' defined as macro. Should #define NOMINMAX before including Windows headers")
+	#undef max
+#endif
+
+
 namespace oel
 {
 
