@@ -100,15 +100,24 @@ namespace _detail
 	}
 
 #ifndef OEL_NO_BOOST
-	// TODO: Should use new_handler or let both OpNew overloads use custom failure function
 	template<size_t Align>
 	void * OpNew(std::false_type, size_t nBytes)
 	{
-		void * p = boost::alignment::aligned_alloc(Align, nBytes);
-		if (p)
-			return p;
-		else
-			throw std::bad_alloc();
+		while (true)
+		{
+			void * p = boost::alignment::aligned_alloc(Align, nBytes);
+			if (p)
+			{	return p;
+			}
+			else
+			{
+				auto handler = std::get_new_handler();
+				if (!handler)
+					throw std::bad_alloc{};
+				else
+					(*handler)();
+			}
+		}
 	}
 
 	inline void OpDelete(std::false_type, void * ptr)
