@@ -103,7 +103,7 @@ namespace _detail
 	template<size_t Align>
 	void * OpNew(std::false_type, size_t nBytes)
 	{
-		while (true)
+		for (;;)
 		{
 			void * p = boost::alignment::aligned_alloc(Align, nBytes);
 			if (p)

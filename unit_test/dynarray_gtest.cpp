@@ -438,6 +438,29 @@ TEST_F(dynarrayTest, erase)
 	ASSERT_EQ(s - 3, d.size());
 }
 
+TEST_F(dynarrayTest, overAligned)
+{
+	#define TEST_ALIGNMENT 32
+
+#if _MSC_VER
+	__declspec(align(TEST_ALIGNMENT))
+#endif
+	struct vec4
+	{
+		double x, y, z, w;
+	}
+#if !_MSC_VER
+	__attribute__(( aligned(TEST_ALIGNMENT) ))
+#endif
+	;
+
+	dynarray<vec4> special(1, {1.1, 2.2, 3.3, 4.4});
+	special.append(2, {5.5, 6.6, 7.7, 8.8});
+	EXPECT_EQ(3, special.size());
+	for (const auto & v : special)
+		EXPECT_TRUE(reinterpret_cast<std::uintptr_t>(&v) % TEST_ALIGNMENT == 0);
+}
+
 TEST_F(dynarrayTest, misc)
 {
 	size_t fASrc[] = { 2, 3 };
