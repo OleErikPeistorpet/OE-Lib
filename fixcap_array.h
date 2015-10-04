@@ -15,16 +15,15 @@
 namespace oel
 {
 
-template<typename, size_t> class fixcap_array;  // forward declare
+template<typename, size_t, typename> class fixcap_array;  // forward declare
 
 
 using std::out_of_range;
 using std::length_error;
 
 
-template<typename T, size_t C>
-struct is_trivially_relocatable< fixcap_array<T, C> >
- :	is_trivially_relocatable<T> {};
+template<typename T, size_t C, typename S>
+is_trivially_relocatable<T> specify_trivial_relocate(fixcap_array<T, C, S> &&);
 
 /**
 * @brief Erase the element at position from fixcap_array without maintaining order of elements.
@@ -32,23 +31,24 @@ struct is_trivially_relocatable< fixcap_array<T, C> >
 * Constant complexity (compared to linear in the distance between position and last for normal erase).
 * @return Iterator pointing to the location that followed the element erased,
 * which is the end if position was at the last element. */
-template<typename T, size_t C, typename OutputIterator>
-OutputIterator erase_unordered(fixcap_array<T, C> & ctr, OutputIterator position);
+template<typename T, size_t C, typename S>
+typename fixcap_array<T, C, S>::iterator  erase_unordered(fixcap_array<T, C, S> & ctr,
+														  typename fixcap_array<T, C, S>::iterator position);
 
-template<typename T, size_t C0, size_t C1> inline
-bool operator==(const fixcap_array<T, C0> & left, const fixcap_array<T, C1> & right)
+template<typename T, size_t C, typename S>
+bool operator==(const fixcap_array<T, C, S> & left, const fixcap_array<T, C, S> & right)
 {
 	return left.size() == right.size() &&
 		   std::equal(left.begin(), left.end(), right.begin());
 }
-template<typename T, size_t C0, size_t C1> inline
-bool operator!=(const fixcap_array<T, C0> & left, const fixcap_array<T, C1> & right)  { return !(left == right); }
+template<typename T, size_t C, typename S> inline
+bool operator!=(const fixcap_array<T, C, S> & left, const fixcap_array<T, C, S> & right)  { return !(left == right); }
 
 /**
 * @brief Resizable array, statically allocated. Specify maximum size as template argument.
 *
 * Behaviour which equals that of std::vector is mostly not documented. */
-template<typename T, size_t Capacity>
+template<typename T, size_t Capacity, typename Size = size_t>
 class fixcap_array
 {
 public:
@@ -57,29 +57,22 @@ public:
 	using const_pointer   = const T *;
 	using reference       = T &;
 	using const_reference = const T &;
+	using size_type       = Size;
+	using difference_type = std::ptrdiff_t;
 
-	using iterator       = contiguous_iterator< T, fixcap_array<T, Capacity> >;
-	using const_iterator = contiguous_iterator< T const, fixcap_array<T, Capacity> >;
+	using iterator       = contiguous_iterator< T *, fixcap_array<T, Capacity, Size> >;
+	using const_iterator = contiguous_iterator< const T *, fixcap_array<T, Capacity, Size> >;
 
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	#define OE_FIXCAPARR_ITERATOR(ptr)        iterator{ptr, this}
-	#define OE_FIXCAPARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
-#else
-	#define OE_FIXCAPARR_ITERATOR(ptr)        (ptr)
-	#define OE_FIXCAPARR_CONST_ITER(constPtr) (constPtr)
-#endif
 	using reverse_iterator       = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-	using difference_type = typename std::iterator_traits<iterator>::difference_type;
-	using size_type       = size_t;
-
-	fixcap_array() NOEXCEPT  : _size(0) {}
-
-	/** @brief Elements are default initialized, meaning non-class T produces indeterminate values
+	fixcap_array() noexcept  : _size(0) {}
+	/**
+	* @brief Elements are default initialized, meaning non-class T produces indeterminate values
 	* @throw length_error if size > Capacity  */
 	fixcap_array(size_type size, default_init_tag);
 	fixcap_array(size_type size, const T & val); ///< Throws length_error if size > Capacity
+	fixcap_array(std::initializer_list<T> init);
 
 	fixcap_array(const fixcap_array & other);
 	fixcap_array(fixcap_array && other);
@@ -88,6 +81,8 @@ public:
 
 	fixcap_array & operator =(const fixcap_array & other);
 	fixcap_array & operator =(fixcap_array && other);
+
+	fixcap_array & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
 
 	/**
 	* @brief Replace the contents with count copies from range beginning at first
@@ -152,20 +147,19 @@ public:
 
 	void          clear() NOEXCEPT        { erase_back(begin()); }
 
-	bool          empty() const NOEXCEPT  { return 0 == _size; }
-	bool          full() const NOEXCEPT   { return Capacity == _size; }
+	bool          empty() const noexcept  { return 0 == _size; }
 
 	size_type     size() const NOEXCEPT   { return _size; }
 
 	static size_type max_size() NOEXCEPT  { return Capacity; }
 
-	iterator        begin() NOEXCEPT         { return OE_FIXCAPARR_ITERATOR(data()); }
-	const_iterator  begin() const NOEXCEPT   { return OE_FIXCAPARR_CONST_ITER(data()); }
-	const_iterator  cbegin() const NOEXCEPT  { return begin(); }
+	iterator        begin() noexcept         { return OEL_CONTIGUOUS_ITERATOR(data()); }
+	const_iterator  begin() const noexcept   { return OEL_CONTIGUOUS_CONST_ITER(data()); }
+	const_iterator  cbegin() const noexcept  { return begin(); }
 
-	iterator        end() NOEXCEPT           { return OE_FIXCAPARR_ITERATOR(data() + _size); }
-	const_iterator  end() const NOEXCEPT     { return OE_FIXCAPARR_CONST_ITER(data() + _size); }
-	const_iterator  cend() const NOEXCEPT    { return end(); }
+	iterator        end() noexcept           { return OEL_CONTIGUOUS_ITERATOR(data() + _size); }
+	const_iterator  end() const noexcept     { return OEL_CONTIGUOUS_CONST_ITER(data() + _size); }
+	const_iterator  cend() const noexcept    { return end(); }
 
 	reverse_iterator       rbegin() NOEXCEPT        { return reverse_iterator{end()}; }
 	const_reverse_iterator rbegin() const NOEXCEPT  { return const_reverse_iterator{end()}; }
@@ -208,8 +202,8 @@ private:
 	static auto _getSize(const Range & r, int) -> decltype(r.size()) { return r.size(); }
 
 	template<typename Range>
-	static auto _getSize(const Range & r, long) -> decltype(adl_end(r) - adl_begin(r))
-												   { return adl_end(r) - adl_begin(r); }
+	static auto _getSize(const Range & r, long) -> decltype(::adl_end(r) - ::adl_begin(r))
+												   { return ::adl_end(r) - ::adl_begin(r); }
 
 	static std::false_type _getSize(...) { return {}; }
 
@@ -219,13 +213,13 @@ private:
 		return Capacity - _size;
 	}
 
-	void _uninitCopyFrom(std::false_type, const fixcap_array<T, Capacity> & src)
+	void _uninitCopyFrom(std::false_type, const fixcap_array<T, Capacity, Size> & src)
 	{	// non-trivial copy
 		_size = src._size;
 		oel::uninitialized_copy_n(src.data(), src._size, data());
 	}
 
-	void _uninitCopyFrom(std::true_type, const fixcap_array<T, Capacity> & src)
+	void _uninitCopyFrom(std::true_type, const fixcap_array<T, Capacity, Size> & src)
 	{	// trivial copy
 		//_size = src._size;
 		//::memcpy(data(), src.data(), src._size * sizeof(T));
@@ -292,7 +286,7 @@ private:
 	{
 		if (Capacity >= count)
 		{
-			auto first = adl_begin(range);
+			auto first = ::adl_begin(range);
 			_assignInternal(can_memmove_with<pointer, decltype(first)>(), first, count);
 		}
 		else
@@ -311,10 +305,11 @@ private:
 	CntigusIter _appendN(std::true_type, CntigusIter first, size_type const count)
 	{	// use memcpy
 	#if OEL_MEM_BOUND_DEBUG_LVL
-		OEL_PUSH_IGNORE_UNUSED_VALUE
-		if (count > 0)				// Dereference iterator to the last element to append,
-			*(first + (count - 1)); // this catches out of range errors with checked iterators
-		OEL_POP_DIAGNOSTIC
+		if (count > 0)
+		{	// Dereference to catch out of range errors if the iterators have internal checks
+			(void)*first;
+			(void)*(first + (count - 1));
+		}
 	#endif
 		::memcpy(data() + _size, to_pointer_contiguous(first), count * sizeof(T));
 		_size += count;
@@ -348,9 +343,9 @@ private:
 	{
 		if (_unusedCapacity() >= count)
 		{
-			auto first = adl_begin(range);
+			auto first = ::adl_begin(src);
 			_appendInternal(can_memmove_with<pointer, decltype(first)>(),
-							first, adl_end(range), count);
+							first, ::adl_end(src), count);
 		}
 		else
 		{	throw _lengthExc();
@@ -365,10 +360,21 @@ private:
 	}
 };
 
-// Definitions of public functions
+template<typename T, size_t Capacity, typename Size>
+fixcap_array<T, Capacity, Size>::fixcap_array(size_type size, default_init_tag)
+{
+	if (Capacity >= size)
+	{
+		_size = size;
+		_detail::UninitFillDefault(data(), data() + size);
+	}
+	else
+	{	_throwLenExc();
+	}
+}
 
-template<typename T, size_t Capacity>
-fixcap_array<T, Capacity>::fixcap_array(size_type size, default_init_tag)
+template<typename T, size_t Capacity, typename Size>
+fixcap_array<T, Capacity, Size>::fixcap_array(size_type size)
 {
 	if (Capacity >= size)
 	{
@@ -380,8 +386,8 @@ fixcap_array<T, Capacity>::fixcap_array(size_type size, default_init_tag)
 	}
 }
 
-template<typename T, size_t Capacity>
-fixcap_array<T, Capacity>::fixcap_array(size_type size, const T & val)
+template<typename T, size_t Capacity, typename Size>
+fixcap_array<T, Capacity, Size>::fixcap_array(size_type size, const T & val)
 {
 	if (Capacity >= size)
 	{
@@ -393,14 +399,14 @@ fixcap_array<T, Capacity>::fixcap_array(size_type size, const T & val)
 	}
 }
 
-template<typename T, size_t Capacity>
-inline fixcap_array<T, Capacity>::fixcap_array(const fixcap_array & other)
+template<typename T, size_t Capacity, typename Size>
+inline fixcap_array<T, Capacity, Size>::fixcap_array(const fixcap_array & other)
 {
 	_uninitCopyFrom(is_trivially_copyable<T>(), other);
 }
 
-template<typename T, size_t Capacity>
-inline fixcap_array<T, Capacity>::fixcap_array(fixcap_array && other)
+template<typename T, size_t Capacity, typename Size>
+inline fixcap_array<T, Capacity, Size>::fixcap_array(fixcap_array && other)
 {
 	_detail::AssertRelocate<T>();
 
@@ -408,16 +414,16 @@ inline fixcap_array<T, Capacity>::fixcap_array(fixcap_array && other)
 	other._setEmptyIfNot(std::is_trivially_destructible<T>());
 }
 
-template<typename T, size_t Capacity>
-fixcap_array<T, Capacity> &  fixcap_array<T, Capacity>::
+template<typename T, size_t Capacity, typename Size>
+fixcap_array<T, Capacity, Size> &  fixcap_array<T, Capacity, Size>::
 	operator =(const fixcap_array & other)
 {	// Bypassing Capacity check in _assign
 	_assignInternal(is_trivially_copyable<T>(), other.data(), other._size);
 	return *this;
 }
 
-template<typename T, size_t Capacity>
-inline fixcap_array<T, Capacity> &  fixcap_array<T, Capacity>::
+template<typename T, size_t Capacity, typename Size>
+inline fixcap_array<T, Capacity, Size> &  fixcap_array<T, Capacity, Size>::
 	operator =(fixcap_array && other)
 {
 	_detail::AssertRelocate<T>();
@@ -427,8 +433,8 @@ inline fixcap_array<T, Capacity> &  fixcap_array<T, Capacity>::
 	return *this;
 }
 
-template<typename T, size_t Capacity> template<typename InputIterator>
-InputIterator fixcap_array<T, Capacity>::assign(InputIterator first, size_type count)
+template<typename T, size_t Capacity, typename Size> template<typename InputIterator>
+InputIterator fixcap_array<T, Capacity, Size>::assign(InputIterator first, size_type count)
 {
 	if (Capacity >= count)
 		return _assignInternal(can_memmove_with<pointer, InputIterator>, first, count);
@@ -436,8 +442,8 @@ InputIterator fixcap_array<T, Capacity>::assign(InputIterator first, size_type c
 		throw _lengthExc();
 }
 
-template<typename T, size_t Capacity> template<typename InputIterator>
-InputIterator fixcap_array<T, Capacity>::append(InputIterator first, size_type count)
+template<typename T, size_t Capacity, typename Size> template<typename InputIterator>
+InputIterator fixcap_array<T, Capacity, Size>::append(InputIterator first, size_type count)
 {
 	if (_unusedCapacity() >= count)
 		return _appendN(can_memmove_with<pointer, InputIterator>, first, count);
@@ -445,9 +451,9 @@ InputIterator fixcap_array<T, Capacity>::append(InputIterator first, size_type c
 		throw _lengthExc();
 }
 
-template<typename T, size_t Capacity> template<typename InputRange>
-typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
-	append(const InputRange & source)
+template<typename T, size_t Capacity, typename Size> template<typename InputRange>
+typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
+	append(const InputRange & src)
 {
 	iterator const oldEnd = end();
 
@@ -456,8 +462,8 @@ typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	return oldEnd;
 }
 
-template<typename T, size_t Capacity> template<typename... Args>
-void fixcap_array<T, Capacity>::emplace_back(Args &&... args)
+template<typename T, size_t Capacity, typename Size> template<typename... Args>
+void fixcap_array<T, Capacity, Size>::emplace_back(Args &&... args)
 {
 	if (Capacity > _size)
 	{
@@ -469,8 +475,8 @@ void fixcap_array<T, Capacity>::emplace_back(Args &&... args)
 	}
 }
 
-template<typename T, size_t Capacity> template<typename... Args>
-typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
+template<typename T, size_t Capacity, typename Size> template<typename... Args>
+typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
 	emplace(const_iterator pos, Args &&... args)
 {
 	_detail::AssertRelocate<T>();
@@ -492,24 +498,23 @@ typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 
 		*reinterpret_cast<RawStore *>(posPtr) = local; // relocate the new element to pos
 
-		return OE_FIXCAPARR_ITERATOR(posPtr);
+		return OEL_CONTIGUOUS_ITERATOR(posPtr);
 	}
 	else
 	{	throw _lengthExc();
 	}
 }
 
-template<typename T, size_t Capacity>
-inline void  fixcap_array<T, Capacity>::
-	pop_back() NOEXCEPT
+template<typename T, size_t Capacity, typename Size>
+inline void fixcap_array<T, Capacity, Size>::resize(size_type newSize, default_init_tag)
 {
 	OEL_MEM_BOUND_ASSERT(0 < _size);
 	--_size;
 	data()[_size].~T();
 }
 
-template<typename T, size_t Capacity>
-void fixcap_array<T, Capacity>::resize(size_type newSize, default_init_tag)
+template<typename T, size_t Capacity, typename Size>
+inline void fixcap_array<T, Capacity, Size>::pop_back() noexcept
 {
 	_resizeImpl(newSize, oel::uninitialized_fill_default<pointer>);
 }
@@ -524,8 +529,8 @@ void fixcap_array<T, Capacity>::resize(size_type newSize, const T & addVal)
 			} );
 }
 
-template<typename T, size_t Capacity>
-typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
+template<typename T, size_t Capacity, typename Size>
+typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
 	erase(iterator pos)
 {
 	_detail::AssertRelocate<T>();
@@ -540,8 +545,8 @@ typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	return pos;
 }
 
-template<typename T, size_t Capacity>
-typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
+template<typename T, size_t Capacity, typename Size>
+typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
 	erase(iterator first, iterator last)
 {
 	_detail::AssertRelocate<T>();
@@ -563,8 +568,8 @@ typename fixcap_array<T, Capacity>::iterator  fixcap_array<T, Capacity>::
 	return first;
 }
 
-template<typename T, size_t Capacity>
-void fixcap_array<T, Capacity>::erase_back(iterator newEnd) NOEXCEPT
+template<typename T, size_t Capacity, typename Size>
+void fixcap_array<T, Capacity, Size>::erase_back(iterator newEnd) noexcept
 {
 	pointer const first = to_pointer_contiguous(newEnd);
 	MEM_BOUND_ASSERT_CHEAP(data() <= first && first <= data() + _size);
@@ -572,8 +577,8 @@ void fixcap_array<T, Capacity>::erase_back(iterator newEnd) NOEXCEPT
 	_size = first - data();
 }
 
-template<typename T, size_t Capacity>
-typename fixcap_array<T, Capacity>::reference  fixcap_array<T, Capacity>::
+template<typename T, size_t Capacity, typename Size>
+inline typename fixcap_array<T, Capacity, Size>::reference  fixcap_array<T, Capacity, Size>::
 	at(size_type index)
 {
 	if (index < _size)
@@ -581,8 +586,8 @@ typename fixcap_array<T, Capacity>::reference  fixcap_array<T, Capacity>::
 	else
 		throw out_of_range("Invalid index fixcap_array::at");
 }
-template<typename T, size_t Capacity>
-typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capacity>::
+template<typename T, size_t Capacity, typename Size>
+typename fixcap_array<T, Capacity, Size>::const_reference  fixcap_array<T, Capacity, Size>::
 	at(size_type index) const
 {
 	if (index < _size)
@@ -591,28 +596,29 @@ typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capacity>::
 		throw out_of_range("Invalid index fixcap_array::at");
 }
 
-template<typename T, size_t Capacity>
-inline typename fixcap_array<T, Capacity>::reference  fixcap_array<T, Capacity>::
-	operator[](size_type index) NOEXCEPT
+template<typename T, size_t Capacity, typename Size>
+inline typename fixcap_array<T, Capacity, Size>::reference  fixcap_array<T, Capacity, Size>::
+	operator[](size_type index) noexcept
 {
 	OEL_MEM_BOUND_ASSERT(index < _size);
 	return data()[index];
 }
-template<typename T, size_t Capacity>
-inline typename fixcap_array<T, Capacity>::const_reference  fixcap_array<T, Capacity>::
-	operator[](size_type index) const NOEXCEPT
+template<typename T, size_t Capacity, typename Size>
+inline typename fixcap_array<T, Capacity, Size>::const_reference  fixcap_array<T, Capacity, Size>::
+	operator[](size_type index) const noexcept
 {
 	OEL_MEM_BOUND_ASSERT(index < _size);
 	return data()[index];
 }
 
-#undef OE_FIXCAPARR_ITERATOR
-#undef OE_FIXCAPARR_CONST_ITER
+#undef OEL_CONTIGUOUS_ITERATOR
+#undef OEL_CONTIGUOUS_CONST_ITER
 
 } // namespace oel
 
-template<typename T, size_t C, typename OutputIterator>
-inline OutputIterator oel::erase_unordered(fixcap_array<T, C> & ctr, OutputIterator pos)
+template<typename T, size_t C, typename S>
+inline typename oel::fixcap_array<T, C>::iterator  oel::
+	erase_unordered(fixcap_array<T, C> & ctr, typename fixcap_array<T, C>::iterator pos)
 {
 	*pos = std::move(ctr.back());
 	ctr.pop_back();

@@ -88,15 +88,6 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 
-	using iterator       = contiguous_iterator< T, dynarray<T, Alloc> >;
-	using const_iterator = contiguous_iterator< T const, dynarray<T, Alloc> >;
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}
-	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this}
-#else
-	#define OEL_DYNARR_ITERATOR(ptr)        (ptr)
-	#define OEL_DYNARR_CONST_ITER(constPtr) (constPtr)
-#endif
 	using reverse_iterator       = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -209,13 +200,13 @@ public:
 
 	size_type  capacity() const NOEXCEPT  { return _reserveEnd - data(); }
 
-	iterator        begin() NOEXCEPT         { return OEL_DYNARR_ITERATOR(_data.get()); }
-	const_iterator  begin() const NOEXCEPT   { return OEL_DYNARR_CONST_ITER(_data.get()); }
-	const_iterator  cbegin() const NOEXCEPT  { return begin(); }
+	iterator        begin() noexcept         { return OEL_CONTIGUOUS_ITERATOR(_data.get()); }
+	const_iterator  begin() const noexcept   { return OEL_CONTIGUOUS_CONST_ITER(_data.get()); }
+	const_iterator  cbegin() const noexcept  { return begin(); }
 
-	iterator        end() NOEXCEPT           { return OEL_DYNARR_ITERATOR(_end); }
-	const_iterator  end() const NOEXCEPT     { return OEL_DYNARR_CONST_ITER(_end); }
-	const_iterator  cend() const NOEXCEPT    { return end(); }
+	iterator        end() noexcept           { return OEL_CONTIGUOUS_ITERATOR(_end); }
+	const_iterator  end() const noexcept     { return OEL_CONTIGUOUS_CONST_ITER(_end); }
+	const_iterator  cend() const noexcept    { return end(); }
 
 	reverse_iterator       rbegin() NOEXCEPT        { return reverse_iterator{end()}; }
 	const_reverse_iterator rbegin() const NOEXCEPT  { return const_reverse_iterator{end()}; }
@@ -229,8 +220,8 @@ public:
 	reference       front() NOEXCEPT        { return *begin(); }
 	const_reference front() const NOEXCEPT  { return *begin(); }
 
-	reference       back() NOEXCEPT         { return *OEL_DYNARR_ITERATOR(_end - 1); }
-	const_reference back() const NOEXCEPT   { return *OEL_DYNARR_CONST_ITER(_end - 1); }
+	reference       back() noexcept         { return *OEL_CONTIGUOUS_ITERATOR(_end - 1); }
+	const_reference back() const noexcept   { return *OEL_CONTIGUOUS_CONST_ITER(_end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -395,7 +386,9 @@ private:
 			::memcpy(newData.get(), data(), oldSize * sizeof(T));  // relocate old
 			_data.swap(newData);
 		}
-		return appendPos;
+		_end += count;
+
+		return OEL_CONTIGUOUS_ITERATOR(pos);
 	}
 
 	template<typename CntigusIter>
@@ -489,6 +482,27 @@ private:
 		return begin() + oldSize;
 	}
 
+	template<typename... Args>
+	iterator _emplaceRealloc(pointer const pos, size_type const nAfterPos, Args &&... args)
+	{
+		size_type const newCapacity = _calcCapAddOne();
+		_smartPtr newData{_alloc(newCapacity)};
+
+		size_type const nBeforePos = pos - _data.get();
+		pointer const newPos = newData.get() + nBeforePos;
+		::new(newPos) T(std::forward<Args>(args)...);   // add new
+		// Exception free from here
+		pointer const next = newPos + 1;
+		::memcpy(newData.get(), _data.get(), nBeforePos * sizeof(T)); // relocate prefix
+		::memcpy(next, pos, nAfterPos * sizeof(T));   // relocate suffix
+		_end = next + nAfterPos;
+
+		_reserveEnd = newData.get() + newCapacity;
+		_data.swap(newData);
+
+		return OEL_CONTIGUOUS_ITERATOR(newPos);
+	}
+
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
 	{
@@ -538,7 +552,45 @@ private:
 	}
 };
 
-// Definitions of public functions
+template<typename T, typename Alloc> template<typename... Args>
+void dynarray<T, Alloc>::emplace_back(Args &&... args)
+{
+	if (_end < _reserveEnd)
+		::new(_end) T(std::forward<Args>(args)...);
+	else
+		_emplaceBackRealloc(std::forward<Args>(args)...);
+
+	++_end;
+}
+
+template<typename T, typename Alloc> template<typename... Args>
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
+{
+	_detail::AssertRelocate<T>();
+
+	auto const posPtr = const_cast<pointer>(to_pointer_contiguous(pos));
+	MEM_BOUND_ASSERT_CHEAP(_data.get() <= posPtr && posPtr <= _end);
+
+	size_type const nAfterPos = _end - posPtr;
+
+	if (_end < _reserveEnd) // then new element fits
+	{
+		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
+		using RawStore = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
+		RawStore local;
+		::new(&local) T(std::forward<Args>(args)...);
+		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
+		::memmove(posPtr + 1, posPtr, nAfterPos * sizeof(T));
+		++_end;
+
+		*reinterpret_cast<RawStore *>(posPtr) = local; // relocate the new element to pos
+
+		return OEL_CONTIGUOUS_ITERATOR(posPtr);
+	}
+	else
+	{	return _emplaceRealloc(posPtr, nAfterPos, std::forward<Args>(args)...);
+	}
+}
 
 template<typename T, typename Alloc>
 inline dynarray<T, Alloc>::dynarray(reserve_tag, size_type capacity) :
@@ -857,9 +909,6 @@ inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operato
 	return _data[index];
 }
 
-#undef OEL_DYNARR_ITERATOR
-#undef OEL_DYNARR_CONST_ITER
-
 } // namespace oel
 
 template<typename T, typename A>
@@ -870,5 +919,8 @@ inline typename oel::dynarray<T, A>::iterator  oel::
 	ctr.pop_back();
 	return pos;
 }
+
+#undef OEL_CONTIGUOUS_ITERATOR
+#undef OEL_CONTIGUOUS_CONST_ITER
 
 #undef OEL_FORCEINLINE

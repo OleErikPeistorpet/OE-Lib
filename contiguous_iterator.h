@@ -1,10 +1,11 @@
-#pragma once
-
 // Copyright 2014, 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+
+#ifndef OEL_CONTIGUOUS_CONTAINER_ITERATOR_INCLUDED
+#define OEL_CONTIGUOUS_CONTAINER_ITERATOR_INCLUDED
 
 #include "core_util.h"
 
@@ -198,14 +199,6 @@ cntigus_ctr_dbg_iterator<T, C> operator +(typename cntigus_ctr_dbg_iterator<T, C
 	return iter += offset;
 }
 
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	template<typename ConstQualValT, typename Container>
-	using contiguous_iterator = cntigus_ctr_dbg_iterator<ConstQualValT, Container>;
-#else
-	template<typename ConstQualValT, typename>
-	using contiguous_iterator = ConstQualValT *;
-#endif
-
 } // namespace oel
 
 #if _MSC_VER
@@ -214,3 +207,22 @@ cntigus_ctr_dbg_iterator<T, C> operator +(typename cntigus_ctr_dbg_iterator<T, C
 	struct std::_Is_checked_helper< oel::cntigus_ctr_dbg_iterator<T, C> >
 	 :	public std::true_type {};
 #endif
+
+#endif // OEL_CONTIGUOUS_CONTAINER_ITERATOR_INCLUDED
+
+namespace oel
+{
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	template<typename Pointer, typename Container>
+	using contiguous_iterator = cntigus_ctr_dbg_iterator<Pointer, Container>;
+
+	#define OEL_CONTIGUOUS_ITERATOR(ptr)   iterator{ptr, this}       // These are macros to avoid function call
+	#define OEL_CONTIGUOUS_CONST_ITER(ptr) const_iterator{ptr, this} // overhead in builds without inlining.
+#else
+	template<typename Pointer, typename>
+	using contiguous_iterator = Pointer;
+
+	#define OEL_CONTIGUOUS_ITERATOR(ptr)   (ptr)
+	#define OEL_CONTIGUOUS_CONST_ITER(ptr) const_cast<const_iterator>(ptr)
+#endif
+}
