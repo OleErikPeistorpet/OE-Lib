@@ -106,7 +106,7 @@ namespace _detail
 		for (;;)
 		{
 			void * p = boost::alignment::aligned_alloc(Align, nBytes);
-			if (p)
+			if (p || nBytes == 0) // testing for 0 bytes could be removed if using MSVC _aligned_malloc
 			{	return p;
 			}
 			else
@@ -130,12 +130,12 @@ namespace _detail
 	#endif
 	}
 
+#ifndef OEL_NO_BOOST
 	inline void OpDelete(std::false_type, void * ptr)
 	{
-	#ifndef OEL_NO_BOOST
 		boost::alignment::aligned_free(ptr);
-	#endif
 	}
+#endif
 }
 /// @endcond
 

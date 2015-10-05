@@ -443,12 +443,18 @@ TEST_F(dynarrayTest, overAligned)
 {
 	unsigned int const testAlignment = 32;
 
-	dynarray< oel::aligned_storage_t<testAlignment, testAlignment> > special(1);
-	EXPECT_EQ(0, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
-	special.append(2, {});
-	EXPECT_EQ(3, special.size());
+	dynarray< oel::aligned_storage_t<testAlignment, testAlignment> > special(0);
+	EXPECT_TRUE(special.cbegin() == special.cend());
+
+	special.append(5, {});
+	EXPECT_EQ(5, special.size());
 	for (const auto & v : special)
 		EXPECT_EQ(0, reinterpret_cast<std::uintptr_t>(&v) % testAlignment);
+
+	special.resize(1, oel::default_init);
+	special.shrink_to_fit();
+	EXPECT_GT(5, special.capacity());
+	EXPECT_EQ(0, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 }
 #endif
 
