@@ -194,6 +194,71 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 
 TEST_F(dynarrayTest, assign)
 {
+	MoveOnly::ClearCount();
+	{
+		double const VALUES[] = {-1.1, 0.4};
+		MoveOnly src[] { MoveOnly{VALUES[0]},
+						 MoveOnly{VALUES[1]} };
+		dynarray<MoveOnly> test;
+
+		test.assign(oel::move_range(src));
+
+		EXPECT_EQ(2U, test.size());
+		EXPECT_EQ(VALUES[0], *test[0]);
+		EXPECT_EQ(VALUES[1], *test[1]);
+
+		test.assign(std::make_move_iterator(src), 0);
+		EXPECT_EQ(0U, test.size());
+	}
+	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
+
+	NontrivialReloc::ClearCount();
+	{
+		dynarray<NontrivialReloc> dest;
+		{
+			NontrivialReloc obj{-5.0, ThrowOnMoveOrCopy};
+			try
+			{	dest.assign(&obj, 1);
+			}
+			catch (TestException &) {
+			}
+			EXPECT_TRUE(dest.begin() == dest.end());
+		}
+		EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
+
+		dest = {NontrivialReloc{1.0}, NontrivialReloc{2.0}};
+		EXPECT_EQ(2U, dest.size());
+		EXPECT_DOUBLE_EQ(1.0, dest[0]);
+		EXPECT_DOUBLE_EQ(2.0, dest[1]);
+		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(dest), NontrivialReloc::nDestruct);
+		{
+			NontrivialReloc obj{-3.3, ThrowOnMoveOrCopy};
+			try
+			{	dest.assign(oel::make_range(&obj, &obj + 1));
+			}
+			catch (TestException &) {
+			}
+			EXPECT_TRUE(dest.empty() || dest.at(1) == 2.0);
+		}
+		{
+			dest.clear();
+			EXPECT_LE(2U, dest.capacity());
+			EXPECT_TRUE(dest.empty());
+
+			NontrivialReloc obj{-1.3, ThrowOnMoveOrCopy};
+			try
+			{	dest.assign(&obj, 1);
+			}
+			catch (TestException &) {
+			}
+			EXPECT_TRUE(dest.empty());
+		}
+	}
+	EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
+}
+
+TEST_F(dynarrayTest, assignStringStream)
+{
 	{
 		dynarray<std::string> das;
 
@@ -243,24 +308,6 @@ TEST_F(dynarrayTest, assign)
 		copyDest = std::initializer_list<std::string>{};
 		EXPECT_TRUE(copyDest.empty());
 	}
-
-	MoveOnly::ClearCount();
-	{
-		double const VALUES[] = {-1.1, 0.4};
-		MoveOnly src[] { MoveOnly{VALUES[0]},
-						 MoveOnly{VALUES[1]} };
-		dynarray<MoveOnly> test;
-
-		test.assign(oel::move_range(src));
-
-		EXPECT_EQ(2U, test.size());
-		EXPECT_EQ(VALUES[0], *test[0]);
-		EXPECT_EQ(VALUES[1], *test[1]);
-
-		test.assign(std::make_move_iterator(src), 0);
-		EXPECT_EQ(0U, test.size());
-	}
-	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 }
 
 TEST_F(dynarrayTest, append)
@@ -453,7 +500,7 @@ TEST_F(dynarrayTest, overAligned)
 
 	special.resize(1, oel::default_init);
 	special.shrink_to_fit();
-	EXPECT_GT(5, special.capacity());
+	EXPECT_GT(5U, special.capacity());
 	EXPECT_EQ(0, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 }
 #endif

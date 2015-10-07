@@ -71,11 +71,20 @@ public:
 		val = other.val;
 		++nConstruct;
 	}
-	NontrivialReloc & operator =(NontrivialReloc && other)
+	NontrivialReloc(const NontrivialReloc & other)
+	{
+		if (other.throwOnMove)
+		{
+			throw TestException{};
+		}
+		val = other.val;
+		++nConstruct;
+	}
+	NontrivialReloc & operator =(const NontrivialReloc & other)
 	{
 		if (throwOnMove || other.throwOnMove)
 		{
-			other.throwOnMove = throwOnMove = false;
+			throwOnMove = false;
 			throw TestException{};
 		}
 		val = other.val;
