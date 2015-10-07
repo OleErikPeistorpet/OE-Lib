@@ -178,7 +178,7 @@ namespace _detail
 
 
 	template<typename T> inline
-	void Destroy(T * first, T * last) noexcept
+	void Destroy(T * first, T *const last) noexcept
 	{	// first > last is OK, does nothing
 		OEL_CONST_COND if (!is_trivially_destructible<T>::value) // for speed with optimizations off (debug build)
 		{
@@ -188,26 +188,35 @@ namespace _detail
 	}
 
 
-	template<typename InputIter, typename T> inline
-	T * UninitCopy(InputIter first, InputIter last, T *const dest)
+	template<typename Alloc, typename InputIter, typename Ptr>
+	Ptr UninitCopy(InputIter first, InputIter const last, Ptr dest, Alloc & alloc)
 	{
-		return std::uninitialized_copy( first, last,
-			#if _MSC_VER
-				stdext::make_unchecked_array_iterator(dest) ).base();
-			#else
-				dest );
-			#endif
+		Ptr const destBegin = dest;
+		try
+		{
+			while (first != last)
+			{
+				std::allocator_traits<Alloc>::construct(alloc, dest, *first);
+				++dest; ++first;
+			}
+		}
+		catch (...)
+		{
+			_detail::Destroy(destBegin, dest);
+			throw;
+		}
+		return dest;
 	}
 
-	template<typename InputIter, typename T>
-	range_ends<InputIter, T *> UninitCopyN(InputIter first, size_t count, T * dest)
+	template<typename Alloc, typename InputIter, typename Ptr>
+	range_ends<InputIter, Ptr> UninitCopyN(InputIter first, size_t count, Ptr dest, Alloc & alloc)
 	{
-		T *const destBegin = dest;
+		Ptr const destBegin = dest;
 		try
 		{
 			for (; 0 < count; --count)
 			{
-				::new(dest) T(*first);
+				std::allocator_traits<Alloc>::construct(alloc, dest, *first);
 				++dest; ++first;
 			}
 		}
@@ -220,20 +229,26 @@ namespace _detail
 	}
 
 
-	template<typename T> inline
-	void UninitFillImpl(std::true_type, T * first, T * last)
+	template<typename Alloc, typename T> inline
+	void UninitFillImpl(std::true_type, T * first, T * last, Alloc &)
 	{
 		::memset(first, 0, last - first);
 	}
 
-	template<typename T>
-	void UninitFillImpl(std::false_type, T * first, T *const last)
+	template<typename Alloc, typename T> inline
+	void UninitFillImpl(std::true_type, T * first, T * last, Alloc &, int val)
 	{
-		T *const init = first;
+		::memset(first, val, last - first);
+	}
+
+	template<typename Alloc, typename Ptr, typename... Arg>
+	void UninitFillImpl(std::false_type, Ptr first, Ptr const last, Alloc & alloc, const Arg &... arg)
+	{
+		Ptr const init = first;
 		try
 		{
 			for (; first != last; ++first)
-				::new(first) T{};
+				std::allocator_traits<Alloc>::construct(alloc, first, arg...);
 		}
 		catch (...)
 		{
@@ -242,19 +257,19 @@ namespace _detail
 		}
 	}
 
-	template<typename T> inline
-	void UninitFill(T *const first, T *const last)
+	template<typename Alloc, typename T, typename... Arg> inline
+	void UninitFill(T *const first, T *const last, Alloc & alloc, const Arg &... arg)
 	{
 		// Could change to use memset for any POD type with most CPU architectures
 		_detail::UninitFillImpl(bool_constant<std::is_integral<T>::value && sizeof(T) == 1>(),
-								first, last);
+								first, last, alloc, arg...);
 	}
 
-	template<typename T> inline
-	void UninitFillDefault(T *const first, T *const last)
+	template<typename Alloc, typename T> inline
+	void UninitFillDefault(T *const first, T *const last, Alloc & alloc)
 	{
 		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
-			_detail::UninitFillImpl(std::false_type{}, first, last);
+			_detail::UninitFillImpl(std::false_type{}, first, last, alloc);
 	}
 }
 
