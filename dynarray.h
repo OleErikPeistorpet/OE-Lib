@@ -99,8 +99,8 @@ public:
 	using difference_type = typename std::allocator_traits<Alloc>::difference_type;
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	using iterator       = cntigus_ctr_dbg_iterator< T *, dynarray<T, Alloc> >;
-	using const_iterator = cntigus_ctr_dbg_iterator< const T *, dynarray<T, Alloc> >;
+	using iterator       = cntigus_ctr_dbg_iterator< pointer, dynarray<T, Alloc> >;
+	using const_iterator = cntigus_ctr_dbg_iterator< const_pointer, dynarray<T, Alloc> >;
 
 	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}            // these are macros to avoid function call
 	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this} // overhead in builds without inlining
@@ -326,7 +326,7 @@ private:
 	{
 		OEL_CONST_COND if (is_trivially_copyable<T>::value)
 		{	// Behaviour undefined by standard if first is null
-			::memcpy(data(), first, sizeof(T) * count);
+			::memcpy(std::addressof(*_m.data), std::addressof(*first), sizeof(T) * count);
 			_m.reserveEnd = _m.end = _m.data + count;
 		}
 		else
@@ -386,7 +386,7 @@ private:
 		{	_m.end = _m.data + count;
 		}
 		// Not portable. Check for self assignment or use memmove?
-		::memcpy(data(), to_pointer_contiguous(first), sizeof(T) * count);
+		::memcpy(std::addressof(*_m.data), to_pointer_contiguous(first), sizeof(T) * count);
 	}
 
 	template<typename InputIter>
@@ -460,7 +460,7 @@ private:
 
 	void _relocateData(std::true_type, pointer newData, T &)
 	{
-		::memcpy(newData, data(), sizeof(T) * size());
+		::memcpy(std::addressof(*newData), _m.data, sizeof(T) * size());
 	}
 
 	template<typename... Args>
@@ -514,7 +514,7 @@ private:
 			_m.end = pos;
 			_m.reserveEnd = newData + newCapacity;
 			// Make new elements before relocating old data to support append from this
-			::memcpy(newData, data(), sizeof(T) * oldSize);
+			::memcpy(std::addressof(*newData), std::addressof(*_m.data), sizeof(T) * oldSize);
 			_resetData(newData);
 		}
 		_m.end += count;
@@ -533,10 +533,11 @@ private:
 			(void)*(last - 1);
 		}
 	#endif
+		const T * src = to_pointer_contiguous(first);
 		_appendImpl( count,
-				[first](pointer dest, size_type nElems, Alloc &)
+				[src](pointer dest, size_type nElems, Alloc &)
 				{	// Behaviour undefined by standard if first points to null
-					::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * nElems);
+					::memcpy(std::addressof(*dest), src, sizeof(T) * nElems);
 				} );
 
 	#if OEL_MEM_BOUND_DEBUG_LVL
@@ -658,7 +659,7 @@ private:
 			_m.end = newEnd;
 			_m.reserveEnd = newData + allocSize;
 
-			::memcpy(newData, data(), sizeof(T) * oldSize);  // relocate old
+			::memcpy(std::addressof(*newData), std::addressof(*_m.data), sizeof(T) * oldSize);  // relocate old
 
 			_resetData(newData);
 		}
@@ -853,7 +854,7 @@ void dynarray<T, Alloc>::reserve(size_type minCapacity)
 
 		_m.reserveEnd = newData + minCapacity;
 		// Relocate elements
-		::memcpy(newData, data(), sizeof(T) * size());
+		::memcpy(std::addressof(*newData), std::addressof(*_m.data), sizeof(T) * size());
 		_m.end = newData + size();
 
 		_resetData(newData);
@@ -871,7 +872,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	{
 		newData = _m.allocate(used);
 		// Relocate elements
-		::memcpy(newData, data(), sizeof(T) * used);
+		::memcpy(std::addressof(*newData), std::addressof(*_m.data), sizeof(T) * used);
 		_m.end = newData + used;
 	}
 	else
@@ -884,13 +885,13 @@ void dynarray<T, Alloc>::shrink_to_fit()
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::resize(size_type newSize, default_init_tag)
 {
-	_resizeImpl(newSize, _detail::UninitFillDefault<Alloc, T>);
+	_resizeImpl(newSize, _detail::UninitFillDefault<Alloc, pointer>);
 }
 
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::resize(size_type newSize)
 {
-	_resizeImpl(newSize, _detail::UninitFill<Alloc, T>);
+	_resizeImpl(newSize, _detail::UninitFill<Alloc, pointer>);
 }
 
 template<typename T, typename Alloc>
@@ -905,13 +906,13 @@ template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) noexcept
 {
 	_staticAssertRelocate();
+	OEL_BOUND_ASSERT_CHEAP(begin() <= pos && pos < end());
 
 	T *const posPtr = to_pointer_contiguous(pos);
-	OEL_BOUND_ASSERT_CHEAP(_m.data <= posPtr && posPtr < _m.end);
 
 	posPtr-> ~T();
 	T * next = posPtr + 1;
-	::memmove(posPtr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
+	::memmove(posPtr, next, sizeof(T) * (std::addressof(*_m.end) - next)); // relocate [pos + 1, end) to [pos, end - 1)
 	--_m.end;
 
 	return pos;
@@ -921,15 +922,15 @@ template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) noexcept
 {
 	_staticAssertRelocate();
+	OEL_BOUND_ASSERT_CHEAP(begin() <= first);
+	OEL_MEM_BOUND_ASSERT(first <= last && last <= end());
 
 	T *const pFirst = to_pointer_contiguous(first);
 	T *const pLast = to_pointer_contiguous(last);
-	OEL_BOUND_ASSERT_CHEAP(_m.data <= pFirst);
-	OEL_MEM_BOUND_ASSERT(pFirst <= pLast && pLast <= _m.end);
 	if (pFirst < pLast)
 	{
 		_detail::Destroy(pFirst, pLast);
-		size_type const nAfterLast = _m.end - pLast;
+		size_type const nAfterLast = std::addressof(*_m.end) - pLast;
 		// Relocate [last, end) to [first, first + nAfterLast)
 		::memmove(pFirst, pLast, sizeof(T) * nAfterLast);
 		_m.end = pFirst + nAfterLast;
@@ -942,8 +943,8 @@ inline void dynarray<T, Alloc>::erase_back(iterator first) noexcept
 {
 	T *const newEnd = to_pointer_contiguous(first);
 	OEL_BOUND_ASSERT_CHEAP(_m.data <= newEnd && newEnd <= _m.end);
-	_detail::Destroy(newEnd, _m.end);
-	_m.end = std::pointer_traits<pointer>::pointer_to(*newEnd);
+	_detail::Destroy(newEnd, std::addressof(*_m.end));
+	_m.end = newEnd;
 }
 
 template<typename T, typename Alloc>

@@ -177,13 +177,14 @@ namespace _detail
 #endif
 
 
-	template<typename T> inline
-	void Destroy(T * first, T *const last) noexcept
+	template<typename Ptr>
+	void Destroy(Ptr first, Ptr const last) noexcept
 	{	// first > last is OK, does nothing
+		using T = typename std::pointer_traits<Ptr>::element_type;
 		OEL_CONST_COND if (!is_trivially_destructible<T>::value) // for speed with optimizations off (debug build)
 		{
 			for (; first < last; ++first)
-				first-> ~T();
+				(*first).~T();
 		}
 	}
 
@@ -229,16 +230,16 @@ namespace _detail
 	}
 
 
-	template<typename Alloc, typename T> inline
-	void UninitFillImpl(std::true_type, T * first, T * last, Alloc &)
+	template<typename Alloc, typename Ptr> inline
+	void UninitFillImpl(std::true_type, Ptr first, Ptr last, Alloc &)
 	{
-		::memset(first, 0, last - first);
+		::memset(std::addressof(*first), 0, last - first);
 	}
 
-	template<typename Alloc, typename T> inline
-	void UninitFillImpl(std::true_type, T * first, T * last, Alloc &, int val)
+	template<typename Alloc, typename Ptr> inline
+	void UninitFillImpl(std::true_type, Ptr first, Ptr last, Alloc &, int val)
 	{
-		::memset(first, val, last - first);
+		::memset(std::addressof(*first), val, last - first);
 	}
 
 	template<typename Alloc, typename Ptr, typename... Arg>
@@ -257,18 +258,19 @@ namespace _detail
 		}
 	}
 
-	template<typename Alloc, typename T, typename... Arg> inline
-	void UninitFill(T *const first, T *const last, Alloc & alloc, const Arg &... arg)
+	template<typename Alloc, typename Ptr, typename... Arg> inline
+	void UninitFill(Ptr const first, Ptr const last, Alloc & alloc, const Arg &... arg)
 	{
 		// Could change to use memset for any POD type with most CPU architectures
+		using T = typename Alloc::value_type;
 		_detail::UninitFillImpl(bool_constant<std::is_integral<T>::value && sizeof(T) == 1>(),
 								first, last, alloc, arg...);
 	}
 
-	template<typename Alloc, typename T> inline
-	void UninitFillDefault(T *const first, T *const last, Alloc & alloc)
+	template<typename Alloc, typename Ptr> inline
+	void UninitFillDefault(Ptr const first, Ptr const last, Alloc & alloc)
 	{
-		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
+		OEL_CONST_COND if (!is_trivially_default_constructible<typename Alloc::value_type>::value)
 			_detail::UninitFillImpl(std::false_type{}, first, last, alloc);
 	}
 }

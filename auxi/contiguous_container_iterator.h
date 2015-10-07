@@ -195,8 +195,10 @@ public:
 	}
 
 	/// Return pointer (unchecked)
-	friend typename std::remove_reference<reference>::type *
-		to_pointer_contiguous(cntigus_ctr_dbg_iterator it) noexcept { return it._pElem; }
+	friend typename std::remove_reference<reference>::type * to_pointer_contiguous(cntigus_ctr_dbg_iterator it) noexcept
+	{
+		return std::addressof(*it._pElem);
+	}
 
 protected:
 	pointer           _pElem;  // Wrapped pointer
