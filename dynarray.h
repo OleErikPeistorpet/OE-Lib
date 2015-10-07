@@ -344,8 +344,6 @@ private:
 	#endif
 		if (capacity() < count)
 		{
-			_data.reset();
-			_reserveEnd = _end = nullptr; // in case _alloc throws
 			_data.reset(_alloc(count));
 			_end = _data.get() + count;
 			_reserveEnd = _end;
@@ -362,13 +360,11 @@ private:
 	{	// non-trivial assign
 		if (capacity() < count)
 		{	// not enough room, allocate new array and construct new
+			_smartPtr newData{_alloc(count)};
+			pointer const newEnd = _detail::UninitCopy(first, last, newData.get());
 			_detail::Destroy(_data.get(), _end);
-			_data.reset();
-			_reserveEnd = _end = nullptr;
-			// Deallocating first makes reuse of the memory possible
-			_data.reset(_alloc(count));
-			_end = _detail::UninitCopy(first, last, _data.get());
-			_reserveEnd = _end;
+			_reserveEnd = _end = newEnd;
+			_data.swap(newData);
 		}
 		else if (size() >= count)
 		{	// enough elements, copy new and destroy old
