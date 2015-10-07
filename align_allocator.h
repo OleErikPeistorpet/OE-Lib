@@ -91,35 +91,46 @@ namespace _detail
 	template<size_t> inline
 	void * OpNew(std::true_type, size_t nBytes)
 	{
-		return ::operator new[](nBytes);
+		return ::operator new(nBytes);
 	}
 
 	inline void OpDelete(std::true_type, void * ptr)
 	{
-		::operator delete[](ptr);
+		::operator delete(ptr);
 	}
 
-#ifndef OEL_NO_BOOST
 	template<size_t Align>
 	void * OpNew(std::false_type, size_t nBytes)
 	{
+	#ifndef OEL_NO_BOOST
 		for (;;)
 		{
 			void * p = boost::alignment::aligned_alloc(Align, nBytes);
-			if (p)
+			if (p || nBytes == 0) // testing for 0 bytes could be removed if using MSVC _aligned_malloc
 			{	return p;
 			}
 			else
 			{
+			#if !__GLIBCXX__ || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9) || __GNUC__ > 4
 				auto handler = std::get_new_handler();
+			#else
+				auto handler = std::set_new_handler(nullptr);
+				std::set_new_handler(handler);
+			#endif
 				if (!handler)
 					throw std::bad_alloc{};
-				else
-					(*handler)();
+
+				(*handler)();
 			}
 		}
+	#else
+		static_assert(Align == 0, // always false
+			"The value of Align is not supported by operator new. Boost v1.56 required (and OEL_NO_BOOST not defined).");
+		return nullptr;
+	#endif
 	}
 
+#ifndef OEL_NO_BOOST
 	inline void OpDelete(std::false_type, void * ptr)
 	{
 		boost::alignment::aligned_free(ptr);

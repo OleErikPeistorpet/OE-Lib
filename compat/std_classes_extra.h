@@ -9,12 +9,12 @@
 #include <array>
 #include <tuple>
 
-// std::array, tuple, pair
+// std:: array, tuple, pair
 
 namespace oel
 {
 
-template<typename T, size_t S>
+template<typename T, std::size_t S>
 struct is_trivially_relocatable< std::array<T, S> >
  :	is_trivially_relocatable<T> {};
 

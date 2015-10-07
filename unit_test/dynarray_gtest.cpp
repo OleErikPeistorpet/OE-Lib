@@ -438,28 +438,25 @@ TEST_F(dynarrayTest, erase)
 	ASSERT_EQ(s - 3, d.size());
 }
 
+#ifndef OEL_NO_BOOST
 TEST_F(dynarrayTest, overAligned)
 {
-	#define TEST_ALIGNMENT 32
+	unsigned int const testAlignment = 32;
 
-#if _MSC_VER
-	__declspec(align(TEST_ALIGNMENT))
-#endif
-	struct vec4
-	{
-		double x, y, z, w;
-	}
-#if !_MSC_VER
-	__attribute__(( aligned(TEST_ALIGNMENT) ))
-#endif
-	;
+	dynarray< oel::aligned_storage_t<testAlignment, testAlignment> > special(0);
+	EXPECT_TRUE(special.cbegin() == special.cend());
 
-	dynarray<vec4> special(1, {1.1, 2.2, 3.3, 4.4});
-	special.append(2, {5.5, 6.6, 7.7, 8.8});
-	EXPECT_EQ(3, special.size());
+	special.append(5, {});
+	EXPECT_EQ(5, special.size());
 	for (const auto & v : special)
-		EXPECT_TRUE(reinterpret_cast<std::uintptr_t>(&v) % TEST_ALIGNMENT == 0);
+		EXPECT_EQ(0, reinterpret_cast<std::uintptr_t>(&v) % testAlignment);
+
+	special.resize(1, oel::default_init);
+	special.shrink_to_fit();
+	EXPECT_GT(5, special.capacity());
+	EXPECT_EQ(0, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 }
+#endif
 
 TEST_F(dynarrayTest, misc)
 {
