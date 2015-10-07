@@ -170,12 +170,12 @@ namespace _detail
 	template<size_t> inline
 	void * OpNew(std::true_type, size_t nBytes)
 	{
-		return ::operator new[](nBytes);
+		return ::operator new(nBytes);
 	}
 
 	inline void OpDelete(std::true_type, void * ptr)
 	{
-		::operator delete[](ptr);
+		::operator delete(ptr);
 	}
 
 #ifndef OEL_NO_BOOST
@@ -184,7 +184,7 @@ namespace _detail
 	void * OpNew(std::false_type, size_t nBytes)
 	{
 		void * p = boost::alignment::aligned_alloc(Align, nBytes);
-		if (p)
+		if (p || nbytes == 0)
 			return p;
 		else
 			throw std::bad_alloc();
