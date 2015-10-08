@@ -184,7 +184,7 @@ namespace _detail
 	void * OpNew(std::false_type, size_t nBytes)
 	{
 		void * p = boost::alignment::aligned_alloc(Align, nBytes);
-		if (p || nbytes == 0)
+		if (p || nBytes == 0)
 			return p;
 		else
 			throw std::bad_alloc();
