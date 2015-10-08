@@ -15,6 +15,21 @@ using oel::cbegin;
 using oel::cend;
 using oel::default_init;
 
+namespace statictest
+{
+	using Iter = dynarray<float>::iterator;
+	using ConstIter = dynarray<float>::const_iterator;
+
+	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
+	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
+	static_assert(!std::is_convertible<ConstIter, Iter>::value, "?");
+
+	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
+	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
+	static_assert(oel::can_memmove_with<float *, ConstIter>::value, "?");
+	static_assert(!oel::can_memmove_with<int *, float *>::value, "?");
+}
+
 template<typename T>
 struct throwingAlloc
 {
@@ -64,13 +79,6 @@ TEST_F(dynarrayTest, construct)
 	{
 		Outer o;
 	}
-
-	using Iter = dynarray<std::string>::iterator;
-	using ConstIter = dynarray<std::string>::const_iterator;
-
-	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
-	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
-	static_assert(!std::is_convertible<ConstIter, Iter>::value, "?");
 
 	dynarray<std::string> a;
 	decltype(a) b(a);

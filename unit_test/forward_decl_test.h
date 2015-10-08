@@ -103,6 +103,8 @@ namespace oel {
 template<> struct is_trivially_relocatable<NontrivialReloc> : std::false_type {};
 }
 
+static_assert(oel::is_trivially_copyable<NontrivialReloc>::value == false, "?");
+
 
 class ForwDeclared;
 
