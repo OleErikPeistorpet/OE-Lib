@@ -226,8 +226,8 @@ TEST_F(dynarrayTest, assign)
 
 		dest = {NontrivialReloc{1.0}, NontrivialReloc{2.0}};
 		EXPECT_EQ(2U, dest.size());
-		EXPECT_EQ(1.0, dest[0]);
-		EXPECT_EQ(2.0, dest[1]);
+		EXPECT_TRUE(1.0 == dest[0]);
+		EXPECT_TRUE(2.0 == dest[1]);
 		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(dest), NontrivialReloc::nDestruct);
 		{
 			NontrivialReloc obj{-3.3, ThrowOnMoveOrCopy};

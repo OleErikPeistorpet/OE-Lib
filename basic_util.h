@@ -139,8 +139,6 @@ template<typename T>
 struct is_trivially_copyable :
 	#if __GNUC__ == 4
 		bool_constant< __has_trivial_copy(T) && is_trivially_destructible<T>::value && std::is_copy_assignable<T>::value > {};
-	#elif _MSC_VER
-		bool_constant< std::is_trivially_copyable<T>::value && is_trivially_destructible<T>::value > {};
 	#else
 		std::is_trivially_copyable<T> {};
 	#endif
