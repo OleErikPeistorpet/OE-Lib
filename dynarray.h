@@ -99,8 +99,8 @@ public:
 	using difference_type = typename std::allocator_traits<Alloc>::difference_type;
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	using iterator       = cntigus_ctr_dbg_iterator< T *, dynarray<T, Alloc> >;
-	using const_iterator = cntigus_ctr_dbg_iterator< const T *, dynarray<T, Alloc> >;
+	using iterator       = contiguous_ctnr_iterator< pointer, dynarray<T, Alloc> >;
+	using const_iterator = contiguous_ctnr_iterator< const_pointer, dynarray<T, Alloc> >;
 
 	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}            // these are macros to avoid function call
 	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this} // overhead in builds without inlining
@@ -114,7 +114,7 @@ public:
 	using reverse_iterator       = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-	dynarray() noexcept                     : _m(Alloc{}) {}
+	dynarray() noexcept                     : _m() {}
 	explicit dynarray(const Alloc & alloc)  : _m(alloc) {}
 
 	/// Construct empty dynarray with space reserved for at least capacity elements
@@ -338,9 +338,10 @@ private:
 
 	struct _dataOwner : public _dynarrValues, public Alloc
 	{
-		_dataOwner(const Alloc & a) : _dynarrValues(), Alloc(a)
-		{
-			static_assert(std::is_nothrow_copy_constructible<Alloc>::value, "Alloc copy constructor required to be noexcept");
+		_dataOwner() : _dynarrValues(), Alloc() {
+		}
+		_dataOwner(const Alloc & a) :
+			_dynarrValues(), Alloc(a) {
 		}
 		_dataOwner(const Alloc & a, size_type allocSize) : Alloc(a)
 		{
@@ -363,10 +364,10 @@ private:
 	} _m;
 
 
-	void _resetData(pointer newData)
+	void _resetData(pointer const newData, size_type oldCapacity)
 	{
 		if (_m.data)
-			_m.deallocate(_m.data, _m.reserveEnd - _m.data);
+			_m.deallocate(_m.data, oldCapacity);
 
 		_m.data = newData;
 	}
@@ -431,7 +432,7 @@ private:
 	#endif
 		if (capacity() < count)
 		{
-			_resetData(_m.allocate(count));
+			_resetData(_m.allocate(count), capacity());
 			_m.end = _m.data + count;
 			_m.reserveEnd = _m.end;
 		}
@@ -853,7 +854,8 @@ void dynarray<T, Alloc>::reserve(size_type minCapacity)
 {
 	_staticAssertRelocate();
 
-	if (capacity() < minCapacity)
+	size_type const oldCap = capacity();
+	if (oldCap < minCapacity)
 	{
 		pointer const newData = _m.allocate(minCapacity);
 
@@ -862,7 +864,7 @@ void dynarray<T, Alloc>::reserve(size_type minCapacity)
 		::memcpy(newData, data(), sizeof(T) * size());
 		_m.end = newData + size();
 
-		_resetData(newData);
+		_resetData(newData, oldCap);
 	}
 }
 
@@ -876,15 +878,15 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	if (0 < used)
 	{
 		newData = _m.allocate(used);
-		// Relocate elements
-		::memcpy(newData, data(), sizeof(T) * used);
+
+		::memcpy(newData, data(), sizeof(T) * used); // relocate elements
 		_m.end = newData + used;
 	}
 	else
 	{	_m.end = newData = nullptr;
 	}
+	_resetData(newData, capacity());
 	_m.reserveEnd = _m.end;
-	_resetData(newData);
 }
 
 template<typename T, typename Alloc>

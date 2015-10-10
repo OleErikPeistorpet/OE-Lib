@@ -16,16 +16,16 @@ namespace oel
 *
 * Wraps a pointer with error checks. The class has significant overhead. */
 template<typename Pointer, typename Container>
-class cntigus_ctr_dbg_iterator
+class contiguous_ctnr_iterator
 {
 #define OEL_ARRITER_CHECK_DEREFABLE  \
 	using sizeT = make_unsigned_t<std::ptrdiff_t>;  \
-	OEL_MEM_BOUND_ASSERT( static_cast<sizeT>(_pElem - _myCont->data()) < static_cast<sizeT>(_myCont->size()) )
+	OEL_MEM_BOUND_ASSERT( static_cast<sizeT>(_pElem - _myCtnr->data()) < static_cast<sizeT>(_myCtnr->size()) )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 3
 	// test for iterator pair pointing to same container
 	#define OEL_ARRITER_CHECK_COMPAT(right)  \
-		OEL_MEM_BOUND_ASSERT(_myCont && right._myCont == _myCont)
+		OEL_MEM_BOUND_ASSERT(_myCtnr && right._myCtnr == _myCtnr)
 #else
 	#define OEL_ARRITER_CHECK_COMPAT(right)
 #endif
@@ -40,16 +40,16 @@ public:
 
 	using const_iterator = typename Container::const_iterator;
 
-	cntigus_ctr_dbg_iterator() noexcept  : _myCont(nullptr) {}
+	contiguous_ctnr_iterator() noexcept  : _myCtnr(nullptr) {}
 
 	/// Construct with position in data and pointer to container
-	cntigus_ctr_dbg_iterator(pointer pos, const Container * container)
-	 :	_pElem(pos), _myCont(container) {
+	contiguous_ctnr_iterator(pointer pos, const Container * container)
+	 :	_pElem(pos), _myCtnr(container) {
 	}
 
 	operator const_iterator() const
 	{
-		return const_iterator(_pElem, _myCont);
+		return const_iterator(_pElem, _myCtnr);
 	}
 
 	reference operator*() const
@@ -64,74 +64,74 @@ public:
 		return _pElem;
 	}
 
-	cntigus_ctr_dbg_iterator & operator++()
+	contiguous_ctnr_iterator & operator++()
 	{	// preincrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
-		OEL_MEM_BOUND_ASSERT(_pElem < _myCont->end()._pElem);
+		OEL_MEM_BOUND_ASSERT(_pElem < _myCtnr->end()._pElem);
 	#endif
 		++_pElem;
 		return *this;
 	}
 
-	cntigus_ctr_dbg_iterator operator++(int)
+	contiguous_ctnr_iterator operator++(int)
 	{	// postincrement
 		auto tmp = *this;
 		++(*this);
 		return tmp;
 	}
 
-	cntigus_ctr_dbg_iterator & operator--()
+	contiguous_ctnr_iterator & operator--()
 	{	// predecrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
-		OEL_MEM_BOUND_ASSERT(_myCont->data() < _pElem);
+		OEL_MEM_BOUND_ASSERT(_myCtnr->data() < _pElem);
 	#endif
 		--_pElem;
 		return *this;
 	}
 
-	cntigus_ctr_dbg_iterator operator--(int)
+	contiguous_ctnr_iterator operator--(int)
 	{	// postdecrement
 		auto tmp = *this;
 		--(*this);
 		return tmp;
 	}
 
-	cntigus_ctr_dbg_iterator & operator+=(difference_type offset)
+	contiguous_ctnr_iterator & operator+=(difference_type offset)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		// Check that adding offset keeps this in range [begin, end]
-		OEL_MEM_BOUND_ASSERT( offset >= _myCont->data() - _pElem
-						   && offset <= _myCont->end()._pElem - _pElem );
+		OEL_MEM_BOUND_ASSERT( offset >= _myCtnr->data() - _pElem
+						   && offset <= _myCtnr->end()._pElem - _pElem );
 	#endif
 		_pElem += offset;
 		return *this;
 	}
 
-	cntigus_ctr_dbg_iterator & operator-=(difference_type offset)
+	contiguous_ctnr_iterator & operator-=(difference_type offset)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		// Check that subtracting offset keeps this in range [begin, end]
-		OEL_MEM_BOUND_ASSERT( offset <= _pElem - _myCont->data()
-						   && offset >= _pElem - _myCont->end()._pElem );
+		OEL_MEM_BOUND_ASSERT( offset <= _pElem - _myCtnr->data()
+						   && offset >= _pElem - _myCtnr->end()._pElem );
 	#endif
 		_pElem -= offset;
 		return *this;
 	}
 
-	cntigus_ctr_dbg_iterator operator +(difference_type offset) const
+	contiguous_ctnr_iterator operator +(difference_type offset) const
 	{
 		auto tmp = *this;
 		return tmp += offset;
 	}
 
-	cntigus_ctr_dbg_iterator operator -(difference_type offset) const
+	contiguous_ctnr_iterator operator -(difference_type offset) const
 	{	// return this - integer
 		auto tmp = *this;
 		return tmp -= offset;
 	}
 
 	template<typename Ptr1>
-	difference_type operator -(const cntigus_ctr_dbg_iterator<Ptr1, Container> & right) const
+	difference_type operator -(const contiguous_ctnr_iterator<Ptr1, Container> & right) const
 	{	// return difference of iterators
 		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem - right._pElem;
@@ -143,62 +143,63 @@ public:
 	}
 
 	template<typename Ptr1>
-	bool operator==(const cntigus_ctr_dbg_iterator<Ptr1, Container> & right) const
+	bool operator==(const contiguous_ctnr_iterator<Ptr1, Container> & right) const
 	{
 		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem == right._pElem;
 	}
 
 	template<typename Ptr1>
-	bool operator!=(const cntigus_ctr_dbg_iterator<Ptr1, Container> & right) const
+	bool operator!=(const contiguous_ctnr_iterator<Ptr1, Container> & right) const
 	{
 		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem != right._pElem;
 	}
 
 	template<typename Ptr1>
-	bool operator <(const cntigus_ctr_dbg_iterator<Ptr1, Container> & right) const
+	bool operator <(const contiguous_ctnr_iterator<Ptr1, Container> & right) const
 	{
 		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem < right._pElem;
 	}
 
 	template<typename Ptr1>
-	bool operator >(const cntigus_ctr_dbg_iterator<Ptr1, Container> & right) const
+	bool operator >(const contiguous_ctnr_iterator<Ptr1, Container> & right) const
 	{
 		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem > right._pElem;
 	}
 
 	template<typename Ptr1>
-	bool operator<=(const cntigus_ctr_dbg_iterator<Ptr1, Container> & right) const
+	bool operator<=(const contiguous_ctnr_iterator<Ptr1, Container> & right) const
 	{
 		return !(*this > right);
 	}
 
 	template<typename Ptr1>
-	bool operator>=(const cntigus_ctr_dbg_iterator<Ptr1, Container> & right) const
+	bool operator>=(const contiguous_ctnr_iterator<Ptr1, Container> & right) const
 	{
 		return !(*this < right);
 	}
 
 	/// Return pointer (unchecked)
-	friend pointer to_pointer_contiguous(cntigus_ctr_dbg_iterator it) noexcept  { return it._pElem; }
+	friend typename std::remove_reference<reference>::type *
+		to_pointer_contiguous(contiguous_ctnr_iterator it) noexcept { return it._pElem; }
 
 protected:
 	pointer           _pElem;  // Wrapped pointer
-	const Container * _myCont;
+	const Container * _myCtnr;
 
 	template<typename, typename>
-	friend class cntigus_ctr_dbg_iterator;
+	friend class contiguous_ctnr_iterator;
 
 #undef OEL_ARRITER_CHECK_COMPAT
 #undef OEL_ARRITER_CHECK_DEREFABLE
 };
 
 template<typename P, typename C> inline
-cntigus_ctr_dbg_iterator<P, C> operator +(typename cntigus_ctr_dbg_iterator<P, C>::difference_type offset,
-										  cntigus_ctr_dbg_iterator<P, C> iter)
+contiguous_ctnr_iterator<P, C> operator +(typename contiguous_ctnr_iterator<P, C>::difference_type offset,
+										  contiguous_ctnr_iterator<P, C> iter)
 {
 	return iter += offset;
 }
@@ -206,8 +207,8 @@ cntigus_ctr_dbg_iterator<P, C> operator +(typename cntigus_ctr_dbg_iterator<P, C
 } // namespace oel
 
 #if _MSC_VER
-	/// Mark cntigus_ctr_dbg_iterator as checked
+	/// Mark contiguous_ctnr_iterator as checked
 	template<typename P, typename C>
-	struct std::_Is_checked_helper< oel::cntigus_ctr_dbg_iterator<P, C> >
+	struct std::_Is_checked_helper< oel::contiguous_ctnr_iterator<P, C> >
 	 :	public std::true_type {};
 #endif
