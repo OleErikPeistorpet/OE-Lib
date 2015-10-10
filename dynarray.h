@@ -195,12 +195,14 @@ public:
 	void       resize(size_type newSize, default_init_tag);
 	void       resize(size_type newSize);  ///< (Value-initializes added elements, same as std::vector::resize)
 
+	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
 	void       emplace_back(Args &&... elemInitArgs);
 
 	void       push_back(T && val)       { emplace_back(std::move(val)); }
 	void       push_back(const T & val)  { emplace_back(val); }
 
+	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
 	iterator   emplace(const_iterator position, Args &&... elemInitArgs);
 
