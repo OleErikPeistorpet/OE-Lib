@@ -62,6 +62,7 @@ protected:
 };
 
 #if _MSC_VER || __GNUC__ >= 5
+
 TEST_F(dynarrayTest, stdDequeWithOelAlloc)
 {
 	using MyAlloc = oel::allocator<std::string>;
@@ -69,8 +70,29 @@ TEST_F(dynarrayTest, stdDequeWithOelAlloc)
 
 	std::deque<std::string, MyAlloc> v{"Test"};
 	v.emplace_front();
-	EXPECT_EQ("Test", v.back());
+	EXPECT_EQ("Test", v.at(1));
 	EXPECT_TRUE(v.front().empty());
+}
+
+TEST_F(dynarrayTest, oelDynarrWithStdAlloc)
+{
+	MoveOnly::ClearCount();
+	{
+		dynarray< MoveOnly, std::allocator<MoveOnly> > v;
+
+		v.emplace_back(-1.0);
+		EXPECT_THROW( v.emplace_back(ThrowOnConstruct), TestException );
+		EXPECT_EQ(1, MoveOnly::nConstruct);
+		EXPECT_EQ(0, MoveOnly::nDestruct);
+
+		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
+		v.assign(oel::move_range(arr));
+		EXPECT_THROW( v.emplace_back(ThrowOnConstruct), TestException );
+		EXPECT_EQ(2, ssize(v));
+		EXPECT_TRUE(1.0 == *v[0]);
+		EXPECT_TRUE(2.0 == *v[1]);
+	}
+	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 }
 #endif
 
