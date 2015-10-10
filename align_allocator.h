@@ -11,6 +11,7 @@
 #ifndef OEL_NO_BOOST
 	#include <boost/align/aligned_alloc.hpp>
 #endif
+#include <cstdint>  // for uintptr_t
 #include <string.h> // for memset
 
 
@@ -23,6 +24,10 @@ struct aligned_storage_t;
 
 
 
+/// Evaluates to a bool telling whether ptr address is a multiple of the alignment of type
+#define OEL_IS_ALIGNED_AS(ptr, type)  ((reinterpret_cast<std::uintptr_t>(ptr) & (OEL_ALIGNOF(type) - 1)) == 0)
+
+
 /// An automatic alignment allocator. Does not compile if the alignment of T is not supported.
 template<typename T>
 struct allocator
@@ -33,16 +38,20 @@ struct allocator
 	T * allocate(size_t nObjects);
 	void deallocate(T * ptr, size_t);
 
+	/// U constructible from Args, direct-initialization
 	template<typename U, typename... Args>
 	enable_if_t< std::is_constructible<U, Args...>::value >
 		construct(U * pos, Args &&... args)
 	{
+		OEL_MEM_BOUND_ASSERT(OEL_IS_ALIGNED_AS(pos, U));
 		::new((void *)pos) U(std::forward<Args>(args)...);
 	}
+	/// U not constructible from Args, list-initialization
 	template<typename U, typename... Args>
 	enable_if_t< !std::is_constructible<U, Args...>::value >
 		construct(U * pos, Args &&... args)
 	{
+		OEL_MEM_BOUND_ASSERT(OEL_IS_ALIGNED_AS(pos, U));
 		::new((void *)pos) U{std::forward<Args>(args)...};
 	}
 

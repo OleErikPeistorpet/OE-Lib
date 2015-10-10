@@ -9,18 +9,6 @@
 #include "../basic_util.h"
 
 
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	#define OEL_MEM_BOUND_ASSERT  ASSERT_ALWAYS_NOEXCEPT
-#else
-	#define OEL_MEM_BOUND_ASSERT(expr) ((void) 0)
-#endif
-#if OEL_MEM_BOUND_DEBUG_LVL
-	#define OEL_BOUND_ASSERT_CHEAP  ASSERT_ALWAYS_NOEXCEPT
-#else
-	#define OEL_BOUND_ASSERT_CHEAP(expr) ((void) 0)
-#endif
-
-
 namespace oel
 {
 

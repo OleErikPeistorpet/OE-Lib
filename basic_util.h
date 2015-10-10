@@ -156,8 +156,21 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// The rest of the file is implementation details
+// The rest of the file is not for users (implementation)
 
+
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	#define OEL_MEM_BOUND_ASSERT  ASSERT_ALWAYS_NOEXCEPT
+#else
+	#define OEL_MEM_BOUND_ASSERT(expr) ((void) 0)
+#endif
+#if OEL_MEM_BOUND_DEBUG_LVL
+	#define OEL_BOUND_ASSERT_CHEAP  ASSERT_ALWAYS_NOEXCEPT
+#else
+	#define OEL_BOUND_ASSERT_CHEAP(expr) ((void) 0)
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
 
 #if _MSC_VER
 	template<typename T, size_t S> inline
