@@ -148,6 +148,12 @@ struct range_ends
 
 
 
+/// Exists in std with C++14
+template<bool Condition>
+using enable_if_t = typename std::enable_if<Condition>::type;
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is implementation details

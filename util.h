@@ -85,11 +85,6 @@ range_ends<InputIterator, OutputIterator>  copy_nonoverlap(InputIterator first, 
 
 
 
-/// Exists in std with C++14
-template<bool Condition>
-using enable_if_t = typename std::enable_if<Condition>::type;
-
-
 /// Check if index is valid (can be used with operator[]) for array or other range.
 template< typename UnsignedInt, typename Range,
 		  typename = enable_if_t<std::is_unsigned<UnsignedInt>::value> > inline
@@ -105,13 +100,19 @@ bool index_valid(const Range & r, std::int64_t index)
 }
 
 
+/**
+* @brief Returns new T(std::forward<Args>(args)...) if T is constructible from Args, else new T{std::forward<Args>(args)...}
+*
+* Helper as suggested in section "Is that all?" http://open-std.org/JTC1/SC22/WG21/docs/papers/2015/n4462.html  */
+template<typename T, typename... Args>
+T * forward_to_new(Args &&... args);
 
-/// Equivalent to std::make_unique.
+
+/// Equivalent to std::make_unique. Performs direct-list-initialization if there is no matching constructor
 template< typename T, typename... Args, typename = enable_if_t<!std::is_array<T>::value> > inline
 std::unique_ptr<T> make_unique(Args &&... args)
 {
-	T * p = new T(std::forward<Args>(args)...); // direct-initialize, or value-initialize if no args
-	return std::unique_ptr<T>(p);
+	return std::unique_ptr<T>( oel::forward_to_new<T>(std::forward<Args>(args)...) );
 }
 /// Equivalent to std::make_unique (array version).
 template< typename T, typename = enable_if_t<std::is_array<T>::value> >
@@ -225,6 +226,31 @@ inline void oel::erase_successive_dup(Container & ctr)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+namespace oel
+{
+namespace _detail
+{
+	template<typename T, typename... Args>
+	T * New(std::true_type, Args &&... args)
+	{
+		return new T(std::forward<Args>(args)...);
+	}
+
+	template<typename T, typename... Args>
+	T * New(std::false_type, Args &&... args)
+	{
+		return new T{std::forward<Args>(args)...};
+	}
+}
+}
+
+template<typename T, typename... Args>
+T * oel::forward_to_new(Args &&... args)
+{
+	return _detail::New<T>(std::is_constructible<T, Args...>(), std::forward<Args>(args)...);
+}
+
 
 #define OEL_MAKE_UNIQUE(newExpr)  \
 	static_assert(std::extent<T>::value == 0, "make_unique forbids T[size]. Please use T[]");  \

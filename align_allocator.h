@@ -31,8 +31,20 @@ struct allocator
 	using propagate_on_container_move_assignment = std::true_type;
 
 	T * allocate(size_t nObjects);
-
 	void deallocate(T * ptr, size_t);
+
+	template<typename U, typename... Args>
+	enable_if_t< std::is_constructible<U, Args...>::value >
+		construct(U * pos, Args &&... args)
+	{
+		::new((void *)pos) U(std::forward<Args>(args)...);
+	}
+	template<typename U, typename... Args>
+	enable_if_t< !std::is_constructible<U, Args...>::value >
+		construct(U * pos, Args &&... args)
+	{
+		::new((void *)pos) U{std::forward<Args>(args)...};
+	}
 
 	allocator() = default;
 	template<typename U>
