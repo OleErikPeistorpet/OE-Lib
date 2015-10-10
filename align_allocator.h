@@ -177,13 +177,13 @@ namespace _detail
 #endif
 
 
-	template<typename T> inline
-	void Destroy(T * first, T * last) noexcept
+	template<typename Alloc, typename T> inline
+	void Destroy(T * first, T * last, Alloc & alloc) noexcept
 	{	// first > last is OK, does nothing
 		OEL_CONST_COND if (!is_trivially_destructible<T>::value) // for speed with optimizations off (debug build)
 		{
 			for (; first < last; ++first)
-				first-> ~T();
+				std::allocator_traits<Alloc>::destroy(alloc, first);
 		}
 	}
 
@@ -202,7 +202,7 @@ namespace _detail
 		}
 		catch (...)
 		{
-			_detail::Destroy(destBegin, dest);
+			_detail::Destroy(destBegin, dest, alloc);
 			throw;
 		}
 		return dest;
@@ -222,7 +222,7 @@ namespace _detail
 		}
 		catch (...)
 		{
-			_detail::Destroy(destBegin, dest);
+			_detail::Destroy(destBegin, dest, alloc);
 			throw;
 		}
 		return {first, dest};
@@ -252,7 +252,7 @@ namespace _detail
 		}
 		catch (...)
 		{
-			_detail::Destroy(init, first);
+			_detail::Destroy(init, first, alloc);
 			throw;
 		}
 	}
