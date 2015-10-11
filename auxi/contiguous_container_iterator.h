@@ -19,13 +19,13 @@ template<typename Pointer, typename Container>
 class contiguous_ctnr_iterator
 {
 #define OEL_ARRITER_CHECK_DEREFABLE  \
-	using sizeT = make_unsigned_t<std::ptrdiff_t>;  \
-	OEL_MEM_BOUND_ASSERT( static_cast<sizeT>(_pElem - _myCtnr->data()) < static_cast<sizeT>(_myCtnr->size()) )
+	using SizeT = make_unsigned_t<std::ptrdiff_t>;  \
+	OEL_MEM_BOUND_ASSERT( static_cast<SizeT>(_pElem - _container->data()) < static_cast<SizeT>(_container->size()) )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 3
 	// test for iterator pair pointing to same container
 	#define OEL_ARRITER_CHECK_COMPAT(right)  \
-		OEL_MEM_BOUND_ASSERT(_myCtnr && right._myCtnr == _myCtnr)
+		OEL_MEM_BOUND_ASSERT(_container && right._container == _container)
 #else
 	#define OEL_ARRITER_CHECK_COMPAT(right)
 #endif
@@ -40,16 +40,16 @@ public:
 
 	using const_iterator = typename Container::const_iterator;
 
-	contiguous_ctnr_iterator() noexcept  : _myCtnr(nullptr) {}
+	contiguous_ctnr_iterator() noexcept  : _container(nullptr) {}
 
 	/// Construct with position in data and pointer to container
 	contiguous_ctnr_iterator(pointer pos, const Container * container)
-	 :	_pElem(pos), _myCtnr(container) {
+	 :	_pElem(pos), _container(container) {
 	}
 
 	operator const_iterator() const
 	{
-		return const_iterator(_pElem, _myCtnr);
+		return const_iterator(_pElem, _container);
 	}
 
 	reference operator*() const
@@ -67,7 +67,7 @@ public:
 	contiguous_ctnr_iterator & operator++()
 	{	// preincrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
-		OEL_MEM_BOUND_ASSERT(_pElem < _myCtnr->end()._pElem);
+		OEL_MEM_BOUND_ASSERT(_pElem < _container->end()._pElem);
 	#endif
 		++_pElem;
 		return *this;
@@ -83,7 +83,7 @@ public:
 	contiguous_ctnr_iterator & operator--()
 	{	// predecrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
-		OEL_MEM_BOUND_ASSERT(_myCtnr->data() < _pElem);
+		OEL_MEM_BOUND_ASSERT(_container->data() < _pElem);
 	#endif
 		--_pElem;
 		return *this;
@@ -100,8 +100,8 @@ public:
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		// Check that adding offset keeps this in range [begin, end]
-		OEL_MEM_BOUND_ASSERT( offset >= _myCtnr->data() - _pElem
-						   && offset <= _myCtnr->end()._pElem - _pElem );
+		OEL_MEM_BOUND_ASSERT( offset >= _container->data() - _pElem
+						   && offset <= _container->end()._pElem - _pElem );
 	#endif
 		_pElem += offset;
 		return *this;
@@ -111,8 +111,8 @@ public:
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 3
 		// Check that subtracting offset keeps this in range [begin, end]
-		OEL_MEM_BOUND_ASSERT( offset <= _pElem - _myCtnr->data()
-						   && offset >= _pElem - _myCtnr->end()._pElem );
+		OEL_MEM_BOUND_ASSERT( offset <= _pElem - _container->data()
+						   && offset >= _pElem - _container->end()._pElem );
 	#endif
 		_pElem -= offset;
 		return *this;
@@ -183,12 +183,14 @@ public:
 	}
 
 	/// Return pointer (unchecked)
-	friend typename std::remove_reference<reference>::type *
-		to_pointer_contiguous(contiguous_ctnr_iterator it) noexcept { return it._pElem; }
+	friend typename std::remove_reference<reference>::type * to_pointer_contiguous(contiguous_ctnr_iterator it) noexcept
+	{
+		return std::addressof(*it._pElem);
+	}
 
 protected:
 	pointer           _pElem;  // Wrapped pointer
-	const Container * _myCtnr;
+	const Container * _container;
 
 	template<typename, typename>
 	friend class contiguous_ctnr_iterator;

@@ -115,6 +115,10 @@ TEST_F(dynarrayTest, construct)
 	dynarray<Internal> test{Internal(5), Internal()};
 	EXPECT_EQ(2U, test.size());
 	EXPECT_EQ(5U, test[0].size());
+
+	dynarray<bool> db(50, true);
+	for (const auto & b : db)
+		EXPECT_EQ(true, b);
 }
 
 TEST_F(dynarrayTest, pushBack)

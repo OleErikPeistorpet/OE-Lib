@@ -114,6 +114,7 @@ public:
 	using reverse_iterator       = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
+
 	dynarray() noexcept                     : _m() {}
 	explicit dynarray(const Alloc & alloc)  : _m(alloc) {}
 
@@ -127,17 +128,20 @@ public:
 	explicit dynarray(size_type size, const Alloc & alloc = Alloc{});  ///< (Value-initializes elements, same as std::vector)
 	dynarray(size_type size, const T & fillVal, const Alloc & alloc = Alloc{});
 
-	dynarray(std::initializer_list<T> init, const Alloc & alloc = Alloc{});
+	dynarray(std::initializer_list<T> init, const Alloc & alloc = Alloc{})  : dynarray(from_range, init, alloc) {}
+
+	template<typename InputRange>
+	dynarray(from_range_tag, const InputRange & source, const Alloc & alloc = Alloc{});
 
 	dynarray(dynarray && other) noexcept;
 	dynarray(dynarray && other, const Alloc & alloc) noexcept;
 	dynarray(const dynarray & other);
-	dynarray(const dynarray & other, const Alloc & alloc);
+	dynarray(const dynarray & other, const Alloc & alloc)  : dynarray(from_range, other, alloc) {}
 
 	~dynarray() noexcept;
 
-	dynarray & operator =(dynarray && other) noexcept   { swap(other);  return *this; }
-	dynarray & operator =(const dynarray & other)       { assign(other);  return *this; }
+	dynarray & operator =(dynarray && other) noexcept;
+	dynarray & operator =(const dynarray & other);
 
 	dynarray & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
 
@@ -271,7 +275,7 @@ public:
 
 
 private:
-	using _allocTraits = std::allocator_traits<Alloc>;
+	using _allocTrait = std::allocator_traits<Alloc>;
 	using _uSizeT = make_unsigned_t<std::ptrdiff_t>;
 
 	struct _staticAssertRelocate
@@ -341,17 +345,17 @@ private:
 	{
 		_dataOwner() : _dynarrValues(), Alloc() {
 		}
-		_dataOwner(const Alloc & a) :
-			_dynarrValues(), Alloc(a) {
+		_dataOwner(const Alloc & a)
+		 :	_dynarrValues(), Alloc(a) {
 		}
 		_dataOwner(const Alloc & a, size_type allocSize) : Alloc(a)
 		{
 			data = allocate(allocSize);
+			reserveEnd = data + allocSize;
 		}
-		_dataOwner(_dataOwner && other) : _dynarrValues(other), Alloc(other)
+		_dataOwner(_dataOwner && other)
+		 :	_dynarrValues(other), Alloc(std::move(other))
 		{
-			static_assert(_allocTraits::propagate_on_container_move_assignment::value,
-						  "Alloc required to have propagate_on_container_move_assignment as true_type");
 			other.reserveEnd = other.end = other.data = nullptr;
 		}
 		_dataOwner(const _dataOwner &) = delete;
@@ -386,20 +390,6 @@ private:
 	#define OEL_FORCEINLINE inline
 #endif
 
-	void _uninitCopyData(const_pointer const first, const_pointer const last, size_type const count)
-	{
-		OEL_CONST_COND if (is_trivially_copyable<T>::value)
-		{	// Behaviour undefined by standard if first is null
-			::memcpy(data(), first, sizeof(T) * count);
-			_m.reserveEnd = _m.end = _m.data + count;
-		}
-		else
-		{
-			_m.end = _detail::UninitCopy(first, last, data(), _m);
-			_m.reserveEnd = _m.end;
-		}
-	}
-
 	size_type _unusedCapacity() const
 	{
 		return _m.reserveEnd - _m.end;
@@ -419,6 +409,37 @@ private:
 	{
 		size_type c = capacity();
 		return (std::max)(c + c / 2, newSize);
+	}
+
+	template<typename CntigusIter>
+	pointer _uninitCopyData(std::true_type, CntigusIter const first, CntigusIter, size_type const count)
+	{
+		// Behaviour undefined by standard if first is null
+		::memcpy(data(), to_pointer_contiguous(first), sizeof(T) * count);
+		return _m.data + count;
+	}
+
+	template<typename InputIter>
+	pointer _uninitCopyData(std::false_type, InputIter first, InputIter last, size_type)
+	{
+		return _detail::UninitCopy(first, last, data(), _m);
+	}
+
+	template<typename ForwardTravRange>
+	void _init(const ForwardTravRange & src, forward_traversal_tag)
+	{
+		size_type const nElems = oel::count(src);
+		_m.data = _m.allocate(nElems);
+		_m.end = _uninitCopyData(is_trivially_copyable<T>(),
+								 ::adl_begin(src), ::adl_end(src), nElems);
+		_m.reserveEnd = _m.end;
+	}
+
+	template<typename InputRange>
+	void _init(const InputRange & src, single_pass_traversal_tag)
+	{
+		for (auto && v : src)
+			emplace_back( std::forward<decltype(v)>(v) );
 	}
 
 	template<typename CntigusIter>
@@ -492,10 +513,10 @@ private:
 		}
 		catch (...)
 		{
-			_allocTraits::destroy(_m, pushedElem);
+			(*pushedElem).~T();
 			throw;
 		}
-		_detail::Destroy(_m.data, _m.end, _m);
+		_detail::Destroy(_m.data, _m.end);
 	}
 
 	void _relocateData(std::true_type, pointer newData, pointer)
@@ -509,7 +530,7 @@ private:
 		_scopedPtr newData{*this, _calcCapAddOne()};
 
 		pointer const pos = newData.ptr + size();
-		_allocTraits::construct(_m, pos, std::forward<Args>(args)...);
+		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
 
 		_relocateData(is_trivially_relocatable<T>(), newData.ptr, pos);
 
@@ -620,13 +641,13 @@ private:
 	}
 
 	template<typename... Args>
-	iterator _emplaceRealloc(pointer const pos, size_type const nAfterPos, Args &&... args)
+	iterator _emplaceRealloc(T *const pos, size_type const nAfterPos, Args &&... args)
 	{
 		_scopedPtr newData{*this, _calcCapAddOne()};
 
 		size_type const nBeforePos = pos - data();
 		pointer const newPos = newData.ptr + nBeforePos;
-		_allocTraits::construct(_m, newPos, std::forward<Args>(args)...); // add new
+		_allocTrait::construct(_m, newPos, std::forward<Args>(args)...); // add new
 		// Exception free from here
 		pointer const next = newPos + 1;
 		::memcpy(newData.ptr, data(), sizeof(T) * nBeforePos); // relocate prefix
@@ -649,7 +670,7 @@ private:
 			if (_m.end < newEnd) // then construct new
 				initNewElems(_m.end, newEnd, _m);
 			else // downsizing
-				_detail::Destroy(newEnd, _m.end, _m);
+				_detail::Destroy(newEnd, _m.end);
 
 			_m.end = newEnd;
 		}
@@ -673,7 +694,7 @@ template<typename T, typename Alloc> template<typename... Args>
 void dynarray<T, Alloc>::emplace_back(Args &&... args)
 {
 	if (_m.end < _m.reserveEnd)
-		_allocTraits::construct(_m, _m.end, std::forward<Args>(args)...);
+		_allocTrait::construct(_m, _m.end, std::forward<Args>(args)...);
 	else
 		_emplaceBackRealloc(std::forward<Args>(args)...);
 
@@ -685,7 +706,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 {
 	_staticAssertRelocate();
 
-	auto const posPtr = const_cast<pointer>(to_pointer_contiguous(pos));
+	auto const posPtr = const_cast<T *>(to_pointer_contiguous(pos));
 	OEL_BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr <= _m.end);
 
 	size_type const nAfterPos = _m.end - posPtr;
@@ -695,7 +716,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		using RawStore = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
 		RawStore tmp;
-		_allocTraits::construct(_m, reinterpret_cast<T *>(&tmp), std::forward<Args>(args)...);
+		_allocTrait::construct(_m, reinterpret_cast<T *>(&tmp), std::forward<Args>(args)...);
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
 		::memmove(posPtr + 1, posPtr, sizeof(T) * nAfterPos);
 		++_m.end;
@@ -710,87 +731,131 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(reserve_tag, size_type capacity, const Alloc & alloc) :
-	_m(alloc, capacity)
+inline dynarray<T, Alloc>::dynarray(reserve_tag, size_type capacity, const Alloc & alloc)
+ :	_m(alloc, capacity)
 {
 	_m.end = _m.data;
-	_m.reserveEnd = _m.data + capacity;
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, default_init_tag, const Alloc & alloc) :
-	_m(alloc, size)
+dynarray<T, Alloc>::dynarray(size_type size, default_init_tag, const Alloc & alloc)
+ :	_m(alloc, size)
 {
-	_m.reserveEnd = _m.end = _m.data + size;
+	_m.end = _m.reserveEnd;
 	_detail::UninitFillDefault(_m.data, _m.end, _m);
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, const Alloc & alloc) :
-	_m(alloc, size)
+dynarray<T, Alloc>::dynarray(size_type size, const Alloc & alloc)
+ :	_m(alloc, size)
 {
-	_m.reserveEnd = _m.end = _m.data + size;
+	_m.end = _m.reserveEnd;
 	_detail::UninitFill(_m.data, _m.end, _m);
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, const T & val, const Alloc & alloc) :
-	_m(alloc, size)
+dynarray<T, Alloc>::dynarray(size_type size, const T & val, const Alloc & alloc)
+ :	_m(alloc, size)
 {
-	_m.reserveEnd = _m.end = _m.data + size;
+	_m.end = _m.reserveEnd;
 	_detail::UninitFill(_m.data, _m.end, _m, val);
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(dynarray && other) noexcept :
-	_m(Alloc{})
-{
-	//ASSERT_ALWAYS(false);
-	// What to do with allocator? noexcept!
-	_m.data = other._m.data;
-	_m.end = other._m.end;
-	_m.reserveEnd = other._m.reserveEnd;
-	other._m.reserveEnd = other._m.end = other._m.data = nullptr;
+inline dynarray<T, Alloc>::dynarray(dynarray && other) noexcept
+ :	_m(std::move(other._m)) {
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & alloc) noexcept :
-	_m(alloc, other.size())
+inline dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & alloc) noexcept
+ :	_m(alloc)
 {
-	static_assert(std::is_nothrow_copy_constructible<Alloc>::value, "Alloc must be noexcept copyable");
-	_staticAssertRelocate();
+	if (std::is_empty<Alloc>::value || alloc == other._m)
+	{
+		static_cast<dynarrValues &>(_m) = other._m;
+		other._m.reserveEnd = other._m.end = other._m.data = nullptr;
+	}
+	else
+	{
+		OEL_MEM_BOUND_ASSERT(is_trivially_relocatable<T>::value || std::is_nothrow_move_constructible<T>::value);
 
-	// What if this allocator can deallocate other's allocations?
+		if (is_trivially_relocatable<T>::value)
+		{
+			::memcpy(_m.data, other.data(), sizeof(T) * other.size());
+			_m.reserveEnd = _m.end = _m.data + other.size();
+			// Elements in other conceptually destroyed
+			other._m.end = other._m.data;
+		}
+		else
+		{
+			_m.end = _detail::UninitCopy(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()),
+										 data(), _m);
+			_m.reserveEnd = _m.end;
+		}
+	}
+}
 
-	::memcpy(_m.data, other.data(), sizeof(T) * other.size());
-	_m.reserveEnd = _m.end = _m.data + other.size();
-
-	other._m.end = other._m.data;
+template<typename T, typename Alloc> template<typename InputRange>
+dynarray<T, Alloc>::dynarray(from_range_tag, const InputRange & src, const Alloc & alloc)
+ :	_m(alloc)
+{
+	using InIter = decltype(::adl_begin(src));
+	_init(src, iterator_traversal_t<InIter>());
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(const dynarray & other) :
-	dynarray( other, _allocTraits::select_on_container_copy_construction(other._m) ) {
-}
-
-template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(const dynarray & other, const Alloc & alloc) :
-	_m(alloc, other.size())
-{
-	_uninitCopyData(other.data(), other._m.end, other.size());
-}
-
-template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(std::initializer_list<T> init, const Alloc & alloc) :
-	_m(alloc, init.size())
-{
-	_uninitCopyData(init.begin(), init.end(), init.size());
+inline dynarray<T, Alloc>::dynarray(const dynarray & other)
+ :	dynarray(from_range, other, _allocTrait::select_on_container_copy_construction(other._m)) {
 }
 
 template<typename T, typename Alloc>
 dynarray<T, Alloc>::~dynarray() noexcept
 {
-	_detail::Destroy(_m.data, _m.end, _m);
+	_detail::Destroy(_m.data, _m.end);
+}
+
+template<typename T, typename Alloc>
+dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
+{
+	OEL_CONST_COND if (_allocTrait::propagate_on_container_move_assignment::value || static_cast<Alloc &>(_m) == other._m)
+	{
+		using std::swap;
+		swap(_m.data, other._m.data);
+		swap(_m.end, other._m.end);
+		swap(_m.reserveEnd, other._m.reserveEnd);
+		OEL_CONST_COND if (_allocTrait::propagate_on_container_move_assignment::value)
+			std::swap(static_cast<Alloc &>(_m), static_cast<Alloc &>(other._m));
+	}
+	else
+	{
+		OEL_MEM_BOUND_ASSERT(is_trivially_relocatable<T>::value || std::is_nothrow_move_assignable<T>::value);
+
+		OEL_CONST_COND if (is_trivially_relocatable<T>::value)
+		{
+			_assignImpl(std::true_type{}, other.begin(), other.end(), other.size());
+			other._m.end = other._m.data;
+		}
+		else
+		{	assign(std::make_move_iterator(other.begin()), other.size());
+		}
+	}
+	return *this;
+}
+
+template<typename T, typename Alloc>
+dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(const dynarray & other)
+{
+	OEL_CONST_COND if (_allocTrait::propagate_on_container_copy_assignment::value)
+	{
+		clear();
+		if (_m.data)
+			_m.deallocate(_m.data, capacity());
+
+		static_cast<Alloc &>(_m) = other._m;
+	}
+
+	assign(other);
+	return *this;
 }
 
 template<typename T, typename Alloc>
@@ -800,7 +865,7 @@ void dynarray<T, Alloc>::swap(dynarray & other) noexcept
 	swap(_m.data, other._m.data);
 	swap(_m.end, other._m.end);
 	swap(_m.reserveEnd, other._m.reserveEnd);
-	OEL_CONST_COND if (_allocTraits::propagate_on_container_swap::value)
+	OEL_CONST_COND if (_allocTrait::propagate_on_container_swap::value)
 		swap(static_cast<Alloc &>(_m), static_cast<Alloc &>(other._m));
 }
 
@@ -808,7 +873,7 @@ template<typename T, typename Alloc> template<typename ForwardTravIterator>
 ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
 {
 #ifndef OEL_NO_BOOST
-	static_assert(boost::is_convertible< iterator_traversal_t<ForwardTravIterator>, forward_traversal_tag >::value,
+	static_assert(std::is_convertible< iterator_traversal_t<ForwardTravIterator>, forward_traversal_tag >::value,
 				  "Type of first must meet requirements of Forward Traversal Iterator");
 #endif
 	ForwardTravIterator const last = std::next(first, count);
@@ -898,13 +963,13 @@ void dynarray<T, Alloc>::shrink_to_fit()
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::resize(size_type newSize, default_init_tag)
 {
-	_resizeImpl(newSize, _detail::UninitFillDefault<Alloc, T>);
+	_resizeImpl(newSize, _detail::UninitFillDefault<Alloc, pointer>);
 }
 
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::resize(size_type newSize)
 {
-	_resizeImpl(newSize, _detail::UninitFill<Alloc, T>);
+	_resizeImpl(newSize, _detail::UninitFill<Alloc, pointer>);
 }
 
 template<typename T, typename Alloc>
@@ -912,7 +977,7 @@ inline void dynarray<T, Alloc>::pop_back() noexcept
 {
 	OEL_MEM_BOUND_ASSERT(data() < _m.end);
 	--_m.end;
-	_allocTraits::destroy(_m, _m.end);
+	(*_m.end).~T();
 }
 
 template<typename T, typename Alloc>
@@ -920,10 +985,10 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) n
 {
 	_staticAssertRelocate();
 
-	pointer const posPtr = to_pointer_contiguous(pos);
+	T *const posPtr = to_pointer_contiguous(pos);
 	OEL_BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr < _m.end);
 
-	_allocTraits::destroy(_m, posPtr);
+	posPtr-> ~T();
 	pointer const next = posPtr + 1;
 	::memmove(posPtr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
 	--_m.end;
@@ -936,13 +1001,13 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 {
 	_staticAssertRelocate();
 
-	pointer const pFirst = to_pointer_contiguous(first);
-	pointer const pLast = to_pointer_contiguous(last);
+	T *const pFirst = to_pointer_contiguous(first);
+	T *const pLast = to_pointer_contiguous(last);
 	OEL_BOUND_ASSERT_CHEAP(data() <= pFirst);
 	OEL_MEM_BOUND_ASSERT(pFirst <= pLast && pLast <= _m.end);
 	if (pFirst < pLast)
 	{
-		_detail::Destroy(pFirst, pLast, _m);
+		_detail::Destroy(pFirst, pLast);
 		size_type const nAfterLast = _m.end - pLast;
 		// Relocate [last, end) to [first, first + nAfterLast)
 		::memmove(pFirst, pLast, sizeof(T) * nAfterLast);
@@ -954,9 +1019,9 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_back(iterator first) noexcept
 {
-	pointer const newEnd = to_pointer_contiguous(first);
+	T *const newEnd = to_pointer_contiguous(first);
 	OEL_BOUND_ASSERT_CHEAP(data() <= newEnd && newEnd <= _m.end);
-	_detail::Destroy(newEnd, _m.end, _m);
+	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
 }
 

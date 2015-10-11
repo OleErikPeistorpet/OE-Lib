@@ -136,6 +136,12 @@ struct default_init_tag
 }
 const default_init;
 
+/// Tag to select range constructor. The const instance from_range is provided for convenience
+struct from_range_tag
+{	explicit from_range_tag() {}
+}
+const from_range;
+
 
 
 /// For copy functions that return the end of both source and destination ranges
