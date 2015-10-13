@@ -53,14 +53,9 @@ is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 template<typename T, typename A> inline
 void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
 
-/**
-* @brief Erase the element at position from dynarray without maintaining order of elements.
-*
-* Constant complexity (compared to linear in the distance between position and last for normal erase).
-* @return Iterator pointing to the location that followed the element erased,
-*	which is the end if position was at the last element. */
-template<typename T, typename A>
-typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator position);
+template<typename T, typename A> inline
+typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator position)
+	{ return ctr.erase_unordered(position); }
 
 /// Non-member erase_back, overloads generic erase_back(Container &, Container::iterator)
 template<typename T, typename A> inline
@@ -163,7 +158,7 @@ public:
 	ForwardTravIterator assign(ForwardTravIterator first, size_type count);
 	/**
 	* @brief Replace the contents with range
-	* @param source an array, STL container, iterator_range or such. (Look up Boost.Range 2.0 concepts)
+	* @param source an array, STL container, iterator_range or such. (Look up Boost.Range 2.0 concepts.)
 	*	Shall not be a subset of same dynarray, except if begin(source) points to first element of dynarray.
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
@@ -218,6 +213,14 @@ public:
 
 	/// After the call, any previous iterator to the back element will be equal to end()
 	void       pop_back() noexcept;
+
+	/**
+	* @brief Erase the element at position from dynarray without maintaining order of elements.
+	*
+	* Constant complexity (compared to linear in the distance between position and last for normal erase).
+	* @return Iterator pointing to the location that followed the element erased,
+	*	which is the end if position was at the last element. */
+	iterator   erase_unordered(iterator position);
 
 	iterator   erase(iterator position) noexcept;
 
@@ -445,6 +448,20 @@ private:
 			emplace_back( std::forward<decltype(v)>(v) );
 	}
 
+	void _eraseUnordered(std::true_type, iterator pos)
+	{	// trivial relocate
+		(*pos).~T();
+		--_m.end;
+		using RawStore = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
+		*reinterpret_cast<RawStore *>(to_pointer_contiguous(pos)) = reinterpret_cast<RawStore &>(*_m.end);
+	}
+
+	void _eraseUnordered(std::false_type, iterator pos)
+	{
+		*pos = std::move(*(_m.end - 1));
+		pop_back();
+	}
+
 	template<typename CntigusIter>
 	void _assignImpl(std::true_type, CntigusIter const first, CntigusIter, size_type const count)
 	{	// fast assign
@@ -509,20 +526,20 @@ private:
 			emplace_back( std::forward<decltype(v)>(v) );
 	}
 
-	void _relocateData(std::false_type, pointer const newData, pointer pushedElem)
+	void _relocateData(std::false_type, T *const newData, T & pushedElem)
 	{	// relocate elements by move constructor and destructor
 		try
 		{	_detail::UninitCopy(std::make_move_iterator(_m.data), std::make_move_iterator(_m.end), newData, _m);
 		}
 		catch (...)
 		{
-			(*pushedElem).~T();
+			pushedElem.~T();
 			throw;
 		}
 		_detail::Destroy(_m.data, _m.end);
 	}
 
-	void _relocateData(std::true_type, pointer newData, pointer)
+	void _relocateData(std::true_type, T * newData, T &)
 	{
 		::memcpy(newData, data(), sizeof(T) * size());
 	}
@@ -535,7 +552,7 @@ private:
 		pointer const pos = newData.ptr + size();
 		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
 
-		_relocateData(is_trivially_relocatable<T>(), newData.ptr, pos);
+		_relocateData(is_trivially_relocatable<T>(), newData.ptr, *pos);
 
 		_swapData(newData);
 		_m.end = pos;
@@ -582,7 +599,7 @@ private:
 		}
 	#endif
 		_appendImpl( count,
-				[first](pointer dest, size_type nElems, Alloc &)
+				[first](T * dest, size_type nElems, Alloc &)
 				{	// Behaviour undefined by standard if first points to null
 					::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * nElems);
 				} );
@@ -598,7 +615,7 @@ private:
 	InputIter _appendN(std::false_type, InputIter first, size_type const count)
 	{	// slower copy
 		_appendImpl( count,
-				[&first](pointer dest, size_type nElems, Alloc & alloc)
+				[&first](T * dest, size_type nElems, Alloc & alloc)
 				{
 					first = _detail::UninitCopyN(first, nElems, dest, alloc).src_end;
 				} );
@@ -620,7 +637,7 @@ private:
 		auto first = ::adl_begin(src);
 		auto last = ::adl_end(src);
 		return _appendImpl( oel::count(src),
-				[=](pointer dest, size_type, Alloc & alloc)
+				[=](T * dest, size_type, Alloc & alloc)
 				{
 					_detail::UninitCopy(first, last, dest, alloc);
 				} );
@@ -649,10 +666,10 @@ private:
 		_scopedPtr newData{*this, _calcCapAddOne()};
 
 		size_type const nBeforePos = pos - data();
-		pointer const newPos = newData.ptr + nBeforePos;
+		T *const newPos = newData.ptr + nBeforePos;
 		_allocTrait::construct(_m, newPos, std::forward<Args>(args)...); // add new
 		// Exception free from here
-		pointer const next = newPos + 1;
+		T *const next = newPos + 1;
 		::memcpy(newData.ptr, data(), sizeof(T) * nBeforePos); // relocate prefix
 		::memcpy(next, pos, sizeof(T) * nAfterPos);   // relocate suffix
 
@@ -792,7 +809,7 @@ inline dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & alloc) noex
 		else
 		{
 			_m.end = _detail::UninitCopy(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()),
-										 data(), _m);
+										 _m.data, _m);
 			_m.reserveEnd = _m.end;
 		}
 	}
@@ -895,7 +912,7 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 {
 	_appendImpl( count,
-			[&val](pointer dest, size_type nElems, Alloc & alloc)
+			[&val](T * dest, size_type nElems, Alloc & alloc)
 			{
 				_detail::UninitFill(dest, dest + nElems, alloc, val);
 			} );
@@ -965,13 +982,13 @@ void dynarray<T, Alloc>::shrink_to_fit()
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::resize(size_type newSize, default_init_tag)
 {
-	_resizeImpl(newSize, _detail::UninitFillDefault<Alloc, pointer>);
+	_resizeImpl(newSize, _detail::UninitFillDefault<Alloc, T>);
 }
 
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::resize(size_type newSize)
 {
-	_resizeImpl(newSize, _detail::UninitFill<Alloc, pointer>);
+	_resizeImpl(newSize, _detail::UninitFill<Alloc, T>);
 }
 
 template<typename T, typename Alloc>
@@ -983,6 +1000,13 @@ inline void dynarray<T, Alloc>::pop_back() noexcept
 }
 
 template<typename T, typename Alloc>
+inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase_unordered(iterator pos)
+{
+	_eraseUnordered(is_trivially_relocatable<T>(), pos);
+	return pos;
+}
+
+template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) noexcept
 {
 	_staticAssertRelocate();
@@ -991,7 +1015,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) n
 	OEL_BOUND_ASSERT_CHEAP(data() <= posPtr && posPtr < _m.end);
 
 	posPtr-> ~T();
-	pointer const next = posPtr + 1;
+	const T * next = posPtr + 1;
 	::memmove(posPtr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
 	--_m.end;
 
@@ -1021,7 +1045,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_back(iterator first) noexcept
 {
-	T *const newEnd = to_pointer_contiguous(first);
+	pointer const newEnd = to_pointer_contiguous(first);
 	OEL_BOUND_ASSERT_CHEAP(data() <= newEnd && newEnd <= _m.end);
 	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
@@ -1058,16 +1082,6 @@ inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operato
 
 #undef OEL_DYNARR_ITERATOR
 #undef OEL_DYNARR_CONST_ITER
+#undef OEL_FORCEINLINE
 
 } // namespace oel
-
-template<typename T, typename A>
-inline typename oel::dynarray<T, A>::iterator  oel::
-	erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator pos)
-{
-	*pos = std::move(ctr.back());
-	ctr.pop_back();
-	return pos;
-}
-
-#undef OEL_FORCEINLINE
