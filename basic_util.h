@@ -136,7 +136,7 @@ struct default_init_tag
 }
 const default_init;
 
-/// Tag to select range constructor. The const instance from_range is provided for convenience
+/// Tag to select construction from a single range object. The const instance from_range is provided to pass
 struct from_range_tag
 {	explicit from_range_tag() {}
 }

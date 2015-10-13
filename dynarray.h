@@ -38,7 +38,7 @@ namespace oel
 using std::out_of_range;
 
 
-/// Type to indicate that a container constructor must allocate storage. A const instance named reserve is provided to pass
+/// Tag to select dynarray constructor that allocates storage. A const instance named reserve is provided to pass
 struct reserve_tag
 {	explicit reserve_tag() {}
 }
@@ -130,6 +130,9 @@ public:
 
 	dynarray(std::initializer_list<T> init, const Alloc & alloc = Alloc{})  : dynarray(from_range, init, alloc) {}
 
+	/** @brief Equivalent to std::vector(begin(source), end(source), alloc)
+	*
+	* If you need to construct from some std::istream, check out boost/range/istream_range.hpp  */
 	template<typename InputRange>
 	dynarray(from_range_tag, const InputRange & source, const Alloc & alloc = Alloc{});
 
@@ -160,7 +163,7 @@ public:
 	ForwardTravIterator assign(ForwardTravIterator first, size_type count);
 	/**
 	* @brief Replace the contents with range
-	* @param source object which begin and end can be called on (an array, STL container or iterator_range).
+	* @param source an array, STL container, iterator_range or such. (Look up Boost.Range 2.0 concepts)
 	*	Shall not be a subset of same dynarray, except if begin(source) points to first element of dynarray.
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
@@ -181,8 +184,8 @@ public:
 	InputIterator append(InputIterator first, size_type count);
 	/**
 	* @brief Add at end the elements from range (in same order)
-	* @param source object which begin and end can be called on (an array, STL container or iterator_range)
-	* @return iterator pointing to first of the new elements in dynarray, or end if range is empty
+	* @param source an array, STL container, iterator_range or such. (Look up Boost.Range 2.0 concepts)
+	* @return iterator pointing to first of the new elements in dynarray, or end if source is empty
 	*
 	* Otherwise same as append(InputIterator, size_type)  */
 	template<typename InputRange>
@@ -872,10 +875,9 @@ void dynarray<T, Alloc>::swap(dynarray & other) noexcept
 template<typename T, typename Alloc> template<typename ForwardTravIterator>
 ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
 {
-#ifndef OEL_NO_BOOST
 	static_assert(std::is_convertible< iterator_traversal_t<ForwardTravIterator>, forward_traversal_tag >::value,
-				  "Type of first must meet requirements of Forward Traversal Iterator");
-#endif
+				  "Type of first must meet requirements of Forward Traversal Iterator (Boost concept)");
+
 	ForwardTravIterator const last = std::next(first, count);
 	_assignImpl(can_memmove_with<pointer, ForwardTravIterator>(),
 				first, last, count);

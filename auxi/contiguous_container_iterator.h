@@ -40,7 +40,7 @@ public:
 
 	using const_iterator = typename Container::const_iterator;
 
-	contiguous_ctnr_iterator() noexcept  : _container(nullptr) {}
+	contiguous_ctnr_iterator() noexcept : _container(nullptr) {}
 
 	/// Construct with position in data and pointer to container
 	contiguous_ctnr_iterator(pointer pos, const Container * container)
@@ -183,7 +183,8 @@ public:
 	}
 
 	/// Return pointer (unchecked)
-	friend typename std::remove_reference<reference>::type * to_pointer_contiguous(contiguous_ctnr_iterator it) noexcept
+	friend typename std::remove_reference<reference>::type *
+		to_pointer_contiguous(const contiguous_ctnr_iterator & it) noexcept
 	{
 		return std::addressof(*it._pElem);
 	}
