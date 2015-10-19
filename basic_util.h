@@ -12,10 +12,10 @@
 
 
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
-/** @brief Undefined: no array index and iterator checks. 1: fast checks. 2: most debug checks. 3: all checks, often slow.
+/** @brief Undefined: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
 *
-* Warning: Undefined (by NDEBUG defined) and level 1 are not binary compatible with levels 2 and 3. */
-	#define OEL_MEM_BOUND_DEBUG_LVL 3
+* Warning: Undefined (by NDEBUG defined) is not binary compatible with levels 1 and 2. */
+	#define OEL_MEM_BOUND_DEBUG_LVL 2
 #endif
 
 
@@ -165,15 +165,10 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 // The rest of the file is not for users (implementation)
 
 
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+#if OEL_MEM_BOUND_DEBUG_LVL
 	#define OEL_MEM_BOUND_ASSERT  ASSERT_ALWAYS_NOEXCEPT
 #else
 	#define OEL_MEM_BOUND_ASSERT(expr) ((void) 0)
-#endif
-#if OEL_MEM_BOUND_DEBUG_LVL
-	#define OEL_BOUND_ASSERT_CHEAP  ASSERT_ALWAYS_NOEXCEPT
-#else
-	#define OEL_BOUND_ASSERT_CHEAP(expr) ((void) 0)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////

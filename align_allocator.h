@@ -210,7 +210,7 @@ namespace _detail
 
 
 	template<typename Alloc, typename InputIter, typename T>
-	T * UninitCopy(InputIter first, InputIter const last, T *dest, Alloc & alloc)
+	T * UninitCopy(InputIter first, InputIter const last, T * dest, Alloc & alloc)
 	{
 		T *const destBegin = dest;
 		try
