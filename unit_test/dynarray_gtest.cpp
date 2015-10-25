@@ -554,7 +554,7 @@ TEST_F(dynarrayTest, misc)
 	ASSERT_EQ(3U, daSrc.size());
 
 	ASSERT_NO_THROW(daSrc.at(2));
-	ASSERT_THROW(daSrc.at(3), oel::out_of_range);
+	ASSERT_THROW(daSrc.at(3), std::out_of_range);
 
 	std::deque<size_t> dequeSrc;
 	dequeSrc.push_back(4);

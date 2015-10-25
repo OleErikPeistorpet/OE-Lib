@@ -35,9 +35,6 @@ namespace oel
 #endif
 
 
-using std::out_of_range;
-
-
 /// Tag to select dynarray constructor that allocates storage. A const instance named reserve is provided to pass
 struct reserve_tag
 {	explicit reserve_tag() {}
@@ -595,14 +592,14 @@ private:
 
 	void _relocateData(std::false_type, T *const newData, size_type, T & pushedElem)
 	{	// only called from emplace_back
-		try
+		OEL_TRY
 		{	_detail::UninitCopy(std::make_move_iterator(_m.data), std::make_move_iterator(_m.end), newData, _m);
 		}
-		catch (...)
+		OEL_CATCH_ALL(
 		{
 			pushedElem.~T();
 			throw;
-		}
+		} )
 		_detail::Destroy(_m.data, _m.end);
 	}
 
@@ -698,16 +695,16 @@ private:
 	iterator _append(std::false_type, single_pass_traversal_tag, const InputRange & src)
 	{	// slowest
 		size_type const oldSize = size();
-		try
+		OEL_TRY
 		{
 			for (auto && v : src)
 				emplace_back( std::forward<decltype(v)>(v) );
 		}
-		catch (...)
+		OEL_CATCH_ALL(
 		{
 			erase_back(begin() + oldSize);
 			throw;
-		}
+		} )
 		return begin() + oldSize;
 	}
 
@@ -1163,7 +1160,7 @@ typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i
 	if (_indexValid(index))
 		return _m.data[index];
 	else
-		throw out_of_range("Invalid index dynarray::at");
+		OEL_THROW(std::out_of_range("Invalid index dynarray::at"));
 }
 
 template<typename T, typename Alloc>

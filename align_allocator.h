@@ -139,7 +139,7 @@ namespace _detail
 				std::set_new_handler(handler);
 			#endif
 				if (!handler)
-					throw std::bad_alloc{};
+					OEL_THROW(std::bad_alloc{});
 
 				(*handler)();
 			}
@@ -213,7 +213,7 @@ namespace _detail
 	T * UninitCopy(InputIter first, InputIter const last, T * dest, Alloc & alloc)
 	{
 		T *const destBegin = dest;
-		try
+		OEL_TRY
 		{
 			while (first != last)
 			{
@@ -221,11 +221,11 @@ namespace _detail
 				++dest; ++first;
 			}
 		}
-		catch (...)
+		OEL_CATCH_ALL(
 		{
 			_detail::Destroy(destBegin, dest);
 			throw;
-		}
+		} )
 		return dest;
 	}
 
@@ -233,7 +233,7 @@ namespace _detail
 	range_ends<InputIter, T *> UninitCopyN(InputIter first, size_t count, T * dest, Alloc & alloc)
 	{
 		T *const destBegin = dest;
-		try
+		OEL_TRY
 		{
 			for (; 0 < count; --count)
 			{
@@ -241,11 +241,11 @@ namespace _detail
 				++dest; ++first;
 			}
 		}
-		catch (...)
+		OEL_CATCH_ALL(
 		{
 			_detail::Destroy(destBegin, dest);
 			throw;
-		}
+		} )
 		return {first, dest};
 	}
 
@@ -254,16 +254,16 @@ namespace _detail
 	void UninitFillImpl(std::false_type, T * first, T *const last, Alloc & alloc, const Arg &... arg)
 	{
 		T *const init = first;
-		try
+		OEL_TRY
 		{
 			for (; first != last; ++first)
 				std::allocator_traits<Alloc>::construct(alloc, first, arg...);
 		}
-		catch (...)
+		OEL_CATCH_ALL(
 		{
 			_detail::Destroy(init, first);
 			throw;
-		}
+		} )
 	}
 
 	template<typename Alloc, typename T> inline
