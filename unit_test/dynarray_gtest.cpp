@@ -262,10 +262,11 @@ TEST_F(dynarrayTest, assign)
 		}
 		EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
 
+		dest = {NontrivialReloc{-1.0}};
+		EXPECT_EQ(1U, dest.size());
 		dest = {NontrivialReloc{1.0}, NontrivialReloc{2.0}};
-		EXPECT_EQ(2U, dest.size());
-		EXPECT_DOUBLE_EQ(1.0, dest[0]);
-		EXPECT_DOUBLE_EQ(2.0, dest[1]);
+		EXPECT_DOUBLE_EQ(1.0, dest.at(0));
+		EXPECT_DOUBLE_EQ(2.0, dest.at(1));
 		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(dest), NontrivialReloc::nDestruct);
 		{
 			NontrivialReloc obj{-3.3, ThrowOnMoveOrCopy};
@@ -306,7 +307,7 @@ TEST_F(dynarrayTest, assignStringStream)
 		std::stringstream ss{"My computer emits Hawking radiation"};
 		std::istream_iterator<std::string> begin{ss};
 		std::istream_iterator<std::string> end;
-		//das.assign(begin, 5); // should not compile unless no boost
+		//das.assign(begin, 5); // should not compile
 		das.assign(oel::make_range(begin, end));
 
 		EXPECT_EQ(5U, das.size());
@@ -319,6 +320,7 @@ TEST_F(dynarrayTest, assignStringStream)
 
 		decltype(das) copyDest;
 
+		copyDest.assign(cbegin(das), 2);
 		copyDest.assign(cbegin(das), das.size());
 
 		EXPECT_TRUE(das == copyDest);

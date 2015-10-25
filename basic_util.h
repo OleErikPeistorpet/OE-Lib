@@ -170,6 +170,11 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 #else
 	#define OEL_MEM_BOUND_ASSERT(expr) ((void) 0)
 #endif
+#if !defined(NDEBUG)
+	#define OEL_ASSERT  ASSERT_ALWAYS_NOEXCEPT
+#else
+	#define OEL_ASSERT(expr) ((void) 0)
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 

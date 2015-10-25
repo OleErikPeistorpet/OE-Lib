@@ -66,6 +66,9 @@ void erase_back(Container & ctr, typename Container::iterator first)  { ctr.eras
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
 template<typename Container>
 void erase_successive_dup(Container & ctr);
+/// With predicate to test for equality of elements, passed to std::unique
+template<typename Container, typename BinaryPredicate>
+void erase_successive_dup(Container & ctr, BinaryPredicate p);
 
 
 /**
@@ -112,7 +115,8 @@ T * forward_to_new(Args &&... args);
 template< typename T, typename... Args, typename = enable_if_t<!std::is_array<T>::value> > inline
 std::unique_ptr<T> make_unique(Args &&... args)
 {
-	return std::unique_ptr<T>( oel::forward_to_new<T>(std::forward<Args>(args)...) );
+	T * p = oel::forward_to_new<T>(std::forward<Args>(args)...);
+	return std::unique_ptr<T>(p);
 }
 /// Equivalent to std::make_unique (array version).
 template< typename T, typename = enable_if_t<std::is_array<T>::value> >
@@ -137,10 +141,19 @@ namespace _detail
 	template<typename HasUnique> inline // pass dummy int to prefer this overload
 	auto Unique(HasUnique & ctr, int) -> decltype(ctr.unique()) { return ctr.unique(); }
 
+	template<typename HasUnique, typename BinaryPred> inline
+	auto Unique(HasUnique & ctr, BinaryPred p, int) -> decltype(ctr.unique(p)) { return ctr.unique(p); }
+
 	template<typename Container>
 	void Unique(Container & ctr, long)
 	{
-		erase_back( ctr, std::unique(begin(ctr), end(ctr)) );
+		oel::erase_back( ctr, std::unique(begin(ctr), end(ctr)) );
+	}
+
+	template<typename Container, typename BinaryPred>
+	void Unique(Container & ctr, BinaryPred p, long)
+	{
+		oel::erase_back( ctr, std::unique(begin(ctr), end(ctr), p) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -223,6 +236,12 @@ template<typename Container>
 inline void oel::erase_successive_dup(Container & ctr)
 {
 	_detail::Unique(ctr, int{});
+}
+
+template<typename Container, typename BinaryPredicate>
+inline void oel::erase_successive_dup(Container & ctr, BinaryPredicate p)
+{
+	_detail::Unique(ctr, p, int{});
 }
 
 ////////////////////////////////////////////////////////////////////////////////
