@@ -15,17 +15,18 @@ namespace oel
 {
 
 template<typename T, std::size_t S>
-struct is_trivially_relocatable< std::array<T, S> >
- :	is_trivially_relocatable<T> {};
+is_trivially_relocatable<T> specify_trivial_relocate(std::array<T, S> &&);
 
-template<typename T, typename... Us>
-struct is_trivially_relocatable< std::tuple<T, Us...> > : bool_constant<
-	is_trivially_relocatable<T>::value && is_trivially_relocatable< std::tuple<Us...> >::value > {};
-
-template<> struct is_trivially_relocatable< std::tuple<> > : true_type {};
+template<typename... Ts>
+struct is_trivially_relocatable< std::tuple<Ts...> >
+ :	all_true< is_trivially_relocatable<Ts>::value... > {};
 
 template<typename T, typename U>
 struct is_trivially_relocatable< std::pair<T, U> > : bool_constant<
 	is_trivially_relocatable<T>::value && is_trivially_relocatable<U>::value > {};
+
+template<typename T, typename U>
+struct is_trivially_copyable< std::pair<T, U> > : bool_constant<
+	is_trivially_copyable<T>::value && is_trivially_copyable<U>::value > {};
 
 }

@@ -56,6 +56,15 @@ using bool_constant = std::integral_constant<bool, Val>;
 
 using std::true_type;
 
+namespace _detail {
+	template<bool...> struct BoolPack;
+}
+/** @brief If all of V is true, all_true is-a true_type, else false_type
+*
+* Does not short-circuit, but should compile faster than recursive solutions  */
+template<bool... Vs>
+using all_true = std::is_same< _detail::BoolPack<true, Vs...>, _detail::BoolPack<Vs..., true> >;
+
 
 /// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
 template<typename T>

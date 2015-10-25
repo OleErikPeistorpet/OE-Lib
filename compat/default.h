@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <string>
+#include <functional>
 #ifndef OEL_NO_BOOST
 	#include <boost/optional/optional_fwd.hpp>
 	#include <boost/circular_buffer_fwd.hpp>
@@ -51,5 +52,9 @@ true_type specify_trivial_relocate(std::weak_ptr<T>);
 	template<typename T>
 	true_type specify_trivial_relocate(boost::circular_buffer<T>);
 #endif
+
+// Probably unnecessary with compilers and std libraries other than VC 2013
+template<typename T>
+struct is_trivially_copyable< std::reference_wrapper<T> > : std::true_type {};
 
 }
