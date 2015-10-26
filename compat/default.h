@@ -8,7 +8,6 @@
 
 #include <memory>
 #include <string>
-#include <functional>
 #ifndef OEL_NO_BOOST
 	#include <boost/optional/optional_fwd.hpp>
 	#include <boost/circular_buffer_fwd.hpp>
@@ -22,6 +21,16 @@
 // boost:: optional, intrusive_ptr, circular_buffer
 
 // This file is included by dynarray.h, so should not be needed in user code
+
+#if _MSC_VER && _MSC_VER < 1900
+	#include <functional>
+
+	namespace oel
+	{
+	template<typename T>
+	struct is_trivially_copyable< std::reference_wrapper<T> > : std::true_type {};
+	}
+#endif
 
 namespace oel
 {
@@ -52,9 +61,5 @@ true_type specify_trivial_relocate(std::weak_ptr<T>);
 	template<typename T>
 	true_type specify_trivial_relocate(boost::circular_buffer<T>);
 #endif
-
-// Probably unnecessary with compilers and std libraries other than VC 2013
-template<typename T>
-struct is_trivially_copyable< std::reference_wrapper<T> > : std::true_type {};
 
 }
