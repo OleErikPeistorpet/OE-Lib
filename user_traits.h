@@ -58,7 +58,7 @@ using std::true_type;
 
 template<bool...> struct bool_pack_t;
 
-/** @brief If all of V is true, all_true is-a true_type, else false_type
+/** @brief If all of Vs is true, all_true is-a true_type, else false_type
 *
 * Example: @code
 template<typename... Ts>
