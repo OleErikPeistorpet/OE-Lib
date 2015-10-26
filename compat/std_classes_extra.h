@@ -21,6 +21,10 @@ template<typename... Ts>
 struct is_trivially_relocatable< std::tuple<Ts...> >
  :	all_true< is_trivially_relocatable<Ts>::value... > {};
 
+template<typename... Ts>
+struct is_trivially_copyable< std::tuple<Ts...> >
+ :	all_true< is_trivially_copyable<Ts>::value... > {};
+
 template<typename T, typename U>
 struct is_trivially_relocatable< std::pair<T, U> > : bool_constant<
 	is_trivially_relocatable<T>::value && is_trivially_relocatable<U>::value > {};

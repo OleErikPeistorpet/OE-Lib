@@ -48,12 +48,12 @@ struct throwingAlloc
 		if (nObjs > 999)
 			throw std::bad_alloc{};
 
-		return static_cast<T *>(::operator new[](sizeof(T) * nObjs));
+		return static_cast<T *>(::operator new(sizeof(T) * nObjs));
 	}
 
 	void deallocate(T * ptr, size_t)
 	{
-		::operator delete[](ptr);
+		::operator delete(ptr);
 	}
 };
 
