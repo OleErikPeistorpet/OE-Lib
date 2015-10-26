@@ -22,7 +22,7 @@
 
 // This file is included by dynarray.h, so should not be needed in user code
 
-#if _MSC_VER && _MSC_VER < 1900
+#if (_MSC_VER && _MSC_VER < 1900) || (__GLIBCXX__ && __GNUC__ == 4)
 	#include <functional>
 
 	namespace oel
