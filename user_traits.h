@@ -56,14 +56,17 @@ using bool_constant = std::integral_constant<bool, Val>;
 
 using std::true_type;
 
-namespace _detail {
-	template<bool...> struct BoolPack;
-}
+template<bool...> struct bool_pack_t;
+
 /** @brief If all of V is true, all_true is-a true_type, else false_type
 *
-* Does not short-circuit, but should compile faster than recursive solutions  */
+* Example: @code
+template<typename... Ts>
+void ProcessNumbers(Ts...) {
+	static_assert(oel::all_true< std::is_arithmetic<Ts>::value... >::value, "Only arithmetic types, please");
+@endcode  */
 template<bool... Vs>
-using all_true = std::is_same< _detail::BoolPack<true, Vs...>, _detail::BoolPack<Vs..., true> >;
+using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
 
 
 /// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
