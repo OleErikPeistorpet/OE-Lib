@@ -39,10 +39,10 @@ struct allocator
 	allocator(const allocator<U> &) noexcept {}
 };
 
-template<typename T, typename U> inline
-bool operator==(allocator<T>, allocator<U>) noexcept { return true; }
-template<typename T, typename U> inline
-bool operator!=(allocator<T>, allocator<U>) noexcept { return false; }
+template<typename T> inline
+bool operator==(allocator<T>, allocator<T>) noexcept { return true; }
+template<typename T> inline
+bool operator!=(allocator<T>, allocator<T>) noexcept { return false; }
 
 
 
