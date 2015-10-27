@@ -118,6 +118,11 @@ public:
 		return *this;
 	}
 
+	friend contiguous_ctnr_iterator operator +(difference_type offset, contiguous_ctnr_iterator it)
+	{
+		return it += offset;
+	}
+
 	contiguous_ctnr_iterator operator +(difference_type offset) const
 	{
 		auto tmp = *this;
@@ -196,13 +201,6 @@ protected:
 #undef OEL_ARRITER_CHECK_COMPAT
 #undef OEL_ARRITER_CHECK_DEREFABLE
 };
-
-template<typename P, typename C> inline
-contiguous_ctnr_iterator<P, C> operator +(typename contiguous_ctnr_iterator<P, C>::difference_type offset,
-										  contiguous_ctnr_iterator<P, C> iter)
-{
-	return iter += offset;
-}
 
 } // namespace oel
 
