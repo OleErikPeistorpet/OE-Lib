@@ -862,19 +862,9 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 template<typename T, typename Alloc>
 dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(const dynarray & other)
 {
-	OEL_CONST_COND if (_allocTrait::propagate_on_container_copy_assignment::value)
-	{
-		if (static_cast<Alloc &>(_m) != other._m)
-		{
-			if (_m.data)
-			{
-				_detail::Destroy(_m.data, _m.end);
-				_m.deallocate(_m.data, capacity());
-				static_cast<_dynarrValues &>(_m) = {};
-			}
-			static_cast<Alloc &>(_m) = other._m;
-		}
-	}
+	// No support for allocators that propagate on container copy assignment and compare unequal
+	OEL_ASSERT(!_allocTrait::propagate_on_container_copy_assignment::value || get_allocator() == other.get_allocator());
+
 	assign(other);
 	return *this;
 }
