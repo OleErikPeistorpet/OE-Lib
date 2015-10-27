@@ -109,11 +109,11 @@ public:
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 
-	dynarray() noexcept                     : _m() {}
+	dynarray() noexcept                     : _m(Alloc{}) {}
 	explicit dynarray(const Alloc & alloc)  : _m(alloc) {}
 
 	/// Construct empty dynarray with space reserved for at least capacity elements
-	dynarray(reserve_tag, size_type capacity, const Alloc & alloc = Alloc{});
+	dynarray(reserve_tag, size_type capacity, const Alloc & alloc = Alloc{})  : _m(alloc, capacity) {}
 
 	/** @brief Uses default initialization for elements, can be significantly faster for non-class T
 	*
@@ -128,9 +128,9 @@ public:
 	*
 	* If you need to construct from some std::istream, check out boost/range/istream_range.hpp  */
 	template<typename InputRange>
-	dynarray(from_range_tag, const InputRange & source, const Alloc & alloc = Alloc{});
+	dynarray(from_range_tag, const InputRange & source, const Alloc & alloc = Alloc{})  : _m(alloc) { assign(source); }
 
-	dynarray(dynarray && other) noexcept;
+	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
 	/// Behaviour is undefined if using custom Alloc when
 	/// alloc != other.get_allocator() and is_trivially_relocatable<T> is false
 	dynarray(dynarray && other, const Alloc & alloc) noexcept;
@@ -365,20 +365,19 @@ private:
 
 	struct _dataOwner : public _dynarrValues, public Alloc
 	{
-		_dataOwner() : _dynarrValues(), Alloc() {
-		}
 		_dataOwner(const Alloc & a)
 		 :	_dynarrValues(), Alloc(a) {
 		}
-		_dataOwner(const Alloc & a, size_type allocSize) : Alloc(a)
+		_dataOwner(const Alloc & a, size_type const capacity)
+		 :	Alloc(a)
 		{
-			data = allocate(allocSize);
-			reserveEnd = data + allocSize;
+			end = data = allocate(capacity);
+			reserveEnd = data + capacity;
 		}
 		_dataOwner(_dataOwner && other)
 		 :	_dynarrValues(other), Alloc(std::move(other))
 		{
-			other.reserveEnd = other.end = other.data = nullptr;
+			static_cast<_dynarrValues>(other) = {};
 		}
 		_dataOwner(const _dataOwner &) = delete;
 		void operator =(const _dataOwner &) = delete;
@@ -860,7 +859,7 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(const dynarray & other)
+inline dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(const dynarray & other)
 {
 	// No support for allocators that propagate on container copy assignment and compare unequal
 	OEL_ASSERT(!_allocTrait::propagate_on_container_copy_assignment::value || get_allocator() == other.get_allocator());
@@ -870,34 +869,22 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(const dynarray & other)
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(dynarray && other) noexcept
- :	_m(std::move(other._m)) {
-}
-
-template<typename T, typename Alloc>
 inline dynarray<T, Alloc>::dynarray(const dynarray & other)
  :	dynarray(other, _allocTrait::select_on_container_copy_construction(other._m)) {
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(const dynarray & other, const Alloc & alloc)
+inline dynarray<T, Alloc>::dynarray(const dynarray & other, const Alloc & alloc)
  :	_m(alloc)
 {
 	_init(other._m.data, other._m.end, other.size());
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(std::initializer_list<T> init, const Alloc & alloc)
+inline dynarray<T, Alloc>::dynarray(std::initializer_list<T> init, const Alloc & alloc)
  :	_m(alloc)
 {
 	_init(init.begin(), init.end(), init.size());
-}
-
-template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(reserve_tag, size_type capacity, const Alloc & alloc)
- :	_m(alloc, capacity)
-{
-	_m.end = _m.data;
 }
 
 template<typename T, typename Alloc>
@@ -922,13 +909,6 @@ dynarray<T, Alloc>::dynarray(size_type size, const T & val, const Alloc & alloc)
 {
 	_m.end = _m.reserveEnd;
 	_detail::UninitFill(_m.data, _m.end, _m, val);
-}
-
-template<typename T, typename Alloc> template<typename InputRange>
-inline dynarray<T, Alloc>::dynarray(from_range_tag, const InputRange & src, const Alloc & alloc)
- :	_m(alloc)
-{
-	assign(src);
 }
 
 template<typename T, typename Alloc>
