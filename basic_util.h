@@ -19,11 +19,6 @@
 #endif
 
 
-#if !defined(_CPPUNWIND) && !defined(__EXCEPTIONS)
-	#define OEL_NO_EXCEPTIONS 1
-#endif
-
-
 #if _MSC_VER
 	#define OEL_CONST_COND __pragma(warning(suppress : 4127))
 #else
@@ -170,14 +165,14 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 // The rest of the file is not for users (implementation)
 
 
-#if !defined(OEL_NO_EXCEPTIONS)
-	#define OEL_TRY              try
-	#define OEL_CATCH_ALL(body)  catch (...) body
+#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
 	#define OEL_THROW(exception) throw exception
+	#define OEL_TRY              try
+	#define OEL_CATCH_ALL        catch (...)
 #else
-	#define OEL_TRY
-	#define OEL_CATCH_ALL(body)
 	#define OEL_THROW(exception) std::terminate()
+	#define OEL_TRY
+	#define OEL_CATCH_ALL        OEL_CONST_COND if (false)
 #endif
 
 #if OEL_MEM_BOUND_DEBUG_LVL

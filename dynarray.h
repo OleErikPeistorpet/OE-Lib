@@ -598,11 +598,11 @@ private:
 		OEL_TRY
 		{	_detail::UninitCopy(std::make_move_iterator(_m.data), std::make_move_iterator(_m.end), newData, _m);
 		}
-		OEL_CATCH_ALL(
+		OEL_CATCH_ALL
 		{
 			pushedElem.~T();
 			throw;
-		} )
+		}
 		_detail::Destroy(_m.data, _m.end);
 	}
 
@@ -703,11 +703,11 @@ private:
 			for (auto && v : src)
 				emplace_back( std::forward<decltype(v)>(v) );
 		}
-		OEL_CATCH_ALL(
+		OEL_CATCH_ALL
 		{
 			erase_back(begin() + oldSize);
 			throw;
-		} )
+		}
 		return begin() + oldSize;
 	}
 

@@ -228,11 +228,11 @@ namespace _detail
 				++dest; ++first;
 			}
 		}
-		OEL_CATCH_ALL(
+		OEL_CATCH_ALL
 		{
 			_detail::Destroy(destBegin, dest);
 			throw;
-		} )
+		}
 		return dest;
 	}
 
@@ -248,11 +248,11 @@ namespace _detail
 				++dest; ++first;
 			}
 		}
-		OEL_CATCH_ALL(
+		OEL_CATCH_ALL
 		{
 			_detail::Destroy(destBegin, dest);
 			throw;
-		} )
+		}
 		return {first, dest};
 	}
 
@@ -266,11 +266,11 @@ namespace _detail
 			for (; first != last; ++first)
 				std::allocator_traits<Alloc>::construct(alloc, first, arg...);
 		}
-		OEL_CATCH_ALL(
+		OEL_CATCH_ALL
 		{
 			_detail::Destroy(init, first);
 			throw;
-		} )
+		}
 	}
 
 	template<typename Alloc, typename T> inline
