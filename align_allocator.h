@@ -43,7 +43,7 @@ struct allocator
 	enable_if_t< std::is_constructible<U, Args...>::value >
 		construct(U * pos, Args &&... args)
 	{
-		OEL_MEM_BOUND_ASSERT(OEL_IS_ALIGNED_AS(pos, U));
+		OEL_ASSERT_MEM_BOUND(OEL_IS_ALIGNED_AS(pos, U));
 		::new((void *)pos) U(std::forward<Args>(args)...);
 	}
 	/// U not constructible from Args, list-initialization
@@ -51,7 +51,7 @@ struct allocator
 	enable_if_t< !std::is_constructible<U, Args...>::value >
 		construct(U * pos, Args &&... args)
 	{
-		OEL_MEM_BOUND_ASSERT(OEL_IS_ALIGNED_AS(pos, U));
+		OEL_ASSERT_MEM_BOUND(OEL_IS_ALIGNED_AS(pos, U));
 		::new((void *)pos) U{std::forward<Args>(args)...};
 	}
 

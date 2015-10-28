@@ -486,7 +486,7 @@ private:
 
 	void _eraseUnordered(std::true_type, iterator pos)
 	{	// trivial relocate
-		OEL_MEM_BOUND_ASSERT( _indexValid(pos - begin()) ); // pos must be an iterator of this, not another dynarray
+		OEL_ASSERT_MEM_BOUND( _indexValid(pos - begin()) ); // pos must be an iterator of this, not another dynarray
 
 		T & elem = *pos;
 		elem.~T();
@@ -504,7 +504,7 @@ private:
 	void _erase(std::true_type, iterator const pos)
 	{
 		T *const ptr = to_pointer_contiguous(pos);
-		OEL_MEM_BOUND_ASSERT(data() <= ptr && ptr < _m.end);
+		OEL_ASSERT_MEM_BOUND(data() <= ptr && ptr < _m.end);
 
 		ptr-> ~T();
 		const T * next = ptr + 1;
@@ -757,7 +757,7 @@ private:
 		_detail::AssertTrivialRelocate<T>();  \
 		\
 		auto const posPtr = const_cast<T *>(to_pointer_contiguous(pos));  \
-		OEL_MEM_BOUND_ASSERT(data() <= posPtr && posPtr <= _m.end);  \
+		OEL_ASSERT_MEM_BOUND(data() <= posPtr && posPtr <= _m.end);  \
 		size_type const nAfterPos = _m.end - posPtr;
 
 		OEL_DYNARR_INSERT_STEP0
@@ -1070,7 +1070,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::pop_back() noexcept
 {
-	OEL_MEM_BOUND_ASSERT(data() < _m.end);
+	OEL_ASSERT_MEM_BOUND(data() < _m.end);
 	--_m.end;
 	(*_m.end).~T();
 }
@@ -1096,7 +1096,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 
 	T *const pFirst = to_pointer_contiguous(first);
 	T *const pLast = to_pointer_contiguous(last);
-	OEL_MEM_BOUND_ASSERT(data() <= pFirst && pFirst <= pLast && pLast <= _m.end);
+	OEL_ASSERT_MEM_BOUND(data() <= pFirst && pFirst <= pLast && pLast <= _m.end);
 	if (pFirst < pLast)
 	{
 		_detail::Destroy(pFirst, pLast);
@@ -1112,7 +1112,7 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_back(iterator first) noexcept
 {
 	pointer const newEnd = to_pointer_contiguous(first);
-	OEL_MEM_BOUND_ASSERT(data() <= newEnd && newEnd <= _m.end);
+	OEL_ASSERT_MEM_BOUND(data() <= newEnd && newEnd <= _m.end);
 	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
 }
@@ -1135,13 +1135,13 @@ typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::operator[](size_type index) noexcept
 {
-	OEL_MEM_BOUND_ASSERT(_indexValid(index));
+	OEL_ASSERT_MEM_BOUND(_indexValid(index));
 	return _m.data[index];
 }
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operator[](size_type index) const noexcept
 {
-	OEL_MEM_BOUND_ASSERT(_indexValid(index));
+	OEL_ASSERT_MEM_BOUND(_indexValid(index));
 	return _m.data[index];
 }
 

@@ -11,6 +11,9 @@
 #include <iterator>
 
 
+/** @file
+*/
+
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
 /** @brief Undefined: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
 *
@@ -35,9 +38,9 @@
 	#endif
 #endif
 
-#ifndef ASSERT_ALWAYS_NOEXCEPT
+#ifndef ALWAYS_ASSERT_NOEXCEPT
 	/// Standard assert implementations typically don't break on the line of the assert, so we roll our own
-	#define ASSERT_ALWAYS_NOEXCEPT(expr)  \
+	#define ALWAYS_ASSERT_NOEXCEPT(expr)  \
 		OEL_CONST_COND  \
 		do {  \
 			if (!(expr)) OEL_HALT();  \
@@ -70,7 +73,15 @@ using std::end;
 	auto cend(const Range & r) -> decltype(std::end(r))  { return std::end(r); }
 #endif
 
-/// Argument-dependent lookup non-member begin, defaults to std::begin
+/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
+*
+* Note the global using-directive  @code
+	auto it = container.begin();     // Fails with types that don't have begin member such as built-in arrays
+	auto it = std::begin(container); // Fails with types that have only non-member begin outside of namespace std
+	// Argument-dependent lookup, as generic as it gets
+	using std::begin; auto it = begin(container);
+	auto it = adl_begin(container);  // Equivalent to line above
+@endcode  */
 template<typename Range> inline
 auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
 /// Const version of adl_begin
@@ -86,12 +97,6 @@ auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
 
 } // namespace oel
 
-/** @code
-	auto it = container.begin();     // Fails with types that don't have begin member such as built-in arrays
-	auto it = std::begin(container); // Fails with types that only have non-member begin outside of namespace std
-	using std::begin; auto it = begin(container); // Argument-dependent lookup, as generic as it gets
-	auto it = adl_begin(container);  // Equivalent to line above
-@endcode  */
 using oel::adl_begin;
 using oel::adl_end;
 
@@ -176,12 +181,12 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 #endif
 
 #if OEL_MEM_BOUND_DEBUG_LVL
-	#define OEL_MEM_BOUND_ASSERT  ASSERT_ALWAYS_NOEXCEPT
+	#define OEL_ASSERT_MEM_BOUND  ALWAYS_ASSERT_NOEXCEPT
 #else
-	#define OEL_MEM_BOUND_ASSERT(expr) ((void) 0)
+	#define OEL_ASSERT_MEM_BOUND(expr) ((void) 0)
 #endif
 #if !defined(NDEBUG)
-	#define OEL_ASSERT  ASSERT_ALWAYS_NOEXCEPT
+	#define OEL_ASSERT  ALWAYS_ASSERT_NOEXCEPT
 #else
 	#define OEL_ASSERT(expr) ((void) 0)
 #endif
