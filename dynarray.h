@@ -396,7 +396,7 @@ private:
 		return _m.reserveEnd - _m.end;
 	}
 
-	size_type _calcCapAddOne(size_type = 0) const
+	size_type _calcCapAddOne() const
 	{
 		enum { minGrow = sizeof(T *) >= sizeof(T) ?
 				2 * sizeof(T *) / sizeof(T) :   // Want to grow by 2 * sizeof(T *) bytes,
