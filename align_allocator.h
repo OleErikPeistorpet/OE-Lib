@@ -205,6 +205,23 @@ namespace _detail
 	};
 
 
+	template<typename Alloc, bool IsEmpty>
+	struct AllocRef
+	{
+		Alloc & alloc;
+
+		Alloc & Get() { return alloc; }
+	};
+
+	template<typename Alloc>
+	struct AllocRef<Alloc, true>
+	{
+		AllocRef(Alloc &) {}
+
+		Alloc Get() { return Alloc{}; }
+	};
+
+
 	template<typename T>
 	void Destroy(T * first, T *const last) noexcept
 	{	// first > last is OK, does nothing
@@ -231,7 +248,7 @@ namespace _detail
 		OEL_CATCH_ALL
 		{
 			_detail::Destroy(destBegin, dest);
-			throw;
+			OEL_RETHROW;
 		}
 		return dest;
 	}
@@ -251,7 +268,7 @@ namespace _detail
 		OEL_CATCH_ALL
 		{
 			_detail::Destroy(destBegin, dest);
-			throw;
+			OEL_RETHROW;
 		}
 		return {first, dest};
 	}
@@ -269,7 +286,7 @@ namespace _detail
 		OEL_CATCH_ALL
 		{
 			_detail::Destroy(init, first);
-			throw;
+			OEL_RETHROW;
 		}
 	}
 

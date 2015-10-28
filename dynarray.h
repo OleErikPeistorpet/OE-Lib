@@ -310,53 +310,25 @@ private:
 	#define OEL_FORCEINLINE inline
 #endif
 
-	template<bool IsEmptyAlloc>
-	struct _scopedPtrBase
-	{
-		dynarray & parent;
+	using _scopedPtrBase = _detail::AllocRef< Alloc, std::is_empty<Alloc>::value >;
 
-		_scopedPtrBase(dynarray & parent) : parent(parent) {}
-
-		pointer Allocate(size_type n)
-		{
-			return parent._m.allocate(n);
-		}
-		void Deallocate(pointer p, size_type n)
-		{
-			parent._m.deallocate(p, n);
-		}
-	};
-
-	template<> struct _scopedPtrBase<true>
-	{
-		_scopedPtrBase(dynarray &) {}
-
-		pointer Allocate(size_type n)
-		{
-			return Alloc{}.allocate(n);
-		}
-		void Deallocate(pointer p, size_type n)
-		{
-			Alloc{}.deallocate(p, n);
-		}
-	};
-
-	struct _scopedPtr : private _scopedPtrBase< std::is_empty<Alloc>::value >
+	struct _scopedPtr : private _scopedPtrBase
 	{
 		pointer ptr;
 		pointer allocEnd;
 
-		_scopedPtr(dynarray & parent, size_type allocSize) :
-			_scopedPtrBase(parent),
-			ptr(Allocate(allocSize)),
-			allocEnd(ptr + allocSize) {
+		_scopedPtr(dynarray & parent, size_type const allocSize)
+		 :	_scopedPtrBase{parent._m}
+		{
+			ptr = this->Get().allocate(allocSize);
+			allocEnd = ptr + allocSize;
 		}
 		_scopedPtr(const _scopedPtr &) = delete;
 		void operator =(const _scopedPtr &) = delete;
 		~_scopedPtr()
 		{
 			if (ptr)
-				Deallocate(ptr, allocEnd - ptr);
+				this->Get().deallocate(ptr, allocEnd - ptr);
 		}
 	};
 
@@ -369,13 +341,17 @@ private:
 
 	struct _dataOwner : public _dynarrValues, public Alloc
 	{
+		using _dynarrValues::data;
+		using _dynarrValues::end;
+		using _dynarrValues::reserveEnd;
+
 		_dataOwner(const Alloc & a)
 		 :	_dynarrValues(), Alloc(a) {
 		}
 		_dataOwner(const Alloc & a, size_type const capacity)
 		 :	Alloc(a)
 		{
-			end = data = allocate(capacity);
+			end = data = this->allocate(capacity);
 			reserveEnd = data + capacity;
 		}
 		_dataOwner(_dataOwner && other)
@@ -388,7 +364,7 @@ private:
 		~_dataOwner()
 		{
 			if (data)
-				deallocate(data, reserveEnd - data);
+				this->deallocate(data, reserveEnd - data);
 		}
 
 	} _m; // One and only data member of dynarray
@@ -593,15 +569,15 @@ private:
 		_detail::Destroy(_m.data, _m.end);
 	}
 
-	void _relocateData(std::false_type, T *const newData, size_type, T & pushedElem)
+	void _relocateData(std::false_type, T *const newData, size_type, T *const pushedElem)
 	{	// only called from emplace_back
 		OEL_TRY
 		{	_detail::UninitCopy(std::make_move_iterator(_m.data), std::make_move_iterator(_m.end), newData, _m);
 		}
 		OEL_CATCH_ALL
 		{
-			pushedElem.~T();
-			throw;
+			pushedElem-> ~T();
+			OEL_RETHROW;
 		}
 		_detail::Destroy(_m.data, _m.end);
 	}
@@ -706,17 +682,16 @@ private:
 		OEL_CATCH_ALL
 		{
 			erase_back(begin() + oldSize);
-			throw;
+			OEL_RETHROW;
 		}
 		return begin() + oldSize;
 	}
 
-	template<size_type (dynarray::*CalcCap)(size_type) const, typename MakeFunc, typename... Args>
+	template<typename CalcCapFunc, typename MakeFunc, typename... Args>
 	iterator _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
-							MakeFunc addNew, Args &&... args)
+							CalcCapFunc calcCap, MakeFunc addNew, Args &&... args)
 	{
-		size_type newCap = (this->*CalcCap)(size() + nToAdd);
-		_scopedPtr newData{*this, newCap};
+		_scopedPtr newData{*this, calcCap(*this, size() + nToAdd)};
 
 		size_type const nBeforePos = pos - data();
 		T *const newPos = newData.ptr + nBeforePos;
@@ -780,7 +755,8 @@ private:
 			return OEL_DYNARR_ITERATOR(posPtr);
 		}
 		else // not enough room, reallocate
-		{	return _insertRealloc<&dynarray::_calcCapMin>( posPtr, nAfterPos, count,
+		{	return _insertRealloc( posPtr, nAfterPos, count,
+					[](dynarray & self, size_type newSize) { return self._calcCapMin(newSize); },
 					[](dynarray & self, T * newPos, size_type count, InputIter first, InputIter last)
 					{
 						return self._uninitCopy(TrivialCopy(), first, last, count, newPos);
@@ -810,8 +786,9 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		return OEL_DYNARR_ITERATOR(posPtr);
 	}
 	else
-	{	return _insertRealloc<&dynarray::_calcCapAddOne>(
-				posPtr, nAfterPos, {}, _emplaceMakeElem{}, std::forward<Args>(args)... );
+	{	return _insertRealloc( posPtr, nAfterPos, {},
+				[](dynarray & self, size_type) { return self._calcCapAddOne(); },
+				_emplaceMakeElem{}, std::forward<Args>(args)... );
 	}
 }
 #undef OEL_DYNARR_INSERT_STEP0
@@ -1008,7 +985,7 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 		pointer const pos = newData.ptr + size();
 		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
 
-		_relocateData(is_trivially_relocatable<T>(), newData.ptr, size(), *pos);
+		_relocateData(is_trivially_relocatable<T>(), newData.ptr, size(), pos);
 
 		_swapData(newData);
 		_m.end = pos;

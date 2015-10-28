@@ -172,10 +172,12 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 
 #if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
 	#define OEL_THROW(exception) throw exception
+	#define OEL_RETHROW          throw
 	#define OEL_TRY              try
 	#define OEL_CATCH_ALL        catch (...)
 #else
 	#define OEL_THROW(exception) std::terminate()
+	#define OEL_RETHROW
 	#define OEL_TRY
 	#define OEL_CATCH_ALL        OEL_CONST_COND if (false)
 #endif
