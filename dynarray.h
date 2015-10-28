@@ -405,6 +405,24 @@ private:
 		swap(_m.reserveEnd, s.allocEnd);
 	}
 
+	void _moveAssignAlloc(std::true_type, _dataOwner & d)
+	{
+		static_cast<Alloc &>(_m) = std::move(d);
+	}
+
+	void _moveAssignAlloc(std::false_type, _dataOwner &) {}
+
+	void _swapAlloc(std::true_type, _dataOwner & d)
+	{
+		using std::swap;
+		swap(static_cast<Alloc &>(_m), static_cast<Alloc &>(d));
+	}
+
+	void _swapAlloc(std::false_type, _dataOwner & d)
+	{
+		OEL_ASSERT(get_allocator() == static_cast<Alloc &>(d));
+	}
+
 	bool _indexValid(size_type index) const
 	{
 		using USizeT = make_unsigned_t<std::ptrdiff_t>;
@@ -777,7 +795,7 @@ private:
 			else
 			{
 				T *const oldEnd = _m.end;
-				_m.end = _detail::UninitCopy(first, last, _m.end, _m);
+				_m.end = _detail::UninitCopy(first, last, _m.end, _m); // append new elements
 				std::rotate(posPtr, oldEnd, _m.end);
 			}
 			return OEL_DYNARR_ITERATOR(posPtr);
@@ -849,9 +867,7 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 				_m.deallocate(_m.data, capacity());
 			}
 			static_cast<_dynarrValues &>(_m) = other._m;
-			OEL_CONST_COND if (_allocTrait::propagate_on_container_move_assignment::value)
-				static_cast<Alloc &>(_m) = std::move(other._m);
-
+			_moveAssignAlloc(_allocTrait::propagate_on_container_move_assignment{}, other._m);
 			static_cast<_dynarrValues &>(other._m) = {};
 		}
 	}
@@ -924,10 +940,7 @@ void dynarray<T, Alloc>::swap(dynarray & other) noexcept
 	swap(_m.data, other._m.data);
 	swap(_m.end, other._m.end);
 	swap(_m.reserveEnd, other._m.reserveEnd);
-	OEL_CONST_COND if (_allocTrait::propagate_on_container_swap::value)
-		swap(static_cast<Alloc &>(_m), static_cast<Alloc &>(other._m));
-	else
-		OEL_ASSERT(get_allocator() == other.get_allocator());
+	_swapAlloc(_allocTrait::propagate_on_container_swap{}, other._m);
 }
 
 template<typename T, typename Alloc> template<typename ForwardTravIterator>
