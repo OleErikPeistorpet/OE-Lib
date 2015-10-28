@@ -198,6 +198,13 @@ namespace _detail
 #endif
 
 
+	template<typename T> struct AssertTrivialRelocate
+	{
+		static_assert(is_trivially_relocatable<T>::value,
+			"The function requires trivially relocatable T, see declaration of is_trivially_relocatable");
+	};
+
+
 	template<typename T>
 	void Destroy(T * first, T *const last) noexcept
 	{	// first > last is OK, does nothing

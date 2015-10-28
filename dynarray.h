@@ -157,8 +157,8 @@ public:
 	*
 	* Any elements held before the call are either assigned to or destroyed.
 	* Performance note: This function is efficient only for random-access traversal iterator  */
-	template<typename ForwardTravIterator>
-	ForwardTravIterator assign(ForwardTravIterator first, size_type count);
+	template<typename ForwardIterator>
+	ForwardIterator assign(ForwardIterator first, size_type count);
 	/**
 	* @brief Replace the contents with range
 	* @param source an array, STL container, iterator_range or such. (Look up Boost.Range 2.0 concepts.)
@@ -166,7 +166,7 @@ public:
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template<typename InputRange>
-	void                assign(const InputRange & source);
+	void            assign(const InputRange & source);
 
 	/**
 	* @brief Add count elements at end from range beginning at first (in same order)
@@ -201,12 +201,16 @@ public:
 	/// (Value-initializes added elements, same as std::vector::resize)
 	void       resize(size_type newSize)                    { _resizeImpl(newSize, _detail::UninitFill<Alloc, T>); }
 
-	/// Returns end of input range
-	template<typename ForwardTravIterator>
-	ForwardTravIterator insert_r(const_iterator position, ForwardTravIterator first, size_type count);
-	/// Equivalent to std::vector::insert(position, begin(source), end(source))
-	template<typename ForwardTravRange>
-	iterator            insert_r(const_iterator position, const ForwardTravRange & source);
+	/**
+	* @brief Insert count elements at position from range beginning at first
+	* @return first incremented count times
+	*
+	* Otherwise same as insert_r(const_iterator, const ForwardRange &)  */
+	template<typename ForwardIterator>
+	ForwardIterator insert_r(const_iterator position, ForwardIterator first, size_type count);
+	/// Equivalent to std::vector::insert(position, begin(source), end(source)), with a few compile-time limitations
+	template<typename ForwardRange>
+	iterator        insert_r(const_iterator position, const ForwardRange & source);
 
 	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
@@ -294,10 +298,10 @@ public:
 private:
 	using _allocTrait = std::allocator_traits<Alloc>;
 
-	struct _staticAssertRelocate
+	template<typename Iterator> struct _assertForwardTrav
 	{
-		static_assert(is_trivially_relocatable<T>::value,
-			"This function requires trivially relocatable T, see declaration of is_trivially_relocatable");
+		static_assert(std::is_convertible< iterator_traversal_t<Iterator>, forward_traversal_tag >::value,
+			"Iterator from passed input must meet requirements of Forward Traversal Iterator (Boost concept)");
 	};
 
 #if _MSC_VER && OEL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
@@ -416,7 +420,7 @@ private:
 		return _m.reserveEnd - _m.end;
 	}
 
-	size_type _calcCapAddOne() const
+	size_type _calcCapAddOne(size_type = 0) const
 	{
 		enum { minGrow = sizeof(T *) >= sizeof(T) ?
 				2 * sizeof(T *) / sizeof(T) :   // Want to grow by 2 * sizeof(T *) bytes,
@@ -426,7 +430,7 @@ private:
 		return c + (std::max)(c / 2, size_type(minGrow));
 	}
 
-	size_type _calcCap(size_type const newSize) const
+	size_type _calcCapMin(size_type const newSize) const
 	{
 		size_type c = capacity();
 		return (std::max)(c + c / 2, newSize);
@@ -439,7 +443,7 @@ private:
 	}
 
 	template<typename CntigusIter>
-	static T * _uninitCopy(std::true_type, CntigusIter first, CntigusIter, size_type const count, T *const dest)
+	T * _uninitCopy(std::true_type, CntigusIter first, CntigusIter, size_type const count, T *const dest)
 	{
 		// Behaviour undefined by standard if first is null
 		::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * count);
@@ -468,7 +472,7 @@ private:
 		}
 		else
 		{	// not enough room, reallocate
-			_scopedPtr newData{*this, _calcCap(newSize)};
+			_scopedPtr newData{*this, _calcCapMin(newSize)};
 
 			pointer const newEnd = newData.ptr + newSize;
 			initNewElems(newData.ptr + size(), newEnd, _m);
@@ -618,7 +622,7 @@ private:
 		}
 		else
 		{
-			_scopedPtr newData{*this, _calcCap(size() + count)};
+			_scopedPtr newData{*this, _calcCapMin(size() + count)};
 
 			size_type const oldSize = size();
 			pos = newData.ptr + oldSize;
@@ -707,15 +711,16 @@ private:
 		return begin() + oldSize;
 	}
 
-	template<typename InputIter>
-	iterator _insertRealloc(T *const pos, size_type const nAfterPos,
-							InputIter const first, InputIter const last, size_type const count)
+	template<size_type (dynarray::*CalcCap)(size_type) const, typename MakeFunc, typename... Args>
+	iterator _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
+							MakeFunc addNew, Args &&... args)
 	{
-		_scopedPtr newData{*this, _calcCapAdd(count)};
+		size_type newCap = (this->*CalcCap)(size() + nToAdd);
+		_scopedPtr newData{*this, newCap};
 
 		size_type const nBeforePos = pos - data();
 		T *const newPos = newData.ptr + nBeforePos;
-		T *const next = _uninitCopy(can_memmove_with<T *, InputIter>(), first, last, count, newPos); // add new
+		T *const next = addNew(*this, newPos, nToAdd, std::forward<Args>(args)...);
 		// Exception free from here
 		::memcpy(newData.ptr, data(), sizeof(T) * nBeforePos); // relocate prefix
 		::memcpy(next, pos, sizeof(T) * nAfterPos);   // relocate suffix
@@ -726,24 +731,14 @@ private:
 		return OEL_DYNARR_ITERATOR(newPos);
 	}
 
-	template<typename... Args>
-	iterator _emplaceRealloc(T *const pos, size_type const nAfterPos, Args &&... args)
-	{
-		_scopedPtr newData{*this, _calcCapAddOne()};
-
-		size_type const nBeforePos = pos - data();
-		T *const newPos = newData.ptr + nBeforePos;
-		_allocTrait::construct(_m, newPos, std::forward<Args>(args)...); // add new
-		// Exception free from here
-		T *const next = newPos + 1;
-		::memcpy(newData.ptr, data(), sizeof(T) * nBeforePos); // relocate prefix
-		::memcpy(next, pos, sizeof(T) * nAfterPos);   // relocate suffix
-
-		_m.end = next + nAfterPos;
-		_swapData(newData);
-
-		return OEL_DYNARR_ITERATOR(newPos);
-	}
+	struct _emplaceMakeElem
+	{	template<typename... Args>
+		T * operator()(dynarray & da, T *const newPos, size_type, Args &&... args) const
+		{
+			_allocTrait::construct(da._m, newPos, std::forward<Args>(args)...);
+			return newPos + 1;
+		}
+	};
 
 	void _moveUnequalAlloc(dynarray & src)
 	{
@@ -756,17 +751,19 @@ private:
 	template<typename InputIter>
 	iterator _insert(const_iterator pos, InputIter const first, InputIter const last, size_type const count)
 	{
-		_staticAssertRelocate();
-		static_assert(std::is_convertible< iterator_traversal_t<InputIter>, forward_traversal_tag >::value,
-			"insert_r requires that iterator type meets requirements of Forward Traversal Iterator (Boost concept)");
+		_assertForwardTrav<InputIter>();
 
-		auto const posPtr = const_cast<T *>(to_pointer_contiguous(pos));
-		OEL_MEM_BOUND_ASSERT(data() <= posPtr && posPtr <= _m.end);
-
+	#define OEL_DYNARR_INSERT_STEP0  \
+		_detail::AssertTrivialRelocate<T>();  \
+		\
+		auto const posPtr = const_cast<T *>(to_pointer_contiguous(pos));  \
+		OEL_MEM_BOUND_ASSERT(data() <= posPtr && posPtr <= _m.end);  \
 		size_type const nAfterPos = _m.end - posPtr;
+
+		OEL_DYNARR_INSERT_STEP0
+		using TrivialCopy = can_memmove_with<T *, InputIter>;
 		if (_unusedCapacity() >= count)
 		{
-			using TrivialCopy = can_memmove_with<T *, InputIter>;
 			OEL_CONST_COND if (TrivialCopy::value)
 			{
 				// Relocate elements to make space for new, conceptually destroying [pos, pos + count)
@@ -783,7 +780,12 @@ private:
 			return OEL_DYNARR_ITERATOR(posPtr);
 		}
 		else // not enough room, reallocate
-		{	return _insertRealloc(posPtr, nAfterPos, first, last, count);
+		{	return _insertRealloc<&dynarray::_calcCapMin>( posPtr, nAfterPos, count,
+					[](dynarray & self, T * newPos, size_type count, InputIter first, InputIter last)
+					{
+						return self._uninitCopy(TrivialCopy(), first, last, count, newPos);
+					},
+					first, last );
 		}
 	}
 };
@@ -791,12 +793,8 @@ private:
 template<typename T, typename Alloc> template<typename... Args>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
 {
-	_staticAssertRelocate();
+	OEL_DYNARR_INSERT_STEP0
 
-	auto const posPtr = const_cast<T *>(to_pointer_contiguous(pos));
-	OEL_MEM_BOUND_ASSERT(data() <= posPtr && posPtr <= _m.end);
-
-	size_type const nAfterPos = _m.end - posPtr;
 	if (_m.end < _m.reserveEnd) // then new element fits
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
@@ -812,9 +810,11 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		return OEL_DYNARR_ITERATOR(posPtr);
 	}
 	else
-	{	return _emplaceRealloc(posPtr, nAfterPos, std::forward<Args>(args)...);
+	{	return _insertRealloc<&dynarray::_calcCapAddOne>(
+				posPtr, nAfterPos, {}, _emplaceMakeElem{}, std::forward<Args>(args)... );
 	}
 }
+#undef OEL_DYNARR_INSERT_STEP0
 
 template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & alloc) noexcept
@@ -930,14 +930,13 @@ void dynarray<T, Alloc>::swap(dynarray & other) noexcept
 		OEL_ASSERT(get_allocator() == other.get_allocator());
 }
 
-template<typename T, typename Alloc> template<typename ForwardTravIterator>
-ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
+template<typename T, typename Alloc> template<typename ForwardIterator>
+ForwardIterator dynarray<T, Alloc>::assign(ForwardIterator first, size_type count)
 {
-	static_assert(std::is_convertible< iterator_traversal_t<ForwardTravIterator>, forward_traversal_tag >::value,
-				  "Type of first must meet requirements of Forward Traversal Iterator (Boost concept)");
+	_assertForwardTrav<ForwardIterator>();
 
-	ForwardTravIterator const last = std::next(first, count);
-	_assignImpl(can_memmove_with<T *, ForwardTravIterator>(),
+	ForwardIterator const last = std::next(first, count);
+	_assignImpl(can_memmove_with<T *, ForwardIterator>(),
 				first, last, count);
 	return last;
 }
@@ -980,18 +979,18 @@ OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appen
 	return append<>(il);
 }
 
-template<typename T, typename Alloc> template<typename ForwardTravIterator>
-inline ForwardTravIterator dynarray<T, Alloc>::
-	insert_r(const_iterator pos, ForwardTravIterator first, size_type count)
+template<typename T, typename Alloc> template<typename ForwardIterator>
+inline ForwardIterator dynarray<T, Alloc>::
+	insert_r(const_iterator pos, ForwardIterator first, size_type count)
 {
-	ForwardTravIterator const last = std::next(first, count);
+	ForwardIterator const last = std::next(first, count);
 	_insert(pos, first, last, count);
 	return last;
 }
 
-template<typename T, typename Alloc> template<typename ForwardTravRange>
+template<typename T, typename Alloc> template<typename ForwardRange>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
-	insert_r(const_iterator pos, const ForwardTravRange & src)
+	insert_r(const_iterator pos, const ForwardRange & src)
 {
 	return _insert(pos, ::adl_begin(src), ::adl_end(src), oel::count(src));
 }
@@ -1093,7 +1092,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) noexcept
 {
-	_staticAssertRelocate();
+	_detail::AssertTrivialRelocate<T>();
 
 	T *const pFirst = to_pointer_contiguous(first);
 	T *const pLast = to_pointer_contiguous(last);

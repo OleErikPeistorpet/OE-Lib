@@ -407,7 +407,43 @@ TEST_F(dynarrayTest, append)
 	}
 }
 
-// Test insert.
+TEST_F(dynarrayTest, insertR)
+{
+	{
+		oel::dynarray<double> dest;
+		// Test insert empty std iterator range to empty dynarray
+		std::deque<double> src;
+		dest.insert_r(dest.begin(), src);
+
+		dest.insert_r< std::initializer_list<double> >(dest.begin(), {});
+	}
+
+	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
+
+	dynarray<double> double_dynarr, double_dynarr2;
+	double_dynarr.insert_r(double_dynarr.begin(), oel::begin(arrayA), oel::count(arrayA));
+	double_dynarr.insert_r(double_dynarr.end(), double_dynarr2);
+
+	{
+		dynarray<int> int_dynarr;
+		int_dynarr.insert_r< std::initializer_list<int> >(int_dynarr.begin(), {1, 2, 3, 4});
+
+		double_dynarr.insert_r(double_dynarr.end(), int_dynarr);
+	}
+
+	ASSERT_EQ(8U, double_dynarr.size());
+
+	EXPECT_EQ(arrayA[0], double_dynarr[0]);
+	EXPECT_EQ(arrayA[1], double_dynarr[1]);
+	EXPECT_EQ(arrayA[2], double_dynarr[2]);
+	EXPECT_EQ(arrayA[3], double_dynarr[3]);
+
+	EXPECT_DOUBLE_EQ(1, double_dynarr[4]);
+	EXPECT_DOUBLE_EQ(2, double_dynarr[5]);
+	EXPECT_DOUBLE_EQ(3, double_dynarr[6]);
+	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
+}
+
 TEST_F(dynarrayTest, insert)
 {
 	MoveOnly::ClearCount();
@@ -454,7 +490,6 @@ TEST_F(dynarrayTest, insert)
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 }
 
-// Test resize.
 TEST_F(dynarrayTest, resize)
 {
 	dynarray<int, throwingAlloc<int>> d;
