@@ -8,8 +8,8 @@
 
 #include <type_traits>
 
-/**
-* @file user_traits.h
+
+/** @file
 * @brief is_trivially_relocatable to be specialized for user classes
 *
 * Also provides a forward declaration of dynarray.

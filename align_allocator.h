@@ -43,7 +43,7 @@ struct allocator
 	enable_if_t< std::is_constructible<U, Args...>::value >
 		construct(U * pos, Args &&... args)
 	{
-		OEL_MEM_BOUND_ASSERT(OEL_IS_ALIGNED_AS(pos, U));
+		OEL_ASSERT_MEM_BOUND(OEL_IS_ALIGNED_AS(pos, U));
 		::new((void *)pos) U(std::forward<Args>(args)...);
 	}
 	/// U not constructible from Args, list-initialization
@@ -51,7 +51,7 @@ struct allocator
 	enable_if_t< !std::is_constructible<U, Args...>::value >
 		construct(U * pos, Args &&... args)
 	{
-		OEL_MEM_BOUND_ASSERT(OEL_IS_ALIGNED_AS(pos, U));
+		OEL_ASSERT_MEM_BOUND(OEL_IS_ALIGNED_AS(pos, U));
 		::new((void *)pos) U{std::forward<Args>(args)...};
 	}
 
@@ -198,6 +198,30 @@ namespace _detail
 #endif
 
 
+	template<typename T> struct AssertTrivialRelocate
+	{
+		static_assert(is_trivially_relocatable<T>::value,
+			"The function requires trivially relocatable T, see declaration of is_trivially_relocatable");
+	};
+
+
+	template<typename Alloc, bool IsEmpty>
+	struct AllocRef
+	{
+		Alloc & alloc;
+
+		Alloc & Get() { return alloc; }
+	};
+
+	template<typename Alloc>
+	struct AllocRef<Alloc, true>
+	{
+		AllocRef(Alloc &) {}
+
+		Alloc Get() { return Alloc{}; }
+	};
+
+
 	template<typename T>
 	void Destroy(T * first, T *const last) noexcept
 	{	// first > last is OK, does nothing
@@ -221,11 +245,11 @@ namespace _detail
 				++dest; ++first;
 			}
 		}
-		OEL_CATCH_ALL(
+		OEL_CATCH_ALL
 		{
 			_detail::Destroy(destBegin, dest);
-			throw;
-		} )
+			OEL_RETHROW;
+		}
 		return dest;
 	}
 
@@ -241,11 +265,11 @@ namespace _detail
 				++dest; ++first;
 			}
 		}
-		OEL_CATCH_ALL(
+		OEL_CATCH_ALL
 		{
 			_detail::Destroy(destBegin, dest);
-			throw;
-		} )
+			OEL_RETHROW;
+		}
 		return {first, dest};
 	}
 
@@ -259,11 +283,11 @@ namespace _detail
 			for (; first != last; ++first)
 				std::allocator_traits<Alloc>::construct(alloc, first, arg...);
 		}
-		OEL_CATCH_ALL(
+		OEL_CATCH_ALL
 		{
 			_detail::Destroy(init, first);
-			throw;
-		} )
+			OEL_RETHROW;
+		}
 	}
 
 	template<typename Alloc, typename T> inline

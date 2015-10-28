@@ -20,12 +20,12 @@ class contiguous_ctnr_iterator
 {
 #define OEL_ARRITER_CHECK_DEREFABLE  \
 	using SizeT = make_unsigned_t<std::ptrdiff_t>;  \
-	OEL_MEM_BOUND_ASSERT( static_cast<SizeT>(_pElem - _container->data()) < static_cast<SizeT>(_container->size()) )
+	OEL_ASSERT_MEM_BOUND( static_cast<SizeT>(_pElem - _container->data()) < static_cast<SizeT>(_container->size()) )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	// test for iterator pair pointing to same container
 	#define OEL_ARRITER_CHECK_COMPAT(right)  \
-		OEL_MEM_BOUND_ASSERT(_container && right._container == _container)
+		OEL_ASSERT_MEM_BOUND(_container && right._container == _container)
 #else
 	#define OEL_ARRITER_CHECK_COMPAT(right)
 #endif
@@ -67,7 +67,7 @@ public:
 	contiguous_ctnr_iterator & operator++()
 	{	// preincrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		OEL_MEM_BOUND_ASSERT(_pElem < _container->end()._pElem);
+		OEL_ASSERT_MEM_BOUND(_pElem < _container->end()._pElem);
 	#endif
 		++_pElem;
 		return *this;
@@ -83,7 +83,7 @@ public:
 	contiguous_ctnr_iterator & operator--()
 	{	// predecrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		OEL_MEM_BOUND_ASSERT(_container->data() < _pElem);
+		OEL_ASSERT_MEM_BOUND(_container->data() < _pElem);
 	#endif
 		--_pElem;
 		return *this;
@@ -100,7 +100,7 @@ public:
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 		// Check that adding offset keeps this in range [begin, end]
-		OEL_MEM_BOUND_ASSERT( offset >= _container->data() - _pElem
+		OEL_ASSERT_MEM_BOUND( offset >= _container->data() - _pElem
 						   && offset <= _container->end()._pElem - _pElem );
 	#endif
 		_pElem += offset;
@@ -111,7 +111,7 @@ public:
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 		// Check that subtracting offset keeps this in range [begin, end]
-		OEL_MEM_BOUND_ASSERT( offset <= _pElem - _container->data()
+		OEL_ASSERT_MEM_BOUND( offset <= _pElem - _container->data()
 						   && offset >= _pElem - _container->end()._pElem );
 	#endif
 		_pElem -= offset;

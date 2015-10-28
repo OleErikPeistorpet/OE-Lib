@@ -13,8 +13,8 @@
 #include <cstdint>
 #include <string.h>
 
-/**
-* @file util.h
+
+/** @file
 * @brief Utilities, including efficient range algorithms
 *
 * Designed to interface with the standard library. Contains erase functions, copy functions, make_unique and more.
