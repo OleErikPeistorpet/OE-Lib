@@ -475,8 +475,8 @@ private:
 	}
 
 
-	void _eraseUnordered(std::true_type, iterator pos)
-	{	// trivial relocate
+	void _eraseUnordered(std::true_type /*trivialRelocate*/, iterator pos)
+	{
 		OEL_ASSERT_MEM_BOUND( _indexValid(pos - begin()) ); // pos must be an iterator of this, not another dynarray
 
 		T & elem = *pos;
@@ -510,22 +510,8 @@ private:
 	}
 
 
-	template<bool /*DestroyLastIfException*/ = false, bool = is_trivially_relocatable<T>::value>
-	void _relocateData(T * dest, T *)
-	{
-		::memcpy(dest, data(), sizeof(T) * size());
-	}
-
-	template<> void _relocateData<false, false>(T *const dFirst, T *const dLast)
-	{	// relocate elements by move constructor and destructor
-		static_assert(std::is_nothrow_move_constructible<T>::value,
-			"This function requires noexcept move constructible T or is_trivially_relocatable<T> giving true");
-
-		_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m);
-		_detail::Destroy(_m.data, _m.end);
-	}
-
-	template<> void _relocateData<true, false>(T *const dBegin, T *const newElemPos)
+	template<typename /*dummy*/>
+	void _relocateData(std::false_type, T *const dBegin, T *const newElemPos)
 	{	// called only from emplace_back
 		OEL_TRY
 		{	_detail::UninitCopy(std::make_move_iterator(_m.data), dBegin, newElemPos, _m);
@@ -538,6 +524,26 @@ private:
 		_detail::Destroy(_m.data, _m.end);
 	}
 
+	void _relocateData(std::false_type, T *const dFirst, T *const dLast)
+	{	// not trivially relocatable
+		static_assert(std::is_nothrow_move_constructible<T>::value,
+			"This function requires noexcept move constructible T or is_trivially_relocatable<T> giving true");
+
+		_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m);
+		_detail::Destroy(_m.data, _m.end);
+	}
+
+	template<typename = void>
+	void _relocateData(std::true_type, T * dest, T *)
+	{
+		::memcpy(dest, data(), sizeof(T) * size());
+	}
+
+	void _relocateData(T *const dFirst, T *const dLast)
+	{
+		_relocateData(is_trivially_relocatable<T>(), dFirst, dLast);
+	}
+
 
 	void _moveUnequalAlloc(dynarray & src)
 	{
@@ -548,8 +554,8 @@ private:
 	}
 
 	template<typename CntigusIter>
-	CntigusIter _assignImpl(std::true_type, CntigusIter const first, size_type const count)
-	{	// fast assign
+	CntigusIter _assignImpl(std::true_type /*trivialCopy*/, CntigusIter const first, size_type const count)
+	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (count > 0)
 		{	// Dereference to catch out of range errors if the iterators have internal checks
@@ -574,7 +580,7 @@ private:
 
 	template<typename InputIter>
 	InputIter _assignImpl(std::false_type, InputIter src, size_type const count)
-	{	// non-trivial assign
+	{
 		auto copy = [](InputIter sFirst, iterator dest, iterator dLast)
 			{
 				while (dest != dLast)
@@ -830,7 +836,7 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 		pointer const pos = newData.ptr + size();
 		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
 
-		_relocateData<true>(newData.ptr, pos);
+		_relocateData<void>(is_trivially_relocatable<T>(), newData.ptr, pos);
 
 		_swapBuf(newData);
 		_m.end = pos;
@@ -872,7 +878,7 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 				_m.deallocate(_m.data, capacity());
 			}
 			static_cast<_dynarrValues &>(_m) = other._m;
-			_moveAssignAlloc(_allocTrait::propagate_on_container_move_assignment{}, other._m);
+			_moveAssignAlloc(_allocTrait::propagate_on_container_move_assignment(), other._m);
 			static_cast<_dynarrValues &>(other._m) = {};
 		}
 	}
@@ -945,7 +951,7 @@ void dynarray<T, Alloc>::swap(dynarray & other) noexcept
 	swap(_m.data, other._m.data);
 	swap(_m.end, other._m.end);
 	swap(_m.reserveEnd, other._m.reserveEnd);
-	_swapAlloc(_allocTrait::propagate_on_container_swap{}, other._m);
+	_swapAlloc(_allocTrait::propagate_on_container_swap(), other._m);
 }
 
 template<typename T, typename Alloc> template<typename InputIterator>
