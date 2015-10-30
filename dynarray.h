@@ -548,7 +548,7 @@ private:
 	{
 		OEL_ASSERT(is_trivially_relocatable<T>::value);
 
-		_assignImpl(std::true_type{}, src.begin(), src.end(), src.size());
+		_assignImpl(std::true_type{}, src.begin(), src.size());
 		src._m.end = src._m.data; // elements in src conceptually destroyed
 	}
 
