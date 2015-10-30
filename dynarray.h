@@ -510,38 +510,37 @@ private:
 	}
 
 
-	template<typename /*dummy*/>
-	void _relocateData(std::false_type, T *const dBegin, T *const newElemPos)
-	{	// called only from emplace_back
-		OEL_TRY
-		{	_detail::UninitCopy(std::make_move_iterator(_m.data), dBegin, newElemPos, _m);
-		}
-		OEL_CATCH_ALL
-		{
-			newElemPos-> ~T();
-			OEL_RETHROW;
-		}
-		_detail::Destroy(_m.data, _m.end);
-	}
-
-	void _relocateData(std::false_type, T *const dFirst, T *const dLast)
+	template<bool InEmplaceBack>
+	void _relocateData(T *const dFirst, T *const dLast, std::false_type)
 	{	// not trivially relocatable
-		static_assert(std::is_nothrow_move_constructible<T>::value,
+		static_assert(std::is_nothrow_move_constructible<T>::value || InEmplaceBack,
 			"This function requires noexcept move constructible T or is_trivially_relocatable<T> giving true");
 
-		_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m);
+		OEL_CONST_COND if (InEmplaceBack)
+		{
+			OEL_TRY
+			{	_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m);
+			}
+			OEL_CATCH_ALL
+			{
+				dLast-> ~T();
+				OEL_RETHROW;
+			}
+		}
+		else
+		{	_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m);
+		}
 		_detail::Destroy(_m.data, _m.end);
 	}
 
-	template<typename = void>
-	void _relocateData(std::true_type, T * dest, T *)
+	template<bool> void _relocateData(T * dest, T *, std::true_type)
 	{
 		::memcpy(dest, data(), sizeof(T) * size());
 	}
 
 	void _relocateData(T *const dFirst, T *const dLast)
 	{
-		_relocateData(is_trivially_relocatable<T>(), dFirst, dLast);
+		_relocateData<false>(dFirst, dLast, is_trivially_relocatable<T>());
 	}
 
 
@@ -836,7 +835,7 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 		pointer const pos = newData.ptr + size();
 		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
 
-		_relocateData<void>(is_trivially_relocatable<T>(), newData.ptr, pos);
+		_relocateData<true>(newData.ptr, pos, is_trivially_relocatable<T>());
 
 		_swapBuf(newData);
 		_m.end = pos;
