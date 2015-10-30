@@ -371,7 +371,7 @@ private:
 		_m.data = newData;
 	}
 
-	void _swapData(_scopedPtr & s)
+	void _swapBuf(_scopedPtr & s)
 	{
 		using std::swap;
 		swap(_m.data, s.ptr);
@@ -470,7 +470,7 @@ private:
 			_relocateData(newData.ptr, pos);
 
 			_m.end = newEnd;
-			_swapData(newData);
+			_swapBuf(newData);
 		}
 	}
 
@@ -510,33 +510,32 @@ private:
 	}
 
 
-	template<typename T1 = T> enable_if_t<!is_trivially_relocatable<T1>::value>
-		_relocateData(T *const dBegin, T *const pos, std::true_type /*emplace_back*/)
+	template<bool /*DestroyLastIfException*/ = false, bool = is_trivially_relocatable<T>::value>
+	void _relocateData(T * dest, T *)
 	{
-		OEL_TRY
-		{	_detail::UninitCopy(std::make_move_iterator(_m.data), dBegin, pos, _m);
-		}
-		OEL_CATCH_ALL
-		{
-			pos-> ~T();
-			OEL_RETHROW;
-		}
-		_detail::Destroy(_m.data, _m.end);
+		::memcpy(dest, data(), sizeof(T) * size());
 	}
 
-	template<bool = !is_trivially_relocatable<T>::value>
-	void _relocateData(T *const dBegin, T *const dEnd, ...)
+	template<> void _relocateData<false, false>(T *const dFirst, T *const dLast)
 	{	// relocate elements by move constructor and destructor
 		static_assert(std::is_nothrow_move_constructible<T>::value,
 			"This function requires noexcept move constructible T or is_trivially_relocatable<T> giving true");
 
-		_detail::UninitCopy(std::make_move_iterator(_m.data), dBegin, dEnd, _m);
+		_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m);
 		_detail::Destroy(_m.data, _m.end);
 	}
 
-	template<> void _relocateData<true>(T * dBegin, T *, ...)
-	{
-		::memcpy(dBegin, data(), sizeof(T) * size());
+	template<> void _relocateData<true, false>(T *const dBegin, T *const newElemPos)
+	{	// called only from emplace_back
+		OEL_TRY
+		{	_detail::UninitCopy(std::make_move_iterator(_m.data), dBegin, newElemPos, _m);
+		}
+		OEL_CATCH_ALL
+		{
+			newElemPos-> ~T();
+			OEL_RETHROW;
+		}
+		_detail::Destroy(_m.data, _m.end);
 	}
 
 
@@ -594,7 +593,7 @@ private:
 			_detail::Destroy(_m.data, _m.end);
 
 			_m.end = newEnd;
-			_swapData(newData);
+			_swapBuf(newData);
 		}
 		else if (size() >= count)
 		{	// enough elements, copy new and destroy old
@@ -615,8 +614,8 @@ private:
 	template<typename ForwTravRange>
 	void _assign(forward_traversal_tag, const ForwTravRange & src)
 	{
-		using IterSrc = decltype(::adl_begin(src));
-		_assignImpl(can_memmove_with<T *, IterSrc>(), ::adl_begin(src), oel::count(src));
+		auto first = ::adl_begin(src);
+		_assignImpl(can_memmove_with<T *, decltype(first)>(), first, oel::count(src));
 	}
 
 	template<typename InputRange>
@@ -647,9 +646,9 @@ private:
 	template<typename ForwTravRange>
 	OEL_FORCEINLINE iterator _append(forward_traversal_tag, const ForwTravRange & src)
 	{	// multi-pass iterator, can count input objects
-		using IterSrc = decltype(::adl_begin(src));
 		auto const nElems = oel::count(src);
-		_appendN(can_memmove_with<T *, IterSrc>(), ::adl_begin(src), nElems);
+		auto first = ::adl_begin(src);
+		_appendN(can_memmove_with<T *, decltype(first)>(), first, nElems);
 
 		return end() - nElems;
 	}
@@ -703,13 +702,13 @@ private:
 			// Exception free from here
 			_relocateData(newData.ptr, pos);
 
-			_swapData(newData);
+			_swapBuf(newData);
 		}
 		_m.end = newEnd;
 	}
 
 	template<typename CalcCapFunc, typename MakeFunc, typename... Args>
-	iterator _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
+	T * _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
 							CalcCapFunc calcCap, MakeFunc addNew, Args &&... args)
 	{
 		_scopedPtr newData{*this, calcCap(*this, size() + nToAdd)};
@@ -722,9 +721,9 @@ private:
 		::memcpy(next, pos, sizeof(T) * nAfterPos);   // relocate suffix
 
 		_m.end = next + nAfterPos;
-		_swapData(newData);
+		_swapBuf(newData);
 
-		return OEL_DYNARR_ITERATOR(newPos);
+		return newPos;
 	}
 
 	struct _emplaceMakeElem
@@ -742,7 +741,7 @@ private:
 	#define OEL_DYNARR_INSERT_STEP0  \
 		_detail::AssertTrivialRelocate<T>();  \
 		\
-		auto const pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
+		auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
 		OEL_ASSERT_MEM_BOUND(data() <= pPos && pPos <= _m.end);  \
 		size_type const nAfterPos = _m.end - pPos;
 
@@ -766,7 +765,7 @@ private:
 					while (dest != dLast)
 					{
 						_allocTrait::construct(_m, dest, *first);
-						++dest; ++first;
+						++first; ++dest;
 					}
 				}
 				OEL_CATCH_ALL
@@ -776,11 +775,10 @@ private:
 					OEL_RETHROW;
 				}
 			}
-			return {OEL_DYNARR_ITERATOR(pPos), first};
 		}
 		else // not enough room, reallocate
 		{
-			iterator newPos = _insertRealloc( pPos, nAfterPos, count,
+			pPos = _insertRealloc( pPos, nAfterPos, count,
 					[](const dynarray & self, size_type newSize) { return self._calcCapMin(newSize); },
 					[&first](dynarray & self, T * newPos, size_type count)
 					{
@@ -788,8 +786,8 @@ private:
 						first = self._uninitCopy(TrivialCopy(), first, count, newPos, next);
 						return next;
 					} );
-			return {newPos, first};
 		}
+		return {OEL_DYNARR_ITERATOR(pPos), first};
 	}
 };
 
@@ -809,14 +807,13 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		++_m.end;
 
 		*reinterpret_cast<RawStore *>(pPos) = tmp; // relocate the new element to pos
-
-		return OEL_DYNARR_ITERATOR(pPos);
 	}
 	else
-	{	return _insertRealloc( pPos, nAfterPos, {},
+	{	pPos = _insertRealloc( pPos, nAfterPos, {},
 				[](const dynarray & self, size_type) { return self._calcCapAddOne(); },
 				_emplaceMakeElem{}, std::forward<Args>(args)... );
 	}
+	return OEL_DYNARR_ITERATOR(pPos);
 }
 #undef OEL_DYNARR_INSERT_STEP0
 
@@ -833,9 +830,9 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 		pointer const pos = newData.ptr + size();
 		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
 
-		_relocateData(newData.ptr, pos, std::true_type{});
+		_relocateData<true>(newData.ptr, pos);
 
-		_swapData(newData);
+		_swapBuf(newData);
 		_m.end = pos;
 	}
 	++_m.end;
