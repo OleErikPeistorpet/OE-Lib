@@ -205,8 +205,8 @@ namespace _detail
 	};
 
 
-	template<typename Alloc, bool IsEmpty>
-	struct AllocRef
+	template<typename Alloc, bool /*is empty*/>
+	struct AllocRefOptimizeEmpty
 	{
 		Alloc & alloc;
 
@@ -214,9 +214,9 @@ namespace _detail
 	};
 
 	template<typename Alloc>
-	struct AllocRef<Alloc, true>
+	struct AllocRefOptimizeEmpty<Alloc, true>
 	{
-		AllocRef(Alloc &) {}
+		AllocRefOptimizeEmpty(Alloc &) {}
 
 		Alloc Get() { return Alloc{}; }
 	};
@@ -234,15 +234,15 @@ namespace _detail
 
 
 	template<typename Alloc, typename InputIter, typename T>
-	T * UninitCopy(InputIter first, InputIter const last, T * dest, Alloc & alloc)
+	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc)
 	{
 		T *const destBegin = dest;
 		OEL_TRY
 		{
-			while (first != last)
+			while (dest != dLast)
 			{
-				std::allocator_traits<Alloc>::construct(alloc, dest, *first);
-				++dest; ++first;
+				std::allocator_traits<Alloc>::construct(alloc, dest, *src);
+				++src; ++dest;
 			}
 		}
 		OEL_CATCH_ALL
@@ -250,27 +250,7 @@ namespace _detail
 			_detail::Destroy(destBegin, dest);
 			OEL_RETHROW;
 		}
-		return dest;
-	}
-
-	template<typename Alloc, typename InputIter, typename T>
-	range_ends<InputIter, T *> UninitCopyN(InputIter first, size_t count, T * dest, Alloc & alloc)
-	{
-		T *const destBegin = dest;
-		OEL_TRY
-		{
-			for (; 0 < count; --count)
-			{
-				std::allocator_traits<Alloc>::construct(alloc, dest, *first);
-				++dest; ++first;
-			}
-		}
-		OEL_CATCH_ALL
-		{
-			_detail::Destroy(destBegin, dest);
-			OEL_RETHROW;
-		}
-		return {first, dest};
+		return src;
 	}
 
 

@@ -114,7 +114,10 @@ TEST_F(dynarrayTest, construct)
 	using Internal = std::deque<double *>;
 	dynarray<Internal> test{Internal(5), Internal()};
 	EXPECT_EQ(2U, test.size());
-	EXPECT_EQ(5U, test[0].size());
+
+	dynarray<Internal> test2(oel::from_range, test);
+	EXPECT_EQ(2U, test2.size());
+	EXPECT_EQ(5U, test2[0].size());
 
 	dynarray<bool> db(50, true);
 	for (const auto & b : db)
@@ -307,7 +310,6 @@ TEST_F(dynarrayTest, assignStringStream)
 		std::stringstream ss{"My computer emits Hawking radiation"};
 		std::istream_iterator<std::string> begin{ss};
 		std::istream_iterator<std::string> end;
-		//das.assign(begin, 5); // should not compile
 		das.assign(oel::make_range(begin, end));
 
 		EXPECT_EQ(5U, das.size());
