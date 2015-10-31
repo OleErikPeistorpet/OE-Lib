@@ -513,7 +513,7 @@ private:
 	void _erase(std::true_type, iterator const pos)
 	{
 		T *const ptr = to_pointer_contiguous(pos);
-		OEL_ASSERT_MEM_BOUND(data() <= ptr && ptr < _m.end);
+		OEL_ASSERT_MEM_BOUND(_m.data <= ptr && ptr < _m.end);
 
 		ptr-> ~T();
 		const T * next = ptr + 1;
@@ -732,7 +732,7 @@ private:
 		_detail::AssertTrivialRelocate<T>();  \
 		\
 		auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
-		OEL_ASSERT_MEM_BOUND(data() <= pPos && pPos <= _m.end);  \
+		OEL_ASSERT_MEM_BOUND(_m.data <= pPos && pPos <= _m.end);  \
 		size_type const nAfterPos = _m.end - pPos;
 
 		OEL_DYNARR_INSERT_STEP0
@@ -1026,7 +1026,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::pop_back() noexcept
 {
-	OEL_ASSERT_MEM_BOUND(data() < _m.end);
+	OEL_ASSERT_MEM_BOUND(_m.data < _m.end);
 	--_m.end;
 	(*_m.end).~T();
 }
@@ -1035,7 +1035,7 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_back(iterator first) noexcept
 {
 	pointer const newEnd = to_pointer_contiguous(first);
-	OEL_ASSERT_MEM_BOUND(data() <= newEnd && newEnd <= _m.end);
+	OEL_ASSERT_MEM_BOUND(_m.data <= newEnd && newEnd <= _m.end);
 	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
 }
@@ -1047,7 +1047,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 
 	T *const pFirst = to_pointer_contiguous(first);
 	T *const pLast = to_pointer_contiguous(last);
-	OEL_ASSERT_MEM_BOUND(data() <= pFirst && pFirst <= pLast && pLast <= _m.end);
+	OEL_ASSERT_MEM_BOUND(_m.data <= pFirst && pFirst <= pLast && pLast <= _m.end);
 	if (pFirst < pLast)
 	{
 		_detail::Destroy(pFirst, pLast);
