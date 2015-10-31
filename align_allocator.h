@@ -233,8 +233,12 @@ namespace _detail
 	}
 
 
-	template<typename Alloc, typename InputIter, typename T>
-	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc)
+	struct NoOp
+	{	void operator()(...) const {}
+	};
+
+	template<typename Alloc, typename InputIter, typename T, typename FuncTakingLast = NoOp>
+	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc, FuncTakingLast extraCleanup = {})
 	{
 		T *const destBegin = dest;
 		OEL_TRY
@@ -248,6 +252,7 @@ namespace _detail
 		OEL_CATCH_ALL
 		{
 			_detail::Destroy(destBegin, dest);
+			extraCleanup(dLast);
 			OEL_RETHROW;
 		}
 		return src;
