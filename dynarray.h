@@ -295,8 +295,8 @@ private:
 
 	struct _assertNothrowMoveConstruct
 	{
-		static_assert(std::is_nothrow_move_constructible<T>::value,
-			"This function requires noexcept move constructible T or is_trivially_relocatable<T> giving true");
+		static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
+			"This function requires that T is noexcept move constructible or trivially relocatable");
 	};
 
 #if _MSC_VER && OEL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
