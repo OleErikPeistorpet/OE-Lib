@@ -200,7 +200,7 @@ namespace _detail
 	}
 
 	template<typename InputIter, typename T>
-	range_ends<InputIter, T *> UninitCopyN(InputIter first, size_t count, T * dest)
+	InputIter UninitCopyN(InputIter first, size_t count, T * dest)
 	{
 		T *const destBegin = dest;
 		try
@@ -216,7 +216,7 @@ namespace _detail
 			_detail::Destroy(destBegin, dest);
 			throw;
 		}
-		return {first, dest};
+		return first;
 	}
 
 

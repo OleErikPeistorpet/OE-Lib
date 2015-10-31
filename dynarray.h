@@ -493,7 +493,7 @@ private:
 		_appendImpl( count,
 				[&first](pointer dest, size_type nElems)
 				{
-					first = _detail::UninitCopyN(first, nElems, dest).src_end;
+					first = _detail::UninitCopyN(first, nElems, dest);
 				} );
 		return first;
 	}
