@@ -22,6 +22,16 @@
 
 // This file is included by dynarray.h, so should not be needed in user code
 
+#if _MSC_VER < 1900 && __GNUC__ < 5 && !_LIBCPP_VERSION  // VC++ 2015, GCC 5, libc++ all good
+	#include <functional>
+
+	namespace oel
+	{
+	template<typename T>
+	struct is_trivially_copyable< std::reference_wrapper<T> > : std::true_type {};
+	}
+#endif
+
 namespace oel
 {
 

@@ -1,6 +1,7 @@
 #include "forward_decl_test.h"
 #include "iterator_range.h"
 #include "util.h"
+#include "compat/std_classes_extra.h"
 #include <deque>
 
 /// @cond INTERNAL
@@ -28,24 +29,24 @@ namespace statictest
 	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
 	static_assert(oel::can_memmove_with<float *, ConstIter>::value, "?");
 	static_assert(!oel::can_memmove_with<int *, float *>::value, "?");
+
+	static_assert(oel::is_trivially_relocatable< std::tuple<long, dynarray<bool>, double> >::value, "?");
+	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value, "?");
+	static_assert(!oel::is_trivially_relocatable< std::tuple<int, NontrivialReloc, int> >::value, "?");
+
+	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::deque<double>> >::value,
+				  "Not critical, this assert can be removed");
 }
 
 template<typename T>
-struct throwingAlloc
+struct throwingAlloc : public oel::allocator<T>
 {
-	using value_type = T;
-
 	T * allocate(size_t nObjs)
 	{
 		if (nObjs > 999)
 			throw std::bad_alloc{};
 
-		return static_cast<T *>(::operator new[](sizeof(T) * nObjs));
-	}
-
-	void deallocate(T * ptr, size_t)
-	{
-		::operator delete[](ptr);
+		return oel::allocator<T>::allocate(nObjs);
 	}
 };
 
@@ -99,6 +100,11 @@ TEST_F(dynarrayTest, oelDynarrWithStdAlloc)
 TEST_F(dynarrayTest, construct)
 {
 	// TODO: Test exception safety of constructors
+
+	{
+		oel::allocator<int> a;
+		ASSERT_TRUE(oel::allocator<std::string>{} == a);
+	}
 
 	{
 		Outer o;
@@ -582,6 +588,15 @@ TEST_F(dynarrayTest, overAligned)
 
 TEST_F(dynarrayTest, misc)
 {
+	{
+		dynarray<int> arr[]{ dynarray<int>(2, 1), {1, 1}, {1, 3} };
+		dynarray< std::reference_wrapper<const dynarray<int>> > refs{arr[0], arr[1]};
+		refs.push_back(arr[2]);
+		EXPECT_EQ(3, refs.at(2).get().at(1));
+		EXPECT_TRUE(refs.at(0) == refs.at(1));
+		EXPECT_TRUE(refs.at(1) != refs.at(2));
+	}
+
 	size_t fASrc[] = { 2, 3 };
 
 	dynarray<size_t> daSrc(oel::reserve, 2);

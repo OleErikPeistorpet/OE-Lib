@@ -58,15 +58,6 @@ typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typenam
 template<typename T, typename A> inline
 void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first)  { ctr.erase_back(first); }
 
-template<typename T, typename A>
-bool operator==(const dynarray<T, A> & left, const dynarray<T, A> & right)
-{
-	return left.size() == right.size() &&
-		   std::equal(left.begin(), left.end(), right.begin());
-}
-template<typename T, typename A> inline
-bool operator!=(const dynarray<T, A> & left, const dynarray<T, A> & right)  { return !(left == right); }
-
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
 *
@@ -284,6 +275,13 @@ public:
 
 	reference       operator[](size_type index) noexcept;
 	const_reference operator[](size_type index) const noexcept;
+
+	friend bool operator==(const dynarray & left, const dynarray & right)
+	{
+		return left.size() == right.size() &&
+			   std::equal(left.begin(), left.end(), right.begin());
+	}
+	friend bool operator!=(const dynarray & left, const dynarray & right)  { return !(left == right); }
 
 
 
