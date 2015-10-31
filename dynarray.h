@@ -325,10 +325,10 @@ private:
 		return reserved + (std::max)(reserved / 2, size_type(minGrow));
 	}
 
-	static size_type _calcCap(size_type reserved, size_type const newSize)
+	size_type _calcCapMin(size_type const newSize) const
 	{
-		reserved += reserved / 2;
-		return (std::max)(reserved, newSize);
+		size_type c = capacity();
+		return (std::max)(c + c / 2, newSize);
 	}
 
 	template<typename CntigusIter>
@@ -431,8 +431,8 @@ private:
 		_data.swap(newData);
 	}
 
-	template<typename CopyFunc>
-	OEL_FORCEINLINE iterator _appendImpl(size_type const count, CopyFunc makeNewElems)
+	template<typename UninitCopyFunc>
+	OEL_FORCEINLINE iterator _appendImpl(size_type const count, UninitCopyFunc makeNewElems)
 	{
 		_staticAssertRelocate();
 
@@ -444,7 +444,7 @@ private:
 		}
 		else
 		{
-			size_type const newCapacity = _calcCap(capacity(), size() + count);
+			size_type const newCapacity = _calcCapMin(size() + count);
 			_smartPtr newData{_alloc(newCapacity)};
 
 			size_type const oldSize = size();
@@ -557,38 +557,33 @@ private:
 		return OEL_DYNARR_ITERATOR(newPos);
 	}
 
-	template<typename UninitFillFunc>
-	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
+	void _growTo(size_type newCapacity)
 	{
 		_staticAssertRelocate();
 
-		size_type allocSize = capacity();
-		if (newSize <= allocSize)
-		{
-			pointer const newEnd = _data.get() + newSize;
-			if (_end < newEnd) // then construct new
-				initNewElems(_end, newEnd);
-			else // downsizing
-				_detail::Destroy(newEnd, _end);
+		pointer const newData = _alloc(newCapacity);
 
-			_end = newEnd;
-		}
-		else
-		{	// not enough room, reallocate
-			allocSize = _calcCap(allocSize, newSize);
-			_smartPtr newData{_alloc(allocSize)};
+		_reserveEnd = newData + newCapacity;
+		// Relocate elements
+		::memcpy(newData, _data.get(), sizeof(T) * size());
+		_end = newData + size();
 
-			size_type const oldSize = size();
-			pointer const newEnd = newData.get() + newSize;
-			initNewElems(newData.get() + oldSize, newEnd);
-			// Exception free from here
-			_end = newEnd;
-			_reserveEnd = newData.get() + allocSize;
+		_data.reset(newData);
+	}
 
-			::memcpy(newData.get(), _data.get(), sizeof(T) * oldSize);  // relocate old
+	template<typename UninitFillFunc>
+	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
+	{	// note: initNewElems cannot hold a reference to element of this
+		if (capacity() < newSize)
+			_growTo(_calcCapMin(newSize));
 
-			_data.swap(newData);
-		}
+		T *const newEnd = data() + newSize;
+		if (_end < newEnd) // then construct new
+			initNewElems(_end, newEnd);
+		else // downsizing
+			_detail::Destroy(newEnd, _end);
+
+		_end = newEnd;
 	}
 };
 
@@ -755,19 +750,8 @@ OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appen
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::reserve(size_type minCapacity)
 {
-	_staticAssertRelocate();
-
 	if (capacity() < minCapacity)
-	{
-		pointer const newData = _alloc(minCapacity);
-
-		_reserveEnd = newData + minCapacity;
-		// Relocate elements
-		::memcpy(newData, _data.get(), sizeof(T) * size());
-		_end = newData + size();
-
-		_data.reset(newData);
-	}
+		_growTo(minCapacity);
 }
 
 template<typename T, typename Alloc>
