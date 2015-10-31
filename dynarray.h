@@ -295,8 +295,10 @@ private:
 
 	struct _assertNothrowMoveConstruct
 	{
+	#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
 		static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
 			"This function requires that T is noexcept move constructible or trivially relocatable");
+	#endif
 	};
 
 #if _MSC_VER && OEL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
@@ -734,16 +736,16 @@ private:
 		size_type const nAfterPos = _m.end - pPos;
 
 		OEL_DYNARR_INSERT_STEP0
-		using TrivialCopy = can_memmove_with<T *, InputIter>;
+		using CanMemmove = can_memmove_with<T *, InputIter>;
 		if (_unusedCapacity() >= count)
 		{
 			T *const dLast = pPos + count;
 			// Relocate elements to make space for new, conceptually destroying [pos, pos + count)
 			::memmove(dLast, pPos, sizeof(T) * nAfterPos);
 			_m.end += count;
-			OEL_CONST_COND if (TrivialCopy::value)
+			OEL_CONST_COND if (CanMemmove::value)
 			{
-				first = _uninitCopy(TrivialCopy(), first, count, pPos, dLast);
+				first = _uninitCopy(CanMemmove(), first, count, pPos, dLast);
 			}
 			else
 			{
@@ -771,7 +773,7 @@ private:
 					[&first](dynarray & self, T * newPos, size_type count)
 					{
 						T *const next = newPos + count;
-						first = self._uninitCopy(TrivialCopy(), first, count, newPos, next);
+						first = self._uninitCopy(CanMemmove(), first, count, newPos, next);
 						return next;
 					} );
 		}
