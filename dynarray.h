@@ -847,7 +847,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & alloc) noexcept
 
 template<typename T, typename Alloc>
 dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
-{	
+{
 	if (static_cast<Alloc &>(_m) != other._m &&
 		!_allocTrait::propagate_on_container_move_assignment::value)
 	{
