@@ -84,15 +84,9 @@ public:
 #if OEL_MEM_BOUND_DEBUG_LVL
 	using iterator       = contiguous_ctnr_iterator< pointer, dynarray<T, Alloc> >;
 	using const_iterator = contiguous_ctnr_iterator< const_pointer, dynarray<T, Alloc> >;
-
-	#define OEL_DYNARR_ITERATOR(ptr)        iterator{ptr, this}            // these are macros to avoid function call
-	#define OEL_DYNARR_CONST_ITER(constPtr) const_iterator{constPtr, this} // overhead in builds without inlining
 #else
 	using iterator       = pointer;
 	using const_iterator = const_pointer;
-
-	#define OEL_DYNARR_ITERATOR(ptr)        (ptr)
-	#define OEL_DYNARR_CONST_ITER(constPtr) (constPtr)
 #endif
 	using reverse_iterator       = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
@@ -196,7 +190,7 @@ public:
 	* Otherwise same as insert_r(const_iterator, const ForwardRange &)  */
 	template<typename ForwardIterator>
 	ForwardIterator insert_r(const_iterator position, ForwardIterator first, size_type count);
-	/// Equivalent to std::vector::insert(position, begin(source), end(source)), with a few compile-time limitations
+	/// Equivalent to std::vector::insert(position, begin(source), end(source)), with a couple compile-time limitations
 	template<typename ForwardRange>
 	iterator        insert_r(const_iterator position, const ForwardRange & source);
 
@@ -247,12 +241,12 @@ public:
 
 	allocator_type get_allocator() const  { return _m; }
 
-	iterator        begin() noexcept         { return OEL_DYNARR_ITERATOR(_m.data); }
-	const_iterator  begin() const noexcept   { return OEL_DYNARR_CONST_ITER(_m.data); }
+	iterator        begin() noexcept         { return _makeIterator(_m.data, this); }
+	const_iterator  begin() const noexcept   { return _makeConstIter(_m.data, this); }
 	const_iterator  cbegin() const noexcept  { return begin(); }
 
-	iterator        end() noexcept           { return OEL_DYNARR_ITERATOR(_m.end); }
-	const_iterator  end() const noexcept     { return OEL_DYNARR_CONST_ITER(_m.end); }
+	iterator        end() noexcept           { return _makeIterator(_m.end, this); }
+	const_iterator  end() const noexcept     { return _makeConstIter(_m.end, this); }
 	const_iterator  cend() const noexcept    { return end(); }
 
 	reverse_iterator       rbegin() noexcept        { return reverse_iterator{end()}; }
@@ -267,8 +261,8 @@ public:
 	reference       front() noexcept        { return *begin(); }
 	const_reference front() const noexcept  { return *begin(); }
 
-	reference       back() noexcept         { return *OEL_DYNARR_ITERATOR(_m.end - 1); }
-	const_reference back() const noexcept   { return *OEL_DYNARR_CONST_ITER(_m.end - 1); }
+	reference       back() noexcept         { return *_makeIterator(_m.end - 1, this); }
+	const_reference back() const noexcept   { return *_makeConstIter(_m.end - 1, this); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -291,6 +285,14 @@ public:
 
 
 private:
+#if OEL_MEM_BOUND_DEBUG_LVL
+	using _makeIterator  = iterator;
+	using _makeConstIter = const_iterator;
+#else
+	static iterator       _makeIterator(pointer pos, dynarray *)              { return pos; }
+	static const_iterator _makeConstIter(const_pointer pos, const dynarray *) { return pos; }
+#endif
+
 	using _allocTrait = std::allocator_traits<Alloc>;
 
 	struct _assertNothrowMoveConstruct
@@ -777,7 +779,7 @@ private:
 						return next;
 					} );
 		}
-		return {OEL_DYNARR_ITERATOR(pPos), first};
+		return {_makeIterator(pPos, this), first};
 	}
 };
 
@@ -803,7 +805,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 				[](const dynarray & self, size_type) { return self._calcCapAddOne(); },
 				_emplaceMakeElem{}, std::forward<Args>(args)... );
 	}
-	return OEL_DYNARR_ITERATOR(pPos);
+	return _makeIterator(pPos, this);
 }
 #undef OEL_DYNARR_INSERT_STEP0
 
@@ -1099,8 +1101,6 @@ inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operato
 	return _m.data[index];
 }
 
-#undef OEL_DYNARR_ITERATOR
-#undef OEL_DYNARR_CONST_ITER
 #undef OEL_FORCEINLINE
 
 } // namespace oel
