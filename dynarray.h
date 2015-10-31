@@ -847,26 +847,23 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & alloc) noexcept
 
 template<typename T, typename Alloc>
 dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
-{
-	if (this != &other)
+{	
+	if (static_cast<Alloc &>(_m) != other._m &&
+		!_allocTrait::propagate_on_container_move_assignment::value)
 	{
-		if (static_cast<Alloc &>(_m) != other._m &&
-			!_allocTrait::propagate_on_container_move_assignment::value)
+		_detail::Destroy(_m.data, _m.end);
+		_moveUnequalAlloc(other);
+	}
+	else if (this != &other)
+	{
+		if (_m.data)
 		{
 			_detail::Destroy(_m.data, _m.end);
-			_moveUnequalAlloc(other);
+			_m.deallocate(_m.data, capacity());
 		}
-		else
-		{
-			if (_m.data)
-			{
-				_detail::Destroy(_m.data, _m.end);
-				_m.deallocate(_m.data, capacity());
-			}
-			static_cast<_dynarrValues &>(_m) = other._m;
-			_moveAssignAlloc(_allocTrait::propagate_on_container_move_assignment(), other._m);
-			other._m.reserveEnd = other._m.end = other._m.data = nullptr;
-		}
+		static_cast<_dynarrValues &>(_m) = other._m;
+		_moveAssignAlloc(_allocTrait::propagate_on_container_move_assignment(), other._m);
+		other._m.reserveEnd = other._m.end = other._m.data = nullptr;
 	}
 	return *this;
 }
