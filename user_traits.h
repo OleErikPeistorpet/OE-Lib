@@ -65,8 +65,8 @@ struct is_trivially_copyable :
 	#endif
 
 /**
-* @brief Function declaration to specify that T does not have a pointer member to any of its data members,
-*	including inherited, and does not notify any observers in its copy/move constructor or operator =.
+* @brief Function declaration to specify that T does not have a pointer member to any of its data members
+*	(including inherited), and does not notify any observers in its copy/move constructor.
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
 * http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
