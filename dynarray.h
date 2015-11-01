@@ -114,8 +114,8 @@ public:
 	dynarray(from_range_tag, const InputRange & source, const Alloc & alloc = Alloc{})  : _m(alloc) { assign(source); }
 
 	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
-	/// If using custom Alloc, behaviour is undefined (assertion unless NDEBUG) when
-	/// alloc != other.get_allocator() and is_trivially_relocatable<T> is false
+	/// If using custom Alloc, behaviour is undefined (assertion unless NDEBUG)
+	/// when alloc != other.get_allocator() and T is not trivially relocatable
 	dynarray(dynarray && other, const Alloc & alloc) noexcept;
 	dynarray(const dynarray & other);
 	dynarray(const dynarray & other, const Alloc & alloc);
@@ -123,7 +123,7 @@ public:
 	~dynarray() noexcept;
 
 	/// If using custom Alloc with propagate_on_container_move_assignment false, behaviour is undefined
-	/// when get_allocator() != other.get_allocator() and is_trivially_relocatable<T> is false
+	/// when get_allocator() != other.get_allocator() and T is not trivially relocatable
 	dynarray & operator =(dynarray && other) noexcept;
 	dynarray & operator =(const dynarray & other);
 
