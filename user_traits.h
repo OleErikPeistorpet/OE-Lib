@@ -51,6 +51,11 @@ class dynarray;
 
 
 
+template<bool Val>
+using bool_constant = std::integral_constant<bool, Val>;
+
+using std::true_type;
+
 /// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
 template<typename T>
 struct is_trivially_copyable :
@@ -91,11 +96,6 @@ struct is_trivially_relocatable;
 
 // Many useful classes are declared trivially relocatable, see compat folder
 
-
-template<bool Val>
-using bool_constant = std::integral_constant<bool, Val>;
-
-using std::true_type;
 
 template<bool...> struct bool_pack_t;
 
