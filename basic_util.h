@@ -171,15 +171,15 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 
 
 #if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
-	#define OEL_THROW(exception) throw exception
-	#define OEL_RETHROW          throw
-	#define OEL_TRY              try
-	#define OEL_CATCH_ALL        catch (...)
+	#define OEL_THROW_(exception)     throw exception
+	#define OEL_TRY_                  try
+	#define OEL_CATCH_ALL             catch (...)
+	#define OEL_WHEN_EXCEPTIONS_ON(x) x
 #else
-	#define OEL_THROW(exception) std::terminate()
-	#define OEL_RETHROW
-	#define OEL_TRY
-	#define OEL_CATCH_ALL        OEL_CONST_COND if (false)
+	#define OEL_THROW_(exception)     std::terminate()
+	#define OEL_TRY_
+	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
+	#define OEL_WHEN_EXCEPTIONS_ON(x)
 #endif
 
 #if OEL_MEM_BOUND_DEBUG_LVL

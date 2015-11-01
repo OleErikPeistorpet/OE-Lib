@@ -139,7 +139,7 @@ namespace _detail
 				std::set_new_handler(handler);
 			#endif
 				if (!handler)
-					OEL_THROW(std::bad_alloc{});
+					OEL_THROW_(std::bad_alloc{});
 
 				(*handler)();
 			}
@@ -241,7 +241,7 @@ namespace _detail
 	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc, FuncTakingLast extraCleanup = {})
 	{
 		T *const destBegin = dest;
-		OEL_TRY
+		OEL_TRY_
 		{
 			while (dest != dLast)
 			{
@@ -253,7 +253,7 @@ namespace _detail
 		{
 			_detail::Destroy(destBegin, dest);
 			extraCleanup(dLast);
-			OEL_RETHROW;
+			OEL_WHEN_EXCEPTIONS_ON(throw);
 		}
 		return src;
 	}
@@ -263,7 +263,7 @@ namespace _detail
 	void UninitFillImpl(std::false_type, T * first, T *const last, Alloc & alloc, const Arg &... arg)
 	{
 		T *const init = first;
-		OEL_TRY
+		OEL_TRY_
 		{
 			for (; first != last; ++first)
 				std::allocator_traits<Alloc>::construct(alloc, first, arg...);
@@ -271,7 +271,7 @@ namespace _detail
 		OEL_CATCH_ALL
 		{
 			_detail::Destroy(init, first);
-			OEL_RETHROW;
+			OEL_WHEN_EXCEPTIONS_ON(throw);
 		}
 	}
 

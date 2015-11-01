@@ -293,21 +293,21 @@ private:
 	static const_iterator _makeConstIter(const_pointer pos, const dynarray *) { return pos; }
 #endif
 
-	using _allocTrait = std::allocator_traits<Alloc>;
-
-	struct _assertNothrowMoveConstruct
-	{
-	#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
-		static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
-			"This function requires that T is noexcept move constructible or trivially relocatable");
-	#endif
-	};
-
 #if _MSC_VER && OEL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
 	#define OEL_FORCEINLINE __forceinline
 #else
 	#define OEL_FORCEINLINE inline
 #endif
+
+	using _allocTrait = std::allocator_traits<Alloc>;
+
+	struct _assertNothrowMoveConstruct
+	{
+		OEL_WHEN_EXCEPTIONS_ON(
+			static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
+				"This function requires that T is noexcept move constructible or trivially relocatable") );
+	};
+
 
 	using _scopedPtrBase = _detail::AllocRefOptimizeEmpty< Alloc, std::is_empty<Alloc>::value >;
 
@@ -621,7 +621,7 @@ private:
 	iterator _append(single_pass_traversal_tag, const InputRange & src)
 	{	// slowest append
 		size_type const oldSize = size();
-		OEL_TRY
+		OEL_TRY_
 		{
 			for (auto && v : src)
 				emplace_back( std::forward<decltype(v)>(v) );
@@ -629,7 +629,7 @@ private:
 		OEL_CATCH_ALL
 		{
 			erase_back(begin() + oldSize);
-			OEL_RETHROW;
+			OEL_WHEN_EXCEPTIONS_ON(throw);
 		}
 		return begin() + oldSize;
 	}
@@ -752,7 +752,7 @@ private:
 			else
 			{
 				T * dest = pPos;
-				OEL_TRY
+				OEL_TRY_
 				{
 					while (dest != dLast)
 					{
@@ -764,7 +764,7 @@ private:
 				{	// relocate back to fill hole
 					::memmove(dest, dLast, sizeof(T) * nAfterPos);
 					_m.end -= (dLast - dest);
-					OEL_RETHROW;
+					OEL_WHEN_EXCEPTIONS_ON(throw);
 				}
 			}
 		}
@@ -1085,7 +1085,7 @@ typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i
 	if (_indexValid(index))
 		return _m.data[index];
 	else
-		OEL_THROW(std::out_of_range("Invalid index dynarray::at"));
+		OEL_THROW_(std::out_of_range("Invalid index dynarray::at"));
 }
 
 template<typename T, typename Alloc>
