@@ -160,14 +160,14 @@ public:
 	* Causes reallocation if the pre-call size + count is greater than capacity. On reallocation, all iterators
 	* and references are invalidated. Otherwise, any previous end iterator will point to the first element added.
 	* Strong exception guarantee, this function has no effect if an exception is thrown. */
-	template<typename InputIterator, typename = decltype( *std::declval<InputIterator>() )>
-	InputIterator append(InputIterator first, size_type count);
+	template<typename InputIterator>
+	InputIterator append_n(InputIterator first, size_type count);
 	/**
 	* @brief Add at end the elements from range (in same order)
 	* @param source an array, STL container, iterator_range or such. (Look up Boost.Range 2.0 concepts)
 	* @return iterator pointing to first of the new elements in dynarray, or end if source is empty
 	*
-	* Otherwise same as append(InputIterator, size_type)  */
+	* Otherwise same as append_n(InputIterator, size_type)  */
 	template<typename InputRange>
 	iterator      append(const InputRange & source);
 	/// Equivalent to calling append(const InputRange &) with il as argument
@@ -189,8 +189,8 @@ public:
 	*
 	* Otherwise same as insert_r(const_iterator, const ForwardRange &)  */
 	template<typename ForwardIterator>
-	ForwardIterator insert_r(const_iterator position, ForwardIterator first, size_type count);
-	/// Equivalent to std::vector::insert(position, begin(source), end(source)), with a couple compile-time limitations
+	ForwardIterator insert_n(const_iterator position, ForwardIterator first, size_type count);
+	/// Equivalent to std::vector::insert(position, begin(source), end(source))
 	template<typename ForwardRange>
 	iterator        insert_r(const_iterator position, const ForwardRange & source);
 
@@ -984,8 +984,8 @@ inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 		} );
 }
 
-template<typename T, typename Alloc> template<typename InputIterator, typename>
-OEL_FORCEINLINE InputIterator dynarray<T, Alloc>::append(InputIterator first, size_type count)
+template<typename T, typename Alloc> template<typename InputIterator>
+OEL_FORCEINLINE InputIterator dynarray<T, Alloc>::append_n(InputIterator first, size_type count)
 {
 	return _appendN(can_memmove_with<T *, InputIterator>(), first, count);
 }
@@ -1005,7 +1005,7 @@ OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appen
 
 template<typename T, typename Alloc> template<typename ForwardIterator>
 inline ForwardIterator dynarray<T, Alloc>::
-	insert_r(const_iterator pos, ForwardIterator first, size_type count)
+	insert_n(const_iterator pos, ForwardIterator first, size_type count)
 {
 	return _insert(pos, first, count).second;
 }

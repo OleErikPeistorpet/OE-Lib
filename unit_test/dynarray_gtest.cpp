@@ -368,7 +368,7 @@ TEST_F(dynarrayTest, append)
 
 		double const TEST_VAL = 6.6;
 		dest.append(2, TEST_VAL);
-		dest.append(dest.begin(), dest.size());
+		dest.append_n(dest.begin(), dest.size());
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
 			EXPECT_EQ(TEST_VAL, d);
@@ -377,7 +377,7 @@ TEST_F(dynarrayTest, append)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.append(oel::begin(arrayA), oel::count(arrayA));
+	double_dynarr.append_n(oel::begin(arrayA), oel::count(arrayA));
 	double_dynarr.append(double_dynarr2);
 
 	{
@@ -406,11 +406,11 @@ TEST_F(dynarrayTest, append)
 
 		std::istream_iterator<int> it(ss);
 
-		it = dest.append(it, 2);
+		it = dest.append_n(it, 2);
 
-		dest.append(it, 2);
+		dest.append_n(it, 2);
 
-		for (int i = 0; i < static_cast<int>(dest.size()); ++i)
+		for (int i = 0; i < ssize(dest); ++i)
 			EXPECT_EQ(i + 1, dest[i]);
 	}
 }
@@ -429,7 +429,7 @@ TEST_F(dynarrayTest, insertR)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.insert_r(double_dynarr.begin(), oel::begin(arrayA), oel::count(arrayA));
+	double_dynarr.insert_n(double_dynarr.begin(), oel::begin(arrayA), oel::count(arrayA));
 	double_dynarr.insert_r(double_dynarr.end(), double_dynarr2);
 
 	{
@@ -616,9 +616,9 @@ TEST_F(dynarrayTest, misc)
 	dest0.reserve(1);
 	dest0 = daSrc;
 
-	dest0.append(cbegin(daSrc), daSrc.size());
-	dest0.append(fASrc, 2);
-	auto srcEnd = dest0.append(dequeSrc.begin(), dequeSrc.size());
+	dest0.append_n(cbegin(daSrc), daSrc.size());
+	dest0.append_n(fASrc, 2);
+	auto srcEnd = dest0.append_n(dequeSrc.begin(), dequeSrc.size());
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;
