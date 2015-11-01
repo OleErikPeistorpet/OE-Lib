@@ -62,14 +62,14 @@ protected:
 	// Objects declared here can be used by all tests.
 };
 
+using MyAllocStr = oel::allocator<std::string>;
+static_assert(oel::is_trivially_copyable<MyAllocStr>::value, "?");
+
 #if _MSC_VER || __GNUC__ >= 5
 
 TEST_F(dynarrayTest, stdDequeWithOelAlloc)
 {
-	using MyAlloc = oel::allocator<std::string>;
-	static_assert(oel::is_trivially_copyable<MyAlloc>::value, "?");
-
-	std::deque<std::string, MyAlloc> v{"Test"};
+	std::deque<std::string, MyAllocStr> v{"Test"};
 	v.emplace_front();
 	EXPECT_EQ("Test", v.at(1));
 	EXPECT_TRUE(v.front().empty());

@@ -43,13 +43,14 @@ is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 template<typename T, typename A> inline
 void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
 
+/// Overloads generic erase_unordered(Container &, OutputIterator) (in util.h)
 template<typename T, typename A> inline
 typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator position)
 	{ return ctr.erase_unordered(position); }
 
-/// Non-member erase_back, overloads generic erase_back(Container &, Container::iterator)
+/// Overloads generic erase_back(Container &, Container::iterator) (in util.h)
 template<typename T, typename A> inline
-void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first)  { ctr.erase_back(first); }
+void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first) noexcept  { ctr.erase_back(first); }
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
@@ -61,7 +62,7 @@ void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first)  
 * emplace, insert, insert_r, erase(iterator, iterator)
 *
 * The default allocator supports over-aligned types (e.g. __m256)  */
-template<typename T, typename Alloc>
+template<typename T, typename Alloc/* = oel::allocator<T> */>
 class dynarray
 {
 public:
