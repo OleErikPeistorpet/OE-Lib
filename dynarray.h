@@ -92,8 +92,8 @@ public:
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 
-	dynarray() noexcept                     : _m(Alloc{}) {}
-	explicit dynarray(const Alloc & alloc)  : _m(alloc) {}
+	dynarray() noexcept                              : _m(Alloc{}) {}
+	explicit dynarray(const Alloc & alloc) noexcept  : _m(alloc) {}
 
 	/// Construct empty dynarray with space reserved for at least capacity elements
 	dynarray(reserve_tag, size_type capacity, const Alloc & alloc = Alloc{})  : _m(alloc, capacity) {}
@@ -114,7 +114,7 @@ public:
 	dynarray(from_range_tag, const InputRange & source, const Alloc & alloc = Alloc{})  : _m(alloc) { assign(source); }
 
 	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
-	/// Behaviour is undefined if using custom Alloc when
+	/// If using custom Alloc, behaviour is undefined (assertion unless NDEBUG) when
 	/// alloc != other.get_allocator() and is_trivially_relocatable<T> is false
 	dynarray(dynarray && other, const Alloc & alloc) noexcept;
 	dynarray(const dynarray & other);
@@ -122,8 +122,8 @@ public:
 
 	~dynarray() noexcept;
 
-	/// Behaviour is undefined if using custom Alloc with propagate_on_container_move_assignment false,
-	/// get_allocator() != other.get_allocator() and is_trivially_relocatable<T> is false
+	/// If using custom Alloc with propagate_on_container_move_assignment false, behaviour is undefined
+	/// when get_allocator() != other.get_allocator() and is_trivially_relocatable<T> is false
 	dynarray & operator =(dynarray && other) noexcept;
 	dynarray & operator =(const dynarray & other);
 
