@@ -34,13 +34,6 @@ namespace oel
 	using single_pass_traversal_tag = std::input_iterator_tag;
 #endif
 
-
-/// Tag to select dynarray constructor that allocates storage. A const instance named reserve is provided to pass
-struct reserve_tag
-{	explicit reserve_tag() {}
-}
-const reserve;
-
 ////////////////////////////////////////////////////////////////////////////////
 
 /// dynarray<dynarray<T>> is efficient

@@ -135,17 +135,23 @@ struct can_memmove_with;
 
 
 
-/// Tag to specify default initialization. The const instance default_init is provided for convenience
+/// Tag to select a constructor that allocates a minimum amount of storage
+struct reserve_tag
+{	explicit reserve_tag() {}
+}
+const reserve; ///< An instance of reserve_tag to pass
+
+/// Tag to specify default initialization
 struct default_init_tag
 {	explicit default_init_tag() {}
 }
-const default_init;
+const default_init; ///< An instance of default_init_tag to pass
 
-/// Tag to select construction from a single range object. The const instance from_range is provided to pass
+/// Tag to select construction from a single range object
 struct from_range_tag
 {	explicit from_range_tag() {}
 }
-const from_range;
+const from_range; ///< An instance of from_range_tag to pass
 
 
 
