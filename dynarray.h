@@ -140,7 +140,7 @@ public:
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template<typename InputIterator>
-	InputIterator assign(InputIterator first, size_type count);
+	InputIterator assign_n(InputIterator first, size_type count);
 	/**
 	* @brief Replace the contents with range
 	* @param source an array, STL container, iterator_range or such. (Look up Boost.Range 2.0 concepts.)
@@ -962,7 +962,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 
 
 template<typename T, typename Alloc> template<typename InputIterator>
-InputIterator dynarray<T, Alloc>::assign(InputIterator first, size_type count)
+InputIterator dynarray<T, Alloc>::assign_n(InputIterator first, size_type count)
 {
 	return _assignImpl(can_memmove_with<T *, InputIterator>(), first, count);
 }

@@ -252,7 +252,7 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(std::make_move_iterator(src), 0);
+		test.assign_n(std::make_move_iterator(src), 0);
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
@@ -263,7 +263,7 @@ TEST_F(dynarrayTest, assign)
 		{
 			NontrivialReloc obj{-5.0, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign(&obj, 1);
+			{	dest.assign_n(&obj, 1);
 			}
 			catch (TestException &) {
 			}
@@ -293,7 +293,7 @@ TEST_F(dynarrayTest, assign)
 
 			NontrivialReloc obj{-1.3, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign(&obj, 1);
+			{	dest.assign_n(&obj, 1);
 			}
 			catch (TestException &) {
 			}
@@ -328,8 +328,8 @@ TEST_F(dynarrayTest, assignStringStream)
 
 		decltype(das) copyDest;
 
-		copyDest.assign(cbegin(das), 2);
-		copyDest.assign(cbegin(das), das.size());
+		copyDest.assign_n(cbegin(das), 2);
+		copyDest.assign_n(cbegin(das), das.size());
 
 		EXPECT_TRUE(das == copyDest);
 
@@ -338,7 +338,7 @@ TEST_F(dynarrayTest, assignStringStream)
 		EXPECT_EQ(1U, copyDest.size());
 		EXPECT_EQ(das[0], copyDest[0]);
 
-		copyDest.assign(cbegin(das) + 2, 3);
+		copyDest.assign_n(cbegin(das) + 2, 3);
 
 		EXPECT_EQ(3U, copyDest.size());
 		EXPECT_EQ(das[2], copyDest[0]);
