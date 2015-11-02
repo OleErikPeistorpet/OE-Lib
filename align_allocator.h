@@ -145,7 +145,7 @@ namespace _detail
 			}
 		}
 	#else
-		static_assert(Align == 0, // always false
+		static_assert(Align == -1, // false
 			"The value of Align is not supported by operator new. Boost v1.56 required (and OEL_NO_BOOST not defined).");
 		return nullptr;
 	#endif

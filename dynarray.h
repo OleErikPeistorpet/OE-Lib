@@ -152,7 +152,7 @@ public:
 	*
 	* Otherwise same as append(const InputRange &)  */
 	template<typename InputRange>
-	auto    append_rs(const InputRange & source) -> decltype(::adl_begin(source));
+	auto     append_rs(const InputRange & source) -> decltype(::adl_begin(source));
 	/// Equivalent to calling append(const InputRange &) with il as argument
 	iterator   append(std::initializer_list<T> il);
 	/// Equivalent to std::vector::insert(end(), count, val), but with strong exception guarantee
@@ -167,13 +167,13 @@ public:
 	void       resize(size_type newSize)                    { _resizeImpl(newSize, _detail::UninitFill<Alloc, T>); }
 
 	/// Equivalent to std::vector::insert(position, begin(source), end(source))
-	template<typename ForwardRange>
-	iterator   insert_m(const_iterator position, const ForwardRange & source);
+	template<typename ForwardOrSizedRange>
+	iterator   insert_m(const_iterator position, const ForwardOrSizedRange & source);
 	/**
-	* @brief Equivalent to insert_m(const_iterator, const ForwardRange &), except returning source
+	* @brief Equivalent to insert_m(const_iterator, const ForwardOrSizedRange &), except returning source
 	* @return iterator to end of source range  */
-	template<typename ForwardRange>
-	auto    insert_rs(const_iterator position, const ForwardRange & source) -> decltype(::adl_begin(source));
+	template<typename ForwardOrSizedRange>
+	auto     insert_rs(const_iterator position, const ForwardOrSizedRange & source) -> decltype(::adl_begin(source));
 
 	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
@@ -511,21 +511,21 @@ private:
 	}
 
 
+	template<typename Range, typename IterTrav>
+	static auto _count(const Range & r, IterTrav, int) -> decltype(oel::ssize(r)) { return oel::ssize(r); }
+
 	template<typename Range>
-	static size_type _getSizeHelper(const Range & r, forward_traversal_tag)
+	static size_type _count(const Range & r, forward_traversal_tag, long)
 	{
 		return std::distance(::adl_begin(r), ::adl_end(r));
 	}
 
 	template<typename Range>
-	static std::false_type _getSizeHelper(const Range &, single_pass_traversal_tag) { return {}; }
+	static std::false_type _count(const Range &, single_pass_traversal_tag, long) { return {}; }
 
 	template<typename Iter, typename Range>
-	static auto _getSize(const Range & r, long) -> decltype( _getSizeHelper(r, iterator_traversal_t<Iter>()) )
-													{ return _getSizeHelper(r, iterator_traversal_t<Iter>()); }
-
-	template<typename, typename Range>
-	static auto _getSize(const Range & r, int) -> decltype(oel::ssize(r)) { return oel::ssize(r); }
+	static auto _count(const Range & r) -> decltype(_count(r, iterator_traversal_t<Iter>(), int{}))
+										   { return _count(r, iterator_traversal_t<Iter>(), int{}); }
 
 
 	void _moveUnequalAlloc(dynarray & src)
@@ -608,7 +608,7 @@ private:
 
 	template<typename InputIter, typename InputRange>
 	InputIter _assign(const InputRange & src, std::false_type)
-	{	// cannot count before assigning
+	{	// could not count before assigning
 		clear();
 		InputIter it = ::adl_begin(src);
 		for (auto last = ::adl_end(src); it != last; ++it)
@@ -706,9 +706,8 @@ private:
 	template<typename InputIter, typename InputRange>
 	std::pair<iterator, InputIter> _insert(const_iterator, const InputRange &, std::false_type)
 	{
-		static_assert(sizeof InputIter == 0, // dummy test
-			"insert requires that iterator of source meets requirements of Forward Traversal Iterator (Boost concept)"
-			"or that source has valid size() member function");
+		static_assert(sizeof InputIter == -1, // false
+			"insert requires that source models Forward Range (Boost concept) or that source.size() is valid");
 		return {};
 	}
 
@@ -978,7 +977,7 @@ template<typename T, typename Alloc> template<typename InputRange>
 inline auto dynarray<T, Alloc>::assign(const InputRange & src) -> decltype(::adl_begin(src))
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _assign<IterSrc>(src, _getSize<IterSrc>(src, int{}));
+	return _assign<IterSrc>(src, _count<IterSrc>(src));
 }
 
 template<typename T, typename Alloc>
@@ -995,14 +994,14 @@ template<typename T, typename Alloc> template<typename InputRange>
 OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & src)
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _append<IterSrc>(src, _getSize<IterSrc>(src, int{})).first;
+	return _append<IterSrc>(src, _count<IterSrc>(src)).first;
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
 OEL_FORCEINLINE auto dynarray<T, Alloc>::append_rs(const InputRange & src) -> decltype(::adl_begin(src))
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _append<IterSrc>(src, _getSize<IterSrc>(src, int{})).second;
+	return _append<IterSrc>(src, _count<IterSrc>(src)).second;
 }
 
 template<typename T, typename Alloc>
@@ -1011,20 +1010,20 @@ OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appen
 	return append<>(il);
 }
 
-template<typename T, typename Alloc> template<typename ForwardRange>
+template<typename T, typename Alloc> template<typename ForwardOrSizedRange>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
-	insert_m(const_iterator pos, const ForwardRange & src)
+	insert_m(const_iterator pos, const ForwardOrSizedRange & src)
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _insert<IterSrc>(pos, src, _getSize<IterSrc>(src, int{})).first;
+	return _insert<IterSrc>(pos, src, _count<IterSrc>(src)).first;
 }
 
-template<typename T, typename Alloc> template<typename ForwardRange>
-inline auto dynarray<T, Alloc>::insert_rs(const_iterator pos, const ForwardRange & src)
+template<typename T, typename Alloc> template<typename ForwardOrSizedRange>
+inline auto dynarray<T, Alloc>::insert_rs(const_iterator pos, const ForwardOrSizedRange & src)
  -> decltype(::adl_begin(src))
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _insert<IterSrc>(pos, src, _getSize<IterSrc>(src, int{})).second;
+	return _insert<IterSrc>(pos, src, _count<IterSrc>(src)).second;
 }
 
 

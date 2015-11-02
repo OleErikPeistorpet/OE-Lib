@@ -112,12 +112,6 @@ constexpr auto ssize(const SizedRange & r)
 template<typename T, std::ptrdiff_t Size> inline
 constexpr std::ptrdiff_t ssize(const T (&)[Size]) noexcept  { return Size; }
 
-/** @brief Count the elements in r
-*
-* @return ssize(r) if possible, otherwise equivalent to std::distance(begin(r), end(r))  */
-template<typename InputRange>
-auto count(const InputRange & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type;
-
 
 
 /// Convert iterator to pointer. This should be overloaded for each contiguous memory iterator class
@@ -234,15 +228,6 @@ namespace _detail
 
 	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
 	inline std::false_type CanMemmoveWith(...);
-
-////////////////////////////////////////////////////////////////////////////////
-
-	template<typename SizedRange> inline // pass dummy int to prefer this overload
-	auto Count(const SizedRange & r, int) -> decltype(oel::ssize(r)) { return oel::ssize(r); }
-
-	template<typename InputRange> inline
-	auto Count(const InputRange & r, long) -> decltype( std::distance(begin(r), end(r)) )
-											   { return std::distance(begin(r), end(r)); }
 }
 
 } // namespace oel
@@ -255,10 +240,3 @@ struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<It
 
 template<typename T>
 struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};
-
-
-template<typename InputRange>
-inline auto oel::count(const InputRange & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
-{
-	return _detail::Count(r, int{});
-}

@@ -377,7 +377,7 @@ TEST_F(dynarrayTest, append)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.append_rs( oel::make_range_n(oel::begin(arrayA), oel::count(arrayA)) );
+	double_dynarr.append_rs( oel::make_range_n(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.append(double_dynarr2);
 
 	{
@@ -429,7 +429,7 @@ TEST_F(dynarrayTest, insertR)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.insert_rs( double_dynarr.begin(), oel::make_range_n(oel::begin(arrayA), oel::count(arrayA)) );
+	double_dynarr.insert_rs( double_dynarr.begin(), oel::make_range_n(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.insert_m(double_dynarr.end(), double_dynarr2);
 
 	{
