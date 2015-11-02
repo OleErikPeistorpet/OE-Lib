@@ -58,7 +58,7 @@ void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first) n
 * Efficiency is better if template argument T is trivially relocatable, which is true for most types, but needs
 * to be declared manually for each type that is not trivially copyable. See specify_trivial_relocate(T &&).
 * There are a few notable exceptions for which trivially relocatable T is required (checked when compiling):
-* emplace, insert, insert_r and erase(iterator, iterator)
+* insert and its variations, and erase(iterator, iterator)
 *
 * The default allocator supports over-aligned types (e.g. __m256).
 * In general, only that which differs from std::vector is documented. */
@@ -129,7 +129,7 @@ public:
 	* @brief Replace the contents with source range
 	* @param source an array, STL container, iterator_range or such. (Look up Boost.Range 2.0 concepts.)
 	*	Shall not be a subset of same dynarray, except if begin(source) points to first element of dynarray.
-	* @return iterator to end of source range
+	* @return iterator begin(source) incremented to end of range
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template<typename InputRange>
@@ -170,8 +170,8 @@ public:
 	template<typename ForwardOrSizedRange>
 	iterator   insert_m(const_iterator position, const ForwardOrSizedRange & source);
 	/**
-	* @brief Equivalent to insert_m(const_iterator, const ForwardOrSizedRange &), except returning source
-	* @return iterator to end of source range  */
+	* @brief Equivalent to insert_m(const_iterator, const ForwardOrSizedRange &), except returning source last
+	* @return iterator begin(source) incremented to end of range  */
 	template<typename ForwardOrSizedRange>
 	auto     insert_rs(const_iterator position, const ForwardOrSizedRange & source) -> decltype(::adl_begin(source));
 
