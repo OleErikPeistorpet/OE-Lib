@@ -155,7 +155,7 @@ public:
 	* @brief Add count elements at end from range beginning at first (in same order)
 	* @param first iterator to first element to append
 	* @param count number of elements to append
-	* @return first incremented count times. The value is undefined and shall be ignored if
+	* @return first incremented count times. The iterator is already invalidated (don't dereference) if
 	*	first pointed into same dynarray and there was insufficient capacity to avoid reallocation.
 	*
 	* Causes reallocation if the pre-call size + count is greater than capacity. On reallocation, all iterators
@@ -466,8 +466,8 @@ private:
 	template<typename CntigusIter>
 	OEL_FORCEINLINE CntigusIter _appendN(std::true_type, CntigusIter const first, size_type const count)
 	{	// use memcpy
-	#if OEL_MEM_BOUND_DEBUG_LVL
 		CntigusIter last = first + count;
+	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (count > 0)
 		{	// Dereference to catch out of range errors if the iterators have internal checks
 			(void)*first;
@@ -479,12 +479,7 @@ private:
 				{	// Behaviour undefined by standard if first points to null
 					::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * nElems);
 				} );
-
-	#if OEL_MEM_BOUND_DEBUG_LVL
-		return last; // in the case of append self, bypasses check in iterator's operator +
-	#else
-		return first + count;
-	#endif
+		return last; // may be invalidated in the case of append self
 	}
 
 	template<typename InputIter>

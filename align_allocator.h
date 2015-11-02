@@ -177,7 +177,7 @@ namespace _detail
 #endif
 
 
-	template<typename T> inline
+	template<typename T>
 	void Destroy(T * first, T * last) noexcept
 	{	// first > last is OK, does nothing
 		OEL_CONST_COND if (!is_trivially_destructible<T>::value) // for speed with optimizations off (debug build)
