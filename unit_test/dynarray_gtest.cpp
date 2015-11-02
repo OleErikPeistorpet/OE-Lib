@@ -252,7 +252,7 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign_n(std::make_move_iterator(src), 0);
+		test.assign(oel::move_range_n(src, 0));
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
@@ -263,7 +263,7 @@ TEST_F(dynarrayTest, assign)
 		{
 			NontrivialReloc obj{-5.0, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign_n(&obj, 1);
+			{	dest.assign(oel::make_range_n(&obj, 1));
 			}
 			catch (TestException &) {
 			}
@@ -293,7 +293,7 @@ TEST_F(dynarrayTest, assign)
 
 			NontrivialReloc obj{-1.3, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign_n(&obj, 1);
+			{	dest.assign(oel::make_range_n(&obj, 1));
 			}
 			catch (TestException &) {
 			}
@@ -328,8 +328,8 @@ TEST_F(dynarrayTest, assignStringStream)
 
 		decltype(das) copyDest;
 
-		copyDest.assign_n(cbegin(das), 2);
-		copyDest.assign_n(cbegin(das), das.size());
+		copyDest.assign(oel::make_range_n(cbegin(das), 2));
+		copyDest.assign( oel::make_range_n(cbegin(das), das.size()) );
 
 		EXPECT_TRUE(das == copyDest);
 
@@ -338,7 +338,7 @@ TEST_F(dynarrayTest, assignStringStream)
 		EXPECT_EQ(1U, copyDest.size());
 		EXPECT_EQ(das[0], copyDest[0]);
 
-		copyDest.assign_n(cbegin(das) + 2, 3);
+		copyDest.assign(oel::make_range_n(cbegin(das) + 2, 3));
 
 		EXPECT_EQ(3U, copyDest.size());
 		EXPECT_EQ(das[2], copyDest[0]);
@@ -368,7 +368,7 @@ TEST_F(dynarrayTest, append)
 
 		double const TEST_VAL = 6.6;
 		dest.append(2, TEST_VAL);
-		dest.append_n(dest.begin(), dest.size());
+		dest.append( oel::make_range_n(dest.begin(), dest.size()) );
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
 			EXPECT_EQ(TEST_VAL, d);
@@ -377,7 +377,7 @@ TEST_F(dynarrayTest, append)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.append_n(oel::begin(arrayA), oel::count(arrayA));
+	double_dynarr.append_rs( oel::make_range_n(oel::begin(arrayA), oel::count(arrayA)) );
 	double_dynarr.append(double_dynarr2);
 
 	{
@@ -406,9 +406,9 @@ TEST_F(dynarrayTest, append)
 
 		std::istream_iterator<int> it(ss);
 
-		it = dest.append_n(it, 2);
+		it = dest.append_rs(oel::make_range_n(it, 2));
 
-		dest.append_n(it, 2);
+		dest.append_rs(oel::make_range_n(it, 2));
 
 		for (int i = 0; i < ssize(dest); ++i)
 			EXPECT_EQ(i + 1, dest[i]);
@@ -421,22 +421,22 @@ TEST_F(dynarrayTest, insertR)
 		oel::dynarray<double> dest;
 		// Test insert empty std iterator range to empty dynarray
 		std::deque<double> src;
-		dest.insert_r(dest.begin(), src);
+		dest.insert_m(dest.begin(), src);
 
-		dest.insert_r< std::initializer_list<double> >(dest.begin(), {});
+		dest.insert_m< std::initializer_list<double> >(dest.begin(), {});
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.insert_n(double_dynarr.begin(), oel::begin(arrayA), oel::count(arrayA));
-	double_dynarr.insert_r(double_dynarr.end(), double_dynarr2);
+	double_dynarr.insert_rs( double_dynarr.begin(), oel::make_range_n(oel::begin(arrayA), oel::count(arrayA)) );
+	double_dynarr.insert_m(double_dynarr.end(), double_dynarr2);
 
 	{
 		dynarray<int> int_dynarr;
-		int_dynarr.insert_r< std::initializer_list<int> >(int_dynarr.begin(), {1, 2, 3, 4});
+		int_dynarr.insert_m< std::initializer_list<int> >(int_dynarr.begin(), {1, 2, 3, 4});
 
-		double_dynarr.insert_r(double_dynarr.end(), int_dynarr);
+		double_dynarr.insert_m(double_dynarr.end(), int_dynarr);
 	}
 
 	ASSERT_EQ(8U, double_dynarr.size());
@@ -616,9 +616,9 @@ TEST_F(dynarrayTest, misc)
 	dest0.reserve(1);
 	dest0 = daSrc;
 
-	dest0.append_n(cbegin(daSrc), daSrc.size());
-	dest0.append_n(fASrc, 2);
-	auto srcEnd = dest0.append_n(dequeSrc.begin(), dequeSrc.size());
+	dest0.append_rs( oel::make_range_n(cbegin(daSrc), daSrc.size()) );
+	dest0.append(oel::make_range_n(fASrc, 2));
+	auto srcEnd = dest0.append_rs( oel::make_range_n(dequeSrc.begin(), dequeSrc.size()) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;

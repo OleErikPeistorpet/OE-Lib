@@ -49,7 +49,7 @@ void erase_unordered(RandomAccessContainer & ctr, typename RandomAccessContainer
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template<typename OutputIterator, typename Container,
-		 typename = decltype( *std::declval<OutputIterator>() )> inline
+		 typename /*SFINAE*/ = decltype( *std::declval<OutputIterator>() )> inline
 void erase_unordered(Container & ctr, OutputIterator position)
 {
 	*position = std::move(ctr.back());
