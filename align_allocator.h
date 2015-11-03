@@ -28,15 +28,6 @@ struct aligned_storage_t;
 template<typename T>
 struct allocator
 {
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	// Check that ptr address is a multiple of the alignment of type
-	#define OEL_CONSTRUCT_ASSERT_ALIGNED_AS(ptr, type)  \
-		OEL_ASSERT_MEM_BOUND((reinterpret_cast<std::uintptr_t>(ptr) & (OEL_ALIGNOF(type) - 1)) == 0)
-#else
-	#define OEL_CONSTRUCT_ASSERT_ALIGNED_AS(ptr, type)
-#endif
-
-
 	using value_type = T;
 	using propagate_on_container_move_assignment = std::true_type;
 
@@ -48,7 +39,6 @@ struct allocator
 	enable_if_t< std::is_constructible<U, Args...>::value >
 		construct(U * pos, Args &&... args)
 	{
-		OEL_CONSTRUCT_ASSERT_ALIGNED_AS(pos, U);
 		::new((void *)pos) U(std::forward<Args>(args)...);
 	}
 	/// U not constructible from Args, list-initialization
@@ -56,7 +46,6 @@ struct allocator
 	enable_if_t< !std::is_constructible<U, Args...>::value >
 		construct(U * pos, Args &&... args)
 	{
-		OEL_CONSTRUCT_ASSERT_ALIGNED_AS(pos, U);
 		::new((void *)pos) U{std::forward<Args>(args)...};
 	}
 
