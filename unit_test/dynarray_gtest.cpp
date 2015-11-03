@@ -377,7 +377,7 @@ TEST_F(dynarrayTest, append)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.append_rs( oel::as_counted_view(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.append_ret_src( oel::as_counted_view(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.append(double_dynarr2);
 
 	{
@@ -406,9 +406,12 @@ TEST_F(dynarrayTest, append)
 
 		std::istream_iterator<int> it(ss);
 
-		it = dest.append_rs(oel::as_counted_view(it, 2));
+		// Should hit static_assert
+		//dest.insert_m(dest.begin(), oel::make_range(it, std::istream_iterator<int>()));
 
-		dest.append_rs(oel::as_counted_view(it, 2));
+		it = dest.append_ret_src(oel::as_counted_view(it, 2));
+
+		dest.append_ret_src(oel::as_counted_view(it, 2));
 
 		for (int i = 0; i < ssize(dest); ++i)
 			EXPECT_EQ(i + 1, dest[i]);
@@ -429,7 +432,7 @@ TEST_F(dynarrayTest, insertR)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.insert_rs( double_dynarr.begin(), oel::as_counted_view(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.insert_ret_src( double_dynarr.begin(), oel::as_counted_view(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.insert_m(double_dynarr.end(), double_dynarr2);
 
 	{
@@ -645,9 +648,9 @@ TEST_F(dynarrayTest, misc)
 	dest0.reserve(1);
 	dest0 = daSrc;
 
-	dest0.append_rs( oel::as_counted_view(cbegin(daSrc), daSrc.size()) );
+	dest0.append_ret_src( oel::as_counted_view(cbegin(daSrc), daSrc.size()) );
 	dest0.append(oel::as_counted_view(fASrc, 2));
-	auto srcEnd = dest0.append_rs( oel::as_counted_view(dequeSrc.begin(), dequeSrc.size()) );
+	auto srcEnd = dest0.append_ret_src( oel::as_counted_view(dequeSrc.begin(), dequeSrc.size()) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;
