@@ -43,20 +43,6 @@ TEST_F(utilTest, eraseUnordered)
 	EXPECT_EQ("aa", da.front());
 }
 
-TEST_F(utilTest, eraseSuccessiveDup)
-{
-	using namespace oel;
-
-	std::list<int> li{1, 1, 2, 2, 2, 1, 3};
-	dynarray<int> uniqueTest;
-	uniqueTest.append(li);
-
-	erase_successive_dup(li);
-	EXPECT_EQ(4U, li.size());
-	erase_successive_dup(uniqueTest);
-	EXPECT_EQ(4U, uniqueTest.size());
-}
-
 TEST_F(utilTest, eraseBack)
 {
 	std::list<int> li{1, 1, 2, 2, 2, 1, 3};
