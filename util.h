@@ -61,6 +61,15 @@ template<typename Container> inline
 void erase_back(Container & ctr, typename Container::iterator first)  { ctr.erase(first, ctr.end()); }
 
 
+
+/// For copy functions that return the end of both source and destination ranges
+template<typename IteratorSource, typename IteratorDest>
+struct range_ends
+{
+	IteratorSource src_end;
+	IteratorDest   dest_end;
+};
+
 /**
 * @brief Copies the elements in source into the range beginning at dest
 * @return an iterator to the end of the destination range
@@ -79,15 +88,15 @@ range_ends<InputIterator, OutputIterator>  copy_nonoverlap(InputIterator first, 
 
 
 /// Check if index is valid (can be used with operator[]) for array or other range.
-template< typename UnsignedInt, typename Range,
+template< typename UnsignedInt, typename SizedRange,
 		  typename = enable_if_t<std::is_unsigned<UnsignedInt>::value> > inline
-bool index_valid(const Range & r, UnsignedInt index)   { return index < oel::as_unsigned(oel::ssize(r)); }
+bool index_valid(const SizedRange & r, UnsignedInt index)   { return index < oel::as_unsigned(oel::ssize(r)); }
 /// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename Range> inline
-bool index_valid(const Range & r, std::int32_t index)  { return 0 <= index && index < oel::ssize(r); }
+template<typename SizedRange> inline
+bool index_valid(const SizedRange & r, std::int32_t index)  { return 0 <= index && index < oel::ssize(r); }
 /// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename Range> inline
-bool index_valid(const Range & r, std::int64_t index)
+template<typename SizedRange> inline
+bool index_valid(const SizedRange & r, std::int64_t index)
 {	// assumes that r.size() is never greater than INT64_MAX
 	return static_cast<std::uint64_t>(index) < oel::as_unsigned(oel::ssize(r));
 }

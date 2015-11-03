@@ -149,16 +149,6 @@ const from_range; ///< An instance of from_range_tag to pass
 
 
 
-/// For copy functions that return the end of both source and destination ranges
-template<typename InIterator, typename OutIterator>
-struct range_ends
-{
-	InIterator  src_end;
-	OutIterator dest_end;
-};
-
-
-
 /// Exists in std with C++14
 template<bool Condition>
 using enable_if_t = typename std::enable_if<Condition>::type;

@@ -506,8 +506,8 @@ private:
 
 	void _erase(std::false_type, iterator pos)
 	{
-		std::move(pos + 1, end(), pos);
-		pop_back();
+		_m.end = to_pointer_contiguous(std::move(pos + 1, end(), pos));
+		(*_m.end).~T();
 	}
 
 

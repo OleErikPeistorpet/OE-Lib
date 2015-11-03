@@ -549,21 +549,50 @@ TEST_F(dynarrayTest, resize)
 	EXPECT_TRUE(nested.back().empty());
 }
 
-TEST_F(dynarrayTest, erase)
+template<typename T>
+void testErase()
+{
+	dynarray<T> d;
+
+	for (int i = 1; i <= 5; ++i)
+		d.emplace_back(i);
+
+	auto const s = d.size();
+	auto ret = d.erase(begin(d) + 1);
+	ret = d.erase(ret);
+	EXPECT_EQ(begin(d) + 1, ret);
+	ASSERT_EQ(s - 2, d.size());
+	EXPECT_DOUBLE_EQ(s, d.back());
+
+	ret = d.erase(end(d) - 1);
+	EXPECT_EQ(end(d), ret);
+	ASSERT_EQ(s - 3, d.size());
+	EXPECT_DOUBLE_EQ(1, d.front());
+}
+
+TEST_F(dynarrayTest, eraseSingle)
+{
+	testErase<int>();
+
+	NontrivialReloc::ClearCount();
+	testErase<NontrivialReloc>();
+	EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
+}
+
+TEST_F(dynarrayTest, eraseRange)
 {
 	dynarray<int> d;
 
-	for (int i = 0; i < 5; ++i)
+	for (int i = 1; i <= 5; ++i)
 		d.push_back(i);
 
 	auto const s = d.size();
-	auto ret = d.erase(begin(d) + 1, begin(d) + 3);
-	ASSERT_EQ(begin(d) + 1, ret);
+	auto ret = d.erase(begin(d) + 2, begin(d) + 2);
+	ASSERT_EQ(s, d.size());
+	ret = d.erase(ret - 1, ret + 1);
+	EXPECT_EQ(begin(d) + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
-
-	ret = d.erase(end(d) - 1);
-	ASSERT_EQ(end(d), ret);
-	ASSERT_EQ(s - 3, d.size());
+	EXPECT_EQ(s, d.back());
 }
 
 #ifndef OEL_NO_BOOST
