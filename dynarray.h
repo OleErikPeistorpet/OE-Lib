@@ -102,11 +102,11 @@ public:
 	dynarray(std::initializer_list<T> init, const Alloc & alloc = Alloc{});
 
 	/** @brief Equivalent to std::vector(begin(source), sLast, alloc),
-	*	where sLast is either begin + source.size() or end(source)
+	*	where sLast is either begin(source) + source.size() or end(source)
 	*
 	* If you need to construct from some std::istream, check out boost/range/istream_range.hpp  */
 	template<typename InputRange>
-	dynarray(from_range_tag, const InputRange & source, const Alloc & alloc = Alloc{})  : _m(alloc) { assign(source); }
+	dynarray(from_range_tag, const InputRange & range, const Alloc & alloc = Alloc{})  : _m(alloc) { assign(range); }
 
 	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
 	/// If using custom Alloc, behaviour is undefined (assertion unless NDEBUG)
@@ -124,72 +124,67 @@ public:
 
 	dynarray & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
 
-	void       swap(dynarray & other) noexcept;
+	void      swap(dynarray & other) noexcept;
 
 	/**
 	* @brief Replace the contents with source range
-	* @param source an array, STL container, gsl::array_view, boost::iterator_range or such
+	* @param source an array, STL container, gsl::span, boost::iterator_range or such
 	*	Shall not be a subset of same dynarray, except if begin(source) points to first element of dynarray.
 	* @return iterator begin(source) incremented to equal the end of source range
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template<typename InputRange>
-	auto   assign(const InputRange & source) -> decltype(::adl_begin(source));
+	auto  assign(const InputRange & source) -> decltype(::adl_begin(source));
 
 	/**
 	* @brief Add at end the elements from range (in same order), return iterator to new
-	* @param source an array, STL container, gsl::array_view, boost::iterator_range or such. Can be this dynarray.
+	* @param source an array, STL container, gsl::span, boost::iterator_range or such. Can be this dynarray.
 	* @return iterator pointing to first of the new elements in dynarray, or end if source is empty
 	*
 	* Strong exception guarantee, this function has no effect if an exception is thrown.
 	* Otherwise equivalent to std::vector::insert(end(), begin(source), sourceBeginPlusSizeOrEnd)  */
 	template<typename InputRange>
-	iterator   append(const InputRange & source);
+	iterator  append(const InputRange & source);
 	/**
 	* @brief Same as append(const InputRange &), except returning past-the-last of source
 	* @return begin(source) incremented to end of source. The iterator is already invalidated (do not dereference) if
 	*	first pointed into same dynarray and there was insufficient capacity to avoid reallocation. */
 	template<typename InputRange>
-	auto   append_ret_src(const InputRange & source) -> decltype(::adl_begin(source));
+	auto  append_ret_src(const InputRange & source) -> decltype(::adl_begin(source));
 	/// Equivalent to calling append(const InputRange &) with il as argument
-	iterator   append(std::initializer_list<T> il);
+	iterator  append(std::initializer_list<T> il);
 	/// Equivalent to std::vector::insert(end(), count, val), but with strong exception guarantee
-	void       append(size_type count, const T & val);
+	void      append(size_type count, const T & val);
 
 	/**
 	* @brief Uses default initialization for added elements, can be significantly faster for non-class T
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void       resize(size_type newSize, default_init_tag)  { _resizeImpl(newSize, _detail::UninitFillDefault<Alloc, T>); }
+	void      resize(size_type newSize, default_init_tag)  { _resizeImpl(newSize, _detail::UninitFillDefault<Alloc, T>); }
 	/// (Value-initializes added elements, same as std::vector::resize)
-	void       resize(size_type newSize)                    { _resizeImpl(newSize, _detail::UninitFill<Alloc, T>); }
+	void      resize(size_type newSize)                    { _resizeImpl(newSize, _detail::UninitFill<Alloc, T>); }
 
 	/// Equivalent to std::vector::insert(position, begin(source), sLast),
-	/// where sLast is either begin + source.size() or end(source)
+	/// where sLast is either begin(source) + source.size() or end(source)
 	template<typename ForwardRange>
-	iterator   insert_m(const_iterator position, const ForwardRange & source);
-	/**
-	* @brief Same as insert_m(const_iterator, const ForwardRange &), except returning past-the-last of source
-	* @return iterator begin(source) incremented to equal the end of source range  */
-	template<typename ForwardRange>
-	auto   insert_ret_src(const_iterator position, const ForwardRange & source) -> decltype(::adl_begin(source));
+	iterator  insert_m(const_iterator position, const ForwardRange & source);
 
 	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
-	iterator   emplace(const_iterator position, Args &&... elemInitArgs);
+	iterator  emplace(const_iterator position, Args &&... elemInitArgs);
 
-	iterator   insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
-	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
+	iterator  insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
+	iterator  insert(const_iterator position, const T & val)  { return emplace(position, val); }
 
 	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
-	void       emplace_back(Args &&... elemInitArgs);
+	void      emplace_back(Args &&... elemInitArgs);
 
-	void       push_back(T && val)       { emplace_back(std::move(val)); }
-	void       push_back(const T & val)  { emplace_back(val); }
+	void      push_back(T && val)       { emplace_back(std::move(val)); }
+	void      push_back(const T & val)  { emplace_back(val); }
 
 	/// After the call, any previous iterator to the back element will be equal to end()
-	void       pop_back() noexcept;
+	void      pop_back() noexcept;
 
 	/**
 	* @brief Erase the element at position from dynarray without maintaining order of elements.
@@ -197,37 +192,37 @@ public:
 	* Constant complexity (compared to linear in the distance between position and last for normal erase).
 	* @return Iterator pointing to the location that followed the element erased,
 	*	which is the end if position was at the last element. */
-	iterator   erase_unordered(iterator position);
+	iterator  erase_unordered(iterator position);
 
-	iterator   erase(iterator position);
+	iterator  erase(iterator position);
 
-	iterator   erase(iterator first, iterator last) noexcept;
+	iterator  erase(iterator first, iterator last) noexcept;
 
 	/// Equivalent to erase(first, end()) (but potentially faster), making first the new end
-	void       erase_back(iterator first) noexcept;
+	void      erase_back(iterator first) noexcept;
 
-	void       clear() noexcept        { erase_back(begin()); }
+	void      clear() noexcept        { erase_back(begin()); }
 
-	bool       empty() const noexcept  { return _m.data == _m.end; }
+	bool      empty() const noexcept  { return _m.data == _m.end; }
 
-	size_type  size() const noexcept   { return _m.end - _m.data; }
+	size_type size() const noexcept   { return _m.end - _m.data; }
 
-	void       reserve(size_type minCapacity)  { if (capacity() < minCapacity) _growTo(minCapacity); }
+	void      reserve(size_type minCapacity)  { if (capacity() < minCapacity) _growTo(minCapacity); }
 
 	/// It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
-	void       shrink_to_fit();
+	void      shrink_to_fit();
 
-	size_type  capacity() const noexcept  { return _m.reserveEnd - _m.data; }
+	size_type capacity() const noexcept  { return _m.reserveEnd - _m.data; }
 
 	allocator_type get_allocator() const  { return _m; }
 
-	iterator        begin() noexcept         { return _makeIterator(_m.data, this); }
-	const_iterator  begin() const noexcept   { return _makeConstIter(_m.data, this); }
-	const_iterator  cbegin() const noexcept  { return begin(); }
+	iterator       begin() noexcept         { return _makeIterator(_m.data, this); }
+	const_iterator begin() const noexcept   { return _makeConstIter(_m.data, this); }
+	const_iterator cbegin() const noexcept  { return begin(); }
 
-	iterator        end() noexcept           { return _makeIterator(_m.end, this); }
-	const_iterator  end() const noexcept     { return _makeConstIter(_m.end, this); }
-	const_iterator  cend() const noexcept    { return end(); }
+	iterator       end() noexcept           { return _makeIterator(_m.end, this); }
+	const_iterator end() const noexcept     { return _makeConstIter(_m.end, this); }
+	const_iterator cend() const noexcept    { return end(); }
 
 	reverse_iterator       rbegin() noexcept        { return reverse_iterator{end()}; }
 	const_reverse_iterator rbegin() const noexcept  { return const_reverse_iterator{end()}; }
@@ -522,7 +517,7 @@ private:
 	template<typename Range>
 	static std::false_type _count(const Range &, single_pass_traversal_tag, long) { return {}; }
 
-	// Potentially confusing: return either size_type or false_type
+	// Potentially confusing: returns either size_type or false_type
 	template<typename Iter, typename Range>
 	static auto _count(const Range & r) -> decltype(_count(r, iterator_traversal_t<Iter>(), int{}))
 										   { return _count(r, iterator_traversal_t<Iter>(), int{}); }
@@ -726,8 +721,8 @@ private:
 		}
 	};
 
-	template<typename Range>
-	auto _insertImpl(const_iterator pos, const Range & src) -> std::pair<iterator, decltype(::adl_begin(src))>
+	template<typename InputIter>
+	iterator _insertImpl(const_iterator pos, InputIter first, size_type count)
 	{
 	#define OEL_DYNARR_INSERT_STEP0  \
 		_detail::AssertTrivialRelocate<T>();  \
@@ -737,22 +732,17 @@ private:
 		size_type const nAfterPos = _m.end - pPos;
 
 		OEL_DYNARR_INSERT_STEP0
-		auto first = ::adl_begin(src);
-		auto nElems = _count<decltype(first)>(src);
-
-		static_assert(!std::is_same<decltype(nElems), std::false_type>::value,
-					  "insert_m/insert_ret_src requires that source models Forward Range (Boost concept)");
-		using CanMemmove = can_memmove_with<T *, decltype(first)>;
-		if (_unusedCapacity() >= nElems)
+		using CanMemmove = can_memmove_with<T *, InputIter>;
+		if (_unusedCapacity() >= count)
 		{
-			T *const dLast = pPos + nElems;
-			// Relocate elements to make space, conceptually destroying [pos, pos + nElems)
+			T *const dLast = pPos + count;
+			// Relocate elements to make space, conceptually destroying [pos, pos + count)
 			::memmove(dLast, pPos, sizeof(T) * nAfterPos);
-			_m.end += nElems;
+			_m.end += count;
 			// Construct new
 			OEL_CONST_COND if (CanMemmove::value)
 			{
-				first = _uninitCopy(CanMemmove(), first, nElems, pPos, dLast);
+				_uninitCopy(CanMemmove(), first, count, pPos, dLast);
 			}
 			else
 			{
@@ -775,16 +765,16 @@ private:
 		}
 		else // not enough room, reallocate
 		{
-			pPos = _insertRealloc( pPos, nAfterPos, nElems,
+			pPos = _insertRealloc( pPos, nAfterPos, count,
 					[](const dynarray & self, size_type newSize) { return self._calcCapMin(newSize); },
-					[&first](dynarray & self, T * newPos, size_type nElems)
+					[first](dynarray & self, T * newPos, size_type count)
 					{
-						T *const next = newPos + nElems;
-						first = self._uninitCopy(CanMemmove(), first, nElems, newPos, next);
+						T *const next = newPos + count;
+						self._uninitCopy(CanMemmove(), first, count, newPos, next);
 						return next;
 					} );
 		}
-		return {_makeIterator(pPos, this), first};
+		return _makeIterator(pPos, this);
 	}
 };
 
@@ -855,6 +845,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & alloc) noexcept
 template<typename T, typename Alloc>
 dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 {
+	// TODO: check that this gets optimized out when propagate_on_container_move_assignment
 	if (static_cast<Alloc &>(_m) != other._m &&
 		!_allocTrait::propagate_on_container_move_assignment::value)
 	{
@@ -1009,14 +1000,13 @@ template<typename T, typename Alloc> template<typename ForwardRange>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 	insert_m(const_iterator pos, const ForwardRange & src)
 {
-	return _insertImpl(pos, src).first;
-}
+	auto first = ::adl_begin(src);
+	auto nElems = _count<decltype(first)>(src);
 
-template<typename T, typename Alloc> template<typename ForwardRange>
-inline auto dynarray<T, Alloc>::insert_ret_src(const_iterator pos, const ForwardRange & src)
- -> decltype(::adl_begin(src))
-{
-	return _insertImpl(pos, src).second;
+	static_assert(!std::is_same<decltype(nElems), std::false_type>::value,
+				  "insert_m requires that source models Forward Range (Boost concept)");
+
+	return _insertImpl(pos, first, nElems);
 }
 
 

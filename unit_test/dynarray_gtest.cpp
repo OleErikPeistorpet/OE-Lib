@@ -432,7 +432,7 @@ TEST_F(dynarrayTest, insertR)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.insert_ret_src( double_dynarr.begin(), oel::as_counted_view(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.insert_m( double_dynarr.begin(), oel::as_counted_view(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.insert_m(double_dynarr.end(), double_dynarr2);
 
 	{
