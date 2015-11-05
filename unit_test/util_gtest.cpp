@@ -64,6 +64,16 @@ TEST_F(utilTest, indexValid)
 	//EXPECT_TRUE(index_valid(li, l));
 }
 
+TEST_F(utilTest, countedView)
+{
+	using namespace oel;
+	const dynarray<int> i{1, 2};
+	counted_view<dynarray<int>::const_iterator> test = i;
+	EXPECT_EQ(i.size(), test.size());
+	EXPECT_EQ(1, test[0]);
+	EXPECT_EQ(2, test[1]);
+}
+
 TEST_F(utilTest, copyNonoverlap)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };

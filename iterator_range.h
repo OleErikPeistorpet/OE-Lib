@@ -38,7 +38,7 @@ namespace oel
 template<typename Iterator> inline
 iterator_range<Iterator> make_range(Iterator first, Iterator last)  { return {first, last}; }
 
-/// Wrapper for iterator and size. Similar to gsl::span, but not just for arrays
+/// Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
 template<typename Iterator>
 class counted_view
 {
@@ -51,11 +51,7 @@ public:
 	counted_view()                              : count() {}
 	counted_view(iterator first, size_t count)  : first(first), count(count) {}
 	template<typename Container>
-	counted_view(Container & c)        : first(begin(c)), count(oel::ssize(c)) {}
-	//template<typename Container>
-	//counted_view(const Container & c)  : first(begin(c)), count(oel::ssize(c)) {}
-	//template<typename Container>
-	//counted_view(const Container &&) = delete;
+	counted_view(Container & c)                 : first(::adl_begin(c)), count(oel::ssize(c)) {}
 
 	size_t   size() const  { return count; }
 
