@@ -36,6 +36,9 @@ namespace statictest
 
 	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::deque<double>> >::value,
 				  "Not critical, this assert can be removed");
+
+	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
+				  "Not critical, this assert can be removed");
 }
 
 template<typename T>
