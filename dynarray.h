@@ -686,9 +686,9 @@ private:
 
 	template<typename CalcCapFunc, typename MakeFunc, typename... Args>
 	T * _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
-					   CalcCapFunc calcCap, MakeFunc addNew, Args &&... args)
+					   CalcCapFunc calcNewCap, MakeFunc addNew, Args &&... args)
 	{
-		_scopedPtr newData{*this, calcCap(capacity(), size() + nToAdd)};
+		_scopedPtr newData{*this, calcNewCap(capacity(), size() + nToAdd)};
 
 		size_type const nBeforePos = pos - data();
 		T *const newPos = newData.ptr + nBeforePos;
