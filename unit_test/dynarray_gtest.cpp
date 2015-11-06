@@ -410,7 +410,7 @@ TEST_F(dynarrayTest, append)
 		std::istream_iterator<int> it(ss);
 
 		// Should hit static_assert
-		//dest.insert_m(dest.begin(), oel::make_range(it, std::istream_iterator<int>()));
+		//dest.insert_r(dest.begin(), oel::make_range(it, std::istream_iterator<int>()));
 
 		it = dest.append_ret_src(oel::as_counted_view(it, 2));
 
@@ -427,22 +427,22 @@ TEST_F(dynarrayTest, insertR)
 		oel::dynarray<double> dest;
 		// Test insert empty std iterator range to empty dynarray
 		std::deque<double> src;
-		dest.insert_m(dest.begin(), src);
+		dest.insert_r(dest.begin(), src);
 
-		dest.insert_m< std::initializer_list<double> >(dest.begin(), {});
+		dest.insert_r< std::initializer_list<double> >(dest.begin(), {});
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.insert_m( double_dynarr.begin(), oel::as_counted_view(oel::begin(arrayA), oel::ssize(arrayA)) );
-	double_dynarr.insert_m(double_dynarr.end(), double_dynarr2);
+	double_dynarr.insert_r( double_dynarr.begin(), oel::as_counted_view(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.insert_r(double_dynarr.end(), double_dynarr2);
 
 	{
 		dynarray<int> int_dynarr;
-		int_dynarr.insert_m< std::initializer_list<int> >(int_dynarr.begin(), {1, 2, 3, 4});
+		int_dynarr.insert_r< std::initializer_list<int> >(int_dynarr.begin(), {1, 2, 3, 4});
 
-		double_dynarr.insert_m(double_dynarr.end(), int_dynarr);
+		double_dynarr.insert_r(double_dynarr.end(), int_dynarr);
 	}
 
 	ASSERT_EQ(8U, double_dynarr.size());

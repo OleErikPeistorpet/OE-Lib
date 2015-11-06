@@ -167,7 +167,7 @@ public:
 	/// Equivalent to std::vector::insert(position, begin(source), sLast),
 	/// where sLast is either begin(source) + source.size() or end(source)
 	template<typename ForwardRange>
-	iterator  insert_m(const_iterator position, const ForwardRange & source);
+	iterator  insert_r(const_iterator position, const ForwardRange & source);
 
 	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
@@ -527,7 +527,7 @@ private:
 	{
 		OEL_ASSERT(is_trivially_relocatable<T>::value);
 
-		_assignImpl(std::true_type{}, src.begin(), src.size());
+		_assignImpl(src.begin(), src.size(), std::true_type{});
 		src._m.end = src._m.data; // elements in src conceptually destroyed
 	}
 
@@ -991,13 +991,13 @@ OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::appen
 
 template<typename T, typename Alloc> template<typename ForwardRange>
 inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
-	insert_m(const_iterator pos, const ForwardRange & src)
+	insert_r(const_iterator pos, const ForwardRange & src)
 {
 	auto first = ::adl_begin(src);
 	auto nElems = _sizeOrEnd<decltype(first)>(src);
 
 	static_assert(std::is_same<decltype(nElems), size_type>::value,
-				  "insert_m requires that source models Forward Range (Boost concept)");
+				  "insert_r requires that source models Forward Range (Boost concept)");
 
 	return _insertImpl(pos, first, nElems);
 }
