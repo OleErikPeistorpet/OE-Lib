@@ -605,7 +605,7 @@ private:
 	}
 
 	template<typename Ret, typename InputIter, typename Sentinel, typename RetSelect>
-	Ret _append(InputIter first, Sentinel const last, RetSelect retSelect)
+	Ret _append(InputIter first, Sentinel const last, RetSelect retSelect, std::false_type)
 	{	// single pass iterator, no size available
 		size_type const oldSize = size();
 		OEL_TRY_
@@ -622,27 +622,20 @@ private:
 	}
 
 	template<typename Ret, typename InputIter, typename RetSelect>
-	OEL_FORCEINLINE Ret _append(InputIter first, size_type count, RetSelect retSelect)
-	{
-		first = _appendN(first, count, can_memmove_with<T *, InputIter>());
-		return retSelect(end() - count, first);
-	}
-
-	template<typename InputIter>
-	InputIter _appendN(InputIter first, size_type const count, std::false_type)
+	Ret _append(InputIter first, size_type const count, RetSelect retSelect, std::false_type)
 	{	// cannot use memcpy
-		_appendImpl( count,
-			[&first](T * dest, size_type count, Alloc & al)
-			{
-				first = _detail::UninitCopy(first, dest, dest + count, al);
-			} );
-		return first;
+		iterator pos = _appendImpl( count,
+				[&first](T * dest, size_type count, Alloc & al)
+				{
+					first = _detail::UninitCopy(first, dest, dest + count, al);
+				} );
+		return retSelect(pos, first);
 	}
 
-	template<typename CntigusIter>
-	OEL_FORCEINLINE CntigusIter _appendN(CntigusIter const first, size_type const count, std::true_type)
+	template<typename Ret, typename CntigusIter, typename RetSelect>
+	OEL_FORCEINLINE Ret _append(CntigusIter const first, size_type const count, RetSelect retSelect, std::true_type)
 	{
-		CntigusIter last = first + count;
+		CntigusIter last = first + count; // will be invalidated in the case of append self and reallocation
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (count > 0)
 		{	// Dereference to catch out of range errors if the iterators have internal checks
@@ -650,29 +643,38 @@ private:
 			(void)*(last - 1);
 		}
 	#endif
-		_appendImpl( count,
-			[first](T * dest, size_type count, Alloc &)
-			{	// Behaviour undefined by standard if first points to null
-				::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * count);
-			} );
-		return last; // has been invalidated in the case of append self and reallocation
+		iterator pos = _appendImpl( count,
+				[first](T * dest, size_type count, Alloc &)
+				{	// Behaviour undefined by standard if first points to null
+					::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * count);
+				} );
+		return retSelect(pos, last);
+	}
+
+	template<typename Ret, typename InputIter, typename InputRange, typename RetSelect>
+	OEL_FORCEINLINE Ret _append(const InputRange & src, RetSelect retSelect)
+	{
+		return _append<Ret>(::adl_begin(src), _sizeOrEnd<InputIter>(src), retSelect,
+							can_memmove_with<T *, InputIter>());
 	}
 
 	template<typename CopyOrFillFunc>
-	OEL_FORCEINLINE void _appendImpl(size_type const count, CopyOrFillFunc makeNewElems)
+	OEL_FORCEINLINE iterator _appendImpl(size_type const count, CopyOrFillFunc makeNewElems)
 	{
 		_assertNothrowMoveConstruct();
 
+		pointer pos;
 		if (_unusedCapacity() >= count)
 		{
-			makeNewElems(_m.end, count, _m);
+			pos = _m.end;
+			makeNewElems(pos, count, _m);
 		}
 		else
 		{
 			_scopedPtr newData{*this, _calcCap(capacity(), size() + count)};
 
 			size_type const oldSize = size();
-			pointer pos = newData.ptr + oldSize;
+			pos = newData.ptr + oldSize;
 			makeNewElems(pos, count, _m);
 			// Exception free from here
 			_relocateData(newData.ptr, pos, oldSize);
@@ -681,6 +683,8 @@ private:
 			_swapBuf(newData);
 		}
 		_m.end += count;
+
+		return pos;
 	}
 
 
@@ -968,16 +972,16 @@ template<typename T, typename Alloc> template<typename InputRange>
 OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & src)
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _append<iterator>( ::adl_begin(src), _sizeOrEnd<IterSrc>(src),
-							  [](iterator newPos, IterSrc) { return newPos; } );
+	return _append<iterator, IterSrc>( src,
+			[](iterator newPos, IterSrc) { return newPos; } );
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
 OEL_FORCEINLINE auto dynarray<T, Alloc>::append_ret_src(const InputRange & src) -> decltype(::adl_begin(src))
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _append<IterSrc>( ::adl_begin(src), _sizeOrEnd<IterSrc>(src),
-							 [](iterator, IterSrc sLast) { return sLast; } );
+	return _append<IterSrc, IterSrc>( src,
+			[](iterator, IterSrc sLast) { return sLast; } );
 }
 
 template<typename T, typename Alloc>
