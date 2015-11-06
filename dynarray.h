@@ -410,20 +410,18 @@ private:
 		return _m.reserveEnd - _m.end;
 	}
 
-	size_type _calcCapAddOne() const
+	static size_type _calcCapAddOne(size_type const oldCap, size_type = 0)
 	{
 		enum { minGrow = sizeof(T *) >= sizeof(T) ?
 				2 * sizeof(T *) / sizeof(T) :   // Want to grow by 2 * sizeof(T *) bytes,
 				(sizeof(T) <= 2040 ? 2 : 1) };  // at least 2 elements if they fit in a 4K page
 		// Growth factor is 1.5
-		size_type c = capacity();
-		return c + (std::max)(c / 2, size_type(minGrow));
+		return oldCap + std::max<size_type>(oldCap / 2, minGrow);
 	}
 
-	size_type _calcCapMin(size_type const newSize) const
+	static size_type _calcCap(size_type oldCap, size_type newSize)
 	{
-		size_type c = capacity();
-		return (std::max)(c + c / 2, newSize);
+		return (std::max)(oldCap + oldCap / 2, newSize);
 	}
 
 
@@ -457,8 +455,9 @@ private:
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
 	{	// note: initNewElems cannot hold a reference to element of this
-		if (capacity() < newSize)
-			_growTo(_calcCapMin(newSize));
+		size_type const reserved = capacity();
+		if (reserved < newSize)
+			_growTo(_calcCap(reserved, newSize));
 
 		T *const newEnd = data() + newSize;
 		if (_m.end < newEnd) // then construct new
@@ -670,7 +669,7 @@ private:
 		}
 		else
 		{
-			_scopedPtr newData{*this, _calcCapMin(size() + count)};
+			_scopedPtr newData{*this, _calcCap(capacity(), size() + count)};
 
 			size_type const oldSize = size();
 			pointer pos = newData.ptr + oldSize;
@@ -689,7 +688,7 @@ private:
 	T * _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
 					   CalcCapFunc calcCap, MakeFunc addNew, Args &&... args)
 	{
-		_scopedPtr newData{*this, calcCap(*this, size() + nToAdd)};
+		_scopedPtr newData{*this, calcCap(capacity(), size() + nToAdd)};
 
 		size_type const nBeforePos = pos - data();
 		T *const newPos = newData.ptr + nBeforePos;
@@ -757,8 +756,7 @@ private:
 		}
 		else // not enough room, reallocate
 		{
-			pPos = _insertRealloc( pPos, nAfterPos, count,
-					[](const dynarray & self, size_type newSize) { return self._calcCapMin(newSize); },
+			pPos = _insertRealloc( pPos, nAfterPos, count, _calcCap,
 					[first](dynarray & self, T * newPos, size_type count)
 					{
 						T *const next = newPos + count;
@@ -788,9 +786,8 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 		*reinterpret_cast<RawStore *>(pPos) = tmp; // relocate the new element to pos
 	}
 	else
-	{	pPos = _insertRealloc( pPos, nAfterPos, {},
-				[](const dynarray & self, size_type) { return self._calcCapAddOne(); },
-				_emplaceMakeElem{}, std::forward<Args>(args)... );
+	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
+							  _emplaceMakeElem{}, std::forward<Args>(args)...);
 	}
 	return _makeIterator(pPos, this);
 }
@@ -804,7 +801,7 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 	}
 	else
 	{
-		_scopedPtr newData{*this, _calcCapAddOne()};
+		_scopedPtr newData{*this, _calcCapAddOne(capacity())};
 
 		pointer const pos = newData.ptr + size();
 		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
