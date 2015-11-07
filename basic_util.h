@@ -60,9 +60,7 @@ using std::end;
 #if _MSC_VER || __GNUC__ >= 5
 	using std::cbegin;
 	using std::cend;
-	using std::rbegin;
 	using std::crbegin;
-	using std::rend;
 	using std::crend;
 #else
 	/// Equivalent to std::cbegin found in C++14
@@ -70,7 +68,7 @@ using std::end;
 	auto cbegin(const Range & r) -> decltype(std::begin(r))  { return std::begin(r); }
 	/// Equivalent to std::cend found in C++14
 	template<typename Range> inline
-	auto cend(const Range & r) -> decltype(std::end(r))  { return std::end(r); }
+	auto cend(const Range & r) -> decltype(std::end(r))      { return std::end(r); }
 #endif
 
 /** @brief Argument-dependent lookup non-member begin, defaults to std::begin
@@ -83,22 +81,24 @@ using std::end;
 	auto it = adl_begin(container);  // Equivalent to line above
 @endcode  */
 template<typename Range> inline
-auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
+auto adl_begin(Range & r) -> decltype(begin(r))         { return begin(r); }
 /// Const version of adl_begin
 template<typename Range> inline
-auto adl_begin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+auto adl_cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
 
 /// Argument-dependent lookup non-member end, defaults to std::end
 template<typename Range> inline
-auto adl_end(Range & r)       -> decltype(end(r))  { return end(r); }
+auto adl_end(Range & r) -> decltype(end(r))         { return end(r); }
 /// Const version of adl_end
 template<typename Range> inline
-auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
+auto adl_cend(const Range & r) -> decltype(end(r))  { return end(r); }
 
 } // namespace oel
 
 using oel::adl_begin;
+using oel::adl_cbegin;
 using oel::adl_end;
+using oel::adl_cend;
 
 namespace oel
 {
