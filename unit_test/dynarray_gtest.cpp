@@ -12,9 +12,8 @@ int MyCounter::nConstruct;
 int MyCounter::nDestruct;
 
 using oel::dynarray;
-using oel::cbegin;
-using oel::cend;
-using oel::default_init;
+using oel::as_view;
+using oel::as_view_n;
 
 namespace statictest
 {
@@ -163,7 +162,7 @@ TEST_F(dynarrayTest, pushBack)
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 
 	dynarray< dynarray<int> > nested;
-	nested.emplace_back(3, default_init);
+	nested.emplace_back(3, oel::default_init);
 	EXPECT_EQ(3U, nested.back().size());
 	nested.emplace_back(std::initializer_list<int>{1, 2});
 	EXPECT_EQ(2U, nested.back().size());
@@ -266,7 +265,7 @@ TEST_F(dynarrayTest, assign)
 		{
 			NontrivialReloc obj{-5.0, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign(oel::as_counted_view(&obj, 1));
+			{	dest.assign(as_view_n(&obj, 1));
 			}
 			catch (TestException &) {
 			}
@@ -283,7 +282,7 @@ TEST_F(dynarrayTest, assign)
 		{
 			NontrivialReloc obj{-3.3, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign(oel::make_range(&obj, &obj + 1));
+			{	dest.assign(as_view(&obj, &obj + 1));
 			}
 			catch (TestException &) {
 			}
@@ -296,7 +295,7 @@ TEST_F(dynarrayTest, assign)
 
 			NontrivialReloc obj{-1.3, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign(oel::as_counted_view(&obj, 1));
+			{	dest.assign(as_view_n(&obj, 1));
 			}
 			catch (TestException &) {
 			}
@@ -312,14 +311,14 @@ TEST_F(dynarrayTest, assignStringStream)
 		dynarray<std::string> das;
 
 		std::string * p = nullptr;
-		das.assign(oel::make_range(p, p));
+		das.assign(as_view(p, p));
 
 		EXPECT_EQ(0U, das.size());
 
 		std::stringstream ss{"My computer emits Hawking radiation"};
 		std::istream_iterator<std::string> begin{ss};
 		std::istream_iterator<std::string> end;
-		das.assign(oel::make_range(begin, end));
+		das.assign(as_view(begin, end));
 
 		EXPECT_EQ(5U, das.size());
 
@@ -331,17 +330,17 @@ TEST_F(dynarrayTest, assignStringStream)
 
 		decltype(das) copyDest;
 
-		copyDest.assign(oel::as_counted_view(cbegin(das), 2));
-		copyDest.assign( oel::as_counted_view(cbegin(das), das.size()) );
+		copyDest.assign(as_view_n(cbegin(das), 2));
+		copyDest.assign( as_view_n(cbegin(das), das.size()) );
 
 		EXPECT_TRUE(das == copyDest);
 
-		copyDest.assign(oel::make_range(cbegin(das), cbegin(das) + 1));
+		copyDest.assign(as_view(cbegin(das), cbegin(das) + 1));
 
 		EXPECT_EQ(1U, copyDest.size());
 		EXPECT_EQ(das[0], copyDest[0]);
 
-		copyDest.assign(oel::as_counted_view(cbegin(das) + 2, 3));
+		copyDest.assign(as_view_n(cbegin(das) + 2, 3));
 
 		EXPECT_EQ(3U, copyDest.size());
 		EXPECT_EQ(das[2], copyDest[0]);
@@ -371,7 +370,7 @@ TEST_F(dynarrayTest, append)
 
 		double const TEST_VAL = 6.6;
 		dest.append(2, TEST_VAL);
-		dest.append( oel::as_counted_view(dest.begin(), dest.size()) );
+		dest.append( as_view_n(dest.begin(), dest.size()) );
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
 			EXPECT_EQ(TEST_VAL, d);
@@ -380,7 +379,7 @@ TEST_F(dynarrayTest, append)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.append_ret_src( oel::as_counted_view(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.append_ret_src( as_view_n(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.append(double_dynarr2);
 
 	{
@@ -410,11 +409,11 @@ TEST_F(dynarrayTest, append)
 		std::istream_iterator<int> it(ss);
 
 		// Should hit static_assert
-		//dest.insert_r(dest.begin(), oel::make_range(it, std::istream_iterator<int>()));
+		//dest.insert_r(dest.begin(), as_view(it, std::istream_iterator<int>()));
 
-		it = dest.append_ret_src(oel::as_counted_view(it, 2));
+		it = dest.append_ret_src(as_view_n(it, 2));
 
-		dest.append_ret_src(oel::as_counted_view(it, 2));
+		dest.append_ret_src(as_view_n(it, 2));
 
 		for (int i = 0; i < ssize(dest); ++i)
 			EXPECT_EQ(i + 1, dest[i]);
@@ -435,7 +434,7 @@ TEST_F(dynarrayTest, insertR)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.insert_r( double_dynarr.begin(), oel::as_counted_view(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.insert_r( double_dynarr.begin(), as_view_n(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.insert_r(double_dynarr.end(), double_dynarr2);
 
 	{
@@ -516,7 +515,7 @@ TEST_F(dynarrayTest, resize)
 	int nExcept = 0;
 	try
 	{
-		d.resize((size_t)-8, default_init);
+		d.resize((size_t)-8, oel::default_init);
 	}
 	catch (std::bad_alloc &)
 	{
@@ -651,9 +650,9 @@ TEST_F(dynarrayTest, misc)
 	dest0.reserve(1);
 	dest0 = daSrc;
 
-	dest0.append_ret_src( oel::as_counted_view(cbegin(daSrc), daSrc.size()) );
-	dest0.append(oel::as_counted_view(fASrc, 2));
-	auto srcEnd = dest0.append_ret_src( oel::as_counted_view(dequeSrc.begin(), dequeSrc.size()) );
+	dest0.append_ret_src( as_view_n(cbegin(daSrc), daSrc.size()) );
+	dest0.append(as_view_n(fASrc, 2));
+	auto srcEnd = dest0.append_ret_src( as_view_n(dequeSrc.begin(), dequeSrc.size()) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;

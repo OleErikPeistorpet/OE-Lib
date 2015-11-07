@@ -67,7 +67,7 @@ TEST_F(utilTest, indexValid)
 TEST_F(utilTest, countedView)
 {
 	using namespace oel;
-	const dynarray<int> i{1, 2};
+	dynarray<int> i{1, 2};
 	counted_view<dynarray<int>::const_iterator> test = i;
 	EXPECT_EQ(i.size(), test.size());
 	EXPECT_EQ(1, test[0]);

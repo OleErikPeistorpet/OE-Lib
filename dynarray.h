@@ -58,7 +58,7 @@ void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first) n
 * Efficiency is better if template argument T is trivially relocatable, which is true for most types, but needs
 * to be declared manually for each type that is not trivially copyable. See specify_trivial_relocate(T &&).
 * There are a few notable exceptions for which trivially relocatable T is required (checked when compiling):
-* insert and its variations, and erase(iterator, iterator)
+* emplace/insert/insert_r and erase(iterator, iterator)
 *
 * The default allocator supports over-aligned types (e.g. __m256).
 * In general, only that which differs from std::vector is documented. */
@@ -395,7 +395,7 @@ private:
 	void _initPostAllocate(const T *const first, size_type const count)
 	{
 		_m.end = _m.reserveEnd;
-		_uninitCopy(is_trivially_copyable<T>(), first, count, data(), _m.end);
+		_uninitCopy(is_trivially_copyable<T>(), first, count, _m.data, _m.end);
 	}
 
 
@@ -455,11 +455,10 @@ private:
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
 	{	// note: initNewElems cannot hold a reference to element of this
-		size_type const reserved = capacity();
-		if (reserved < newSize)
-			_growTo(_calcCap(reserved, newSize));
+		if (capacity() < newSize)
+			_growTo(_calcCap(capacity(), newSize));
 
-		T *const newEnd = data() + newSize;
+		T *const newEnd = _m.data + newSize;
 		if (_m.end < newEnd) // then construct new
 			initNewElems(_m.end, newEnd, _m);
 		else // downsizing
@@ -499,7 +498,8 @@ private:
 
 	void _erase(iterator pos, std::false_type)
 	{
-		_m.end = to_pointer_contiguous(std::move(pos + 1, end(), pos));
+		iterator last = std::move(pos + 1, end(), pos);
+		_m.end = to_pointer_contiguous(last);
 		(*_m.end).~T();
 	}
 
@@ -587,7 +587,7 @@ private:
 		else
 		{	// enough room, assign to old elements and construct rest
 			src = copy(src, begin(), end());
-			T *const newEnd = data() + count;
+			T *const newEnd = _m.data + count;
 			src = _detail::UninitCopy(src, _m.end, newEnd, _m);
 			_m.end = newEnd;
 		}

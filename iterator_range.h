@@ -34,9 +34,9 @@ namespace oel
 	};
 #endif
 
-/// Create an iterator_range from two iterators. Intended for various dynarray functions
+/// Create an iterator_range from two iterators, with type deduced from arguments
 template<typename Iterator> inline
-iterator_range<Iterator> make_range(Iterator first, Iterator last)  { return {first, last}; }
+iterator_range<Iterator> as_view(Iterator first, Iterator last)  { return {first, last}; }
 
 /// Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
 template<typename Iterator>
@@ -50,6 +50,7 @@ public:
 	/// Initialize to empty
 	counted_view()                              : count() {}
 	counted_view(iterator first, size_t count)  : first(first), count(count) {}
+	/// Construct from container with matching iterator type
 	template<typename Container>
 	counted_view(Container & c)                 : first(::adl_begin(c)), count(oel::ssize(c)) {}
 
@@ -68,9 +69,9 @@ protected:
 	size_t   count;
 };
 
-/// Create a counted_view from iterator and size
+/// Create a counted_view from iterator and size, with type deduced from first
 template<typename Iterator> inline
-counted_view<Iterator>   as_counted_view(Iterator first, size_t count)  { return {first, count}; }
+counted_view<Iterator> as_view_n(Iterator first, size_t count)  { return {first, count}; }
 
 /// Create an iterator_range of move_iterator from two iterators
 template<typename InputIterator>
@@ -88,7 +89,7 @@ template<typename InputIterator> inline
 counted_view< std::move_iterator<InputIterator> >    move_range(const counted_view<InputIterator> & r)
 	{ return {std::make_move_iterator(r.begin()), r.size()}; }
 /// Create a counted_view of move_iterator from iterator and size
-template<typename InputIterator>
+template<typename InputIterator> inline
 counted_view< std::move_iterator<InputIterator> >    move_range_n(InputIterator first, size_t count)
 	{ return {std::make_move_iterator(first), count}; }
 
