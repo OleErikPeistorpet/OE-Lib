@@ -6,6 +6,9 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#define OEL_ARRITER_DEREF_VALID(pDynarray, pos)  \
+	static_cast<size_t>((pos) - pDynarray->_m.data) < static_cast<size_t>(pDynarray->_m.end - pDynarray->_m.data)
+
 #include "auxi/contiguous_iterator.h"
 #include "compat/default.h"
 #include "align_allocator.h"
@@ -261,7 +264,7 @@ public:
 
 private:
 #if OEL_MEM_BOUND_DEBUG_LVL
-	friend class iterator;  friend class const_iterator;
+	friend iterator;  friend const_iterator;
 
 	using _makeIterator  = iterator;
 	using _makeConstIter = const_iterator;
@@ -276,6 +279,8 @@ private:
 	#define OEL_FORCEINLINE inline
 #endif
 
+#undef OEL_ARRITER_CHECK_DEREFABLE
+
 	using _allocTrait = std::allocator_traits<Alloc>;
 
 	struct _assertNothrowMoveConstruct
@@ -284,21 +289,6 @@ private:
 			static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
 				"This function requires that T is noexcept move constructible or trivially relocatable") );
 	};
-
-	// -- Debug functions -- //
-	using _uSizeT = make_unsigned_t<std::ptrdiff_t>;
-
-	bool _derefValid(const_pointer pos) const
-	{
-		return static_cast<_uSizeT>(pos - _m.data) < static_cast<_uSizeT>(_m.end - _m.data);
-	}
-
-	bool _indexValid(size_type idx) const
-	{
-		return static_cast<_uSizeT>(idx) < static_cast<_uSizeT>(_m.end - _m.data);
-	}
-
-	const_pointer _endPtr() const { return _m.end; }
 
 
 	using _scopedPtrBase = _detail::AllocRefOptimizeEmpty< Alloc, std::is_empty<Alloc>::value >;
@@ -415,6 +405,11 @@ private:
 		_uninitCopy(is_trivially_copyable<T>(), first, count, _m.data, _m.end);
 	}
 
+
+	bool _indexValid(size_type idx) const
+	{
+		return static_cast<size_t>(idx) < static_cast<size_t>(_m.end - _m.data);
+	}
 
 	size_type _unusedCapacity() const
 	{

@@ -50,20 +50,20 @@ public:
 
 	reference operator*() const
 	{
-		OEL_ASSERT_MEM_BOUND(_container->_derefValid(_pElem));
+		OEL_ASSERT_MEM_BOUND(OEL_ARRITER_DEREF_VALID(_container, _pElem));
 		return *_pElem;
 	}
 
 	pointer operator->() const
 	{
-		OEL_ASSERT_MEM_BOUND(_container->_derefValid(_pElem));
+		OEL_ASSERT_MEM_BOUND(OEL_ARRITER_DEREF_VALID(_container, _pElem));
 		return _pElem;
 	}
 
 	contiguous_ctnr_iterator & operator++()
 	{	// preincrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		OEL_ASSERT_MEM_BOUND(_pElem < _container->_endPtr());
+		OEL_ASSERT_MEM_BOUND(_pElem < _container->end()._pElem);
 	#endif
 		++_pElem;
 		return *this;
@@ -97,7 +97,7 @@ public:
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 		// Check that adding offset keeps this in range [begin, end]
 		OEL_ASSERT_MEM_BOUND( offset >= _container->data() - _pElem
-						   && offset <= _container->_endPtr() - _pElem );
+						   && offset <= _container->end()._pElem - _pElem );
 	#endif
 		_pElem += offset;
 		return *this;
@@ -108,7 +108,7 @@ public:
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 		// Check that subtracting offset keeps this in range [begin, end]
 		OEL_ASSERT_MEM_BOUND( offset <= _pElem - _container->data()
-						   && offset >= _pElem - _container->_endPtr() );
+						   && offset >= _pElem - _container->end()._pElem );
 	#endif
 		_pElem -= offset;
 		return *this;
