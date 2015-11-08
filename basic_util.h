@@ -15,9 +15,9 @@
 */
 
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
-/** @brief Undefined: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
+/** @brief Undefined/0: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
 *
-* Warning: Undefined (by NDEBUG defined) is not binary compatible with levels 1 and 2. */
+* Warning: 0 (or undefined by NDEBUG defined) is not binary compatible with levels 1 and 2. */
 	#define OEL_MEM_BOUND_DEBUG_LVL 2
 #endif
 
@@ -203,7 +203,7 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 	}
 #elif __GLIBCXX__
 	template<typename T, typename U> inline
-	T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
+	T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, U> it) noexcept { return it.base(); }
 #endif
 
 

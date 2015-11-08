@@ -279,7 +279,7 @@ private:
 	#define OEL_FORCEINLINE inline
 #endif
 
-#undef OEL_ARRITER_CHECK_DEREFABLE
+#undef OEL_ARRITER_DEREF_VALID
 
 	using _allocTrait = std::allocator_traits<Alloc>;
 
@@ -540,7 +540,7 @@ private:
 	CntigusIter _assignImpl(CntigusIter const first, size_type const count, std::true_type /*trivialCopy*/)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
-		if (count > 0)
+		if (count != 0)
 		{	// Dereference to catch out of range errors if the iterators have internal checks
 			(void)*first;
 			(void)*(first + (count - 1));
