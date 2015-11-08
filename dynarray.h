@@ -261,6 +261,8 @@ public:
 
 private:
 #if OEL_MEM_BOUND_DEBUG_LVL
+	friend class iterator;  friend class const_iterator;
+
 	using _makeIterator  = iterator;
 	using _makeConstIter = const_iterator;
 #else
@@ -282,6 +284,21 @@ private:
 			static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
 				"This function requires that T is noexcept move constructible or trivially relocatable") );
 	};
+
+	// -- Debug functions -- //
+	using _uSizeT = make_unsigned_t<std::ptrdiff_t>;
+
+	bool _derefValid(const_pointer pos) const
+	{
+		return static_cast<_uSizeT>(pos - _m.data) < static_cast<_uSizeT>(_m.end - _m.data);
+	}
+
+	bool _indexValid(size_type idx) const
+	{
+		return static_cast<_uSizeT>(idx) < static_cast<_uSizeT>(_m.end - _m.data);
+	}
+
+	const_pointer _endPtr() const { return _m.end; }
 
 
 	using _scopedPtrBase = _detail::AllocRefOptimizeEmpty< Alloc, std::is_empty<Alloc>::value >;
@@ -398,12 +415,6 @@ private:
 		_uninitCopy(is_trivially_copyable<T>(), first, count, _m.data, _m.end);
 	}
 
-
-	bool _indexValid(size_type index) const
-	{
-		using USizeT = make_unsigned_t<std::ptrdiff_t>;
-		return static_cast<USizeT>(index) < static_cast<USizeT>(_m.end - _m.data);
-	}
 
 	size_type _unusedCapacity() const
 	{
