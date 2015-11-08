@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/contiguous_container_iterator.h"
+#include "auxi/contiguous_iterator.h"
 #include "compat/default.h"
 #include "align_allocator.h"
 
