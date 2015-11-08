@@ -195,7 +195,6 @@ protected:
 	friend class contiguous_ctnr_iterator;
 
 #undef OEL_ARRITER_CHECK_COMPAT
-#undef OEL_ARRITER_CHECK_DEREFABLE
 };
 
 } // namespace oel
