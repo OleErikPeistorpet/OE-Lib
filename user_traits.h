@@ -110,11 +110,4 @@ void ProcessNumbers(Ts...) {
 template<bool... Vs>
 using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
 
-
-
-template<typename T>
-using make_signed_t   = typename std::make_signed<T>::type;  ///< std with C++14
-template<typename T>
-using make_unsigned_t = typename std::make_unsigned<T>::type; ///< std with C++14
-
 } // namespace oel
