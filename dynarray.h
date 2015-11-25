@@ -1069,7 +1069,7 @@ typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i
 	if (_indexValid(index))
 		return _m.data[index];
 	else
-		OEL_THROW_(std::out_of_range("Invalid index dynarray::at"));
+		OEL_THROW(std::out_of_range("Invalid index dynarray::at"));
 }
 
 template<typename T, typename Alloc>

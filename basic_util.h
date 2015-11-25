@@ -58,10 +58,8 @@ using std::begin;
 using std::end;
 
 #if __cplusplus >= 201402L || _MSC_VER || __GNUC__ >= 5
-	using std::cbegin;
-	using std::cend;
-	using std::crbegin;
-	using std::crend;
+	using std::cbegin;   using std::cend;
+	using std::crbegin;  using std::crend;
 #else
 	/// Equivalent to std::cbegin found in C++14
 	template<typename Range> inline
@@ -161,12 +159,12 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 
 
 #if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
-	#define OEL_THROW_(exception)     throw exception
+	#define OEL_THROW(exception)      throw exception
 	#define OEL_TRY_                  try
 	#define OEL_CATCH_ALL             catch (...)
 	#define OEL_WHEN_EXCEPTIONS_ON(x) x
 #else
-	#define OEL_THROW_(exception)     std::terminate()
+	#define OEL_THROW(exception)      std::terminate()
 	#define OEL_TRY_
 	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
 	#define OEL_WHEN_EXCEPTIONS_ON(x)

@@ -29,7 +29,7 @@ public:
 	{	++nConstruct;
 	}
 	explicit MoveOnly(ThrowOnConstructT)
-	{	OEL_THROW_(TestException{});
+	{	OEL_THROW(TestException{});
 	}
 	MoveOnly(MoveOnly && other) noexcept
 	 :	val(std::move(other.val))
@@ -55,7 +55,7 @@ public:
 	{	++nConstruct;
 	}
 	explicit NontrivialReloc(ThrowOnConstructT)
-	{	OEL_THROW_(TestException{});
+	{	OEL_THROW(TestException{});
 	}
 	NontrivialReloc(double val, ThrowOnMoveOrCopyT)
 	 :	val(val), throwOnMove(true)
@@ -66,7 +66,7 @@ public:
 		if (other.throwOnMove)
 		{
 			other.throwOnMove = false;
-			OEL_THROW_(TestException{});
+			OEL_THROW(TestException{});
 		}
 		val = other.val;
 		++nConstruct;
@@ -75,7 +75,7 @@ public:
 	{
 		if (other.throwOnMove)
 		{
-			OEL_THROW_(TestException{});
+			OEL_THROW(TestException{});
 		}
 		val = other.val;
 		++nConstruct;
@@ -85,7 +85,7 @@ public:
 		if (throwOnMove || other.throwOnMove)
 		{
 			throwOnMove = false;
-			OEL_THROW_(TestException{});
+			OEL_THROW(TestException{});
 		}
 		val = other.val;
 		return *this;

@@ -133,7 +133,7 @@ namespace _detail
 				std::set_new_handler(handler);
 			#endif
 				if (!handler)
-					OEL_THROW_(std::bad_alloc{});
+					OEL_THROW(std::bad_alloc{});
 
 				(*handler)();
 			}
@@ -199,7 +199,7 @@ namespace _detail
 	};
 
 
-	template<typename Alloc, bool /*is empty*/>
+	template<typename Alloc, bool /*IsEmpty*/>
 	struct AllocRefOptimizeEmpty
 	{
 		Alloc & alloc;
