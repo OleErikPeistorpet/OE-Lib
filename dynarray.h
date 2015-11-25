@@ -6,9 +6,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#define OEL_ARRITER_DEREF_VALID(pDynarray, pos)  \
-	static_cast<size_t>((pos) - pDynarray->_m.data) < static_cast<size_t>(pDynarray->_m.end - pDynarray->_m.data)
-
 #include "auxi/contiguous_iterator.h"
 #include "compat/default.h"
 #include "align_allocator.h"
@@ -279,8 +276,6 @@ private:
 	#define OEL_FORCEINLINE inline
 #endif
 
-#undef OEL_ARRITER_DEREF_VALID
-
 	using _allocTrait = std::allocator_traits<Alloc>;
 
 	struct _assertNothrowMoveConstruct
@@ -289,6 +284,14 @@ private:
 			static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
 				"This function requires that T is noexcept move constructible or trivially relocatable") );
 	};
+
+	// -- Debug functions for iterator -- //
+	bool _derefValid(const_pointer pos) const
+	{
+		return static_cast<size_t>(pos - _m.data) < static_cast<size_t>(_m.end - _m.data);
+	}
+
+	const_pointer _endPtr() const { return _m.end; }
 
 
 	using _scopedPtrBase = _detail::AllocRefOptimizeEmpty< Alloc, std::is_empty<Alloc>::value >;
@@ -406,11 +409,6 @@ private:
 	}
 
 
-	bool _indexValid(size_type idx) const
-	{
-		return static_cast<size_t>(idx) < static_cast<size_t>(_m.end - _m.data);
-	}
-
 	size_type _unusedCapacity() const
 	{
 		return _m.reserveEnd - _m.end;
@@ -476,7 +474,7 @@ private:
 
 	void _eraseUnordered(iterator pos, std::true_type /*trivialRelocate*/)
 	{
-		OEL_ASSERT_MEM_BOUND( _indexValid(pos - begin()) ); // pos must be an iterator of this, not another dynarray
+		OEL_ASSERT_MEM_BOUND(begin() <= pos && pos < end()); // pos must be an iterator of this, not another dynarray
 
 		T & elem = *pos;
 		elem.~T();
@@ -1066,7 +1064,7 @@ inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type 
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
 {
-	if (_indexValid(index))
+	if (static_cast<size_t>(size()) > static_cast<size_t>(index))
 		return _m.data[index];
 	else
 		OEL_THROW(std::out_of_range("Invalid index dynarray::at"));
@@ -1075,13 +1073,13 @@ typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::operator[](size_type index) noexcept
 {
-	OEL_ASSERT_MEM_BOUND(_indexValid(index));
+	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(index));
 	return _m.data[index];
 }
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operator[](size_type index) const noexcept
 {
-	OEL_ASSERT_MEM_BOUND(_indexValid(index));
+	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(index));
 	return _m.data[index];
 }
 
