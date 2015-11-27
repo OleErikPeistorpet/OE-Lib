@@ -127,19 +127,22 @@ std::unique_ptr<T> make_unique_default(size_t arraySize);
 
 /** @brief Calls operator * on arguments before passing them to Func
 *
-* Example: @code
+* Example, sort pointers by pointed-to values, not addresses:
+@code
 oel::dynarray< std::unique_ptr<double> > d;
-std::sort(d.begin(), d.end(), deref_args<std::less<>>{}); // sorts by double values
+std::sort(d.begin(), d.end(), deref_args<std::less<>>{}); // std::less<double> before C++14
 @endcode  */
 template<typename Func>
 class deref_args
 {
 public:
-	deref_args(const Func & f = Func{})  : _f(f) {}
+	deref_args(Func f = Func{})  : _f(std::move(f)) {}
 
 	template<typename... Ts>
-	auto operator()(Ts &&... args) const
+	auto operator()(Ts &&... args)
 	 -> decltype( _f(*std::forward<Ts>(args)...) )  { return _f(*std::forward<Ts>(args)...); }
+
+	using is_transparent = void;
 
 private:
 	Func _f;

@@ -4,6 +4,7 @@
 #include "gtest/gtest.h"
 #include <list>
 #include <array>
+#include <set>
 
 /// @cond INTERNAL
 
@@ -131,11 +132,22 @@ TEST_F(utilTest, derefArgs)
 	using namespace oel;
 	dynarray< std::unique_ptr<double> > d;
 	d.push_back(make_unique<double>(3.0));
+	d.push_back(make_unique<double>(3.0));
 	d.push_back(make_unique<double>(1.0));
 	d.push_back(make_unique<double>(2.0));
-	std::sort(d.begin(), d.end(), deref_args<std::less<>>{});
-	EXPECT_EQ(1.0, *d.front());
-	EXPECT_EQ(3.0, *d.back());
+	d.push_back(make_unique<double>(2.0));
+	{
+		std::set< double *, deref_args<std::less<double>> > s;
+		for (const auto & p : d)
+			s.insert(p.get());
+
+		EXPECT_EQ(3, s.size());
+		double cmp = 0;
+		for (double * v : s)
+			EXPECT_DOUBLE_EQ(++cmp, *v);
+	}
+	auto last = std::unique(d.begin(), d.end(), deref_args<std::equal_to<double>>{});
+	EXPECT_EQ(3, last - d.begin());
 }
 
 /// @endcond
