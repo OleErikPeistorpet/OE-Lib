@@ -37,53 +37,38 @@ constexpr make_unsigned_t<T> as_unsigned(T val) noexcept  { return (make_unsigne
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template<typename RandomAccessContainer> inline
-void erase_unordered(RandomAccessContainer & ctr, typename RandomAccessContainer::size_type index)
+void erase_unordered(RandomAccessContainer & ctnr, typename RandomAccessContainer::size_type index)
 {
-	ctr[index] = std::move(ctr.back());
-	ctr.pop_back();
+	ctnr[index] = std::move(ctnr.back());
+	ctnr.pop_back();
 }
 /**
 * @brief Erase the element at position from container without maintaining order of elements.
-* @param position dereferenceable iterator (not the end), can simply be a pointer to an element in ctr
+* @param position dereferenceable iterator (not the end), can simply be a pointer to an element in ctnr
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template<typename OutputIterator, typename Container,
-		 typename /*SFINAE*/ = decltype( *std::declval<OutputIterator>() )> inline
-void erase_unordered(Container & ctr, OutputIterator position)
+		 typename /*EnableIfIterator*/ = decltype( *std::declval<OutputIterator>() )> inline
+void erase_unordered(Container & ctnr, OutputIterator position)
 {
-	*position = std::move(ctr.back());
-	ctr.pop_back();
+	*position = std::move(ctnr.back());
+	ctnr.pop_back();
 }
 
 /// Erase the elements from first to the end of container, useful for std::remove_if and similar
 template<typename Container> inline
-void erase_back(Container & ctr, typename Container::iterator first)  { ctr.erase(first, ctr.end()); }
+void erase_back(Container & ctnr, typename Container::iterator first)  { ctnr.erase(first, ctnr.end()); }
 
-
-
-/// For copy functions that return the end of both source and destination ranges
-template<typename IteratorSource, typename IteratorDest>
-struct range_ends
-{
-	IteratorSource src_end;
-	IteratorDest   dest_end;
-};
 
 /**
 * @brief Copies the elements in source into the range beginning at dest
 * @return an iterator to the end of the destination range
 *
-* The ranges shall not overlap. To move instead of copy, include iterator_range.h and pass move_range(source)  */
+* The ranges shall not overlap, except if begin(source) equals dest (self assign).
+* To move instead of copy, include iterator_range.h and pass move_range(source)  */
 template<typename InputRange, typename OutputIterator>
-OutputIterator copy_nonoverlap(const InputRange & source, OutputIterator dest);
-/**
-* @brief Copies count elements from range beginning at first into the range beginning at dest
-* @return a struct with iterators to the end of both ranges
-*
-* The ranges shall not overlap. To move instead of copy, pass a std::move_iterator as first  */
-template<typename InputIterator, typename Count, typename OutputIterator>
-range_ends<InputIterator, OutputIterator>  copy_nonoverlap(InputIterator first, Count count, OutputIterator dest);
+OutputIterator copy(const InputRange & source, OutputIterator dest);
 
 
 
@@ -137,8 +122,8 @@ std::unique_ptr<T> make_unique_default(size_t arraySize);
 /// @cond INTERNAL
 namespace _detail
 {
-	template<typename InputIter, typename OutputIter> inline
-	OutputIter Copy(std::false_type, InputIter first, InputIter last, OutputIter dest)
+	template<typename InputIter, typename Sentinel, typename OutputIter> inline
+	OutputIter Copy(std::false_type, InputIter first, Sentinel last, OutputIter dest)
 	{
 		while (first != last)
 		{
@@ -162,52 +147,16 @@ namespace _detail
 		::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), sizeof(*first) * count);
 		return dest + count;
 	}
-
-	template<typename IterSrc, typename Count, typename IterDest> inline
-	range_ends<IterSrc, IterDest> CopyN(std::true_type, IterSrc first, Count const count, IterDest dest)
-	{	// can use memcpy
-		if (0 < count)
-		{
-		#if OEL_MEM_BOUND_DEBUG_LVL
-			(void)*(first + (count - 1)); // Dereference iterators at bounds, this detects
-			(void)*dest;                  // out of range errors if they are checked iterators
-			(void)*(dest + (count - 1));
-		#endif
-			::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), sizeof(*first) * count);
-			first += count;
-			dest += count;
-		}
-		return {first, dest};
-	}
-
-	template<typename InputIter, typename Count, typename OutputIter> inline
-	range_ends<InputIter, OutputIter> CopyN(std::false_type, InputIter first, Count count, OutputIter dest)
-	{
-		for (; 0 < count; --count)
-		{
-			*dest = *first;
-			++dest; ++first;
-		}
-		return {first, dest};
-	}
 }
 /// @endcond
 
 } // namespace oel
 
 template<typename InputRange, typename OutputIterator>
-inline OutputIterator oel::copy_nonoverlap(const InputRange & source, OutputIterator dest)
+inline OutputIterator oel::copy(const InputRange & src, OutputIterator dest)
 {
-	return _detail::Copy(can_memmove_with<OutputIterator, decltype(begin(source))>(),
-						 begin(source), end(source), dest);
-}
-
-template<typename InputIterator, typename Count, typename OutputIterator>
-inline oel::range_ends<InputIterator, OutputIterator>  oel::
-	copy_nonoverlap(InputIterator first, Count count, OutputIterator dest)
-{
-	return _detail::CopyN(can_memmove_with<OutputIterator, InputIterator>(),
-						  first, count, dest);
+	return _detail::Copy(can_memmove_with<OutputIterator, decltype(begin(src))>(),
+						 begin(src), end(src), dest);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

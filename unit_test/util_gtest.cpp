@@ -74,16 +74,16 @@ TEST_F(utilTest, countedView)
 	EXPECT_EQ(2, test[1]);
 }
 
-TEST_F(utilTest, copyNonoverlap)
+TEST_F(utilTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
-	oel::copy_nonoverlap(begin(test), ssize(test), adl_begin(test2));
+	oel::copy( oel::as_view_n(begin(test), ssize(test)), adl_begin(test2) );
 	EXPECT_TRUE(std::equal(begin(test), end(test), test2));
 
 	std::list<std::string> li{"aa", "bb"};
 	std::array<std::string, 2> strDest;
-	oel::copy_nonoverlap( oel::move_range(begin(li), end(li)), begin(strDest) );
+	oel::copy( oel::move_range(begin(li), end(li)), begin(strDest) );
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
 	EXPECT_TRUE(li.front().empty());

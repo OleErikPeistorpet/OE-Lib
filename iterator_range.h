@@ -52,7 +52,7 @@ public:
 	counted_view(iterator first, size_t count)  : first(first), count(count) {}
 	/// Construct from container with matching iterator type
 	template<typename Container>
-	counted_view(Container & c)                 : first(::adl_begin(c)), count(oel::ssize(c)) {}
+	counted_view(Container & c)  : first(::adl_begin(c)), count(oel::ssize(c)) {}
 
 	size_t   size() const  { return count; }
 

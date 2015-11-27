@@ -45,12 +45,12 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
 
 /// Overloads generic erase_unordered(Container &, OutputIterator) (in util.h)
 template<typename T, typename A> inline
-typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator position)
-	{ return ctr.erase_unordered(position); }
+typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & d, typename dynarray<T, A>::iterator position)
+	{ return d.erase_unordered(position); }
 
 /// Overloads generic erase_back(Container &, Container::iterator) (in util.h)
 template<typename T, typename A> inline
-void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first) noexcept  { ctr.erase_back(first); }
+void erase_back(dynarray<T, A> & d, typename dynarray<T, A>::iterator first) noexcept  { d.erase_back(first); }
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
@@ -1056,31 +1056,31 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase_unordere
 
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type index)
+inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type i)
 {
 	const auto & cThis = *this;
-	return const_cast<reference>(cThis.at(index));
+	return const_cast<reference>(cThis.at(i));
 }
 template<typename T, typename Alloc>
-typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
+typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i) const
 {
-	if (static_cast<size_t>(size()) > static_cast<size_t>(index))
-		return _m.data[index];
+	if (static_cast<size_t>(size()) > static_cast<size_t>(i))
+		return _m.data[i];
 	else
 		OEL_THROW(std::out_of_range("Invalid index dynarray::at"));
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::operator[](size_type index) noexcept
+inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::operator[](size_type i) noexcept
 {
-	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(index));
-	return _m.data[index];
+	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(i));
+	return _m.data[i];
 }
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operator[](size_type index) const noexcept
+inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operator[](size_type i) const noexcept
 {
-	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(index));
-	return _m.data[index];
+	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(i));
+	return _m.data[i];
 }
 
 #undef OEL_FORCEINLINE
