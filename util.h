@@ -125,6 +125,28 @@ std::unique_ptr<T> make_unique_default(size_t arraySize);
 
 
 
+/** @brief Calls operator * on arguments before passing them to Func
+*
+* Example: @code
+oel::dynarray< std::unique_ptr<double> > d;
+std::sort(d.begin(), d.end(), deref_args<std::less<>>{}); // sorts by double values
+@endcode  */
+template<typename Func>
+class deref_args
+{
+public:
+	deref_args(const Func & f = Func{})  : _f(f) {}
+
+	template<typename... Ts>
+	auto operator()(Ts &&... args) const
+	 -> decltype( _f(*std::forward<Ts>(args)...) )  { return _f(*std::forward<Ts>(args)...); }
+
+private:
+	Func _f;
+};
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Implementation only in rest of the file

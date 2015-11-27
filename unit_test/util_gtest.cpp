@@ -126,4 +126,16 @@ TEST_F(utilTest, ssize)
 	ASSERT_EQ(2, test);
 }
 
+TEST_F(utilTest, derefArgs)
+{
+	using namespace oel;
+	dynarray< std::unique_ptr<double> > d;
+	d.push_back(make_unique<double>(3.0));
+	d.push_back(make_unique<double>(1.0));
+	d.push_back(make_unique<double>(2.0));
+	std::sort(d.begin(), d.end(), deref_args<std::less<>>{});
+	EXPECT_EQ(1.0, *d.front());
+	EXPECT_EQ(3.0, *d.back());
+}
+
 /// @endcond
