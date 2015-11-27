@@ -141,6 +141,10 @@ TEST_F(utilTest, derefArgs)
 		for (const auto & p : d)
 			s.insert(p.get());
 
+		const auto & constAlias = s;
+		double toFind = 2.0;
+		EXPECT_TRUE(constAlias.find(&toFind) != constAlias.end());
+
 		EXPECT_EQ(3, s.size());
 		double cmp = 0;
 		for (double * v : s)
