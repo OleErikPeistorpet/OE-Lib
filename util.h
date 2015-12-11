@@ -37,28 +37,28 @@ constexpr make_unsigned_t<T> as_unsigned(T val) noexcept  { return (make_unsigne
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template<typename RandomAccessContainer> inline
-void erase_unordered(RandomAccessContainer & ctr, typename RandomAccessContainer::size_type index)
+void erase_unordered(RandomAccessContainer & c, typename RandomAccessContainer::size_type index)
 {
-	ctr[index] = std::move(ctr.back());
-	ctr.pop_back();
+	c[index] = std::move(c.back());
+	c.pop_back();
 }
 /**
-* @brief Erase the element at position from container without maintaining order of elements.
-* @param position dereferenceable iterator (not the end), can simply be a pointer to an element in ctr
+* @brief Erase the element at pos from container without maintaining order of elements.
+* @param pos dereferenceable iterator (not the end), can simply be a pointer to an element in c
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template<typename OutputIterator, typename Container,
 		 typename /*SFINAE*/ = decltype( *std::declval<OutputIterator>() )> inline
-void erase_unordered(Container & ctr, OutputIterator position)
+void erase_unordered(Container & c, OutputIterator pos)
 {
-	*position = std::move(ctr.back());
-	ctr.pop_back();
+	*pos = std::move(c.back());
+	c.pop_back();
 }
 
 /// Erase the elements from first to the end of container, useful for std::remove_if and similar
 template<typename Container> inline
-void erase_back(Container & ctr, typename Container::iterator first)  { ctr.erase(first, ctr.end()); }
+void erase_back(Container & c, typename Container::iterator first)  { c.erase(first, c.end()); }
 
 
 

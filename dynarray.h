@@ -45,12 +45,12 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
 
 /// Overloads generic erase_unordered(Container &, OutputIterator) (in util.h)
 template<typename T, typename A> inline
-typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator position)
-	{ return ctr.erase_unordered(position); }
+typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & da, typename dynarray<T, A>::iterator pos)
+	{ return da.erase_unordered(pos); }
 
 /// Overloads generic erase_back(Container &, Container::iterator) (in util.h)
 template<typename T, typename A> inline
-void erase_back(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator first) noexcept  { ctr.erase_back(first); }
+void erase_back(dynarray<T, A> & da, typename dynarray<T, A>::iterator first) noexcept  { da.erase_back(first); }
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
@@ -109,8 +109,8 @@ public:
 	dynarray(from_range_tag, const InputRange & range, const Alloc & alloc = Alloc{})  : _m(alloc) { assign(range); }
 
 	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
-	/// If using custom Alloc, behaviour is undefined (assertion unless NDEBUG)
-	/// when alloc != other.get_allocator() and T is not trivially relocatable
+	/// If alloc != other.get_allocator() and T is not trivially relocatable,
+	/// behaviour is undefined (triggers OEL_ASSERT unless NDEBUG)
 	dynarray(dynarray && other, const Alloc & alloc) noexcept;
 	dynarray(const dynarray & other);
 	dynarray(const dynarray & other, const Alloc & alloc);
@@ -160,21 +160,21 @@ public:
 	* @brief Uses default initialization for added elements, can be significantly faster for non-class T
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void      resize(size_type newSize, default_init_tag)  { _resizeImpl(newSize, _detail::UninitFillDefault<Alloc, T>); }
+	void      resize(size_type count, default_init_tag)  { _resizeImpl(count, _detail::UninitFillDefault<Alloc, T>); }
 	/// (Value-initializes added elements, same as std::vector::resize)
-	void      resize(size_type newSize)                    { _resizeImpl(newSize, _detail::UninitFill<Alloc, T>); }
+	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<Alloc, T>); }
 
-	/// Equivalent to std::vector::insert(position, begin(source), sLast),
+	/// Equivalent to std::vector::insert(pos, begin(source), sLast),
 	/// where sLast is either begin(source) + source.size() or end(source)
 	template<typename ForwardRange>
-	iterator  insert_r(const_iterator position, const ForwardRange & source);
+	iterator  insert_r(const_iterator pos, const ForwardRange & source);
 
 	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
-	iterator  emplace(const_iterator position, Args &&... elemInitArgs);
+	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
 
-	iterator  insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
-	iterator  insert(const_iterator position, const T & val)  { return emplace(position, val); }
+	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
+	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
 
 	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
@@ -187,14 +187,14 @@ public:
 	void      pop_back() noexcept;
 
 	/**
-	* @brief Erase the element at position from dynarray without maintaining order of elements.
+	* @brief Erase the element at pos from dynarray without maintaining order of elements.
 	*
-	* Constant complexity (compared to linear in the distance between position and last for normal erase).
+	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return Iterator pointing to the location that followed the element erased,
-	*	which is the end if position was at the last element. */
-	iterator  erase_unordered(iterator position);
+	*	which is the end if pos was at the last element. */
+	iterator  erase_unordered(iterator pos);
 
-	iterator  erase(iterator position);
+	iterator  erase(iterator pos);
 
 	iterator  erase(iterator first, iterator last) noexcept;
 
@@ -457,14 +457,14 @@ private:
 	}
 
 	template<typename UninitFillFunc>
-	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
-	{	// note: initNewElems cannot hold a reference to element of this
+	void _resizeImpl(size_type const newSize, UninitFillFunc initAdded)
+	{	// note: initAdded cannot hold a reference to element of this
 		if (capacity() < newSize)
 			_growTo(_calcCap(capacity(), newSize));
 
 		T *const newEnd = _m.data + newSize;
 		if (_m.end < newEnd) // then construct new
-			initNewElems(_m.end, newEnd, _m);
+			initAdded(_m.end, newEnd, _m);
 		else // downsizing
 			_detail::Destroy(newEnd, _m.end);
 
@@ -489,7 +489,7 @@ private:
 		pop_back();
 	}
 
-	void _erase(iterator const pos, std::true_type /*trivialRelocate*/)
+	void _erase(iterator pos, std::true_type /*trivialRelocate*/)
 	{
 		T *const ptr = to_pointer_contiguous(pos);
 		OEL_ASSERT_MEM_BOUND(_m.data <= ptr && ptr < _m.end);
@@ -1056,31 +1056,31 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase_unordere
 
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type index)
+inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type i)
 {
 	const auto & cThis = *this;
-	return const_cast<reference>(cThis.at(index));
+	return const_cast<reference>(cThis.at(i));
 }
 template<typename T, typename Alloc>
-typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
+typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i) const
 {
-	if (static_cast<size_t>(size()) > static_cast<size_t>(index))
-		return _m.data[index];
+	if (static_cast<size_t>(size()) > static_cast<size_t>(i))
+		return _m.data[i];
 	else
 		OEL_THROW(std::out_of_range("Invalid index dynarray::at"));
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::operator[](size_type index) noexcept
+inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::operator[](size_type i) noexcept
 {
-	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(index));
-	return _m.data[index];
+	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(i));
+	return _m.data[i];
 }
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operator[](size_type index) const noexcept
+inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operator[](size_type i) const noexcept
 {
-	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(index));
-	return _m.data[index];
+	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(i));
+	return _m.data[i];
 }
 
 #undef OEL_FORCEINLINE
