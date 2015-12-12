@@ -45,12 +45,12 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
 
 /// Overloads generic erase_unordered(Container &, OutputIterator) (in util.h)
 template<typename T, typename A> inline
-typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & d, typename dynarray<T, A>::iterator position)
-	{ return d.erase_unordered(position); }
+typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & da, typename dynarray<T, A>::iterator pos)
+	{ return da.erase_unordered(pos); }
 
 /// Overloads generic erase_back(Container &, Container::iterator) (in util.h)
 template<typename T, typename A> inline
-void erase_back(dynarray<T, A> & d, typename dynarray<T, A>::iterator first) noexcept  { d.erase_back(first); }
+void erase_back(dynarray<T, A> & da, typename dynarray<T, A>::iterator first) noexcept  { da.erase_back(first); }
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
@@ -109,8 +109,8 @@ public:
 	dynarray(from_range_tag, const InputRange & range, const Alloc & alloc = Alloc{})  : _m(alloc) { assign(range); }
 
 	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
-	/// If using custom Alloc, behaviour is undefined (assertion unless NDEBUG)
-	/// when alloc != other.get_allocator() and T is not trivially relocatable
+	/// If alloc != other.get_allocator() and T is not trivially relocatable,
+	/// behaviour is undefined (triggers OEL_ASSERT unless NDEBUG)
 	dynarray(dynarray && other, const Alloc & alloc) noexcept;
 	dynarray(const dynarray & other);
 	dynarray(const dynarray & other, const Alloc & alloc);
@@ -160,21 +160,21 @@ public:
 	* @brief Uses default initialization for added elements, can be significantly faster for non-class T
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void      resize(size_type newSize, default_init_tag)  { _resizeImpl(newSize, _detail::UninitFillDefault<Alloc, T>); }
+	void      resize(size_type count, default_init_tag)  { _resizeImpl(count, _detail::UninitFillDefault<Alloc, T>); }
 	/// (Value-initializes added elements, same as std::vector::resize)
-	void      resize(size_type newSize)                    { _resizeImpl(newSize, _detail::UninitFill<Alloc, T>); }
+	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<Alloc, T>); }
 
-	/// Equivalent to std::vector::insert(position, begin(source), sLast),
+	/// Equivalent to std::vector::insert(pos, begin(source), sLast),
 	/// where sLast is either begin(source) + source.size() or end(source)
 	template<typename ForwardRange>
-	iterator  insert_r(const_iterator position, const ForwardRange & source);
+	iterator  insert_r(const_iterator pos, const ForwardRange & source);
 
 	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
-	iterator  emplace(const_iterator position, Args &&... elemInitArgs);
+	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
 
-	iterator  insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
-	iterator  insert(const_iterator position, const T & val)  { return emplace(position, val); }
+	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
+	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
 
 	/// Performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
@@ -187,14 +187,14 @@ public:
 	void      pop_back() noexcept;
 
 	/**
-	* @brief Erase the element at position from dynarray without maintaining order of elements.
+	* @brief Erase the element at pos from dynarray without maintaining order of elements.
 	*
-	* Constant complexity (compared to linear in the distance between position and last for normal erase).
+	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return Iterator pointing to the location that followed the element erased,
-	*	which is the end if position was at the last element. */
-	iterator  erase_unordered(iterator position);
+	*	which is the end if pos was at the last element. */
+	iterator  erase_unordered(iterator pos);
 
-	iterator  erase(iterator position);
+	iterator  erase(iterator pos);
 
 	iterator  erase(iterator first, iterator last) noexcept;
 
@@ -207,12 +207,12 @@ public:
 
 	size_type size() const noexcept   { return _m.end - _m.data; }
 
-	void      reserve(size_type minCapacity)  { if (capacity() < minCapacity) _growTo(minCapacity); }
+	void      reserve(size_type minCap)  { if (capacity() < minCap) _growTo(minCap); }
 
 	/// It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
 	void      shrink_to_fit();
 
-	size_type capacity() const noexcept  { return _m.reserveEnd - _m.data; }
+	size_type capacity() const noexcept  { return _m.reservEnd - _m.data; }
 
 	allocator_type get_allocator() const  { return _m; }
 
@@ -318,16 +318,16 @@ private:
 
 	struct _dynarrValues
 	{
-		pointer data;       // Pointer to beginning of data buffer
-		pointer end;        // Pointer to one past the back object
-		pointer reserveEnd; // Pointer to end of allocated memory
+		pointer data;      // Pointer to beginning of data buffer
+		pointer end;       // Pointer to one past the back object
+		pointer reservEnd; // Pointer to end of allocated memory
 	};
 
 	struct _dataOwner : public _dynarrValues, public Alloc
 	{
 		using _dynarrValues::data;
 		using _dynarrValues::end;
-		using _dynarrValues::reserveEnd;
+		using _dynarrValues::reservEnd;
 
 		_dataOwner(const Alloc & a)
 		 :	_dynarrValues(), Alloc(a) {
@@ -336,19 +336,19 @@ private:
 		 :	Alloc(a)
 		{
 			end = data = this->allocate(capacity);
-			reserveEnd = data + capacity;
+			reservEnd = data + capacity;
 		}
 		_dataOwner(_dataOwner && other)
 		 :	_dynarrValues(other), Alloc(std::move(other))
 		{
-			other.reserveEnd = other.end = other.data = nullptr;
+			other.reservEnd = other.end = other.data = nullptr;
 		}
 		_dataOwner(const _dataOwner &) = delete;
 		void operator =(const _dataOwner &) = delete;
 		~_dataOwner()
 		{
 			if (data)
-				this->deallocate(data, reserveEnd - data);
+				this->deallocate(data, reservEnd - data);
 		}
 
 	} _m; // One and only data member of dynarray
@@ -366,7 +366,7 @@ private:
 	{
 		using std::swap;
 		swap(_m.data, s.ptr);
-		swap(_m.reserveEnd, s.allocEnd);
+		swap(_m.reservEnd, s.allocEnd);
 	}
 
 	void _moveAssignAlloc(std::true_type, _dataOwner & d)
@@ -404,14 +404,14 @@ private:
 
 	void _initPostAllocate(const T *const first, size_type const count)
 	{
-		_m.end = _m.reserveEnd;
+		_m.end = _m.reservEnd;
 		_uninitCopy(is_trivially_copyable<T>(), first, count, _m.data, _m.end);
 	}
 
 
 	size_type _unusedCapacity() const
 	{
-		return _m.reserveEnd - _m.end;
+		return _m.reservEnd - _m.end;
 	}
 
 	static size_type _calcCapAddOne(size_type const oldCap, size_type = 0)
@@ -457,14 +457,14 @@ private:
 	}
 
 	template<typename UninitFillFunc>
-	void _resizeImpl(size_type const newSize, UninitFillFunc initNewElems)
-	{	// note: initNewElems cannot hold a reference to element of this
+	void _resizeImpl(size_type const newSize, UninitFillFunc initAdded)
+	{	// note: initAdded cannot hold a reference to element of this
 		if (capacity() < newSize)
 			_growTo(_calcCap(capacity(), newSize));
 
 		T *const newEnd = _m.data + newSize;
 		if (_m.end < newEnd) // then construct new
-			initNewElems(_m.end, newEnd, _m);
+			initAdded(_m.end, newEnd, _m);
 		else // downsizing
 			_detail::Destroy(newEnd, _m.end);
 
@@ -489,7 +489,7 @@ private:
 		pop_back();
 	}
 
-	void _erase(iterator const pos, std::true_type /*trivialRelocate*/)
+	void _erase(iterator pos, std::true_type /*trivialRelocate*/)
 	{
 		T *const ptr = to_pointer_contiguous(pos);
 		OEL_ASSERT_MEM_BOUND(_m.data <= ptr && ptr < _m.end);
@@ -548,7 +548,7 @@ private:
 		{
 			_resetData(_m.allocate(count), capacity());
 			_m.end = _m.data + count;
-			_m.reserveEnd = _m.end;
+			_m.reservEnd = _m.end;
 		}
 		else
 		{	_m.end = _m.data + count;
@@ -662,14 +662,14 @@ private:
 		return last; // has been invalidated in the case of append self and reallocation
 	}
 
-	template<typename CopyOrFillFunc>
-	OEL_FORCEINLINE void _appendImpl(size_type const count, CopyOrFillFunc makeNewElems)
+	template<typename MakeFuncAppend>
+	OEL_FORCEINLINE void _appendImpl(size_type const count, MakeFuncAppend makeNew)
 	{
 		_assertNothrowMoveConstruct();
 
 		if (_unusedCapacity() >= count)
 		{
-			makeNewElems(_m.end, count, _m);
+			makeNew(_m.end, count, _m);
 		}
 		else
 		{
@@ -677,7 +677,7 @@ private:
 
 			size_type const oldSize = size();
 			pointer pos = newData.ptr + oldSize;
-			makeNewElems(pos, count, _m);
+			makeNew(pos, count, _m);
 			// Exception free from here
 			_relocateData(newData.ptr, pos, oldSize);
 
@@ -688,15 +688,15 @@ private:
 	}
 
 
-	template<typename CalcCapFunc, typename MakeFunc, typename... Args>
+	template<typename CalcCapFunc, typename MakeFuncInsert, typename... Args>
 	T * _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
-					   CalcCapFunc calcNewCap, MakeFunc addNew, Args &&... args)
+					   CalcCapFunc calcNewCap, MakeFuncInsert makeNew, Args &&... args)
 	{
 		_scopedPtr newData{*this, calcNewCap(capacity(), size() + nToAdd)};
 
 		size_type const nBeforePos = pos - data();
 		T *const newPos = newData.ptr + nBeforePos;
-		T *const next = addNew(*this, newPos, nToAdd, std::forward<Args>(args)...);
+		T *const next = makeNew(*this, newPos, nToAdd, std::forward<Args>(args)...);
 		// Exception free from here
 		::memcpy(newData.ptr, data(), sizeof(T) * nBeforePos); // relocate prefix
 		::memcpy(next, pos, sizeof(T) * nAfterPos);   // relocate suffix
@@ -777,7 +777,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 {
 	OEL_DYNARR_INSERT_STEP0
 
-	if (_m.end < _m.reserveEnd) // then new element fits
+	if (_m.end < _m.reservEnd) // then new element fits
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		using RawStore = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
@@ -800,7 +800,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 template<typename T, typename Alloc> template<typename... Args>
 void dynarray<T, Alloc>::emplace_back(Args &&... args)
 {
-	if (_m.end < _m.reserveEnd)
+	if (_m.end < _m.reservEnd)
 	{	_allocTrait::construct(_m, _m.end, std::forward<Args>(args)...);
 	}
 	else
@@ -831,7 +831,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & alloc) noexcept
 	else
 	{
 		static_cast<_dynarrValues &>(_m) = other._m;
-		other._m.reserveEnd = other._m.end = other._m.data = nullptr;
+		other._m.reservEnd = other._m.end = other._m.data = nullptr;
 	}
 }
 
@@ -854,7 +854,7 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 		}
 		static_cast<_dynarrValues &>(_m) = other._m;
 		_moveAssignAlloc(_allocTrait::propagate_on_container_move_assignment(), other._m);
-		other._m.reserveEnd = other._m.end = other._m.data = nullptr;
+		other._m.reservEnd = other._m.end = other._m.data = nullptr;
 	}
 	return *this;
 }
@@ -892,7 +892,7 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(size_type size, default_init_tag, const Alloc & alloc)
  :	_m(alloc, size)
 {
-	_m.end = _m.reserveEnd;
+	_m.end = _m.reservEnd;
 	_detail::UninitFillDefault(_m.data, _m.end, _m);
 }
 
@@ -900,7 +900,7 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(size_type size, const Alloc & alloc)
  :	_m(alloc, size)
 {
-	_m.end = _m.reserveEnd;
+	_m.end = _m.reservEnd;
 	_detail::UninitFill(_m.data, _m.end, _m);
 }
 
@@ -908,7 +908,7 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(size_type size, const T & val, const Alloc & alloc)
  :	_m(alloc, size)
 {
-	_m.end = _m.reserveEnd;
+	_m.end = _m.reservEnd;
 	_detail::UninitFill(_m.data, _m.end, _m, val);
 }
 
@@ -946,7 +946,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	{	_m.end = newData = nullptr;
 	}
 	_resetData(newData, capacity());
-	_m.reserveEnd = _m.end;
+	_m.reservEnd = _m.end;
 }
 
 
