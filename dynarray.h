@@ -474,12 +474,13 @@ private:
 
 	void _eraseUnordered(iterator pos, std::true_type /*trivialRelocate*/)
 	{
-		T *const ptr = to_pointer_contiguous(pos);
-		OEL_ASSERT_MEM_BOUND(_m.data <= ptr && ptr < _m.end); // pos must be an iterator of this, not another dynarray
+		OEL_ASSERT_MEM_BOUND(begin() <= pos && pos < end()); // pos must be an iterator of this, not another dynarray
 
-		ptr-> ~T();
+		T & elem = *pos;
+		elem.~T();
 		--_m.end;
-		::memcpy(ptr, _m.end, sizeof(T)); // relocate last element to pos
+		using RawStore = aligned_union_t<T>;
+		reinterpret_cast<RawStore &>(elem) = reinterpret_cast<RawStore &>(*_m.end);
 	}
 
 	void _eraseUnordered(iterator pos, std::false_type)
