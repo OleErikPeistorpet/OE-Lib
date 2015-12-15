@@ -18,9 +18,12 @@
 namespace oel
 {
 
-/// Like std::aligned_storage<Size, Align>::type, but supports alignment above that of std::max_align_t
+/// Same as std::aligned_storage<Size, Align>::type, with support for alignment above that of std::max_align_t (up to 128)
 template<size_t Size, size_t Align>
 struct aligned_storage_t;
+/// Currently only one type, meant to support multiple
+template<typename T>
+using aligned_union_t = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
 
 
 

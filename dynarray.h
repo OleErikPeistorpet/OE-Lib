@@ -479,7 +479,7 @@ private:
 		T & elem = *pos;
 		elem.~T();
 		--_m.end;
-		using RawStore = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
+		using RawStore = aligned_union_t<T>;
 		reinterpret_cast<RawStore &>(elem) = reinterpret_cast<RawStore &>(*_m.end);
 	}
 
@@ -780,14 +780,13 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	if (_m.end < _m.reservEnd) // then new element fits
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
-		using RawStore = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
-		RawStore tmp;
+		aligned_union_t<T> tmp;
 		_allocTrait::construct(_m, reinterpret_cast<T *>(&tmp), std::forward<Args>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
 		::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_m.end;
 
-		*reinterpret_cast<RawStore *>(pPos) = tmp; // relocate the new element to pos
+		*reinterpret_cast<aligned_union_t<T> *>(pPos) = tmp; // relocate the new element to pos
 	}
 	else
 	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
