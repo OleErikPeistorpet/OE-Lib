@@ -479,8 +479,13 @@ private:
 		T & elem = *pos;
 		elem.~T();
 		--_m.end;
-		using RawStore = aligned_union_t<T>;
-		reinterpret_cast<RawStore &>(elem) = reinterpret_cast<RawStore &>(*_m.end);
+		// Relocate last element to pos
+		auto &
+	#if !_MSC_VER
+			__attribute__((may_alias))
+	#endif
+			raw = reinterpret_cast<aligned_union_t<T> &>(elem);
+		raw = reinterpret_cast<aligned_union_t<T> &>(*_m.end);
 	}
 
 	void _eraseUnordered(iterator pos, std::false_type)
