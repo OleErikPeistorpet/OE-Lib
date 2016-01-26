@@ -36,7 +36,7 @@ public:
 
 	using const_iterator = typename Container::const_iterator;
 
-	contiguous_ctnr_iterator() noexcept : _container(nullptr) {}
+	contiguous_ctnr_iterator() noexcept : _pElem(), _container() {}
 
 	/// Construct with position in data and pointer to container
 	contiguous_ctnr_iterator(pointer pos, const Container * container)
