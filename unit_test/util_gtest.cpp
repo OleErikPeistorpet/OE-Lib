@@ -78,12 +78,22 @@ TEST_F(utilTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
-	oel::copy( oel::as_view_n(begin(test), ssize(test)), adl_begin(test2) );
-	EXPECT_TRUE(std::equal(begin(test), end(test), test2));
+	test2[4] = -7;
+	auto fitInto = oel::as_view_n(std::begin(test2), 4);
+
+	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
+
+	oel::copy_fit(test, fitInto);
+	EXPECT_TRUE(std::equal(begin(test), begin(test) + 4, test2));
+	EXPECT_EQ(-7, test2[4]);
+
+	EXPECT_EQ(4, test[4]);
+	oel::copy(test2, test);
+	EXPECT_EQ(-7, test[4]);
 
 	std::list<std::string> li{"aa", "bb"};
 	std::array<std::string, 2> strDest;
-	oel::copy( oel::move_range(begin(li), end(li)), begin(strDest) );
+	oel::copy_unsafe( oel::move_range(begin(li), end(li)), begin(strDest) );
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
 	EXPECT_TRUE(li.front().empty());

@@ -68,7 +68,14 @@ void erase_back(Container & c, typename Container::iterator first)  { c.erase(fi
 * The ranges shall not overlap, except if begin(source) equals dest (self assign).
 * To move instead of copy, include iterator_range.h and pass move_range(source)  */
 template<typename InputRange, typename OutputIterator>
-OutputIterator copy(const InputRange & source, OutputIterator dest);
+OutputIterator copy_unsafe(const InputRange & source, OutputIterator dest);
+
+/// Throws exception if dest is smaller than source
+template<typename SizedInRange, typename SizedOutRange>
+auto copy(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest));
+/// Copies as many elements as will fit in dest
+template<typename RandomAccessRange, typename SizedOutRange>
+auto copy_fit(const RandomAccessRange & src, SizedOutRange & dest) -> decltype(begin(dest));
 
 
 
@@ -153,10 +160,28 @@ namespace _detail
 } // namespace oel
 
 template<typename InputRange, typename OutputIterator>
-inline OutputIterator oel::copy(const InputRange & src, OutputIterator dest)
+inline OutputIterator oel::copy_unsafe(const InputRange & src, OutputIterator dest)
 {
 	return _detail::Copy(can_memmove_with<OutputIterator, decltype(begin(src))>(),
 						 begin(src), end(src), dest);
+}
+
+template<typename SizedInRange, typename SizedOutRange>
+inline auto oel::copy(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest))
+{
+	// TODO: Test for overlap if OEL_MEM_BOUND_DEBUG_LVL
+	if (oel::ssize(src) <= oel::ssize(dest))
+		return oel::copy_unsafe(src, begin(dest));
+	else
+		throw std::out_of_range("Too small dest for oel::copy");
+}
+
+template<typename RandomAccessRange, typename SizedOutRange>
+inline auto oel::copy_fit(const RandomAccessRange & src, SizedOutRange & dest) -> decltype(begin(dest))
+{
+	auto smaller = (std::min)(oel::ssize(src), oel::ssize(dest));
+	return _detail::Copy(can_memmove_with<decltype(begin(dest)), decltype(begin(src))>(),
+						 begin(src), begin(src) + smaller, begin(dest));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
