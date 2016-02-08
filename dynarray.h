@@ -47,10 +47,20 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
 template<typename T, typename A> inline
 typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & da, typename dynarray<T, A>::iterator pos)
 	{ return da.erase_unordered(pos); }
-
 /// Overloads generic erase_back(Container &, Container::iterator) (in util.h)
 template<typename T, typename A> inline
 void erase_back(dynarray<T, A> & da, typename dynarray<T, A>::iterator first) noexcept  { da.erase_back(first); }
+
+/// Overloads generic assign(Container &, const InputRange &) (in util.h)
+template<typename T, typename A, typename InputRange> inline
+void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(source); }
+/// Overloads generic append(Container &, const InputRange &) (in util.h)
+template<typename T, typename A, typename InputRange> inline
+typename dynarray<T, A>::iterator  append(dynarray<T, A> & dest, const InputRange & source)  { return dest.append(source); }
+/// Overloads generic insert(Container &, Container::const_iterator, const InputRange &)
+template<typename T, typename A, typename ForwardRange> inline
+typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos,
+										  const ForwardRange & source)   { return dest.insert_r(pos, source); }
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
@@ -102,7 +112,7 @@ public:
 	dynarray(std::initializer_list<T> init, const Alloc & alloc = Alloc{});
 
 	/** @brief Equivalent to std::vector(begin(source), sLast, alloc),
-	*	where sLast is either begin(source) + source.size() or end(source)
+	*	where sLast is either end(source) or found by magic, see TODO put ref here
 	*
 	* If you need to construct from some std::istream, check out boost/range/istream_range.hpp  */
 	template<typename InputRange>
@@ -142,7 +152,8 @@ public:
 	* @return iterator pointing to first of the new elements in dynarray, or end if source is empty
 	*
 	* Strong exception guarantee, this function has no effect if an exception is thrown.
-	* Otherwise equivalent to std::vector::insert(end(), begin(source), sourceBeginPlusSizeOrEnd)  */
+	* Otherwise equivalent to std::vector::insert(end(), begin(source), sLast),
+	* where sLast is either end(source) or found by magic, see TODO put ref here  */
 	template<typename InputRange>
 	iterator  append(const InputRange & source);
 	/**
@@ -165,7 +176,7 @@ public:
 	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<Alloc, T>); }
 
 	/// Equivalent to std::vector::insert(pos, begin(source), sLast),
-	/// where sLast is either begin(source) + source.size() or end(source)
+	/// where sLast is either end(source) or found by magic, see TODO put ref here
 	template<typename ForwardRange>
 	iterator  insert_r(const_iterator pos, const ForwardRange & source);
 
