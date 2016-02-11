@@ -126,12 +126,11 @@ template<typename Container, typename InputRange> inline
 void assign(Container & dest, const InputRange & source)  { dest.assign(begin(source), end(source)); }
 /// For generic code that may use either dynarray or std library container
 template<typename Container, typename InputRange> inline
-typename Container::iterator append(Container & dest, const InputRange & source)
-														{ return dest.insert(dest.end(), begin(source), end(source)); }
+void append(Container & dest, const InputRange & source)  { dest.insert(dest.end(), begin(source), end(source)); }
 /// For generic code that may use either dynarray or std library container
 template<typename Container, typename InputRange> inline
 typename Container::iterator insert(Container & dest, typename Container::const_iterator pos, const InputRange & source)
-														{ return dest.insert(pos, begin(source), end(source)); }
+													{ return dest.insert(pos, begin(source), end(source)); }
 
 
 

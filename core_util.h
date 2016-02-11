@@ -139,12 +139,6 @@ struct default_init_tag
 }
 const default_init; ///< An instance of default_init_tag to pass
 
-/// Tag to select construction from a single range object
-struct from_range_tag
-{	explicit from_range_tag() {}
-}
-const from_range; ///< An instance of from_range_tag to pass
-
 
 
 /// Exists in std with C++14

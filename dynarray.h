@@ -56,7 +56,7 @@ template<typename T, typename A, typename InputRange> inline
 void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(source); }
 /// Overloads generic append(Container &, const InputRange &) (in util.h)
 template<typename T, typename A, typename InputRange> inline
-typename dynarray<T, A>::iterator  append(dynarray<T, A> & dest, const InputRange & source)  { return dest.append(source); }
+void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
 /// Overloads generic insert(Container &, Container::const_iterator, const InputRange &)
 template<typename T, typename A, typename ForwardRange> inline
 typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos,
@@ -115,8 +115,8 @@ public:
 	*	where sLast is either end(source) or found by magic, see TODO put ref here
 	*
 	* If you need to construct from some std::istream, check out boost/range/istream_range.hpp  */
-	template<typename InputRange>
-	dynarray(from_range_tag, const InputRange & range, const Alloc & alloc = Alloc{})  : _m(alloc) { assign(range); }
+	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_begin(std::declval<InputRange>()) )>
+	dynarray(const InputRange & range, const Alloc & alloc = Alloc{})  : _m(alloc) { assign(range); }
 
 	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
 	/// If alloc != other.get_allocator() and T is not trivially relocatable,
@@ -1071,13 +1071,13 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase_unordere
 
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type i)
+inline T & dynarray<T, Alloc>::at(size_type i)
 {
-	const auto & cThis = *this;
-	return const_cast<reference>(cThis.at(i));
+	const auto & cSelf = *this;
+	return const_cast<reference>(cSelf.at(i));
 }
 template<typename T, typename Alloc>
-typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i) const
+const T & dynarray<T, Alloc>::at(size_type i) const
 {
 	if (static_cast<size_t>(size()) > static_cast<size_t>(i))
 		return _m.data[i];
@@ -1086,13 +1086,13 @@ typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type i
 }
 
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::operator[](size_type i) noexcept
+inline T & dynarray<T, Alloc>::operator[](size_type i) noexcept
 {
 	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(i));
 	return _m.data[i];
 }
 template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operator[](size_type i) const noexcept
+inline const T & dynarray<T, Alloc>::operator[](size_type i) const noexcept
 {
 	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(i));
 	return _m.data[i];

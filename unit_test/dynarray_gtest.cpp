@@ -123,9 +123,11 @@ TEST_F(dynarrayTest, construct)
 	dynarray<Internal> test{Internal(5), Internal()};
 	EXPECT_EQ(2U, test.size());
 
-	dynarray<Internal> test2(oel::from_range, test);
-	EXPECT_EQ(2U, test2.size());
-	EXPECT_EQ(5U, test2[0].size());
+	{
+		std::string str = "AbCd";
+		dynarray<char> test2(str);
+		EXPECT_TRUE( 0 == str.compare(0, 4, test2.data(), test2.size()) );
+	}
 
 	dynarray<bool> db(50, true);
 	for (const auto & b : db)
