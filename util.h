@@ -95,20 +95,12 @@ bool index_valid(const SizedRange & r, std::int64_t index)
 
 
 /**
-* @brief Returns new T(std::forward<Args>(args)...) if T is constructible from Args, else new T{std::forward<Args>(args)...}
+* @brief Same as std::make_unique, but performs direct-list-initialization if there is no matching constructor
 *
-* Helper as suggested in section "Is that all?" http://open-std.org/JTC1/SC22/WG21/docs/papers/2015/n4462.html  */
-template<typename T, typename... Args>
-T * forward_to_new(Args &&... args);
+* (Works for aggregates.) http://open-std.org/JTC1/SC22/WG21/docs/papers/2015/n4462.html  */
+template< typename T, typename... Args, typename = enable_if_t<!std::is_array<T>::value> >
+std::unique_ptr<T> make_unique(Args &&... args);
 
-
-/// Equivalent to std::make_unique. Performs direct-list-initialization if there is no matching constructor
-template< typename T, typename... Args, typename = enable_if_t<!std::is_array<T>::value> > inline
-std::unique_ptr<T> make_unique(Args &&... args)
-{
-	T * p = oel::forward_to_new<T>(std::forward<Args>(args)...);
-	return std::unique_ptr<T>(p);
-}
 /// Equivalent to std::make_unique (array version).
 template< typename T, typename = enable_if_t<std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(size_t arraySize);
@@ -203,13 +195,13 @@ namespace oel
 {
 namespace _detail
 {
-	template<typename T, typename... Args>
+	template<typename T, typename... Args> inline
 	T * New(std::true_type, Args &&... args)
 	{
 		return new T(std::forward<Args>(args)...);
 	}
 
-	template<typename T, typename... Args>
+	template<typename T, typename... Args> inline
 	T * New(std::false_type, Args &&... args)
 	{
 		return new T{std::forward<Args>(args)...};
@@ -217,14 +209,14 @@ namespace _detail
 }
 }
 
-template<typename T, typename... Args>
-T * oel::forward_to_new(Args &&... args)
+template<typename T, typename... Args, typename>
+inline std::unique_ptr<T> oel::make_unique(Args &&... args)
 {
-	return _detail::New<T>(std::is_constructible<T, Args...>(), std::forward<Args>(args)...);
+	T * p = _detail::New<T>(std::is_constructible<T, Args...>(), std::forward<Args>(args)...);
+	return std::unique_ptr<T>(p);
 }
 
-
-#define OEL_MAKE_UNIQUE(newExpr)  \
+#define OEL_MAKE_UNIQUE_A(newExpr)  \
 	static_assert(std::extent<T>::value == 0, "make_unique forbids T[size]. Please use T[]");  \
 	using Elem = typename std::remove_extent<T>::type;  \
 	return std::unique_ptr<T>(newExpr)
@@ -232,13 +224,13 @@ T * oel::forward_to_new(Args &&... args)
 template<typename T, typename>
 inline std::unique_ptr<T>  oel::make_unique(size_t size)
 {
-	OEL_MAKE_UNIQUE( new Elem[size]() ); // value-initialize
+	OEL_MAKE_UNIQUE_A( new Elem[size]() ); // value-initialize
 }
 
 template<typename T, typename>
 inline std::unique_ptr<T>  oel::make_unique_default(size_t size)
 {
-	OEL_MAKE_UNIQUE(new Elem[size]);
+	OEL_MAKE_UNIQUE_A(new Elem[size]);
 }
 
-#undef OEL_MAKE_UNIQUE
+#undef OEL_MAKE_UNIQUE_A
