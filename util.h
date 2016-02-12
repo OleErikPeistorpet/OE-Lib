@@ -78,20 +78,21 @@ template<typename RandomAccessRange, typename SizedOutRange>
 auto copy_fit(const RandomAccessRange & src, SizedOutRange & dest) -> decltype(begin(dest));
 
 
-
+///@{
 /// Check if index is valid (can be used with operator[]) for array or other range.
 template< typename UnsignedInt, typename SizedRange,
 		  typename = enable_if_t<std::is_unsigned<UnsignedInt>::value> > inline
 bool index_valid(const SizedRange & r, UnsignedInt index)   { return index < oel::as_unsigned(oel::ssize(r)); }
-/// Check if index is valid (can be used with operator[]) for array or other range.
+
 template<typename SizedRange> inline
 bool index_valid(const SizedRange & r, std::int32_t index)  { return 0 <= index && index < oel::ssize(r); }
-/// Check if index is valid (can be used with operator[]) for array or other range.
+
 template<typename SizedRange> inline
 bool index_valid(const SizedRange & r, std::int64_t index)
 {	// assumes that r.size() is never greater than INT64_MAX
 	return static_cast<std::uint64_t>(index) < oel::as_unsigned(oel::ssize(r));
 }
+///@}
 
 
 /**
@@ -112,18 +113,18 @@ template< typename T, typename = enable_if_t<std::is_array<T>::value> >
 std::unique_ptr<T> make_unique_default(size_t arraySize);
 
 
-
+///@{
 /// For generic code that may use either dynarray or std library container
 template<typename Container, typename InputRange> inline
 void assign(Container & dest, const InputRange & source)  { dest.assign(begin(source), end(source)); }
-/// For generic code that may use either dynarray or std library container
+
 template<typename Container, typename InputRange> inline
 void append(Container & dest, const InputRange & source)  { dest.insert(dest.end(), begin(source), end(source)); }
-/// For generic code that may use either dynarray or std library container
+
 template<typename Container, typename InputRange> inline
 typename Container::iterator insert(Container & dest, typename Container::const_iterator pos, const InputRange & source)
 													{ return dest.insert(pos, begin(source), end(source)); }
-
+///@}
 
 
 ////////////////////////////////////////////////////////////////////////////////
