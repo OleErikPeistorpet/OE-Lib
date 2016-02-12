@@ -56,7 +56,7 @@ void erase_unordered(Container & c, OutputIterator pos)
 	c.pop_back();
 }
 
-/// Erase the elements from first to the end of container, useful for std::remove_if and similar
+/// Erase the elements from first to the end of container. Overloads erase_back(dynarray &, dynarray::iterator) 
 template<typename Container> inline
 void erase_back(Container & c, typename Container::iterator first)  { c.erase(first, c.end()); }
 

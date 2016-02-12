@@ -47,7 +47,7 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
 template<typename T, typename A> inline
 typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & da, typename dynarray<T, A>::iterator pos)
 	{ return da.erase_unordered(pos); }
-/// Overloads generic erase_back(Container &, Container::iterator) (in util.h)
+/// Useful for std::remove_if and similar (generic in util.h)
 template<typename T, typename A> inline
 void erase_back(dynarray<T, A> & da, typename dynarray<T, A>::iterator first) noexcept  { da.erase_back(first); }
 
@@ -60,7 +60,7 @@ void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(sou
 /// Overloads generic insert(Container &, Container::const_iterator, const InputRange &)
 template<typename T, typename A, typename ForwardRange> inline
 typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos,
-										  const ForwardRange & source)   { return dest.insert_r(pos, source); }
+										  const ForwardRange & source)  { return dest.insert_r(pos, source); }
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
@@ -96,34 +96,34 @@ public:
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 
-	dynarray() noexcept                              : _m(Alloc{}) {}
-	explicit dynarray(const Alloc & alloc) noexcept  : _m(alloc) {}
+	dynarray() noexcept                          : _m(Alloc{}) {}
+	explicit dynarray(const Alloc & a) noexcept  : _m(a) {}
 
 	/// Construct empty dynarray with space reserved for at least capacity elements
-	dynarray(reserve_tag, size_type capacity, const Alloc & alloc = Alloc{})  : _m(alloc, capacity) {}
+	dynarray(reserve_tag, size_type capacity, const Alloc & a = Alloc{})  : _m(a, capacity) {}
 
 	/** @brief Uses default initialization for elements, can be significantly faster for non-class T
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	dynarray(size_type size, default_init_tag, const Alloc & alloc = Alloc{});
-	explicit dynarray(size_type size, const Alloc & alloc = Alloc{});  ///< (Value-initializes elements, same as std::vector)
-	dynarray(size_type size, const T & fillVal, const Alloc & alloc = Alloc{});
+	dynarray(size_type size, default_init_tag, const Alloc & a = Alloc{});
+	explicit dynarray(size_type size, const Alloc & a = Alloc{});  ///< (Value-initializes elements, same as std::vector)
+	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
 
-	dynarray(std::initializer_list<T> init, const Alloc & alloc = Alloc{});
+	dynarray(std::initializer_list<T> init, const Alloc & a = Alloc{});
 
-	/** @brief Equivalent to std::vector(begin(source), sLast, alloc),
-	*	where sLast is either end(source) or found by magic, see TODO put ref here
+	/** @brief Equivalent to std::vector(begin(range), sLast, a),
+	*	where sLast is either end(range) or found by magic, see TODO put ref here
 	*
 	* If you need to construct from some std::istream, check out boost/range/istream_range.hpp  */
 	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_begin(std::declval<InputRange>()) )>
-	dynarray(const InputRange & range, const Alloc & alloc = Alloc{})  : _m(alloc) { assign(range); }
+	explicit dynarray(const InputRange & range, const Alloc & a = Alloc{})  : _m(a) { assign(range); }
 
 	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
-	/// If alloc != other.get_allocator() and T is not trivially relocatable,
+	/// If a != other.get_allocator() and T is not trivially relocatable,
 	/// behaviour is undefined (triggers OEL_ASSERT unless NDEBUG)
-	dynarray(dynarray && other, const Alloc & alloc) noexcept;
+	dynarray(dynarray && other, const Alloc & a) noexcept;
 	dynarray(const dynarray & other);
-	dynarray(const dynarray & other, const Alloc & alloc);
+	dynarray(const dynarray & other, const Alloc & a);
 
 	~dynarray() noexcept;
 
@@ -837,10 +837,10 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & alloc) noexcept
- :	_m(alloc)
+dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) noexcept
+ :	_m(a)
 {
-	if (alloc != other._m && !std::is_empty<Alloc>::value)
+	if (a != other._m && !std::is_empty<Alloc>::value)
 	{	_moveUnequalAlloc(other);
 	}
 	else
@@ -890,38 +890,38 @@ inline dynarray<T, Alloc>::dynarray(const dynarray & other)
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(const dynarray & other, const Alloc & alloc)
- :	_m(alloc, other.size())
+inline dynarray<T, Alloc>::dynarray(const dynarray & other, const Alloc & a)
+ :	_m(a, other.size())
 {
 	_initPostAllocate(other.data(), other.size());
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(std::initializer_list<T> init, const Alloc & alloc)
- :	_m(alloc, init.size())
+inline dynarray<T, Alloc>::dynarray(std::initializer_list<T> init, const Alloc & a)
+ :	_m(a, init.size())
 {
 	_initPostAllocate(init.begin(), init.size());
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, default_init_tag, const Alloc & alloc)
- :	_m(alloc, size)
+dynarray<T, Alloc>::dynarray(size_type size, default_init_tag, const Alloc & a)
+ :	_m(a, size)
 {
 	_m.end = _m.reservEnd;
 	_detail::UninitFillDefault(_m.data, _m.end, _m);
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, const Alloc & alloc)
- :	_m(alloc, size)
+dynarray<T, Alloc>::dynarray(size_type size, const Alloc & a)
+ :	_m(a, size)
 {
 	_m.end = _m.reservEnd;
 	_detail::UninitFill(_m.data, _m.end, _m);
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, const T & val, const Alloc & alloc)
- :	_m(alloc, size)
+dynarray<T, Alloc>::dynarray(size_type size, const T & val, const Alloc & a)
+ :	_m(a, size)
 {
 	_m.end = _m.reservEnd;
 	_detail::UninitFill(_m.data, _m.end, _m, val);
@@ -977,9 +977,9 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 {
 	_appendImpl( count,
-		[&val](T * dest, size_type count, Alloc & alloc)
+		[&val](T * dest, size_type count, Alloc & a)
 		{
-			_detail::UninitFill(dest, dest + count, alloc, val);
+			_detail::UninitFill(dest, dest + count, a, val);
 		} );
 }
 
