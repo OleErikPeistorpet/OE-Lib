@@ -202,7 +202,7 @@ namespace _detail
 	};
 
 
-	template<typename Alloc, bool /*IsEmpty*/>
+	template<typename Alloc, bool = std::is_empty<Alloc>::value>
 	struct AllocRefOptimizeEmpty
 	{
 		Alloc & alloc;

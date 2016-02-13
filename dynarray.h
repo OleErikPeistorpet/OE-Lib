@@ -180,14 +180,14 @@ public:
 	template<typename ForwardRange>
 	iterator  insert_r(const_iterator pos, const ForwardRange & source);
 
-	/// Performs list-initialization of element if there is no matching constructor
+	/// The default allocator performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
 	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
 
 	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
 	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
 
-	/// Performs list-initialization of element if there is no matching constructor
+	/// The default allocator performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
 	void      emplace_back(Args &&... elemInitArgs);
 
@@ -208,7 +208,6 @@ public:
 	iterator  erase(iterator pos);
 
 	iterator  erase(iterator first, iterator last) noexcept;
-
 	/// Equivalent to erase(first, end()) (but potentially faster), making first the new end
 	void      erase_back(iterator first) noexcept;
 
@@ -305,8 +304,7 @@ private:
 	const_pointer _endPtr() const { return _m.end; }
 
 
-	using _scopedPtrBase = _detail::AllocRefOptimizeEmpty< Alloc, std::is_empty<Alloc>::value >;
-
+	using _scopedPtrBase = _detail::AllocRefOptimizeEmpty<Alloc>;
 	struct _scopedPtr : private _scopedPtrBase
 	{
 		pointer ptr;
@@ -320,6 +318,7 @@ private:
 		}
 		_scopedPtr(const _scopedPtr &) = delete;
 		void operator =(const _scopedPtr &) = delete;
+
 		~_scopedPtr()
 		{
 			if (ptr)
@@ -356,6 +355,7 @@ private:
 		}
 		_dataOwner(const _dataOwner &) = delete;
 		void operator =(const _dataOwner &) = delete;
+
 		~_dataOwner()
 		{
 			if (data)
