@@ -23,14 +23,13 @@ namespace oel
 	class iterator_range
 	{
 	public:
-		iterator_range(Iterator first, Iterator last)  : _first(first), _last(last) {}
+		Iterator first;
+		Iterator last;
 
-		Iterator begin() const  { return _first; }
-		Iterator end() const    { return _last; }
+		iterator_range(Iterator first, Iterator last)  : first(first), last(last) {}
 
-	protected:
-		Iterator _first;
-		Iterator _last;
+		Iterator begin() const  { return first; }
+		Iterator end() const    { return last; }
 	};
 #endif
 
@@ -51,8 +50,8 @@ public:
 	using size_type       = size_t;  // difference_type would be OK
 
 	/// Initialize to empty
-	counted_view()                                 : _count() {}
-	counted_view(iterator first, size_type count)  : _begin(first), _count(count) {}
+	counted_view()                                : _count() {}
+	counted_view(iterator first, size_type size)  : _begin(first), _count(size) {}
 	/// Construct from container with matching iterator type
 	template<typename Container>
 	counted_view(Container & c)  : _begin(::adl_begin(c)), _count(oel::ssize(c)) {}
@@ -70,8 +69,8 @@ public:
 	reference back() const   { return *(end() - 1); }
 
 	/// Will exist only with random-access Iterator (SFINAE)
-	template<typename Integer>
-	auto operator[](Integer index) const -> decltype(begin()[index])  { return _begin[index]; }
+	template<typename I>
+	auto operator[](I index) const -> decltype(begin()[index])  { return _begin[index]; }
 
 	/// Will exist only with contiguous Iterator (SFINAE)
 	template<typename = Iterator>
@@ -89,7 +88,7 @@ protected:
 
 /// Create a counted_view from iterator and size, with type deduced from first
 template<typename Iterator> inline
-counted_view<Iterator> as_view_n(Iterator first, size_t count)  { return {first, count}; }
+counted_view<Iterator> as_view_n(Iterator first, typename counted_view<Iterator>::size_type size)  { return {first, size}; }
 
 
 /// Create an iterator_range of move_iterator from two iterators
@@ -110,9 +109,9 @@ counted_view< std::move_iterator<InputIterator> >    move_range(const counted_vi
 	{ return {std::make_move_iterator(r.begin()), r.size()}; }
 
 /// Create a counted_view of move_iterator from iterator and size
-template<typename InputIterator> inline
-counted_view< std::move_iterator<InputIterator> >    move_range_n(InputIterator first, size_t count)
-	{ return {std::make_move_iterator(first), count}; }
+template<typename InputIterator, typename Count> inline
+counted_view< std::move_iterator<InputIterator> >    move_range_n(InputIterator first, Count size)
+	{ return {std::make_move_iterator(first), size}; }
 
 
 
