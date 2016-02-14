@@ -146,7 +146,7 @@ public:
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template<typename InputRange>
-	auto  assign(const InputRange & source) -> decltype(::adl_begin(source));
+	auto      assign(const InputRange & source) -> decltype(::adl_begin(source));
 
 	void      assign(size_type count, const T & val)  { clear(); append(count, val); }
 
@@ -592,6 +592,8 @@ private:
 				}
 				return src;
 			};
+	#define ASSIGN_IMPL 2
+	#if ASSIGN_IMPL < 1
 		if (capacity() < count)
 		{	// not enough room, allocate new array and construct new
 			_scopedPtr newData{*this, count};
@@ -616,6 +618,71 @@ private:
 			src = _detail::UninitCopy(src, _m.end, newEnd, _m);
 			_m.end = newEnd;
 		}
+	#elif ASSIGN_IMPL == 1 // TODO: test performance
+		pointer newEnd;
+		if (capacity() < count)
+		{	// not enough room, allocate new array
+			pointer const newData = _m.allocate(count);
+			// Old elements might hold some limited resource, destroying them before constructing new is probably good
+			_detail::Destroy(_m.data, _m.end);
+			_resetData(newData, capacity());
+			_m.end = newData;
+			_m.reservEnd = newData + count;
+			newEnd = _m.reservEnd;
+		}
+		else
+		{
+			newEnd = _m.data + count;
+			if (newEnd < _m.end)
+			{	// downsizing, assign new and destroy rest
+				iterator it = _makeIterator(newEnd, this);
+				src = copy(src, begin(), it);
+				erase_back(it);
+			}
+			else // assign to old elements as far as we can
+			{	src = copy(src, begin(), end());
+			}
+		}
+		while (_m.end != newEnd)
+		{	// construct rest
+			std::allocator_traits<Alloc>::construct(_m, _m.end, *src);
+			++src; ++_m.end;
+		}
+	#else
+		auto uninitCopy = [this](InputIter src, pointer dLast)
+			{
+				while (_m.end != dLast)
+				{
+					std::allocator_traits<Alloc>::construct(_m, _m.end, *src);
+					++src; ++_m.end;
+				}
+				return src;
+			};
+		if (capacity() < count)
+		{	// not enough room, allocate new array and construct new
+			pointer const newData = _m.allocate(count);
+			// Old elements might hold some limited resource, destroying them before constructing new is probably good
+			_detail::Destroy(_m.data, _m.end);
+			_resetData(newData, capacity());
+			_m.end = newData;
+			_m.reservEnd = newData + count;
+			src = uninitCopy(src, _m.reservEnd);
+		}
+		else
+		{
+			pointer const newEnd = _m.data + count;
+			iterator const dLast = _makeIterator((std::min)(newEnd, _m.end), this);
+			for (auto dest = begin(); dLast != dest; )
+			{
+				*dest = *src;
+				++src; ++dest;
+			}
+			if (newEnd <= _m.end)
+				erase_back(dLast);
+			else
+				src = uninitCopy(src, newEnd);
+		}
+	#endif
 		return src;
 	}
 
