@@ -146,6 +146,8 @@ public:
 	template<typename InputRange>
 	auto  assign(const InputRange & source) -> decltype(::adl_begin(source));
 
+	void      assign(size_type count, const T & val)  { clear(); append(count, val); }
+
 	/**
 	* @brief Add at end the elements from range (in same order), return iterator to new
 	* @param source an array, STL container, gsl::span, boost::iterator_range or such. Can be this dynarray.
