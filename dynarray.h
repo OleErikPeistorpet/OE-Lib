@@ -67,7 +67,9 @@ typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarr
 *
 * Efficiency is better if template argument T is trivially relocatable, which is true for most types, but needs
 * to be declared manually for each type that is not trivially copyable. See specify_trivial_relocate(T &&).
-* There are a few notable exceptions for which trivially relocatable T is required (checked when compiling):
+* Also, if T is trivially relocatable, it does not need to be move or copy constructible/assignable
+* except when an instance to be moved/copied is passed as an argument by the user.
+* There are a few notable functions for which trivially relocatable T is required (checked when compiling):
 * emplace/insert/insert_r and erase(iterator, iterator)
 *
 * The default allocator supports over-aligned types (e.g. __m256).
@@ -562,6 +564,7 @@ private:
 	#endif
 		if (capacity() < count)
 		{
+			// Deallocating first might be better, but then the _m pointers would have to be nulled in case allocate throws
 			_resetData(_m.allocate(count), capacity());
 			_m.end = _m.data + count;
 			_m.reservEnd = _m.end;
