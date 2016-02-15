@@ -592,8 +592,9 @@ private:
 				}
 				return src;
 			};
-	#define ASSIGN_IMPL 2
-	#if ASSIGN_IMPL < 1
+	// TODO: test performance
+#define ASSIGN_IMPL 2
+#if ASSIGN_IMPL < 1
 		if (capacity() < count)
 		{	// not enough room, allocate new array and construct new
 			_scopedPtr newData{*this, count};
@@ -618,7 +619,7 @@ private:
 			src = _detail::UninitCopy(src, _m.end, newEnd, _m);
 			_m.end = newEnd;
 		}
-	#elif ASSIGN_IMPL == 1 // TODO: test performance
+#elif ASSIGN_IMPL >= 1 && ASSIGN_IMPL < 3
 		pointer newEnd;
 		if (capacity() < count)
 		{	// not enough room, allocate new array
@@ -635,7 +636,7 @@ private:
 			newEnd = _m.data + count;
 			if (newEnd < _m.end)
 			{	// downsizing, assign new and destroy rest
-				iterator it = _makeIterator(newEnd, this);
+				iterator const it = _makeIterator(newEnd, this);
 				src = copy(src, begin(), it);
 				erase_back(it);
 			}
@@ -643,15 +644,23 @@ private:
 			{	src = copy(src, begin(), end());
 			}
 		}
+	#if ASSIGN_IMPL == 1
+		if (newEnd > _m.end)
+		{
+			src = _detail::UninitCopy(src, _m.end, newEnd, _m);
+			_m.end = newEnd;
+		}
+	#else
 		while (_m.end != newEnd)
-		{	// construct rest
+		{	// put rest of new in uninitialized part
 			std::allocator_traits<Alloc>::construct(_m, _m.end, *src);
 			++src; ++_m.end;
 		}
-	#else
+	#endif
+#else
 		auto uninitCopy = [this](InputIter src, pointer dLast)
 			{
-				while (_m.end != dLast)
+				while (_m.end < dLast)
 				{
 					std::allocator_traits<Alloc>::construct(_m, _m.end, *src);
 					++src; ++_m.end;
@@ -666,23 +675,24 @@ private:
 			_resetData(newData, capacity());
 			_m.end = newData;
 			_m.reservEnd = newData + count;
-			src = uninitCopy(src, _m.reservEnd);
+
+			src = uninitCopy(src, _m.reservEnd); // updates _m.end
 		}
 		else
 		{
 			pointer const newEnd = _m.data + count;
-			iterator const dLast = _makeIterator((std::min)(newEnd, _m.end), this);
-			for (auto dest = begin(); dLast != dest; )
+			iterator const assignLast = _makeIterator((std::min)(_m.end, newEnd), this);
+			for (iterator dest = begin(); assignLast != dest; )
 			{
 				*dest = *src;
 				++src; ++dest;
 			}
-			if (newEnd <= _m.end)
-				erase_back(dLast);
+			if (assignLast < end())
+				erase_back(assignLast);
 			else
 				src = uninitCopy(src, newEnd);
 		}
-	#endif
+#endif
 		return src;
 	}
 
