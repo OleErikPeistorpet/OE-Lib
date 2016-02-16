@@ -21,7 +21,7 @@ class contiguous_ctnr_iterator
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	// Test for iterator pair pointing to same container
 	#define OEL_ARRITER_CHECK_COMPAT(right)  \
-		OEL_ASSERT_MEM_BOUND(_container && right._container == _container)
+		OEL_ASSERT_MEM_BOUND(_container == right._container)
 #else
 	#define OEL_ARRITER_CHECK_COMPAT(right)
 #endif

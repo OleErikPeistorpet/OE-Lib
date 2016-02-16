@@ -121,6 +121,8 @@ TEST_F(dynarrayTest, construct)
 	decltype(a) b(a);
 	ASSERT_EQ(0U, b.size());
 
+	EXPECT_TRUE(dynarray<int>::const_iterator{} == dynarray<int>::iterator{});
+
 	dynarray<int> ints(0, {});
 	EXPECT_TRUE(ints.empty());
 
