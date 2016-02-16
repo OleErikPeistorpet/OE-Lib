@@ -46,12 +46,14 @@ namespace statictest
 template<typename T>
 struct throwingAlloc : public oel::allocator<T>
 {
+	unsigned int throwIfGreater = 999;
+
 	T * allocate(size_t nObjs)
 	{
-		if (nObjs > 999)
+		if (nObjs > throwIfGreater)
 			throw std::bad_alloc{};
 
-		return oel::allocator<T>::allocate(nObjs);
+		return allocator<T>::allocate(nObjs);
 	}
 };
 

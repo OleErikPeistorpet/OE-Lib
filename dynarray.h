@@ -319,14 +319,13 @@ private:
 	};
 
 
-	using _scopedPtrBase = _detail::AllocRefOptimizeEmpty<Alloc>;
-	struct _scopedPtr : private _scopedPtrBase
+	struct _scopedPtr : private _detail::AllocRefOptimizeEmpty<Alloc>
 	{
 		pointer ptr;
 		pointer allocEnd;
 
 		_scopedPtr(dynarray & parent, size_type const allocSize)
-		 :	_scopedPtrBase{parent._m}
+		 :	AllocRefOptimizeEmpty(parent._m)
 		{
 			ptr = this->Get().allocate(allocSize);
 			allocEnd = ptr + allocSize;

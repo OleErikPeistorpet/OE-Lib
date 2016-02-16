@@ -207,6 +207,8 @@ namespace _detail
 	{
 		Alloc & alloc;
 
+		AllocRefOptimizeEmpty(Alloc & a) : alloc(a) {}
+
 		Alloc & Get() { return alloc; }
 	};
 
