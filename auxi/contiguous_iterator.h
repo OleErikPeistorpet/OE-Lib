@@ -15,7 +15,7 @@ namespace oel
 /** @brief Debug iterator for container with contiguous memory
 *
 * Wraps a pointer with error checks. The class has significant overhead. */
-template<typename Pointer, typename Container>
+template<typename Ptr, typename Container>
 class contiguous_ctnr_iterator
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
@@ -26,16 +26,19 @@ class contiguous_ctnr_iterator
 	#define OEL_ARRITER_CHECK_COMPAT(right)
 #endif
 
+	using _ptrTrait = std::pointer_traits<Ptr>;
+
 public:
 	using iterator_category = std::random_access_iterator_tag;
 
-	using value_type      = typename Container::value_type;
-	using pointer         = Pointer;
-	using reference       = decltype(*std::declval<Pointer>());
-	using difference_type = typename Container::difference_type;
+	using value_type      = typename std::remove_const<typename _ptrTrait::element_type>::type;
+	using pointer         = Ptr;
+	using reference       = decltype(*std::declval<Ptr>());
+	using difference_type = typename _ptrTrait::difference_type;
 
-	using const_iterator = typename Container::const_iterator;
+	using const_iterator = contiguous_ctnr_iterator<_ptrTrait::template rebind<value_type const>, Container>;
 
+	/// Note: a pair of value-initialized iterators count as an empty range
 	contiguous_ctnr_iterator() noexcept : _pElem(), _container() {}
 
 	/// Construct with position in data and pointer to container
@@ -45,25 +48,25 @@ public:
 
 	operator const_iterator() const
 	{
-		return const_iterator(_pElem, _container);
+		return {_pElem, _container};
 	}
 
 	reference operator*() const
 	{
-		OEL_ASSERT_MEM_BOUND(_container->_derefValid(_pElem));
+		OEL_ASSERT_MEM_BOUND(_container->DerefValid(_pElem));
 		return *_pElem;
 	}
 
 	pointer operator->() const
 	{
-		OEL_ASSERT_MEM_BOUND(_container->_derefValid(_pElem));
+		OEL_ASSERT_MEM_BOUND(_container->DerefValid(_pElem));
 		return _pElem;
 	}
 
 	contiguous_ctnr_iterator & operator++()
 	{	// preincrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		OEL_ASSERT_MEM_BOUND(_pElem < _container->_endPtr());
+		OEL_ASSERT_MEM_BOUND(_pElem < _container->End());
 	#endif
 		++_pElem;
 		return *this;
@@ -79,7 +82,7 @@ public:
 	contiguous_ctnr_iterator & operator--()
 	{	// predecrement
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		OEL_ASSERT_MEM_BOUND(_container->data() < _pElem);
+		OEL_ASSERT_MEM_BOUND(_container->Begin() < _pElem);
 	#endif
 		--_pElem;
 		return *this;
@@ -96,8 +99,8 @@ public:
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 		// Check that adding offset keeps this in range [begin, end]
-		OEL_ASSERT_MEM_BOUND( offset >= _container->data() - _pElem
-						   && offset <= _container->_endPtr() - _pElem );
+		OEL_ASSERT_MEM_BOUND( offset >= _container->Begin() - _pElem
+						   && offset <= _container->End() - _pElem );
 	#endif
 		_pElem += offset;
 		return *this;
@@ -107,8 +110,8 @@ public:
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 		// Check that subtracting offset keeps this in range [begin, end]
-		OEL_ASSERT_MEM_BOUND( offset <= _pElem - _container->data()
-						   && offset >= _pElem - _container->_endPtr() );
+		OEL_ASSERT_MEM_BOUND( offset <= _pElem - _container->Begin()
+						   && offset >= _pElem - _container->End() );
 	#endif
 		_pElem -= offset;
 		return *this;

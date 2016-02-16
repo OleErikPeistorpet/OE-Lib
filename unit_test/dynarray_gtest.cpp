@@ -20,14 +20,17 @@ namespace statictest
 	using Iter = dynarray<float>::iterator;
 	using ConstIter = dynarray<float>::const_iterator;
 
-	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
-	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
-	static_assert(!std::is_convertible<ConstIter, Iter>::value, "?");
+	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>::value, "?");
 
 	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
 	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
 	static_assert(oel::can_memmove_with<float *, ConstIter>::value, "?");
 	static_assert(!oel::can_memmove_with<int *, float *>::value, "?");
+
+	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
+	static_assert(oel::is_trivially_copyable<ConstIter>::value, "?");
+	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
+	static_assert(!std::is_convertible<ConstIter, Iter>::value, "?");
 
 	static_assert(oel::is_trivially_relocatable< std::tuple<long, dynarray<bool>, double> >::value, "?");
 	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value, "?");
