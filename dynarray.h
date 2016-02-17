@@ -250,12 +250,12 @@ public:
 
 	allocator_type get_allocator() const  { return _m; }
 
-	iterator       begin() noexcept         { return _makeIterator(_m.data, &_m); }
-	const_iterator begin() const noexcept   { return _makeConstIter(_m.data, &_m); }
+	iterator       begin() noexcept         { return _iterator{_m.data, &_m}; }
+	const_iterator begin() const noexcept   { return _constIter{_m.data, &_m}; }
 	const_iterator cbegin() const noexcept  { return begin(); }
 
-	iterator       end() noexcept           { return _makeIterator(_m.end, &_m); }
-	const_iterator end() const noexcept     { return _makeConstIter(_m.end, &_m); }
+	iterator       end() noexcept           { return _iterator{_m.end, &_m}; }
+	const_iterator end() const noexcept     { return _constIter{_m.end, &_m}; }
 	const_iterator cend() const noexcept    { return end(); }
 
 	reverse_iterator       rbegin() noexcept        { return reverse_iterator{end()}; }
@@ -270,8 +270,8 @@ public:
 	reference       front() noexcept        { return *begin(); }
 	const_reference front() const noexcept  { return *begin(); }
 
-	reference       back() noexcept         { return *_makeIterator(_m.end - 1, &_m); }
-	const_reference back() const noexcept   { return *_makeConstIter(_m.end - 1, &_m); }
+	reference       back() noexcept         { return *_iterator{_m.end - 1, &_m}; }
+	const_reference back() const noexcept   { return *_constIter{_m.end - 1, &_m}; }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -297,13 +297,8 @@ private:
 	using _allocTrait = std::allocator_traits<Alloc>;
 	using _dynarrBase = _detail::DynarrBase<pointer>;
 
-#if OEL_MEM_BOUND_DEBUG_LVL
-	using _makeIterator  = iterator;
-	using _makeConstIter = const_iterator;
-#else
-	static iterator       _makeIterator(pointer pos, _dynarrBase *)              { return pos; }
-	static const_iterator _makeConstIter(const_pointer pos, const _dynarrBase *) { return pos; }
-#endif
+	using _iterator  = _detail::CtnrIteratorMaker<iterator>;
+	using _constIter = _detail::CtnrIteratorMaker<const_iterator>;
 
 #if _MSC_VER && OEL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
 	#define OEL_FORCEINLINE __forceinline
@@ -331,7 +326,6 @@ private:
 			allocEnd = ptr + allocSize;
 		}
 		_scopedPtr(const _scopedPtr &) = delete;
-		void operator =(const _scopedPtr &) = delete;
 
 		~_scopedPtr()
 		{
@@ -639,7 +633,7 @@ private:
 			newEnd = _m.data + count;
 			if (newEnd < _m.end)
 			{	// downsizing, assign new and destroy rest
-				iterator const it = _makeIterator(newEnd, &_m);
+				iterator const it = _iterator{newEnd, &_m};
 				src = copy(src, begin(), it);
 				erase_back(it);
 			}
@@ -684,7 +678,7 @@ private:
 		else
 		{
 			pointer const newEnd = _m.data + count;
-			iterator const assignLast = _makeIterator((std::min)(_m.end, newEnd), &_m);
+			iterator const assignLast = _iterator{(std::min)(_m.end, newEnd), &_m};
 			for (iterator dest = begin(); assignLast != dest; )
 			{
 				*dest = *src;
@@ -869,7 +863,7 @@ private:
 						return next;
 					} );
 		}
-		return _makeIterator(pPos, &_m);
+		return _iterator{pPos, &_m};
 	}
 };
 
@@ -893,7 +887,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
 							  _emplaceMakeElem{}, std::forward<Args>(args)...);
 	}
-	return _makeIterator(pPos, &_m);
+	return _iterator{pPos, &_m};
 }
 #undef OEL_DYNARR_INSERT_STEP0
 

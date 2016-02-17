@@ -38,17 +38,9 @@ public:
 
 	using const_iterator = contiguous_ctnr_iterator<_ptrTrait::template rebind<value_type const>, Container>;
 
-	/// Note: a pair of value-initialized iterators count as an empty range
-	contiguous_ctnr_iterator() noexcept : _pElem(), _container() {}
-
-	/// Construct with position in data and pointer to container
-	contiguous_ctnr_iterator(pointer pos, const Container * container)
-	 :	_pElem(pos), _container(container) {
-	}
-
 	operator const_iterator() const
 	{
-		return {_pElem, _container};
+		return const_iterator{_pElem, _container};
 	}
 
 	reference operator*() const
@@ -188,17 +180,36 @@ public:
 
 	/// Return pointer (unchecked)
 	friend typename std::remove_reference<reference>::type *
-		to_pointer_contiguous(const contiguous_ctnr_iterator & it) noexcept { return it._pElem; }
+		to_pointer_contiguous(const contiguous_ctnr_iterator & it) noexcept
+	{
+		return std::addressof(*it._pElem);
+	}
 
-protected:
-	pointer           _pElem;  // Wrapped pointer
-	const Container * _container;
 
-	template<typename, typename>
-	friend class contiguous_ctnr_iterator;
+	/// Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
+	pointer           _pElem;
+	const Container * _container; ///< Parent container. Note: a pair of value-initialized iterators count as an empty range
 
 #undef OEL_ARRITER_CHECK_COMPAT
 };
+
+
+namespace _detail
+{
+	template<typename Iterator>
+#if OEL_MEM_BOUND_DEBUG_LVL
+	using CtnrIteratorMaker = Iterator;
+#else
+	struct CtnrIteratorMaker
+	{
+		Iterator pos;
+
+		CtnrIteratorMaker(Iterator pos, const void *) : pos(pos) {}
+
+		operator Iterator() const { return pos; }
+	};
+#endif
+}
 
 } // namespace oel
 

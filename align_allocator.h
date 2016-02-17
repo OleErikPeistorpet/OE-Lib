@@ -40,16 +40,16 @@ struct allocator
 	/// U constructible from Args, direct-initialization
 	template<typename U, typename... Args>
 	enable_if_t< std::is_constructible<U, Args...>::value >
-		construct(U * pos, Args &&... args)
+		construct(U * raw, Args &&... args)
 	{
-		::new((void *)pos) U(std::forward<Args>(args)...);
+		::new(static_cast<void *>(raw)) U(std::forward<Args>(args)...);
 	}
 	/// U not constructible from Args, list-initialization
 	template<typename U, typename... Args>
 	enable_if_t< !std::is_constructible<U, Args...>::value >
-		construct(U * pos, Args &&... args)
+		construct(U * raw, Args &&... args)
 	{
-		::new((void *)pos) U{std::forward<Args>(args)...};
+		::new(static_cast<void *>(raw)) U{std::forward<Args>(args)...};
 	}
 
 	allocator() = default;
@@ -206,7 +206,9 @@ namespace _detail
 	struct AllocRefOptimizeEmpty
 	{
 		Alloc & alloc;
-
+	#if _MSC_VER
+		void operator =(AllocRefOptimizeEmpty) = delete;
+	#endif
 		AllocRefOptimizeEmpty(Alloc & a) : alloc(a) {}
 
 		Alloc & Get() { return alloc; }
@@ -215,6 +217,8 @@ namespace _detail
 	template<typename Alloc>
 	struct AllocRefOptimizeEmpty<Alloc, true>
 	{
+		void operator =(AllocRefOptimizeEmpty) = delete;
+
 		AllocRefOptimizeEmpty(Alloc &) {}
 
 		Alloc Get() { return Alloc{}; }
