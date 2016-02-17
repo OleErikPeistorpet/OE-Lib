@@ -131,8 +131,6 @@ public:
 	explicit dynarray(size_type size, const Alloc & a = Alloc{});  ///< (Value-initializes elements, same as std::vector)
 	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
 
-	dynarray(std::initializer_list<T> init, const Alloc & a = Alloc{});
-
 	/** @brief Equivalent to std::vector(begin(range), sLast, a),
 	*	where sLast is either end(range) or found by magic, see TODO put ref here
 	*
@@ -140,13 +138,15 @@ public:
 	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_begin(std::declval<InputRange>()) )>
 	explicit dynarray(const InputRange & range, const Alloc & a = Alloc{})  : _m(a) { assign(range); }
 
+	dynarray(std::initializer_list<T> init, const Alloc & a = Alloc{})  : _m(a, init.size())
+																		{ _initPostAllocate(init.begin(), init.size()); }
 	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
 	/// If a != other.get_allocator() and T is not trivially relocatable,
 	/// behaviour is undefined (triggers OEL_ASSERT unless NDEBUG)
 	dynarray(dynarray && other, const Alloc & a) noexcept;
 	dynarray(const dynarray & other);
-	dynarray(const dynarray & other, const Alloc & a);
-
+	dynarray(const dynarray & other, const Alloc & a)  : _m(a, other.size())
+													   { _initPostAllocate(other.data(), other.size()); }
 	~dynarray() noexcept;
 
 	/// If using custom Alloc with propagate_on_container_move_assignment false, behaviour is undefined
@@ -225,11 +225,10 @@ public:
 	* @brief Erase the element at pos from dynarray without maintaining order of elements.
 	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
-	* @return Iterator pointing to the location that followed the element erased,
-	*	which is the end if pos was at the last element. */
-	iterator  erase_unordered(iterator pos);
-
-	iterator  erase(iterator pos);
+	* @return Iterator pointing to the location that followed the element erased, same as for std containers. */
+	iterator  erase_unordered(iterator pos)  { _eraseUnordered(pos, is_trivially_relocatable<T>());
+											   return pos; }
+	iterator  erase(iterator pos)            { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
 	iterator  erase(iterator first, iterator last) noexcept;
 	/// Equivalent to erase(first, end()) (but potentially faster), making first the new end
@@ -969,20 +968,6 @@ inline dynarray<T, Alloc>::dynarray(const dynarray & other)
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(const dynarray & other, const Alloc & a)
- :	_m(a, other.size())
-{
-	_initPostAllocate(other.data(), other.size());
-}
-
-template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(std::initializer_list<T> init, const Alloc & a)
- :	_m(a, init.size())
-{
-	_initPostAllocate(init.begin(), init.size());
-}
-
-template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(size_type size, default_init_tag, const Alloc & a)
  :	_m(a, size)
 {
@@ -1132,20 +1117,6 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 		_m.end = pFirst + nAfterLast;
 	}
 	return first;
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos)
-{
-	_erase(pos, is_trivially_relocatable<T>());
-	return pos;
-}
-
-template<typename T, typename Alloc>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase_unordered(iterator pos)
-{
-	_eraseUnordered(pos, is_trivially_relocatable<T>());
-	return pos;
 }
 
 
