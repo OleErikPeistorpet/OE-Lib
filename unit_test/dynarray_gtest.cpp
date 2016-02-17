@@ -665,7 +665,7 @@ TEST_F(dynarrayTest, misc)
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;
-	dynarray<size_t>::const_iterator{ dest1.append(daSrc) };
+	dynarray<size_t>::const_iterator( dest1.append(daSrc) );
 	dest1.append(fASrc);
 	dest1.append(dequeSrc);
 

@@ -6,7 +6,7 @@
       <DisplayString Condition="_m.end - _m.data == 2">size=2 {{{_m.data[0]}, {_m.end[-1]}}}</DisplayString>
       <DisplayString>size={_m.end - _m.data} {{{_m.data[0]}, ... {_m.end[-1]}}}</DisplayString>
       <Expand>
-         <Item Name="capacity" ExcludeView="simple">_m.reserveEnd - _m.data</Item>
+         <Item Name="capacity" ExcludeView="simple">_m.reservEnd - _m.data</Item>
          <ArrayItems>
             <Size>_m.end - _m.data</Size>
             <ValuePointer>_m.data</ValuePointer>
@@ -14,12 +14,13 @@
       </Expand>
    </Type>
 
-   <Type Name="oel::contiguous_ctnr_iterator&lt; *, oel::dynarray&lt;*&gt; &gt;">
-      <DisplayString Condition="_pElem == _container-&gt;_m.end">end</DisplayString>
-      <DisplayString>[{_pElem - _container-&gt;_m.data}] {*_pElem}</DisplayString>
+   <Type Name="oel::contiguous_ctnr_iterator&lt; *, oel::_detail::DynarrBase&lt;*&gt; &gt;">
+      <DisplayString Condition="_pElem == _container-&gt;end">end</DisplayString>
+      <DisplayString>[{_pElem - _container-&gt;data}] {*_pElem}</DisplayString>
       <Expand>
          <Item Name="pointer" ExcludeView="simple">(void*)_pElem</Item>
-         <Item Name="dynarray">_container</Item>
+         <Item Name="array size">_container-&gt;end - _container-&gt;data</Item>
+         <Item Name="[back]" Condition="_container-&gt;end != _container-&gt;data">_container-&gt;end[-1]</Item>
       </Expand>
    </Type>
 </AutoVisualizer>
