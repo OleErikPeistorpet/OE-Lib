@@ -57,8 +57,8 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
 * @brief Erase the element at position from dynarray without maintaining order of elements.
 *
 * Constant complexity (compared to linear in the distance between position and last for normal erase).
-* @return Iterator pointing to the location that followed the element erased,
-*	which is the end if position was at the last element. */
+* @return position, where an element later in the sequence than the one erased has been moved,
+*	or the end if position was at the last element. */
 template<typename T, typename A>
 typename dynarray<T, A>::iterator  erase_unordered(dynarray<T, A> & ctr, typename dynarray<T, A>::iterator position);
 
