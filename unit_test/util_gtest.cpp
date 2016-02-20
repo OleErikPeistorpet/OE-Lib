@@ -73,7 +73,7 @@ TEST_F(utilTest, countedView)
 	EXPECT_EQ(1, test.front());
 	EXPECT_EQ(2, test[1]);
 	test.drop_front();
-	EXPECT_EQ(1, test.size());
+	EXPECT_EQ(1U, test.size());
 	EXPECT_EQ(2, test.back());
 }
 

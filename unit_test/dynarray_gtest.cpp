@@ -53,7 +53,7 @@ struct throwingAlloc : public oel::allocator<T>
 		if (nObjs > throwIfGreater)
 			throw std::bad_alloc{};
 
-		return allocator<T>::allocate(nObjs);
+		return oel::allocator<T>::allocate(nObjs);
 	}
 };
 
@@ -541,14 +541,14 @@ TEST_F(dynarrayTest, resize)
 
 	dynarray< dynarray<int> > nested;
 	nested.resize(3);
-	EXPECT_EQ(3, nested.size());
+	EXPECT_EQ(3U, nested.size());
 	EXPECT_TRUE(nested.back().empty());
 
 	nested.front().resize(S1);
 
 	nested.resize(1);
 	auto cap = nested.capacity();
-	EXPECT_EQ(1, nested.size());
+	EXPECT_EQ(1U, nested.size());
 	for (auto i : nested.front())
 		EXPECT_EQ(0, i);
 
@@ -618,14 +618,14 @@ TEST_F(dynarrayTest, overAligned)
 	EXPECT_TRUE(special.cbegin() == special.cend());
 
 	special.append(5, {});
-	EXPECT_EQ(5, special.size());
+	EXPECT_EQ(5U, special.size());
 	for (const auto & v : special)
-		EXPECT_EQ(0, reinterpret_cast<std::uintptr_t>(&v) % testAlignment);
+		EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&v) % testAlignment);
 
 	special.resize(1, oel::default_init);
 	special.shrink_to_fit();
 	EXPECT_GT(5U, special.capacity());
-	EXPECT_EQ(0, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
+	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 }
 #endif
 

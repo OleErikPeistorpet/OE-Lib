@@ -135,7 +135,7 @@ public:
 	*	where sLast is either end(range) or found by magic, see TODO put ref here
 	*
 	* If you need to construct from some std::istream, check out boost/range/istream_range.hpp  */
-	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_begin(std::declval<InputRange>()) )>
+	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_cbegin(std::declval<InputRange>()) )>
 	explicit dynarray(const InputRange & range, const Alloc & a = Alloc{})  : _m(a) { assign(range); }
 
 	dynarray(std::initializer_list<T> init, const Alloc & a = Alloc{})  : _m(a, init.size())
@@ -313,13 +313,14 @@ private:
 	};
 
 
-	struct _scopedPtr : private _detail::AllocRefOptimizeEmpty<Alloc>
+	using _scopedPtrBase = _detail::AllocRefOptimizeEmpty<Alloc>;
+	struct _scopedPtr : private _scopedPtrBase
 	{
 		pointer ptr;
 		pointer allocEnd;
 
 		_scopedPtr(dynarray & parent, size_type const allocSize)
-		 :	AllocRefOptimizeEmpty(parent._m)
+		 :	_scopedPtrBase(parent._m)
 		{
 			ptr = this->Get().allocate(allocSize);
 			allocEnd = ptr + allocSize;
@@ -340,7 +341,7 @@ private:
 		using _dynarrBase::reservEnd;
 
 		_dataOwner(const Alloc & a)
-		 :	DynarrBase(), Alloc(a) {
+		 :	_dynarrBase(), Alloc(a) {
 		}
 		_dataOwner(const Alloc & a, size_type const capacity)
 		 :	Alloc(a)
@@ -349,7 +350,7 @@ private:
 			reservEnd = data + capacity;
 		}
 		_dataOwner(_dataOwner && other)
-		 :	DynarrBase(other), Alloc(std::move(other))
+		 :	_dynarrBase(other), Alloc(std::move(other))
 		{
 			other.reservEnd = other.end = other.data = nullptr;
 		}
@@ -380,22 +381,22 @@ private:
 		swap(_m.reservEnd, s.allocEnd);
 	}
 
-	void _moveAssignAlloc(std::true_type, _dataOwner & d)
+	void _moveAssignAlloc(std::true_type, _dataOwner & o)
 	{
-		static_cast<Alloc &>(_m) = std::move(d);
+		static_cast<Alloc &>(_m) = std::move(o);
 	}
 
 	void _moveAssignAlloc(std::false_type, _dataOwner &) {}
 
-	void _swapAlloc(std::true_type, _dataOwner & d)
+	void _swapAlloc(std::true_type, _dataOwner & o)
 	{
 		using std::swap;
-		swap(static_cast<Alloc &>(_m), static_cast<Alloc &>(d));
+		swap(static_cast<Alloc &>(_m), static_cast<Alloc &>(o));
 	}
 
-	void _swapAlloc(std::false_type, _dataOwner & d)
+	void _swapAlloc(std::false_type, _dataOwner & o)
 	{	// propagate_on_container_swap false, standard says this is undefined if allocators compare unequal
-		OEL_ASSERT(get_allocator() == static_cast<Alloc &>(d));
+		OEL_ASSERT(get_allocator() == static_cast<Alloc &>(o));
 	}
 
 
@@ -427,15 +428,21 @@ private:
 
 	static size_type _calcCapAddOne(size_type const oldCap, size_type = 0)
 	{
-		enum { minGrow = sizeof(T *) >= sizeof(T) ?
-				2 * sizeof(T *) / sizeof(T) :   // Want to grow by 2 * sizeof(T *) bytes,
-				(sizeof(T) <= 2040 ? 2 : 1) };  // at least 2 elements if they fit in a 4K page
-		// Growth factor is 1.5
+		enum {
+		#if _WIN64 || defined(__x86_64__)
+			startBytesGood = 24,
+		#else
+			startBytesGood = 4 * sizeof(int),
+		#endif
+			minGrow = 2 * sizeof(T) <= startBytesGood ?
+				startBytesGood / sizeof(T) :
+				(sizeof(T) < 1020 ? 2 : 1)
+		};
 		return oldCap + std::max<size_type>(oldCap / 2, minGrow);
 	}
 
 	static size_type _calcCap(size_type oldCap, size_type newSize)
-	{
+	{	// growth factor is 1.5
 		return (std::max)(oldCap + oldCap / 2, newSize);
 	}
 
@@ -485,7 +492,7 @@ private:
 
 	void _eraseUnordered(iterator pos, std::true_type /*trivialRelocate*/)
 	{
-		OEL_ASSERT_MEM_BOUND(begin() <= pos && pos < end()); // pos must be an iterator of this, not another dynarray
+		OEL_ASSERT_MEM_BOUND(pos._container == &_m);
 
 		T & elem = *pos;
 		elem.~T();

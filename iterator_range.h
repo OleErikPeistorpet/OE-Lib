@@ -39,7 +39,9 @@ iterator_range<Iterator> as_view(Iterator first, Iterator last)  { return {first
 
 
 /// Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
-template<typename Iterator>
+template< typename Iterator,
+		  bool = std::is_base_of<std::random_access_iterator_tag,
+								 typename std::iterator_traits<Iterator>::iterator_category>::value >
 class counted_view
 {
 public:
@@ -50,55 +52,78 @@ public:
 	using size_type       = size_t;  // difference_type would be OK
 
 	/// Initialize to empty
-	counted_view()                                : _count() {}
-	counted_view(iterator first, size_type size)  : _begin(first), _count(size) {}
+	counted_view()                                 : _size() {}
+	counted_view(iterator first, size_type count)  : _begin(first), _size(count) {}
 	/// Construct from container with matching iterator type
 	template<typename Container>
-	counted_view(Container & c)  : _begin(::adl_begin(c)), _count(oel::ssize(c)) {}
+	counted_view(Container & c)  : _begin(::adl_begin(c)), _size(oel::ssize(c)) {}
 
-	size_type size() const   { return _count; }
+	size_type size() const   { return _size; }
 
-	bool      empty() const  { return 0 == _count; }
+	bool      empty() const  { return 0 == _size; }
 
 	iterator  begin() const  { return _begin; }
-	/// Only for random-access Iterator
-	iterator  end() const    { return _begin + _count; }
 
 	reference front() const  { return *_begin; }
-	/// Only for random-access Iterator
-	reference back() const   { return *(end() - 1); }
-
-	/// Will exist only with random-access Iterator (SFINAE)
-	template<typename I>
-	auto operator[](I index) const -> decltype(begin()[index])  { return _begin[index]; }
-
-	/// Will exist only with contiguous Iterator (SFINAE)
-	template<typename = Iterator>
-	auto data() const -> decltype( to_pointer_contiguous(begin()) )  { return to_pointer_contiguous(_begin); }
 
 	/// Increment begin, decrementing size
-	void drop_front();
+	void drop_front()  { OEL_ASSERT_MEM_BOUND(_size > 0);  ++_begin; --_size; }
 	/// Decrement end
-	void drop_back();
+	void drop_back()   { OEL_ASSERT_MEM_BOUND(_size > 0);  --_size; }
 
 protected:
 	Iterator  _begin;
-	size_type _count;
+	size_type _size;
 };
 
-/// Create a counted_view from iterator and size, with type deduced from first
+/// Specialization for random-access Iterator
+template<typename Iterator>
+class counted_view<Iterator, true> : public counted_view<Iterator, false>
+{
+	using _base = counted_view<Iterator, false>;
+
+public:
+	using typename _base::iterator;
+	using typename _base::value_type;
+	using typename _base::reference;
+	using typename _base::difference_type;
+	using typename _base::size_type;
+
+	counted_view() = default;
+	counted_view(iterator first, size_type count)  : _base(first, count) {}
+	template<typename Container>
+	counted_view(Container & c)                    : _base(::adl_begin(c), oel::ssize(c)) {}
+
+	iterator  end() const   { return this->_begin + this->_size; }
+
+	reference back() const  { return end()[-1]; }
+
+	template<typename I>
+	reference operator[](I index) const  { return this->_begin[index]; }
+
+	/// Will exist only with contiguous Iterator (SFINAE)
+	template<typename It1 = Iterator>
+	auto data() const
+	 -> decltype( to_pointer_contiguous(std::declval<It1>()) )  { return to_pointer_contiguous(this->_begin); }
+};
+
+/// Create a counted_view from iterator and count, with type deduced from first
 template<typename Iterator> inline
-counted_view<Iterator> as_view_n(Iterator first, typename counted_view<Iterator>::size_type size)  { return {first, size}; }
+counted_view<Iterator> as_view_n(Iterator first, typename counted_view<Iterator>::size_type count)  { return {first, count}; }
 
 
 /// Create an iterator_range of move_iterator from two iterators
-template<typename InputIterator>
-iterator_range< std::move_iterator<InputIterator> >  move_range(InputIterator first, InputIterator last);
+template<typename InputIterator> inline
+iterator_range< std::move_iterator<InputIterator> >  move_range(InputIterator first, InputIterator last)
+{
+	using MoveIt = std::move_iterator<InputIterator>;
+	return {MoveIt{first}, MoveIt{last}};
+}
 
-/// Create an iterator_range of move_iterator from reference to an array or container
+/// Create a counted_view of move_iterator from reference to an array or container
 template<typename Container> inline
 auto move_range(Container & c)
- -> iterator_range< std::move_iterator<decltype(begin(c))> >  { return oel::move_range(begin(c), end(c)); }
+ -> counted_view< std::move_iterator<decltype(begin(c))> >  { return {std::make_move_iterator(begin(c)), oel::ssize(c)}; }
 /// Create an iterator_range of move_iterator from iterator_range
 template<typename InputIterator> inline
 iterator_range< std::move_iterator<InputIterator> >  move_range(const iterator_range<InputIterator> & r)
@@ -108,37 +133,10 @@ template<typename InputIterator> inline
 counted_view< std::move_iterator<InputIterator> >    move_range(const counted_view<InputIterator> & r)
 	{ return {std::make_move_iterator(r.begin()), r.size()}; }
 
-/// Create a counted_view of move_iterator from iterator and size
-template<typename InputIterator, typename Count> inline
-counted_view< std::move_iterator<InputIterator> >    move_range_n(InputIterator first, Count size)
-	{ return {std::make_move_iterator(first), size}; }
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Implementation
-
-
-template<typename Iterator>
-inline void counted_view<Iterator>::drop_front()
-{
-	OEL_ASSERT_MEM_BOUND(_count > 0);
-	++_begin; --_count;
-}
-
-template<typename Iterator>
-inline void counted_view<Iterator>::drop_back()
-{
-	OEL_ASSERT_MEM_BOUND(_count > 0);
-	--_count;
-}
+/// Create a counted_view of move_iterator from iterator and count
+template<typename InputIterator> inline
+counted_view< std::move_iterator<InputIterator> >
+	move_range_n(InputIterator first, typename counted_view< std::move_iterator<InputIterator> >::size_type count)
+	{ return {std::make_move_iterator(first), count}; }
 
 } // namespace oel
-
-template<typename InputIterator>
-inline oel::iterator_range< std::move_iterator<InputIterator> >  oel::move_range(InputIterator first, InputIterator last)
-{
-	using MoveIt = std::move_iterator<InputIterator>;
-	return {MoveIt{first}, MoveIt{last}};
-}

@@ -36,7 +36,7 @@ public:
 	using reference       = decltype(*std::declval<Ptr>());
 	using difference_type = typename _ptrTrait::difference_type;
 
-	using const_iterator = contiguous_ctnr_iterator<_ptrTrait::template rebind<value_type const>, Container>;
+	using const_iterator = contiguous_ctnr_iterator<typename _ptrTrait::template rebind<value_type const>, Container>;
 
 	operator const_iterator() const
 	{
