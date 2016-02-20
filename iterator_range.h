@@ -35,7 +35,7 @@ namespace oel
 
 /// Create an iterator_range from two iterators, with type deduced from arguments
 template<typename Iterator> inline
-iterator_range<Iterator> as_view(Iterator first, Iterator last)  { return {first, last}; }
+iterator_range<Iterator> make_view(Iterator first, Iterator last)  { return {first, last}; }
 
 
 /// Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
@@ -60,7 +60,7 @@ public:
 
 	size_type size() const   { return _size; }
 
-	bool      empty() const  { return 0 == _size; }
+	bool      empty() const  { return 0 >= _size; }
 
 	iterator  begin() const  { return _begin; }
 
@@ -109,34 +109,33 @@ public:
 
 /// Create a counted_view from iterator and count, with type deduced from first
 template<typename Iterator> inline
-counted_view<Iterator> as_view_n(Iterator first, typename counted_view<Iterator>::size_type count)  { return {first, count}; }
+counted_view<Iterator> make_view_n(Iterator first, typename counted_view<Iterator>::size_type count)
+	{ return {first, count}; }
 
 
 /// Create an iterator_range of move_iterator from two iterators
 template<typename InputIterator> inline
-iterator_range< std::move_iterator<InputIterator> >  move_range(InputIterator first, InputIterator last)
-{
-	using MoveIt = std::move_iterator<InputIterator>;
-	return {MoveIt{first}, MoveIt{last}};
-}
-
-/// Create a counted_view of move_iterator from reference to an array or container
-template<typename Container> inline
-auto move_range(Container & c)
- -> counted_view< std::move_iterator<decltype(begin(c))> >  { return {std::make_move_iterator(begin(c)), oel::ssize(c)}; }
-/// Create an iterator_range of move_iterator from iterator_range
-template<typename InputIterator> inline
-iterator_range< std::move_iterator<InputIterator> >  move_range(const iterator_range<InputIterator> & r)
-	{ return oel::move_range(r.begin(), r.end()); }
-/// Create a counted_view of move_iterator from counted_view
-template<typename InputIterator> inline
-counted_view< std::move_iterator<InputIterator> >    move_range(const counted_view<InputIterator> & r)
-	{ return {std::make_move_iterator(r.begin()), r.size()}; }
+iterator_range< std::move_iterator<InputIterator> >
+	move_range(InputIterator first, InputIterator last)  { using MoveIt = std::move_iterator<InputIterator>;
+														   return {MoveIt{first}, MoveIt{last}}; }
 
 /// Create a counted_view of move_iterator from iterator and count
 template<typename InputIterator> inline
 counted_view< std::move_iterator<InputIterator> >
 	move_range_n(InputIterator first, typename counted_view< std::move_iterator<InputIterator> >::size_type count)
 	{ return {std::make_move_iterator(first), count}; }
+
+/// Create a counted_view of move_iterator from reference to an array or container
+template<typename Container> inline
+auto move_range(Container & c)
+ -> counted_view< std::move_iterator<decltype(begin(c))> >  { return {std::make_move_iterator(begin(c)), oel::ssize(c)}; }
+/// Create a counted_view of move_iterator from counted_view
+template<typename InputIterator> inline
+counted_view< std::move_iterator<InputIterator> >
+	move_range(counted_view<InputIterator> v)  { return {std::make_move_iterator(v.begin()), v.size()}; }
+/// Create an iterator_range of move_iterator from iterator_range
+template<typename InputIterator> inline
+iterator_range< std::move_iterator<InputIterator> >
+	move_range(iterator_range<InputIterator> r)  { return oel::move_range(r.begin(), r.end()); }
 
 } // namespace oel

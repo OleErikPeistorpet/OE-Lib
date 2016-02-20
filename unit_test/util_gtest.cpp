@@ -70,6 +70,7 @@ TEST_F(utilTest, countedView)
 	dynarray<int> i{1, 2};
 	counted_view<dynarray<int>::const_iterator> test = i;
 	EXPECT_EQ(i.size(), test.size());
+	EXPECT_TRUE(test.data() == i.data());
 	EXPECT_EQ(1, test.front());
 	EXPECT_EQ(2, test[1]);
 	test.drop_front();
@@ -82,7 +83,7 @@ TEST_F(utilTest, copy)
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
 	test2[4] = -7;
-	auto fitInto = oel::as_view_n(std::begin(test2), 4);
+	auto fitInto = oel::make_view_n(std::begin(test2), 4);
 
 	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
 
