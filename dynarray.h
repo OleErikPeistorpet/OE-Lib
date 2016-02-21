@@ -586,9 +586,6 @@ private:
 	template<typename InputIter>
 	InputIter _assignImpl(InputIter src, size_type const count, std::false_type)
 	{
-	// TODO: remove or merge second (slower)
-#define DYNARR_ASSIGN_IMPL 1
-#if DYNARR_ASSIGN_IMPL <= 1
 		auto copy = [](InputIter src, iterator dest, iterator dLast)
 			{
 				while (dest != dLast)
@@ -599,17 +596,6 @@ private:
 				return src;
 			};
 		pointer newEnd;
-#else
-		auto uninitCopy = [this](InputIter src, pointer dLast)
-			{
-				while (_m.end < dLast)
-				{
-					std::allocator_traits<Alloc>::construct(_m, _m.end, *src);
-					++src; ++_m.end;
-				}
-				return src;
-			};
-#endif
 		if (capacity() < count)
 		{	// not enough room, allocate
 			pointer const newData = _m.allocate(count);
@@ -618,7 +604,6 @@ private:
 			_resetData(newData);
 			_m.end = newData;
 			_m.reservEnd = newData + count;
-#if DYNARR_ASSIGN_IMPL <= 1
 			newEnd = _m.reservEnd;
 		}
 		else
@@ -636,29 +621,9 @@ private:
 		}
 		while (_m.end < newEnd)
 		{	// put rest of new in uninitialized part
-			std::allocator_traits<Alloc>::construct(_m, _m.end, *src);
+			_allocTrait::construct(_m, _m.end, *src);
 			++src; ++_m.end;
 		}
-#else
-
-			src = uninitCopy(src, _m.reservEnd); // updates _m.end
-		}
-		else
-		{
-			pointer const newEnd = _m.data + count;
-			iterator const assignLast = _iterator{(std::min)(_m.end, newEnd), &_m};
-			for (iterator dest = begin(); assignLast != dest; )
-			{
-				*dest = *src;
-				++src; ++dest;
-			}
-			if (assignLast < end())
-				erase_back(assignLast);
-			else
-				src = uninitCopy(src, newEnd);
-		}
-#endif
-#undef DYNARR_ASSIGN_IMPL
 		return src;
 	}
 
