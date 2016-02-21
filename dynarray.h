@@ -366,10 +366,10 @@ private:
 	} _m; // One and only data member of dynarray
 
 
-	void _resetData(pointer const newData, size_type oldCapacity)
+	void _resetData(pointer const newData)
 	{
 		if (_m.data)
-			_m.deallocate(_m.data, oldCapacity);
+			_m.deallocate(_m.data, capacity());
 
 		_m.data = newData;
 	}
@@ -429,7 +429,7 @@ private:
 	static size_type _calcCapAddOne(size_type const oldCap, size_type = 0)
 	{
 		enum {
-		#if _WIN64 || defined(__x86_64__)
+		#if _WIN64
 			startBytesGood = 24,
 		#else
 			startBytesGood = 4 * sizeof(int),
@@ -570,7 +570,7 @@ private:
 		if (capacity() < count)
 		{
 			// Deallocating first might be better, but then the _m pointers would have to be nulled in case allocate throws
-			_resetData(_m.allocate(count), capacity());
+			_resetData(_m.allocate(count));
 			_m.end = _m.data + count;
 			_m.reservEnd = _m.end;
 		}
@@ -586,6 +586,9 @@ private:
 	template<typename InputIter>
 	InputIter _assignImpl(InputIter src, size_type const count, std::false_type)
 	{
+	// TODO: remove or merge second (slower)
+#define DYNARR_ASSIGN_IMPL 1
+#if DYNARR_ASSIGN_IMPL <= 1
 		auto copy = [](InputIter src, iterator dest, iterator dLast)
 			{
 				while (dest != dLast)
@@ -595,43 +598,27 @@ private:
 				}
 				return src;
 			};
-	// TODO: test performance
-#define ASSIGN_IMPL 2
-#if ASSIGN_IMPL < 1
-		if (capacity() < count)
-		{	// not enough room, allocate new array and construct new
-			_scopedPtr newData{*this, count};
-
-			T *const newEnd = newData.ptr + count;
-			src = _detail::UninitCopy(src, newData.ptr, newEnd, _m);
-			_detail::Destroy(_m.data, _m.end);
-
-			_m.end = newEnd;
-			_swapBuf(newData);
-		}
-		else if (size() >= count)
-		{	// enough elements, copy new and destroy old
-			iterator const newEnd = begin() + count;
-			src = copy(src, begin(), newEnd);
-			erase_back(newEnd);
-		}
-		else
-		{	// enough room, assign to old elements and construct rest
-			src = copy(src, begin(), end());
-			T *const newEnd = _m.data + count;
-			src = _detail::UninitCopy(src, _m.end, newEnd, _m);
-			_m.end = newEnd;
-		}
-#elif ASSIGN_IMPL >= 1 && ASSIGN_IMPL < 3
 		pointer newEnd;
+#else
+		auto uninitCopy = [this](InputIter src, pointer dLast)
+			{
+				while (_m.end < dLast)
+				{
+					std::allocator_traits<Alloc>::construct(_m, _m.end, *src);
+					++src; ++_m.end;
+				}
+				return src;
+			};
+#endif
 		if (capacity() < count)
-		{	// not enough room, allocate new array
+		{	// not enough room, allocate
 			pointer const newData = _m.allocate(count);
 			// Old elements might hold some limited resource, destroying them before constructing new is probably good
 			_detail::Destroy(_m.data, _m.end);
-			_resetData(newData, capacity());
+			_resetData(newData);
 			_m.end = newData;
 			_m.reservEnd = newData + count;
+#if DYNARR_ASSIGN_IMPL <= 1
 			newEnd = _m.reservEnd;
 		}
 		else
@@ -647,37 +634,12 @@ private:
 			{	src = copy(src, begin(), end());
 			}
 		}
-	#if ASSIGN_IMPL == 1
-		if (newEnd > _m.end)
-		{
-			src = _detail::UninitCopy(src, _m.end, newEnd, _m);
-			_m.end = newEnd;
-		}
-	#else
-		while (_m.end != newEnd)
+		while (_m.end < newEnd)
 		{	// put rest of new in uninitialized part
 			std::allocator_traits<Alloc>::construct(_m, _m.end, *src);
 			++src; ++_m.end;
 		}
-	#endif
 #else
-		auto uninitCopy = [this](InputIter src, pointer dLast)
-			{
-				while (_m.end < dLast)
-				{
-					std::allocator_traits<Alloc>::construct(_m, _m.end, *src);
-					++src; ++_m.end;
-				}
-				return src;
-			};
-		if (capacity() < count)
-		{	// not enough room, allocate new array and construct new
-			pointer const newData = _m.allocate(count);
-			// Old elements might hold some limited resource, destroying them before constructing new is probably good
-			_detail::Destroy(_m.data, _m.end);
-			_resetData(newData, capacity());
-			_m.end = newData;
-			_m.reservEnd = newData + count;
 
 			src = uninitCopy(src, _m.reservEnd); // updates _m.end
 		}
@@ -696,6 +658,7 @@ private:
 				src = uninitCopy(src, newEnd);
 		}
 #endif
+#undef DYNARR_ASSIGN_IMPL
 		return src;
 	}
 
@@ -1031,7 +994,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	else
 	{	_m.end = newData = nullptr;
 	}
-	_resetData(newData, capacity());
+	_resetData(newData); // careful, cannot change _m.reservEnd until after
 	_m.reservEnd = _m.end;
 }
 
