@@ -379,7 +379,7 @@ TEST_F(dynarrayTest, append)
 
 		double const TEST_VAL = 6.6;
 		dest.append(2, TEST_VAL);
-		dest.append( make_view_n(dest.begin(), dest.size()) );
+		dest.append( make_view(dest.begin(), dest.end()) );
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
 			EXPECT_EQ(TEST_VAL, d);
@@ -443,12 +443,12 @@ TEST_F(dynarrayTest, insertR)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.insert_r( double_dynarr.begin(), make_view_n(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.insert_r(double_dynarr.begin(), arrayA);
 	double_dynarr.insert_r(double_dynarr.end(), double_dynarr2);
 
 	{
 		dynarray<int> int_dynarr;
-		int_dynarr.insert_r< std::initializer_list<int> >(int_dynarr.begin(), {1, 2, 3, 4});
+		int_dynarr.insert_r(int_dynarr.begin(), std::initializer_list<int>{1, 2, 3, 4});
 
 		double_dynarr.insert_r(double_dynarr.end(), int_dynarr);
 	}
@@ -606,7 +606,7 @@ TEST_F(dynarrayTest, eraseRange)
 	ret = d.erase(ret - 1, ret + 1);
 	EXPECT_EQ(begin(d) + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
-	EXPECT_EQ(s, d.back());
+	EXPECT_EQ(oel::as_signed(s), d.back());
 }
 
 #ifndef OEL_NO_BOOST

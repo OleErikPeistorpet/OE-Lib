@@ -7,8 +7,9 @@
 
 
 #include "core_util.h"
+#include "iterator_range.h"
 
-#include <algorithm>
+#include <algorithm> // for min
 #include <memory>
 #include <cstdint>
 #include <string.h>
@@ -25,10 +26,11 @@ namespace oel
 
 /// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T> inline
-constexpr make_signed_t<T>   as_signed(T val) noexcept    { return (make_signed_t<T>)val; }
+constexpr typename std::make_signed<T>::type   as_signed(T val) noexcept  { return (typename std::make_signed<T>::type)val; }
 /// Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
 template<typename T> inline
-constexpr make_unsigned_t<T> as_unsigned(T val) noexcept  { return (make_unsigned_t<T>)val; }
+constexpr typename std::make_unsigned<T>::type as_unsigned(T val) noexcept
+	{ return (typename std::make_unsigned<T>::type)val; }
 
 
 
@@ -60,9 +62,10 @@ OutputIterator copy_unsafe(const InputRange & source, OutputIterator dest);
 /// Throws exception if dest is smaller than source
 template<typename SizedInRange, typename SizedOutRange>
 auto copy(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest));
+// TODO: change what's returned to make it easier to determine if truncation happened
 /// Copies as many elements as will fit in dest
-template<typename RandomAccessRange, typename SizedOutRange>
-auto copy_fit(const RandomAccessRange & src, SizedOutRange & dest) -> decltype(begin(dest));
+template<typename SizedInRange, typename SizedOutRange>
+auto copy_fit(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest));
 
 
 ///@{
@@ -122,30 +125,44 @@ typename Container::iterator insert(Container & dest, typename Container::const_
 /// @cond INTERNAL
 namespace _detail
 {
-	template<typename InputIter, typename Sentinel, typename OutputIter> inline
-	OutputIter Copy(std::false_type, InputIter first, Sentinel last, OutputIter dest)
+	template<typename InputRange, typename OutputIter> inline
+	auto Copy(const InputRange & src, OutputIter dest, std::false_type, int) -> decltype(end(src), dest)
 	{
-		while (first != last)
+		auto f = begin(src); auto l = end(src);
+		while (f != l)
 		{
-			*dest = *first;
-			++dest; ++first;
+			*dest = *f;
+			++dest; ++f;
 		}
 		return dest;
 	}
 
-	template<typename IterSrc, typename IterDest> inline
-	IterDest Copy(std::true_type, IterSrc const first, IterSrc const last, IterDest const dest)
+	template<typename InputRange, typename OutputIter> inline
+	OutputIter Copy(const InputRange & src, OutputIter dest, std::false_type, long)
+	{
+		OutputIter const dLast = dest + oel::ssize(src);
+		for (auto f = begin(src); dest != dLast; )
+		{
+			*dest = *f;
+			++dest; ++f;
+		}
+		return dLast;
+	}
+
+	template<typename RandAccessRange, typename RandAccessIter> inline
+	RandAccessIter Copy(const RandAccessRange & src, RandAccessIter const dest, std::true_type, int)
 	{	// can use memcpy
-		auto const count = last - first;
+		auto const first = begin(src);
+		auto const n = end(src) - first;
 	#if OEL_MEM_BOUND_DEBUG_LVL
-		if (0 != count)
+		if (0 != n)
 		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
 			(void)*first; (void)*dest;
-			(void)*(dest + (count - 1));
+			(void)*(dest + (n - 1));
 		}
 	#endif
-		::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), sizeof(*first) * count);
-		return dest + count;
+		::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), sizeof(*first) * n);
+		return dest + n;
 	}
 }
 /// @endcond
@@ -155,8 +172,7 @@ namespace _detail
 template<typename InputRange, typename OutputIterator>
 inline OutputIterator oel::copy_unsafe(const InputRange & src, OutputIterator dest)
 {
-	return _detail::Copy(can_memmove_with<OutputIterator, decltype(begin(src))>(),
-						 begin(src), end(src), dest);
+	return _detail::Copy(src, dest, can_memmove_with<OutputIterator, decltype(begin(src))>(), int{});
 }
 
 template<typename SizedInRange, typename SizedOutRange>
@@ -169,12 +185,11 @@ inline auto oel::copy(const SizedInRange & src, SizedOutRange & dest) -> decltyp
 		throw std::out_of_range("Too small dest for oel::copy");
 }
 
-template<typename RandomAccessRange, typename SizedOutRange>
-inline auto oel::copy_fit(const RandomAccessRange & src, SizedOutRange & dest) -> decltype(begin(dest))
+template<typename SizedInRange, typename SizedOutRange>
+inline auto oel::copy_fit(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest))
 {
 	auto smaller = (std::min)(oel::ssize(src), oel::ssize(dest));
-	return _detail::Copy(can_memmove_with<decltype(begin(dest)), decltype(begin(src))>(),
-						 begin(src), begin(src) + smaller, begin(dest));
+	return oel::copy_unsafe(oel::make_view_n(begin(src), smaller), begin(dest));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -198,7 +213,7 @@ namespace _detail
 }
 
 template<typename T, typename... Args, typename>
-inline std::unique_ptr<T> oel::make_unique(Args &&... args)
+inline std::unique_ptr<T>  oel::make_unique(Args &&... args)
 {
 	T * p = _detail::New<T>(std::is_constructible<T, Args...>(), std::forward<Args>(args)...);
 	return std::unique_ptr<T>(p);

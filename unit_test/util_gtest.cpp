@@ -88,7 +88,7 @@ TEST_F(utilTest, copy)
 
 	std::list<std::string> li{"aa", "bb"};
 	std::array<std::string, 2> strDest;
-	oel::copy_unsafe( oel::move_range(begin(li), end(li)), begin(strDest) );
+	oel::copy_unsafe(oel::move_range(li), begin(strDest));
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
 	EXPECT_TRUE(li.front().empty());

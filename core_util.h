@@ -108,7 +108,7 @@ constexpr auto ssize(const SizedRange & r)
 	 { return static_cast<typename SizedRange::difference_type>(r.size()); }
 /// Returns number of elements in array as signed type
 template<typename T, std::ptrdiff_t Size> inline
-constexpr std::ptrdiff_t ssize(const T (&)[Size]) noexcept  { return Size; }
+constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
 
@@ -144,12 +144,6 @@ const default_init; ///< An instance of default_init_tag to pass
 /// Exists in std with C++14
 template<bool Condition>
 using enable_if_t = typename std::enable_if<Condition>::type;
-
-
-template<typename T>
-using make_signed_t   = typename std::make_signed<T>::type;  ///< std with C++14
-template<typename T>
-using make_unsigned_t = typename std::make_unsigned<T>::type; ///< std with C++14
 
 
 
