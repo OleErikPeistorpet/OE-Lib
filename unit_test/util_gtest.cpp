@@ -3,6 +3,7 @@
 #include "dynarray.h"
 #include "gtest/gtest.h"
 #include <list>
+#include <deque>
 #include <array>
 
 /// @cond INTERNAL
@@ -21,26 +22,16 @@ protected:
 
 TEST_F(utilTest, eraseUnordered)
 {
-	using namespace oel;
+	using oel::erase_unordered;
 
-	dynarray<std::string> da{"aa", "bb", "cc"};
-	{
-		std::list<std::string> li(begin(da), end(da));
+	std::deque<std::string> d{"aa", "bb", "cc"};
 
-		auto it = begin(li);
-		erase_unordered(li, ++it);
-		EXPECT_EQ(2U, li.size());
-		EXPECT_EQ("cc", li.back());
-		erase_unordered(li, it);
-		EXPECT_EQ(1U, li.size());
-		EXPECT_EQ("aa", li.front());
-	}
-	erase_unordered(da, 1);
-	EXPECT_EQ(2U, da.size());
-	EXPECT_EQ("cc", da.back());
-	erase_unordered(da, 1);
-	EXPECT_EQ(1U, da.size());
-	EXPECT_EQ("aa", da.front());
+	erase_unordered(d, 1);
+	EXPECT_EQ(2U, d.size());
+	EXPECT_EQ("cc", d.back());
+	erase_unordered(d, 1);
+	EXPECT_EQ(1U, d.size());
+	EXPECT_EQ("aa", d.front());
 }
 
 TEST_F(utilTest, eraseBack)
