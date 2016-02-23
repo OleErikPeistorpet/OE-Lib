@@ -42,19 +42,6 @@ void erase_unordered(RandomAccessContainer & c, typename RandomAccessContainer::
 	c[index] = std::move(c.back());
 	c.pop_back();
 }
-/**
-* @brief Erase the element at pos from container without maintaining order of elements.
-* @param pos dereferenceable iterator (not the end), can simply be a pointer to an element in c
-*
-* Constant complexity (compared to linear in the distance between position and last for standard erase).
-* The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template<typename OutputIterator, typename Container,
-		 typename /*EnableIfIterator*/ = decltype( *std::declval<OutputIterator>() )> inline
-void erase_unordered(Container & c, OutputIterator pos)
-{
-	*pos = std::move(c.back());
-	c.pop_back();
-}
 
 /// Erase the elements from first to the end of container. Overloads erase_back(dynarray &, dynarray::iterator) 
 template<typename Container> inline

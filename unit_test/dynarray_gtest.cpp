@@ -672,10 +672,15 @@ TEST_F(dynarrayTest, misc)
 	{
 		dynarray<int> di{1, -2};
 		auto it = begin(di);
-		it = erase_unordered(di, it);
+		it = di.erase_unordered(it);
 		EXPECT_EQ(-2, *it);
-		it = erase_unordered(di, it);
+		it = di.erase_unordered(it);
 		EXPECT_EQ(end(di), it);
+
+		di = {1, -2};
+		erase_unordered(di, 1);
+		erase_unordered(di, 0);
+		EXPECT_TRUE(di.empty());
 	}
 
 	auto cap = dest1.capacity();
