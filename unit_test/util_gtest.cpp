@@ -62,11 +62,11 @@ TEST_F(utilTest, countedView)
 	counted_view<dynarray<int>::const_iterator> test = i;
 	EXPECT_EQ(i.size(), test.size());
 	EXPECT_TRUE(test.data() == i.data());
-	EXPECT_EQ(1, test.front());
+	EXPECT_EQ(1, test[0]);
 	EXPECT_EQ(2, test[1]);
 	test.drop_front();
 	EXPECT_EQ(1U, test.size());
-	EXPECT_EQ(2, test.back());
+	EXPECT_EQ(2, test.end()[-1]);
 }
 
 TEST_F(utilTest, copy)
