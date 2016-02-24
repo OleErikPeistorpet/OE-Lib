@@ -82,6 +82,13 @@ struct is_trivially_copyable :
 oel::true_type specify_trivial_relocate(MyClass &&);
 // Or if you are unsure if a member or base class is and will stay trivially relocatable:
 oel::is_trivially_relocatable<MemberTypeOfU> specify_trivial_relocate(U &&);
+// With nested class, use friend keyword:
+class Outer {
+	class Inner {
+		std::unique_ptr<whatever> a;
+	};
+	friend oel::true_type specify_trivial_relocate(Inner &&);
+};
 @endcode  */
 template<typename T>
 #if OEL_TRIVIAL_RELOCATE_DEFAULT

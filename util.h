@@ -55,7 +55,7 @@ void erase_back(Container & c, typename Container::iterator first)  { c.erase(fi
 * @return an iterator to the end of the destination range
 *
 * The ranges shall not overlap, except if begin(source) equals dest (self assign).
-* To move instead of copy, include iterator_range.h and pass move_range(source)  */
+* To move instead of copy, pass move_range(source)  */
 template<typename InputRange, typename OutputIterator>
 OutputIterator copy_unsafe(const InputRange & source, OutputIterator dest);
 

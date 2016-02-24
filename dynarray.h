@@ -13,7 +13,6 @@
 #ifndef OEL_NO_BOOST
 	#include <boost/iterator/iterator_categories.hpp>
 #endif
-#include <stdexcept>
 #include <algorithm>
 
 
@@ -496,13 +495,12 @@ private:
 		T & elem = *pos;
 		elem.~T();
 		--_m.end;
-		// Relocate last element to pos
 		auto &
 	#if !_MSC_VER
 			__attribute__((may_alias))
 	#endif
 			raw = reinterpret_cast<aligned_union_t<T> &>(elem);
-		raw = reinterpret_cast<aligned_union_t<T> &>(*_m.end);
+		raw = reinterpret_cast<aligned_union_t<T> &>(*_m.end); // relocate last element to pos
 	}
 
 	void _eraseUnordered(iterator pos, std::false_type)

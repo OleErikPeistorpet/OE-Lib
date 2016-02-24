@@ -112,7 +112,7 @@ constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
 
-/// Convert iterator to pointer. This should be overloaded for each contiguous memory iterator class
+/// Convert iterator to pointer. This should be overloaded for each class of contiguous iterator (C++17 concept)
 template<typename T> inline
 T * to_pointer_contiguous(T * ptr) noexcept  { return ptr; }
 

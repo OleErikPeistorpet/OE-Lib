@@ -11,7 +11,6 @@
 #ifndef OEL_NO_BOOST
 	#include <boost/align/aligned_alloc.hpp>
 #endif
-#include <cstdint>  // for uintptr_t
 #include <string.h> // for memset
 
 
@@ -118,17 +117,17 @@ namespace _detail
 	}
 
 	template<size_t Align>
-	void * OpNew(std::false_type, size_t nBytes)
+	void * OpNew(std::false_type, size_t const nBytes)
 	{
 	#ifndef OEL_NO_BOOST
-		for (;;)
+		if (nBytes > 0) // test could be removed if using MSVC _aligned_malloc
 		{
-			void * p = boost::alignment::aligned_alloc(Align, nBytes);
-			if (p || nBytes == 0) // testing for 0 bytes could be removed if using MSVC _aligned_malloc
-			{	return p;
-			}
-			else
+			for (;;)
 			{
+				void * p = boost::alignment::aligned_alloc(Align, nBytes);
+				if (p)
+					return p;
+
 			#if !__GLIBCXX__ || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9) || __GNUC__ > 4
 				auto handler = std::get_new_handler();
 			#else
@@ -140,6 +139,9 @@ namespace _detail
 
 				(*handler)();
 			}
+		}
+		else
+		{	return nullptr;
 		}
 	#else
 		static_assert(Align == -1, // false
@@ -287,7 +289,7 @@ namespace _detail
 	template<typename Alloc, typename T, typename... Arg> inline
 	void UninitFill(T *const first, T *const last, Alloc & alloc, const Arg &... arg)
 	{
-		// Could change to use memset for any POD type with most CPU architectures
+		// TODO: investigate libstdc++ std::fill
 		_detail::UninitFillImpl(bool_constant<std::is_integral<T>::value && sizeof(T) == 1>(),
 								first, last, alloc, arg...);
 	}

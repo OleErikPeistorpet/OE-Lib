@@ -93,7 +93,7 @@ public:
 	typename std::iterator_traits<Iterator>::reference
 		operator[](difference_type index) const  { return this->_begin[index]; }
 
-	/// Will exist only with contiguous Iterator (SFINAE)
+	/// Return plain pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous)
 	template<typename It1 = Iterator>
 	auto data() const
 	 -> decltype( to_pointer_contiguous(std::declval<It1>()) )  { return to_pointer_contiguous(this->_begin); }
