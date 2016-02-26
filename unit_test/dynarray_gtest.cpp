@@ -392,8 +392,8 @@ TEST_F(dynarrayTest, insert)
 
 		double const VALUES[] = {-1.1, 0.4, 1.3, 2.2};
 
-		auto & p = *up.insert(begin(up), MoveOnly{VALUES[2]});
-		EXPECT_EQ(VALUES[2], *p);
+		auto & ptr = *up.insert(begin(up), MoveOnly{VALUES[2]});
+		EXPECT_EQ(VALUES[2], *ptr);
 		ASSERT_EQ(1U, up.size());
 
 		EXPECT_THROW( up.emplace(begin(up), ThrowOnConstruct), TestException );

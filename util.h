@@ -135,17 +135,16 @@ std::sort(d.begin(), d.end(), deref_args<std::less<>>{}); // std::less<double> b
 template<typename Func>
 class deref_args
 {
+	Func _f;
+
 public:
 	deref_args(Func f = Func{})  : _f(std::move(f)) {}
 
 	template<typename... Ts>
-	auto operator()(Ts &&... args)
-	 -> decltype( _f(*std::forward<Ts>(args)...) )  { return _f(*std::forward<Ts>(args)...); }
+	auto operator()(Ts &&... args) const -> decltype( _f(*std::forward<Ts>(args)...) )
+	                                         { return _f(*std::forward<Ts>(args)...); }
 
 	using is_transparent = void;
-
-private:
-	Func _f;
 };
 
 
