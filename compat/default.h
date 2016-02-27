@@ -37,29 +37,32 @@ namespace oel
 
 /// std::unique_ptr assumed trivially relocatable if the deleter is
 template<typename T, typename Del>
-is_trivially_relocatable<Del> specify_trivial_relocate(std::unique_ptr<T, Del>);
+struct is_trivially_relocatable< std::unique_ptr<T, Del> >
+ :	is_trivially_relocatable<Del> {};
 
 template<typename T>
-true_type specify_trivial_relocate(std::shared_ptr<T>);
+struct is_trivially_relocatable< std::shared_ptr<T> > : true_type {};
 
 template<typename T>
-true_type specify_trivial_relocate(std::weak_ptr<T>);
+struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 
 // std::string in GCC 5 with _GLIBCXX_USE_CXX11_ABI is not trivially relocatable (uses pointer to internal buffer)
 #if _MSC_VER || (__GLIBCXX__ && !_GLIBCXX_USE_CXX11_ABI) || _LIBCPP_VERSION
 	template<typename C, typename Tr>
-	true_type specify_trivial_relocate(std::basic_string<C, Tr>);
+	struct is_trivially_relocatable< std::basic_string<C, Tr> > : true_type {};
 #endif
 
 #ifndef OEL_NO_BOOST
 	template<typename T>
-	is_trivially_relocatable<T> specify_trivial_relocate(boost::optional<T> &&);
+	struct is_trivially_relocatable< boost::optional<T> >
+	 :	is_trivially_relocatable<T> {};
 
 	template<typename T>
-	true_type specify_trivial_relocate(boost::intrusive_ptr<T>);
+	struct is_trivially_relocatable< boost::intrusive_ptr<T> > : true_type {};
 
-	template<typename T>
-	true_type specify_trivial_relocate(boost::circular_buffer<T>);
+	template<typename T, typename Alloc>
+	struct is_trivially_relocatable< boost::circular_buffer<T, Alloc> >
+	 :	is_trivially_relocatable<Alloc> {};
 #endif
 
 }

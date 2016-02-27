@@ -36,6 +36,8 @@ namespace statictest
 	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value, "?");
 	static_assert(!oel::is_trivially_relocatable< std::tuple<int, NontrivialReloc, int> >::value, "?");
 
+	static_assert(oel::is_trivially_relocatable< std::unique_ptr<double> >::value, "?");
+
 	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::deque<double>> >::value,
 				  "Not critical, this assert can be removed");
 

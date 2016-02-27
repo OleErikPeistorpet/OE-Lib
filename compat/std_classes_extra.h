@@ -15,7 +15,8 @@ namespace oel
 {
 
 template<typename T, std::size_t S>
-is_trivially_relocatable<T> specify_trivial_relocate(std::array<T, S> &&);
+struct is_trivially_relocatable< std::array<T, S> >
+ :	is_trivially_relocatable<T> {};
 
 template<typename... Ts>
 struct is_trivially_relocatable< std::tuple<Ts...> >

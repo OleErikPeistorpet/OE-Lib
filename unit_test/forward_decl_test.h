@@ -99,9 +99,7 @@ public:
 };
 
 oel::true_type specify_trivial_relocate(MoveOnly);
-namespace oel {
-template<> struct is_trivially_relocatable<NontrivialReloc> : std::false_type {};
-}
+oel::false_type specify_trivial_relocate(NontrivialReloc);
 
 static_assert(oel::is_trivially_copyable<NontrivialReloc>::value == false, "?");
 
