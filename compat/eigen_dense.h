@@ -13,18 +13,18 @@ namespace oel
 {
 
 template<typename S, int R, int C, int O, int MR, int MC>
-true_type specify_trivial_relocate(Eigen::Matrix<S, R, C, O, MR, MC>);
+struct is_trivially_relocatable< Eigen::Matrix<S, R, C, O, MR, MC> > : true_type {};
 
 template<typename S, int O>
-true_type specify_trivial_relocate(Eigen::Quaternion<S, O>);
+struct is_trivially_relocatable< Eigen::Quaternion<S, O> > : true_type {};
 
 template<typename S, int D, int M, int O>
-true_type specify_trivial_relocate(Eigen::Transform<S, D, M, O>);
+struct is_trivially_relocatable< Eigen::Transform<S, D, M, O> > : true_type {};
 
 template<typename S>
-true_type specify_trivial_relocate(Eigen::AngleAxis<S>);
+struct is_trivially_relocatable< Eigen::AngleAxis<S> > : true_type {};
 
 template<typename S>
-true_type specify_trivial_relocate(Eigen::Rotation2D<S>);
+struct is_trivially_relocatable< Eigen::Rotation2D<S> > : true_type {};
 
 }
