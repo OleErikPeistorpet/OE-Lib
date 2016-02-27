@@ -31,8 +31,7 @@ template<typename Pointer, typename Container>
 class cntigus_ctr_dbg_iterator
 {
 #define OEL_ARRITER_CHECK_DEREFABLE  \
-	using sizeT = make_unsigned_t<std::ptrdiff_t>;  \
-	OEL_MEM_BOUND_ASSERT( static_cast<sizeT>(_pElem - _myCont->data()) < static_cast<sizeT>(_myCont->size()) )
+	OEL_MEM_BOUND_ASSERT( static_cast<size_t>(_pElem - _myCont->data()) < static_cast<size_t>(_myCont->size()) )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 3
 	// test for iterator pair pointing to same container
