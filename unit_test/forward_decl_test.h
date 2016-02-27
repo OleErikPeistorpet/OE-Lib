@@ -29,7 +29,7 @@ public:
 	{	++nConstruct;
 	}
 	explicit MoveOnly(ThrowOnConstructT)
-	{	throw TestException{};
+	{	OEL_THROW(TestException{});
 	}
 	MoveOnly(MoveOnly && other) noexcept
 	 :	val(std::move(other.val))
@@ -55,7 +55,7 @@ public:
 	{	++nConstruct;
 	}
 	explicit NontrivialReloc(ThrowOnConstructT)
-	{	throw TestException{};
+	{	OEL_THROW(TestException{});
 	}
 	NontrivialReloc(double val, ThrowOnMoveOrCopyT)
 	 :	val(val), throwOnMove(true)
@@ -66,7 +66,7 @@ public:
 		if (other.throwOnMove)
 		{
 			other.throwOnMove = false;
-			throw TestException{};
+			OEL_THROW(TestException{});
 		}
 		val = other.val;
 		++nConstruct;
@@ -75,7 +75,7 @@ public:
 	{
 		if (other.throwOnMove)
 		{
-			throw TestException{};
+			OEL_THROW(TestException{});
 		}
 		val = other.val;
 		++nConstruct;
@@ -85,7 +85,7 @@ public:
 		if (throwOnMove || other.throwOnMove)
 		{
 			throwOnMove = false;
-			throw TestException{};
+			OEL_THROW(TestException{});
 		}
 		val = other.val;
 		return *this;
@@ -99,9 +99,7 @@ public:
 };
 
 oel::true_type specify_trivial_relocate(MoveOnly);
-namespace oel {
-template<> struct is_trivially_relocatable<NontrivialReloc> : std::false_type {};
-}
+oel::false_type specify_trivial_relocate(NontrivialReloc);
 
 static_assert(oel::is_trivially_copyable<NontrivialReloc>::value == false, "?");
 

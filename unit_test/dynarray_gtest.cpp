@@ -12,23 +12,25 @@ int MyCounter::nConstruct;
 int MyCounter::nDestruct;
 
 using oel::dynarray;
-using oel::cbegin;
-using oel::cend;
-using oel::default_init;
+using oel::make_view;
+using oel::make_view_n;
 
 namespace statictest
 {
 	using Iter = dynarray<float>::iterator;
 	using ConstIter = dynarray<float>::const_iterator;
 
-	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
-	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
-	static_assert(!std::is_convertible<ConstIter, Iter>::value, "?");
+	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>::value, "?");
 
 	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
 	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
 	static_assert(oel::can_memmove_with<float *, ConstIter>::value, "?");
 	static_assert(!oel::can_memmove_with<int *, float *>::value, "?");
+
+	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
+	static_assert(oel::is_trivially_copyable<ConstIter>::value, "?");
+	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
+	static_assert(!std::is_convertible<ConstIter, Iter>::value, "?");
 
 	static_assert(oel::is_trivially_relocatable< std::tuple<long, dynarray<bool>, double> >::value, "?");
 	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value, "?");
@@ -38,14 +40,19 @@ namespace statictest
 
 	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::deque<double>> >::value,
 				  "Not critical, this assert can be removed");
+
+	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
+				  "Not critical, this assert can be removed");
 }
 
 template<typename T>
 struct throwingAlloc : public oel::allocator<T>
 {
+	unsigned int throwIfGreater = 999;
+
 	T * allocate(size_t nObjs)
 	{
-		if (nObjs > 999)
+		if (nObjs > throwIfGreater)
 			throw std::bad_alloc{};
 
 		return oel::allocator<T>::allocate(nObjs);
@@ -64,21 +71,45 @@ protected:
 	// Objects declared here can be used by all tests.
 };
 
+using MyAllocStr = oel::allocator<std::string>;
+static_assert(oel::is_trivially_copyable<MyAllocStr>::value, "?");
+
 #if _MSC_VER || __GNUC__ >= 5
+
 TEST_F(dynarrayTest, stdDequeWithOelAlloc)
 {
-	using MyAlloc = oel::allocator<std::string>;
-	static_assert(oel::is_trivially_copyable<MyAlloc>::value, "?");
-
-	std::deque<std::string, MyAlloc> v{"Test"};
+	std::deque<std::string, MyAllocStr> v{"Test"};
 	v.emplace_front();
-	EXPECT_EQ("Test", v.back());
+	EXPECT_EQ("Test", v.at(1));
 	EXPECT_TRUE(v.front().empty());
+}
+
+TEST_F(dynarrayTest, oelDynarrWithStdAlloc)
+{
+	MoveOnly::ClearCount();
+	{
+		dynarray< MoveOnly, std::allocator<MoveOnly> > v;
+
+		v.emplace_back(-1.0);
+		EXPECT_THROW( v.emplace_back(ThrowOnConstruct), TestException );
+		EXPECT_EQ(1, MoveOnly::nConstruct);
+		EXPECT_EQ(0, MoveOnly::nDestruct);
+
+		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
+		v.assign(oel::move_range(arr));
+		EXPECT_THROW( v.emplace_back(ThrowOnConstruct), TestException );
+		EXPECT_EQ(2, ssize(v));
+		EXPECT_TRUE(1.0 == *v[0]);
+		EXPECT_TRUE(2.0 == *v[1]);
+	}
+	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 }
 #endif
 
 TEST_F(dynarrayTest, construct)
 {
+	// TODO: Test exception safety of constructors
+
 	{
 		oel::allocator<int> a;
 		ASSERT_TRUE(oel::allocator<std::string>{} == a);
@@ -92,13 +123,24 @@ TEST_F(dynarrayTest, construct)
 	decltype(a) b(a);
 	ASSERT_EQ(0U, b.size());
 
+	EXPECT_TRUE(dynarray<int>::const_iterator{} == dynarray<int>::iterator{});
+
 	dynarray<int> ints(0, {});
 	EXPECT_TRUE(ints.empty());
 
 	using Internal = std::deque<double *>;
 	dynarray<Internal> test{Internal(5), Internal()};
 	EXPECT_EQ(2U, test.size());
-	EXPECT_EQ(5U, test[0].size());
+
+	{
+		std::string str = "AbCd";
+		dynarray<char> test2(str);
+		EXPECT_TRUE( 0 == str.compare(0, 4, test2.data(), test2.size()) );
+	}
+
+	dynarray<bool> db(50, true);
+	for (const auto & b : db)
+		EXPECT_EQ(true, b);
 }
 
 TEST_F(dynarrayTest, pushBack)
@@ -131,7 +173,7 @@ TEST_F(dynarrayTest, pushBack)
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 
 	dynarray< dynarray<int> > nested;
-	nested.emplace_back(3, default_init);
+	nested.emplace_back(3, oel::default_init);
 	EXPECT_EQ(3U, nested.back().size());
 	nested.emplace_back(std::initializer_list<int>{1, 2});
 	EXPECT_EQ(2U, nested.back().size());
@@ -223,7 +265,7 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(std::make_move_iterator(src), 0);
+		test.assign(oel::move_range_n(src, 0));
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
@@ -234,7 +276,7 @@ TEST_F(dynarrayTest, assign)
 		{
 			NontrivialReloc obj{-5.0, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign(&obj, 1);
+			{	dest.assign(make_view_n(&obj, 1));
 			}
 			catch (TestException &) {
 			}
@@ -242,15 +284,16 @@ TEST_F(dynarrayTest, assign)
 		}
 		EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
 
+		dest = {NontrivialReloc{-1.0}};
+		EXPECT_EQ(1U, dest.size());
 		dest = {NontrivialReloc{1.0}, NontrivialReloc{2.0}};
-		EXPECT_EQ(2U, dest.size());
-		EXPECT_DOUBLE_EQ(1.0, dest[0]);
-		EXPECT_DOUBLE_EQ(2.0, dest[1]);
+		EXPECT_DOUBLE_EQ(1.0, dest.at(0));
+		EXPECT_DOUBLE_EQ(2.0, dest.at(1));
 		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(dest), NontrivialReloc::nDestruct);
 		{
 			NontrivialReloc obj{-3.3, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign(oel::make_range(&obj, &obj + 1));
+			{	dest.assign(make_view(&obj, &obj + 1));
 			}
 			catch (TestException &) {
 			}
@@ -263,7 +306,7 @@ TEST_F(dynarrayTest, assign)
 
 			NontrivialReloc obj{-1.3, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign(&obj, 1);
+			{	dest.assign(make_view_n(&obj, 1));
 			}
 			catch (TestException &) {
 			}
@@ -279,15 +322,14 @@ TEST_F(dynarrayTest, assignStringStream)
 		dynarray<std::string> das;
 
 		std::string * p = nullptr;
-		das.assign(oel::make_range(p, p));
+		das.assign(make_view(p, p));
 
 		EXPECT_EQ(0U, das.size());
 
 		std::stringstream ss{"My computer emits Hawking radiation"};
 		std::istream_iterator<std::string> begin{ss};
 		std::istream_iterator<std::string> end;
-		//das.assign(begin, 5); // should not compile unless no boost
-		das.assign(oel::make_range(begin, end));
+		das.assign(make_view(begin, end));
 
 		EXPECT_EQ(5U, das.size());
 
@@ -299,16 +341,17 @@ TEST_F(dynarrayTest, assignStringStream)
 
 		decltype(das) copyDest;
 
-		copyDest.assign(cbegin(das), das.size());
+		copyDest.assign(make_view_n(cbegin(das), 2));
+		copyDest.assign( make_view_n(cbegin(das), das.size()) );
 
 		EXPECT_TRUE(das == copyDest);
 
-		copyDest.assign(oel::make_range(cbegin(das), cbegin(das) + 1));
+		copyDest.assign(make_view(cbegin(das), cbegin(das) + 1));
 
 		EXPECT_EQ(1U, copyDest.size());
 		EXPECT_EQ(das[0], copyDest[0]);
 
-		copyDest.assign(cbegin(das) + 2, 3);
+		copyDest.assign(make_view_n(cbegin(das) + 2, 3));
 
 		EXPECT_EQ(3U, copyDest.size());
 		EXPECT_EQ(das[2], copyDest[0]);
@@ -338,7 +381,7 @@ TEST_F(dynarrayTest, append)
 
 		double const TEST_VAL = 6.6;
 		dest.append(2, TEST_VAL);
-		dest.append(dest.begin(), dest.size());
+		dest.append( make_view(dest.begin(), dest.end()) );
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
 			EXPECT_EQ(TEST_VAL, d);
@@ -347,7 +390,7 @@ TEST_F(dynarrayTest, append)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.append(oel::begin(arrayA), oel::count(arrayA));
+	double_dynarr.append_ret_src( make_view_n(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.append(double_dynarr2);
 
 	{
@@ -376,16 +419,55 @@ TEST_F(dynarrayTest, append)
 
 		std::istream_iterator<int> it(ss);
 
-		it = dest.append(it, 2);
+		// Should hit static_assert
+		//dest.insert_r(dest.begin(), make_view(it, std::istream_iterator<int>()));
 
-		dest.append(it, 2);
+		it = dest.append_ret_src(make_view_n(it, 2));
 
-		for (int i = 0; i < static_cast<int>(dest.size()); ++i)
+		dest.append_ret_src(make_view_n(it, 2));
+
+		for (int i = 0; i < ssize(dest); ++i)
 			EXPECT_EQ(i + 1, dest[i]);
 	}
 }
 
-// Test insert.
+TEST_F(dynarrayTest, insertR)
+{
+	{
+		oel::dynarray<double> dest;
+		// Test insert empty std iterator range to empty dynarray
+		std::deque<double> src;
+		dest.insert_r(dest.begin(), src);
+
+		dest.insert_r< std::initializer_list<double> >(dest.begin(), {});
+	}
+
+	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
+
+	dynarray<double> double_dynarr, double_dynarr2;
+	double_dynarr.insert_r(double_dynarr.begin(), arrayA);
+	double_dynarr.insert_r(double_dynarr.end(), double_dynarr2);
+
+	{
+		dynarray<int> int_dynarr;
+		int_dynarr.insert_r(int_dynarr.begin(), std::initializer_list<int>{1, 2, 3, 4});
+
+		double_dynarr.insert_r(double_dynarr.end(), int_dynarr);
+	}
+
+	ASSERT_EQ(8U, double_dynarr.size());
+
+	EXPECT_EQ(arrayA[0], double_dynarr[0]);
+	EXPECT_EQ(arrayA[1], double_dynarr[1]);
+	EXPECT_EQ(arrayA[2], double_dynarr[2]);
+	EXPECT_EQ(arrayA[3], double_dynarr[3]);
+
+	EXPECT_DOUBLE_EQ(1, double_dynarr[4]);
+	EXPECT_DOUBLE_EQ(2, double_dynarr[5]);
+	EXPECT_DOUBLE_EQ(3, double_dynarr[6]);
+	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
+}
+
 TEST_F(dynarrayTest, insert)
 {
 	MoveOnly::ClearCount();
@@ -432,7 +514,6 @@ TEST_F(dynarrayTest, insert)
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
 }
 
-// Test resize.
 TEST_F(dynarrayTest, resize)
 {
 	dynarray<int, throwingAlloc<int>> d;
@@ -445,7 +526,7 @@ TEST_F(dynarrayTest, resize)
 	int nExcept = 0;
 	try
 	{
-		d.resize((size_t)-8, default_init);
+		d.resize((size_t)-8, oel::default_init);
 	}
 	catch (std::bad_alloc &)
 	{
@@ -462,14 +543,14 @@ TEST_F(dynarrayTest, resize)
 
 	dynarray< dynarray<int> > nested;
 	nested.resize(3);
-	EXPECT_EQ(3, nested.size());
+	EXPECT_EQ(3U, nested.size());
 	EXPECT_TRUE(nested.back().empty());
 
 	nested.front().resize(S1);
 
 	nested.resize(1);
 	auto cap = nested.capacity();
-	EXPECT_EQ(1, nested.size());
+	EXPECT_EQ(1U, nested.size());
 	for (auto i : nested.front())
 		EXPECT_EQ(0, i);
 
@@ -484,21 +565,50 @@ TEST_F(dynarrayTest, resize)
 	EXPECT_TRUE(nested.back().empty());
 }
 
-TEST_F(dynarrayTest, erase)
+template<typename T>
+void testErase()
+{
+	dynarray<T> d;
+
+	for (int i = 1; i <= 5; ++i)
+		d.emplace_back(i);
+
+	auto const s = d.size();
+	auto ret = d.erase(begin(d) + 1);
+	ret = d.erase(ret);
+	EXPECT_EQ(begin(d) + 1, ret);
+	ASSERT_EQ(s - 2, d.size());
+	EXPECT_DOUBLE_EQ(s, d.back());
+
+	ret = d.erase(end(d) - 1);
+	EXPECT_EQ(end(d), ret);
+	ASSERT_EQ(s - 3, d.size());
+	EXPECT_DOUBLE_EQ(1, d.front());
+}
+
+TEST_F(dynarrayTest, eraseSingle)
+{
+	testErase<int>();
+
+	NontrivialReloc::ClearCount();
+	testErase<NontrivialReloc>();
+	EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
+}
+
+TEST_F(dynarrayTest, eraseRange)
 {
 	dynarray<int> d;
 
-	for (int i = 0; i < 5; ++i)
+	for (int i = 1; i <= 5; ++i)
 		d.push_back(i);
 
 	auto const s = d.size();
-	auto ret = d.erase(begin(d) + 1, begin(d) + 3);
-	ASSERT_EQ(begin(d) + 1, ret);
+	auto ret = d.erase(begin(d) + 2, begin(d) + 2);
+	ASSERT_EQ(s, d.size());
+	ret = d.erase(ret - 1, ret + 1);
+	EXPECT_EQ(begin(d) + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
-
-	ret = d.erase(end(d) - 1);
-	ASSERT_EQ(end(d), ret);
-	ASSERT_EQ(s - 3, d.size());
+	EXPECT_EQ(oel::as_signed(s), d.back());
 }
 
 #ifndef OEL_NO_BOOST
@@ -510,21 +620,21 @@ TEST_F(dynarrayTest, overAligned)
 	EXPECT_TRUE(special.cbegin() == special.cend());
 
 	special.append(5, {});
-	EXPECT_EQ(5, special.size());
+	EXPECT_EQ(5U, special.size());
 	for (const auto & v : special)
-		EXPECT_EQ(0, reinterpret_cast<std::uintptr_t>(&v) % testAlignment);
+		EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&v) % testAlignment);
 
 	special.resize(1, oel::default_init);
 	special.shrink_to_fit();
 	EXPECT_GT(5U, special.capacity());
-	EXPECT_EQ(0, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
+	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 }
 #endif
 
 TEST_F(dynarrayTest, misc)
 {
 	{
-		dynarray<int> arr[]{ dynarray<int>(2, 1), {1, 1}, {1, 3} };
+		dynarray<int> arr[]{ dynarray<int>(/*size*/ 2, 1), {1, 1}, {1, 3} };
 		dynarray< std::reference_wrapper<const dynarray<int>> > refs{arr[0], arr[1]};
 		refs.push_back(arr[2]);
 		EXPECT_EQ(3, refs.at(2).get().at(1));
@@ -541,7 +651,7 @@ TEST_F(dynarrayTest, misc)
 	ASSERT_EQ(3U, daSrc.size());
 
 	ASSERT_NO_THROW(daSrc.at(2));
-	ASSERT_THROW(daSrc.at(3), oel::out_of_range);
+	ASSERT_THROW(daSrc.at(3), std::out_of_range);
 
 	std::deque<size_t> dequeSrc;
 	dequeSrc.push_back(4);
@@ -551,23 +661,28 @@ TEST_F(dynarrayTest, misc)
 	dest0.reserve(1);
 	dest0 = daSrc;
 
-	dest0.append(cbegin(daSrc), daSrc.size());
-	dest0.append(fASrc, 2);
-	auto srcEnd = dest0.append(dequeSrc.begin(), dequeSrc.size());
+	dest0.append_ret_src( make_view_n(cbegin(daSrc), daSrc.size()) );
+	dest0.append(make_view_n(fASrc, 2));
+	auto srcEnd = dest0.append_ret_src( make_view_n(dequeSrc.begin(), dequeSrc.size()) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;
-	dynarray<size_t>::const_iterator{ dest1.append(daSrc) };
+	dynarray<size_t>::const_iterator( dest1.append(daSrc) );
 	dest1.append(fASrc);
 	dest1.append(dequeSrc);
 
 	{
 		dynarray<int> di{1, -2};
 		auto it = begin(di);
-		it = erase_unordered(di, it);
+		it = di.erase_unordered(it);
 		EXPECT_EQ(-2, *it);
-		it = erase_unordered(di, it);
+		it = di.erase_unordered(it);
 		EXPECT_EQ(end(di), it);
+
+		di = {1, -2};
+		erase_unordered(di, 1);
+		erase_unordered(di, 0);
+		EXPECT_TRUE(di.empty());
 	}
 
 	auto cap = dest1.capacity();

@@ -3,6 +3,7 @@
 #include "dynarray.h"
 #include "gtest/gtest.h"
 #include <list>
+#include <deque>
 #include <array>
 #include <set>
 
@@ -22,40 +23,16 @@ protected:
 
 TEST_F(utilTest, eraseUnordered)
 {
-	using namespace oel;
+	using oel::erase_unordered;
 
-	dynarray<std::string> da{"aa", "bb", "cc"};
-	{
-		std::list<std::string> li(begin(da), end(da));
+	std::deque<std::string> d{"aa", "bb", "cc"};
 
-		auto it = begin(li);
-		erase_unordered(li, ++it);
-		EXPECT_EQ(2U, li.size());
-		EXPECT_EQ("cc", li.back());
-		erase_unordered(li, it);
-		EXPECT_EQ(1U, li.size());
-		EXPECT_EQ("aa", li.front());
-	}
-	erase_unordered(da, 1);
-	EXPECT_EQ(2U, da.size());
-	EXPECT_EQ("cc", da.back());
-	erase_unordered(da, 1);
-	EXPECT_EQ(1U, da.size());
-	EXPECT_EQ("aa", da.front());
-}
-
-TEST_F(utilTest, eraseSuccessiveDup)
-{
-	using namespace oel;
-
-	std::list<int> li{1, 1, 2, 2, 2, 1, 3};
-	dynarray<int> uniqueTest;
-	uniqueTest.append(li);
-
-	erase_successive_dup(li);
-	EXPECT_EQ(4U, li.size());
-	erase_successive_dup(uniqueTest);
-	EXPECT_EQ(4U, uniqueTest.size());
+	erase_unordered(d, 1);
+	EXPECT_EQ(2U, d.size());
+	EXPECT_EQ("cc", d.back());
+	erase_unordered(d, 1);
+	EXPECT_EQ(1U, d.size());
+	EXPECT_EQ("aa", d.front());
 }
 
 TEST_F(utilTest, eraseBack)
@@ -79,16 +56,40 @@ TEST_F(utilTest, indexValid)
 	//EXPECT_TRUE(index_valid(li, l));
 }
 
-TEST_F(utilTest, copyNonoverlap)
+TEST_F(utilTest, countedView)
+{
+	using namespace oel;
+	dynarray<int> i{1, 2};
+	counted_view<dynarray<int>::const_iterator> test = i;
+	EXPECT_EQ(i.size(), test.size());
+	EXPECT_TRUE(test.data() == i.data());
+	EXPECT_EQ(1, test[0]);
+	EXPECT_EQ(2, test[1]);
+	test.drop_front();
+	EXPECT_EQ(1U, test.size());
+	EXPECT_EQ(2, test.end()[-1]);
+}
+
+TEST_F(utilTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
-	oel::copy_nonoverlap(begin(test), count(test), adl_begin(test2));
-	EXPECT_TRUE(std::equal(begin(test), end(test), test2));
+	test2[4] = -7;
+	auto fitInto = oel::make_view_n(std::begin(test2), 4);
+
+	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
+
+	oel::copy_fit(test, fitInto);
+	EXPECT_TRUE(std::equal(begin(test), begin(test) + 4, test2));
+	EXPECT_EQ(-7, test2[4]);
+
+	EXPECT_EQ(4, test[4]);
+	oel::copy(test2, test);
+	EXPECT_EQ(-7, test[4]);
 
 	std::list<std::string> li{"aa", "bb"};
 	std::array<std::string, 2> strDest;
-	oel::copy_nonoverlap( oel::move_range(begin(li), end(li)), begin(strDest) );
+	oel::copy_unsafe(oel::move_range(li), begin(strDest));
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
 	EXPECT_TRUE(li.front().empty());

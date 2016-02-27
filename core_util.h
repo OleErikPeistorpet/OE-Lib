@@ -11,11 +11,14 @@
 #include <iterator>
 
 
+/** @file
+*/
+
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
-/** @brief Undefined: no array index and iterator checks. 1: fast checks. 2: most debug checks. 3: all checks, often slow.
+/** @brief Undefined/0: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
 *
-* Warning: Undefined (by NDEBUG defined) and level 1 are not binary compatible with levels 2 and 3. */
-	#define OEL_MEM_BOUND_DEBUG_LVL 3
+* Warning: 0 (or undefined by NDEBUG defined) is not binary compatible with levels 1 and 2. */
+	#define OEL_MEM_BOUND_DEBUG_LVL 2
 #endif
 
 
@@ -35,9 +38,9 @@
 	#endif
 #endif
 
-#ifndef ASSERT_ALWAYS_NOEXCEPT
+#ifndef ALWAYS_ASSERT_NOEXCEPT
 	/// Standard assert implementations typically don't break on the line of the assert, so we roll our own
-	#define ASSERT_ALWAYS_NOEXCEPT(expr)  \
+	#define ALWAYS_ASSERT_NOEXCEPT(expr)  \
 		OEL_CONST_COND  \
 		do {  \
 			if (!(expr)) OEL_HALT();  \
@@ -54,46 +57,46 @@ using std::size_t;
 using std::begin;
 using std::end;
 
-#if _MSC_VER || __GNUC__ >= 5
-	using std::cbegin;
-	using std::cend;
-	using std::rbegin;
-	using std::crbegin;
-	using std::rend;
-	using std::crend;
+#if __cplusplus >= 201402L || _MSC_VER || __GNUC__ >= 5
+	using std::cbegin;   using std::cend;
+	using std::crbegin;  using std::crend;
 #else
 	/// Equivalent to std::cbegin found in C++14
 	template<typename Range> inline
-	auto cbegin(const Range & r) -> decltype(std::begin(r))  { return std::begin(r); }
+	constexpr auto cbegin(const Range & r) -> decltype(std::begin(r))  { return std::begin(r); }
 	/// Equivalent to std::cend found in C++14
 	template<typename Range> inline
-	auto cend(const Range & r) -> decltype(std::end(r))  { return std::end(r); }
+	constexpr auto cend(const Range & r) -> decltype(std::end(r))      { return std::end(r); }
 #endif
 
-/// Argument-dependent lookup non-member begin, defaults to std::begin
+/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
+*
+* Note the global using-directive  @code
+	auto it = container.begin();     // Fails with types that don't have begin member such as built-in arrays
+	auto it = std::begin(container); // Fails with types that have only non-member begin outside of namespace std
+	// Argument-dependent lookup, as generic as it gets
+	using std::begin; auto it = begin(container);
+	auto it = adl_begin(container);  // Equivalent to line above
+@endcode  */
 template<typename Range> inline
-auto adl_begin(Range & r)       -> decltype(begin(r))  { return begin(r); }
+constexpr auto adl_begin(Range & r) -> decltype(begin(r))         { return begin(r); }
 /// Const version of adl_begin
 template<typename Range> inline
-auto adl_begin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+constexpr auto adl_cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
 
 /// Argument-dependent lookup non-member end, defaults to std::end
 template<typename Range> inline
-auto adl_end(Range & r)       -> decltype(end(r))  { return end(r); }
+constexpr auto adl_end(Range & r) -> decltype(end(r))         { return end(r); }
 /// Const version of adl_end
 template<typename Range> inline
-auto adl_end(const Range & r) -> decltype(end(r))  { return end(r); }
+constexpr auto adl_cend(const Range & r) -> decltype(end(r))  { return end(r); }
 
 } // namespace oel
 
-/** @code
-	auto it = container.begin();     // Fails with types that don't have begin member such as built-in arrays
-	auto it = std::begin(container); // Fails with types that only have non-member begin outside of namespace std
-	using std::begin; auto it = begin(container); // Argument-dependent lookup, as generic as it gets
-	auto it = adl_begin(container);  // Equivalent to line above
-@endcode  */
 using oel::adl_begin;
+using oel::adl_cbegin;
 using oel::adl_end;
+using oel::adl_cend;
 
 namespace oel
 {
@@ -102,20 +105,14 @@ namespace oel
 template<typename SizedRange> inline
 constexpr auto ssize(const SizedRange & r)
  -> decltype( static_cast<typename SizedRange::difference_type>(r.size()) )
-	 { return static_cast<typename SizedRange::difference_type>(r.size()); }
+     { return static_cast<typename SizedRange::difference_type>(r.size()); }
 /// Returns number of elements in array as signed type
 template<typename T, std::ptrdiff_t Size> inline
-constexpr std::ptrdiff_t ssize(const T (&)[Size]) noexcept  { return Size; }
-
-/** @brief Count the elements in r
-*
-* @return ssize(r) if possible, otherwise equivalent to std::distance(begin(r), end(r))  */
-template<typename InputRange>
-auto count(const InputRange & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type;
+constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
 
-/// Convert iterator to pointer. This should be overloaded for each contiguous memory iterator class
+/// Convert iterator to pointer. This should be overloaded for each class of contiguous iterator (C++17 concept)
 template<typename T> inline
 T * to_pointer_contiguous(T * ptr) noexcept  { return ptr; }
 
@@ -130,28 +127,55 @@ struct can_memmove_with;
 
 
 
-/// Tag to specify default initialization. The const instance default_init is provided for convenience
+/// Tag to select a constructor that allocates a minimum amount of storage
+struct reserve_tag
+{	explicit reserve_tag() {}
+}
+const reserve; ///< An instance of reserve_tag to pass
+
+/// Tag to specify default initialization
 struct default_init_tag
 {	explicit default_init_tag() {}
 }
-const default_init;
+const default_init; ///< An instance of default_init_tag to pass
 
 
 
-/// For copy functions that return the end of both source and destination ranges
-template<typename InIterator, typename OutIterator>
-struct range_ends
-{
-	InIterator  src_end;
-	OutIterator dest_end;
-};
+/// Exists in std with C++14
+template<bool Condition>
+using enable_if_t = typename std::enable_if<Condition>::type;
 
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// The rest of the file is implementation details
+// The rest of the file is not for users (implementation)
 
+
+#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
+	#define OEL_THROW(exception)      throw exception
+	#define OEL_TRY_                  try
+	#define OEL_CATCH_ALL             catch (...)
+	#define OEL_WHEN_EXCEPTIONS_ON(x) x
+#else
+	#define OEL_THROW(exception)      std::terminate()
+	#define OEL_TRY_
+	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
+	#define OEL_WHEN_EXCEPTIONS_ON(x)
+#endif
+
+#if OEL_MEM_BOUND_DEBUG_LVL
+	#define OEL_ASSERT_MEM_BOUND  ALWAYS_ASSERT_NOEXCEPT
+#else
+	#define OEL_ASSERT_MEM_BOUND(expr) ((void) 0)
+#endif
+#if !defined(NDEBUG)
+	#define OEL_ASSERT  ALWAYS_ASSERT_NOEXCEPT
+#else
+	#define OEL_ASSERT(expr) ((void) 0)
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
 
 #if _MSC_VER
 	template<typename T, size_t S> inline
@@ -171,7 +195,7 @@ struct range_ends
 	}
 #elif __GLIBCXX__
 	template<typename T, typename U> inline
-	T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, U> it) noexcept  { return it.base(); }
+	T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, U> it) noexcept { return it.base(); }
 #endif
 
 
@@ -186,15 +210,6 @@ namespace _detail
 
 	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
 	inline std::false_type CanMemmoveWith(...);
-
-////////////////////////////////////////////////////////////////////////////////
-
-	template<typename SizedRange> inline // pass dummy int to prefer this overload
-	auto Count(const SizedRange & r, int) -> decltype(oel::ssize(r)) { return oel::ssize(r); }
-
-	template<typename InputRange> inline
-	auto Count(const InputRange & r, long) -> decltype( std::distance(begin(r), end(r)) )
-											   { return std::distance(begin(r), end(r)); }
 }
 
 } // namespace oel
@@ -204,10 +219,3 @@ template<typename IteratorDest, typename IteratorSource>
 struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
 																 std::declval<IteratorSource>()) ) {};
 /// @endcond
-
-
-template<typename InputRange>
-inline auto oel::count(const InputRange & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
-{
-	return _detail::Count(r, int{});
-}

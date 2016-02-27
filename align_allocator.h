@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "basic_util.h"
+#include "core_util.h"
 
 #ifndef OEL_NO_BOOST
 	#include <boost/align/aligned_alloc.hpp>
@@ -17,9 +17,12 @@
 namespace oel
 {
 
-/// Like std::aligned_storage<Size, Align>::type, but supports alignment above that of std::max_align_t
+/// Same as std::aligned_storage<Size, Align>::type, with support for alignment above that of std::max_align_t (up to 128)
 template<size_t Size, size_t Align>
 struct aligned_storage_t;
+/// Currently only one type, meant to support multiple
+template<typename T>
+using aligned_union_t = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
 
 
 
@@ -31,8 +34,22 @@ struct allocator
 	using propagate_on_container_move_assignment = std::true_type;
 
 	T * allocate(size_t nObjects);
-
 	void deallocate(T * ptr, size_t);
+
+	/// U constructible from Args, direct-initialization
+	template<typename U, typename... Args>
+	enable_if_t< std::is_constructible<U, Args...>::value >
+		construct(U * raw, Args &&... args)
+	{
+		::new(static_cast<void *>(raw)) U(std::forward<Args>(args)...);
+	}
+	/// U not constructible from Args, list-initialization
+	template<typename U, typename... Args>
+	enable_if_t< !std::is_constructible<U, Args...>::value >
+		construct(U * raw, Args &&... args)
+	{
+		::new(static_cast<void *>(raw)) U{std::forward<Args>(args)...};
+	}
 
 	allocator() = default;
 	template<typename U>
@@ -100,17 +117,17 @@ namespace _detail
 	}
 
 	template<size_t Align>
-	void * OpNew(std::false_type, size_t nBytes)
+	void * OpNew(std::false_type, size_t const nBytes)
 	{
 	#ifndef OEL_NO_BOOST
-		for (;;)
+		if (nBytes > 0) // test could be removed if using MSVC _aligned_malloc
 		{
-			void * p = boost::alignment::aligned_alloc(Align, nBytes);
-			if (p || nBytes == 0) // testing for 0 bytes could be removed if using MSVC _aligned_malloc
-			{	return p;
-			}
-			else
+			for (;;)
 			{
+				void * p = boost::alignment::aligned_alloc(Align, nBytes);
+				if (p)
+					return p;
+
 			#if !__GLIBCXX__ || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9) || __GNUC__ > 4
 				auto handler = std::get_new_handler();
 			#else
@@ -118,13 +135,16 @@ namespace _detail
 				std::set_new_handler(handler);
 			#endif
 				if (!handler)
-					throw std::bad_alloc{};
+					OEL_THROW(std::bad_alloc{});
 
 				(*handler)();
 			}
 		}
+		else
+		{	return nullptr;
+		}
 	#else
-		static_assert(Align == 0, // always false
+		static_assert(Align == -1, // false
 			"The value of Align is not supported by operator new. Boost v1.56 required (and OEL_NO_BOOST not defined).");
 		return nullptr;
 	#endif
@@ -177,8 +197,38 @@ namespace _detail
 #endif
 
 
+	template<typename T> struct AssertTrivialRelocate
+	{
+		static_assert(is_trivially_relocatable<T>::value,
+			"The function requires trivially relocatable T, see declaration of is_trivially_relocatable");
+	};
+
+
+	template<typename Alloc, bool = std::is_empty<Alloc>::value>
+	struct AllocRefOptimizeEmpty
+	{
+		Alloc & alloc;
+	#if _MSC_VER
+		void operator =(AllocRefOptimizeEmpty) = delete;
+	#endif
+		AllocRefOptimizeEmpty(Alloc & a) : alloc(a) {}
+
+		Alloc & Get() { return alloc; }
+	};
+
+	template<typename Alloc>
+	struct AllocRefOptimizeEmpty<Alloc, true>
+	{
+		void operator =(AllocRefOptimizeEmpty) = delete;
+
+		AllocRefOptimizeEmpty(Alloc &) {}
+
+		Alloc Get() { return Alloc{}; }
+	};
+
+
 	template<typename T>
-	void Destroy(T * first, T * last) noexcept
+	void Destroy(T * first, T *const last) noexcept
 	{	// first > last is OK, does nothing
 		OEL_CONST_COND if (!is_trivially_destructible<T>::value) // for speed with optimizations off (debug build)
 		{
@@ -188,73 +238,67 @@ namespace _detail
 	}
 
 
-	template<typename InputIter, typename T> inline
-	T * UninitCopy(InputIter first, InputIter last, T *const dest)
-	{
-		return std::uninitialized_copy( first, last,
-			#if _MSC_VER
-				stdext::make_unchecked_array_iterator(dest) ).base();
-			#else
-				dest );
-			#endif
-	}
+	struct NoOp
+	{	void operator()(...) const {}
+	};
 
-	template<typename InputIter, typename T>
-	InputIter UninitCopyN(InputIter first, size_t count, T * dest)
+	template<typename Alloc, typename InputIter, typename T, typename FuncTakingLast = NoOp>
+	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc, FuncTakingLast extraCleanup = {})
 	{
 		T *const destBegin = dest;
-		try
+		OEL_TRY_
 		{
-			for (; 0 < count; --count)
+			while (dest != dLast)
 			{
-				::new(dest) T(*first);
-				++dest; ++first;
+				std::allocator_traits<Alloc>::construct(alloc, dest, *src);
+				++src; ++dest;
 			}
 		}
-		catch (...)
+		OEL_CATCH_ALL
 		{
 			_detail::Destroy(destBegin, dest);
-			throw;
+			extraCleanup(dLast);
+			OEL_WHEN_EXCEPTIONS_ON(throw);
 		}
-		return first;
+		return src;
 	}
 
 
-	template<typename T> inline
-	void UninitFillImpl(std::true_type, T * first, T * last)
-	{
-		::memset(first, 0, last - first);
-	}
-
-	template<typename T>
-	void UninitFillImpl(std::false_type, T * first, T *const last)
+	template<typename Alloc, typename T, typename... Arg>
+	void UninitFillImpl(std::false_type, T * first, T *const last, Alloc & alloc, const Arg &... arg)
 	{
 		T *const init = first;
-		try
+		OEL_TRY_
 		{
 			for (; first != last; ++first)
-				::new(first) T{};
+				std::allocator_traits<Alloc>::construct(alloc, first, arg...);
 		}
-		catch (...)
+		OEL_CATCH_ALL
 		{
 			_detail::Destroy(init, first);
-			throw;
+			OEL_WHEN_EXCEPTIONS_ON(throw);
 		}
 	}
 
-	template<typename T> inline
-	void UninitFill(T *const first, T *const last)
+	template<typename Alloc, typename T> inline
+	void UninitFillImpl(std::true_type, T * first, T * last, Alloc &, int val = 0)
 	{
-		// Could change to use memset for any POD type with most CPU architectures
-		_detail::UninitFillImpl(bool_constant<std::is_integral<T>::value && sizeof(T) == 1>(),
-								first, last);
+		::memset(first, val, last - first);
 	}
 
-	template<typename T> inline
-	void UninitFillDefault(T *const first, T *const last)
+	template<typename Alloc, typename T, typename... Arg> inline
+	void UninitFill(T *const first, T *const last, Alloc & alloc, const Arg &... arg)
+	{
+		// TODO: investigate libstdc++ std::fill
+		_detail::UninitFillImpl(bool_constant<std::is_integral<T>::value && sizeof(T) == 1>(),
+								first, last, alloc, arg...);
+	}
+
+	template<typename Alloc, typename T> inline
+	void UninitFillDefault(T *const first, T *const last, Alloc & alloc)
 	{
 		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
-			_detail::UninitFillImpl(std::false_type{}, first, last);
+			_detail::UninitFillImpl(std::false_type{}, first, last, alloc);
 	}
 }
 
