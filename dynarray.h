@@ -262,8 +262,6 @@ public:
 
 
 private:
-	using _uSizeT = make_unsigned_t<std::ptrdiff_t>;
-
 	static pointer _alloc(size_type count)
 	{
 		return Alloc{}.allocate(count);
@@ -844,7 +842,7 @@ inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::at(size_type 
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::at(size_type index) const
 {
-	if (static_cast<_uSizeT>(size()) > static_cast<_uSizeT>(index))
+	if (static_cast<size_t>(size()) > static_cast<size_t>(index))
 		return _data[index];
 	else
 		throw out_of_range("Invalid index dynarray::at");
@@ -854,13 +852,13 @@ template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::reference  dynarray<T, Alloc>::operator[](size_type index) noexcept
 {
 	// cast needed because size_type could be signed
-	OEL_MEM_BOUND_ASSERT(static_cast<_uSizeT>(size()) > static_cast<_uSizeT>(index));
+	OEL_MEM_BOUND_ASSERT(static_cast<size_t>(size()) > static_cast<size_t>(index));
 	return _data[index];
 }
 template<typename T, typename Alloc>
 inline typename dynarray<T, Alloc>::const_reference  dynarray<T, Alloc>::operator[](size_type index) const noexcept
 {
-	OEL_MEM_BOUND_ASSERT(static_cast<_uSizeT>(size()) > static_cast<_uSizeT>(index));
+	OEL_MEM_BOUND_ASSERT(static_cast<size_t>(size()) > static_cast<size_t>(index));
 	return _data[index];
 }
 
