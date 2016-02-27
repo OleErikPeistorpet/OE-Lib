@@ -105,7 +105,7 @@ namespace oel
 template<typename SizedRange> inline
 constexpr auto ssize(const SizedRange & r)
  -> decltype( static_cast<typename SizedRange::difference_type>(r.size()) )
-	 { return static_cast<typename SizedRange::difference_type>(r.size()); }
+     { return static_cast<typename SizedRange::difference_type>(r.size()); }
 /// Returns number of elements in array as signed type
 template<typename T, std::ptrdiff_t Size> inline
 constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }

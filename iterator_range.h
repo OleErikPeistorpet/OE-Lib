@@ -40,8 +40,8 @@ iterator_range<Iterator> make_view(Iterator first, Iterator last)  { return {fir
 
 /// Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
 template< typename Iterator,
-		  bool = std::is_base_of<std::random_access_iterator_tag,
-								 typename std::iterator_traits<Iterator>::iterator_category>::value >
+          bool = std::is_base_of<std::random_access_iterator_tag,
+                                 typename std::iterator_traits<Iterator>::iterator_category>::value >
 class counted_view
 {
 public:
@@ -109,7 +109,7 @@ counted_view<Iterator> make_view_n(Iterator first, typename counted_view<Iterato
 template<typename InputIterator> inline
 iterator_range< std::move_iterator<InputIterator> >
 	move_range(InputIterator first, InputIterator last)  { using MoveIt = std::move_iterator<InputIterator>;
-														   return {MoveIt{first}, MoveIt{last}}; }
+	                                                       return {MoveIt{first}, MoveIt{last}}; }
 
 /// Create a counted_view of move_iterator from iterator and count
 template<typename InputIterator> inline

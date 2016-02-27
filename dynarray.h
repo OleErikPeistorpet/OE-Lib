@@ -78,7 +78,7 @@ void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(sou
 /// Overloads generic insert(Container &, Container::const_iterator, const InputRange &)
 template<typename T, typename A, typename ForwardRange> inline
 typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos,
-										  const ForwardRange & source)  { return dest.insert_r(pos, source); }
+                                          const ForwardRange & source)  { return dest.insert_r(pos, source); }
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
@@ -137,14 +137,14 @@ public:
 	explicit dynarray(const InputRange & range, const Alloc & a = Alloc{})  : _m(a) { assign(range); }
 
 	dynarray(std::initializer_list<T> init, const Alloc & a = Alloc{})  : _m(a, init.size())
-																		{ _initPostAllocate(init.begin(), init.size()); }
+	                                                                    { _initPostAllocate(init.begin(), init.size()); }
 	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
 	/// If a != other.get_allocator() and T is not trivially relocatable,
 	/// behaviour is undefined (triggers OEL_ASSERT unless NDEBUG)
 	dynarray(dynarray && other, const Alloc & a) noexcept;
 	dynarray(const dynarray & other);
 	dynarray(const dynarray & other, const Alloc & a)  : _m(a, other.size())
-													   { _initPostAllocate(other.data(), other.size()); }
+	                                                   { _initPostAllocate(other.data(), other.size()); }
 	~dynarray() noexcept;
 
 	/// If using custom Alloc with propagate_on_container_move_assignment false, behaviour is undefined
@@ -225,7 +225,7 @@ public:
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return Iterator corresponding to the same index in the sequence as pos, same as for std containers. */
 	iterator  erase_unordered(iterator pos)  { _eraseUnordered(pos, is_trivially_relocatable<T>());
-											   return pos; }
+	                                           return pos; }
 	iterator  erase(iterator pos)            { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
 	iterator  erase(iterator first, iterator last) noexcept;
@@ -279,7 +279,7 @@ public:
 	friend bool operator==(const dynarray & left, const dynarray & right)
 	{
 		return left.size() == right.size() &&
-			   std::equal(left.begin(), left.end(), right.begin());
+		       std::equal(left.begin(), left.end(), right.begin());
 	}
 	friend bool operator!=(const dynarray & left, const dynarray & right)  { return !(left == right); }
 
