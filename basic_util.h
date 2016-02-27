@@ -205,9 +205,6 @@ struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<It
 																 std::declval<IteratorSource>()) ) {};
 /// @endcond
 
-template<typename T>
-struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};
-
 
 template<typename InputRange>
 inline auto oel::count(const InputRange & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type

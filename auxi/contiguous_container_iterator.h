@@ -222,3 +222,9 @@ cntigus_ctr_dbg_iterator<P, C> operator +(typename cntigus_ctr_dbg_iterator<P, C
 	struct std::_Is_checked_helper< oel::cntigus_ctr_dbg_iterator<P, C> >
 	 :	public std::true_type {};
 #endif
+
+
+// With compilers other than MSVC, there are order of include issues concerning is_trivially_relocatable.
+// Ideally it shouldn't be instantiated until the point of use in dynarray
+template<typename T>
+struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};
