@@ -12,7 +12,7 @@
 /** @file
 * @brief specify_trivial_relocate to be overloaded for user classes
 *
-* Also provides a forward declaration of dynarray and the type trait all_true.
+* Also provides forward declarations of dynarray and fixcap_array.
 */
 
 #if _MSC_VER && _MSC_VER < 1900
@@ -44,10 +44,16 @@
 namespace oel
 {
 
+using std::size_t;
+
+
 template<typename T> struct allocator;  // forward declare
 
 template<typename T, typename Alloc = allocator<T> >
 class dynarray;
+
+template<typename T, size_t Capacity, typename Size = size_t>
+class fixcap_array;
 
 
 

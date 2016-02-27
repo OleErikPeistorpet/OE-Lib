@@ -32,19 +32,22 @@ using std::begin;
 using std::end;
 
 #if _MSC_VER
-	using std::cbegin;
-	using std::cend;
+
+using std::cbegin;
+using std::cend;
+
 #else
-	/**
-	* @brief Const version of std::begin.
-	* @return An iterator addressing the (const) first element in the range r. */
-	template<typename Range> inline
-	auto cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
-	/**
-	* @brief Const version of std::end.
-	* @return An iterator positioned one beyond the (const) last element in the range r. */
-	template<typename Range> inline
-	auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
+/**
+* @brief Const version of std::begin.
+* @return An iterator addressing the (const) first element in the range r. */
+template<typename Range> inline
+auto cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+/**
+* @brief Const version of std::end.
+* @return An iterator positioned one beyond the (const) last element in the range r. */
+template<typename Range> inline
+auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
+
 #endif
 
 
@@ -64,10 +67,13 @@ struct range_ends
 
 
 
-/// Erase the elements from first to the end of container, making first the new end
-template<class Container>
-void erase_back(Container & ctr, typename Container::iterator first);
-
+#if __GLIBCXX__
+	template<typename T>
+	using is_trivially_copyable = std::integral_constant< bool,
+									__has_trivial_copy(T) && __has_trivial_assign(T) >;
+#else
+	using std::is_trivially_copyable;
+#endif
 
 
 /// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
@@ -132,13 +138,6 @@ namespace _detail
 	template<typename Range> inline
 	auto Count(const Range & r, long) -> decltype( std::distance(begin(r), end(r)) )
 										  { return std::distance(begin(r), end(r)); }
-
-
-	template<class HasEraseBack> inline
-	auto EraseBack(HasEraseBack & ctr, typename HasEraseBack::iterator first, int) -> decltype(ctr.erase_back(first))
-																					  { return ctr.erase_back(first); }
-	template<class Container> inline
-	void EraseBack(Container & ctr, typename Container::iterator first, long) { ctr.erase(first, ctr.end()); }
 }
 
 } // namespace oel
@@ -154,13 +153,6 @@ template<typename Range>
 inline auto oel::count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type
 {
 	return _detail::Count(r, int{});
-}
-
-
-template<class Container>
-inline void oel::erase_back(Container & ctr, typename Container::iterator first)
-{
-	_detail::EraseBack(ctr, first, int{});
 }
 
 ////////////////////////////////////////////////////////////////////////////////

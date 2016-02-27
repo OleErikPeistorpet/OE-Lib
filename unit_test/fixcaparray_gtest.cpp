@@ -1,10 +1,28 @@
 #include "fixcap_array.h"
-#include "forward_decl_test.h"
+#include "range_view.h"
+
+#include "gtest/gtest.h"
+#include <deque>
+
+struct Deleter
+{
+	static int callCount;
+
+	void operator()(double * p)
+	{
+		++callCount;
+		delete p;
+	}
+};
+int Deleter::callCount;
+
+typedef std::unique_ptr<double, Deleter> DoublePtr;
+
 
 namespace
 {
 
-using oetl::fixcap_array;
+using oel::fixcap_array;
 
 }
 
@@ -29,12 +47,12 @@ TEST_F(fixcap_arrayTest, push_back)
 		double const VALUES[] = {-1.1, 2.0};
 
 		up.push_back( DoublePtr(new double(VALUES[0])) );
-		ASSERT_EQ(1, up.size());
+		ASSERT_EQ(1U, up.size());
 
 		up.push_back( DoublePtr(new double(VALUES[1])) );
 
 		up.push_back( move(up.back()) );
-		ASSERT_EQ(3, up.size());
+		ASSERT_EQ(3U, up.size());
 
 		EXPECT_EQ(VALUES[0], *up[0]);
 		EXPECT_EQ(nullptr, up[1]);
@@ -45,7 +63,9 @@ TEST_F(fixcap_arrayTest, push_back)
 
 TEST_F(fixcap_arrayTest, construct)
 {
-	oetl::fixcap_array<std::string, 1> a;
+	//fixcap_array<int, 0> compileWarnOrFail;
+
+	fixcap_array<std::string, 1> a;
 	decltype(a) b(a);
 
 	fixcap_array< fixcap_array<int, 8>, 5 > nested;
@@ -57,16 +77,16 @@ TEST_F(fixcap_arrayTest, assign)
 		fixcap_array<std::string, 5> das;
 
 		std::string * p = nullptr;
-		das.assign(oetl::make_range(p, p));
+		das.assign(oel::make_iterator_range(p, p));
 
-		EXPECT_EQ(0, das.size());
+		EXPECT_EQ(0U, das.size());
 
 		std::stringstream ss{"My computer emits Hawking radiation"};
 		std::istream_iterator<std::string> begin{ss};
 		std::istream_iterator<std::string> end;
-		das.assign(oetl::make_range(begin, end));
+		das.assign(oel::make_iterator_range(begin, end));
 
-		EXPECT_EQ(5, das.size());
+		EXPECT_EQ(5U, das.size());
 
 		EXPECT_EQ("My", das.at(0));
 		EXPECT_EQ("computer", das.at(1));
@@ -80,14 +100,14 @@ TEST_F(fixcap_arrayTest, assign)
 
 		EXPECT_TRUE(das == copyDest);
 
-		copyDest.assign(oetl::make_range(cbegin(das), cbegin(das) + 1));
+		copyDest.assign(oel::make_iterator_range(cbegin(das), cbegin(das) + 1));
 
-		EXPECT_EQ(1, copyDest.size());
+		EXPECT_EQ(1U, copyDest.size());
 		EXPECT_EQ(das[0], copyDest[0]);
 
 		copyDest.assign(cbegin(das) + 2, 3);
 
-		EXPECT_EQ(3, copyDest.size());
+		EXPECT_EQ(3U, copyDest.size());
 		EXPECT_EQ(das[2], copyDest[0]);
 		EXPECT_EQ(das[3], copyDest[1]);
 		EXPECT_EQ(das[4], copyDest[2]);
@@ -100,14 +120,14 @@ TEST_F(fixcap_arrayTest, assign)
 						  DoublePtr{new double{VALUES[1]}} };
 		fixcap_array<DoublePtr, 2> test;
 
-		test.assign(oetl::move_range(src));
+		test.assign(oel::view::move(src));
 
-		EXPECT_EQ(2, test.size());
+		EXPECT_EQ(2U, test.size());
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(oetl::make_move_iter(src), 0);
-		EXPECT_EQ(0, test.size());
+		test.assign(std::make_move_iterator(src), 0);
+		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(2, Deleter::callCount);
 }
@@ -115,15 +135,17 @@ TEST_F(fixcap_arrayTest, assign)
 TEST_F(fixcap_arrayTest, append)
 {
 	{
-		oetl::fixcap_array<double, 4> dest;
+		fixcap_array<double, 4> dest;
 		// Test append empty std iterator range to empty fixcap_array
 		std::deque<double> src;
 		dest.append(src);
 
+		dest.append({});
+
 		double const TEST_VAL = 6.6;
-		dest.resize(2, TEST_VAL);
+		dest.append({TEST_VAL, TEST_VAL});
 		dest.append(dest.begin(), dest.size());
-		EXPECT_EQ(4, dest.size());
+		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
 			EXPECT_EQ(TEST_VAL, d);
 	}
@@ -132,7 +154,7 @@ TEST_F(fixcap_arrayTest, append)
 	const int arrayB[] = {1, 2, 3, 4};
 
 	fixcap_array<double, 8> double_dynarr;
-	double_dynarr.append(oetl::begin(arrayA), oetl::count(arrayA));
+	double_dynarr.append(oel::begin(arrayA), oel::ssize(arrayA));
 
 	{
 		fixcap_array<int, 4> int_dynarr;
@@ -141,7 +163,7 @@ TEST_F(fixcap_arrayTest, append)
 		double_dynarr.append(int_dynarr);
 	}
 
-	ASSERT_EQ(8, double_dynarr.size());
+	ASSERT_EQ(8U, double_dynarr.size());
 
 	EXPECT_EQ(arrayA[0], double_dynarr[0]);
 	EXPECT_EQ(arrayA[1], double_dynarr[1]);
@@ -180,12 +202,12 @@ TEST_F(fixcap_arrayTest, insert)
 
 		auto & p = *up.insert(begin(up), DoublePtr(new double(VALUES[2])));
 		EXPECT_EQ(VALUES[2], *p);
-		ASSERT_EQ(1, up.size());
+		ASSERT_EQ(1U, up.size());
 		up.insert( begin(up), DoublePtr(new double(VALUES[0])) );
 		up.insert( end(up), DoublePtr(new double(VALUES[3])) );
-		ASSERT_EQ(3, up.size());
+		ASSERT_EQ(3U, up.size());
 		up.insert( begin(up) + 1, DoublePtr(new double(VALUES[1])) );
-		ASSERT_EQ(4, up.size());
+		ASSERT_EQ(4U, up.size());
 
 		auto v = std::begin(VALUES);
 		for (const auto & p : up)
@@ -200,7 +222,7 @@ TEST_F(fixcap_arrayTest, insert)
 
 		auto const val = *up.back();
 		up.insert( end(up) - 1, move(up.back()) );
-		ASSERT_EQ(6, up.size());
+		ASSERT_EQ(6U, up.size());
 		EXPECT_EQ(nullptr, up.back());
 		EXPECT_EQ(val, *end(up)[-2]);
 	}
@@ -211,14 +233,13 @@ TEST_F(fixcap_arrayTest, insert)
 TEST_F(fixcap_arrayTest, resize)
 {
 	size_t const S1 = 4;
-	size_t const VAL = 313;
 
 	fixcap_array<int, S1> d;
 
-	d.resize(S1, VAL);
+	d.resize(S1);
 	ASSERT_EQ(S1, d.size());
 
-	unsigned int nExcept = 0;
+	int nExcept = 0;
 	try
 	{
 		d.resize(S1 + 1);
@@ -232,7 +253,7 @@ TEST_F(fixcap_arrayTest, resize)
 	EXPECT_EQ(S1, d.size());
 	for (const auto & e : d)
 	{
-		EXPECT_EQ(VAL, e);
+		EXPECT_EQ(0, e);
 	}
 }
 

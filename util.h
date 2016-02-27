@@ -162,7 +162,10 @@ public:
 namespace _detail
 {
 	template<typename Container> inline
-	void EraseEnd(Container & c, typename Container::iterator first) { c.erase(first, c.end()); }
+	auto EraseEnd(Container & c, typename Container::iterator first, int) -> decltype(c.erase_to_end(first))
+	                                                                         { return c.erase_to_end(first); }
+	template<typename Container> inline
+	void EraseEnd(Container & c, typename Container::iterator first, long) { c.erase(first, c.end()); }
 
 	template<typename Container, typename UnaryPred> inline
 	auto RemoveIf(Container & c, UnaryPred p, int) -> decltype(c.remove_if(p)) { return c.remove_if(p); }
@@ -170,7 +173,7 @@ namespace _detail
 	template<typename Container, typename UnaryPred>
 	void RemoveIf(Container & c, UnaryPred p, long)
 	{
-		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p) );
+		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p), 0 );
 	}
 
 	template<typename Container> inline // pass dummy int to prefer this overload
@@ -179,7 +182,7 @@ namespace _detail
 	template<typename Container>
 	void Unique(Container & c, long)
 	{
-		_detail::EraseEnd( c, std::unique(begin(c), end(c)) );
+		_detail::EraseEnd( c, std::unique(begin(c), end(c)), 0 );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////

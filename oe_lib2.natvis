@@ -12,12 +12,32 @@
 		</Expand>
 	</Type>
 
+	<Type Name="oel::fixcap_array&lt;*&gt;">
+		<DisplayString Condition="_size == 0">{{size=0 }}</DisplayString>
+		<DisplayString>{{size={_size} back={(($T1*)_data)[_size - 1]}}}</DisplayString>
+		<Expand>
+			<ArrayItems>
+				<Size>_size</Size>
+				<ValuePointer>($T1*)_data</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+
 	<Type Name="oel::contiguous_ctnr_iterator&lt; *, oel::_detail::DynarrBase&lt;*&gt; &gt;">
 		<DisplayString Condition="_pElem == _container-&gt;end">end</DisplayString>
 		<DisplayString>[{_pElem - _container-&gt;data}] {*_pElem}</DisplayString>
 		<Expand>
 			<Item Name="[ctnr size]">_container-&gt;end - _container-&gt;data</Item>
 			<Item Name="[ctnr back]" ExcludeView="simple" Condition="_container-&gt;end != _container-&gt;data">_container-&gt;end[-1]</Item>
+			<Item Name="[pointer]" ExcludeView="simple">_pElem</Item>
+		</Expand>
+	</Type>
+	<Type Name="oel::contiguous_ctnr_iterator&lt; *, oel::_detail::FcaProxy&lt;*&gt; &gt;">
+		<DisplayString Condition="_pElem - _container-&gt;data == _container-&gt;size">end</DisplayString>
+		<DisplayString>[{_pElem - _container-&gt;data}] {*_pElem}</DisplayString>
+		<Expand>
+			<Item Name="[ctnr size]">_container-&gt;size</Item>
+			<Item Name="[ctnr back]" ExcludeView="simple" Condition="_container-&gt;size != 0">_container-&gt;data[_container-&gt;size - 1]</Item>
 			<Item Name="[pointer]" ExcludeView="simple">_pElem</Item>
 		</Expand>
 	</Type>

@@ -174,9 +174,9 @@ public:
 	* @brief Uses default initialization for added elements, can be significantly faster for non-class T
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void      resize(size_type count, default_init_tag)  { _resizeImpl(count, _detail::UninitFillDefault<Alloc, T>); }
+	void      resize(size_type count, default_init_tag)  { _resizeImpl(count, _detail::UninitFillDefault<T, Alloc>); }
 	/// (Value-initializes added elements, same as std::vector::resize)
-	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<Alloc, T>); }
+	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<T, Alloc>); }
 
 	/// Equivalent to std::vector::insert(pos, begin(source), sLast),
 	/// where sLast is either end(source) or found by magic, see TODO put ref here
@@ -1085,10 +1085,6 @@ namespace _detail
 		Pointer Begin() const { return data; }
 		Pointer End() const   { return end; }
 	};
-
-
-	template<typename T, typename A> inline
-	void EraseEnd(dynarray<T, A> & d, typename dynarray<T, A>::iterator first) { d.erase_to_end(first); }
 }
 
 } // namespace oel

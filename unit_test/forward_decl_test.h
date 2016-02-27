@@ -3,21 +3,6 @@
 
 /// @cond INTERNAL
 
-struct Deleter
-{
-	static int callCount;
-
-	void operator()(double * p)
-	{
-		++callCount;
-		delete p;
-	}
-};
-
-typedef std::unique_ptr<double, Deleter> DoublePtr;
-
-
-
 struct ThrowOnConstructT {} const ThrowOnConstruct;
 struct ThrowOnMoveOrCopyT {} const ThrowOnMoveOrCopy;
 
