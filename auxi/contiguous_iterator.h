@@ -202,11 +202,11 @@ namespace _detail
 #else
 	struct CtnrIteratorMaker
 	{
-		Iterator pos;
+		Iterator _pos;
 
-		CtnrIteratorMaker(Iterator pos, const void *) : pos(pos) {}
+		CtnrIteratorMaker(Iterator pos, const void *) : _pos(pos) {}
 
-		operator Iterator() const { return pos; }
+		operator Iterator() const { return _pos; }
 	};
 #endif
 }

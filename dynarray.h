@@ -307,14 +307,14 @@ private:
 	{
 		OEL_WHEN_EXCEPTIONS_ON(
 			static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
-				"This function requires that T is noexcept move constructible or trivially relocatable") );
+				"This function requires that T is noexcept move constructible or trivially relocatable"); )
 	};
 
 
 	using _scopedPtrBase = _detail::AllocRefOptimizeEmpty<Alloc>;
 	struct _scopedPtr : private _scopedPtrBase
 	{
-		pointer ptr;
+		pointer ptr;  // owner
 		pointer allocEnd;
 
 		_scopedPtr(dynarray & parent, size_type const allocSize)
@@ -334,7 +334,7 @@ private:
 
 	struct _dataOwner : public _dynarrBase, public Alloc
 	{
-		using _dynarrBase::data;
+		using _dynarrBase::data; // owning pointer
 		using _dynarrBase::end;
 		using _dynarrBase::reservEnd;
 
@@ -674,7 +674,7 @@ private:
 	{
 		CntigusIter last = first + count;
 	#if OEL_MEM_BOUND_DEBUG_LVL
-		if (count > 0)
+		if (count != 0)
 		{	// Dereference to catch out of range errors if the iterators have internal checks
 			(void)*first;
 			(void)*(last - 1);

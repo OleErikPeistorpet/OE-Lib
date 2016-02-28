@@ -24,8 +24,8 @@ class MoveOnly : public MyCounter
 	std::unique_ptr<double> val;
 
 public:
-	explicit MoveOnly(double val)
-	 :	val(new double{val})
+	explicit MoveOnly(double v)
+	 :	val(new double{v})
 	{	++nConstruct;
 	}
 	explicit MoveOnly(ThrowOnConstructT)
@@ -52,14 +52,14 @@ class NontrivialReloc : public MyCounter
 	bool throwOnMove = false;
 
 public:
-	explicit NontrivialReloc(double val) : val(val)
+	explicit NontrivialReloc(double v) : val(v)
 	{	++nConstruct;
 	}
 	explicit NontrivialReloc(ThrowOnConstructT)
 	{	OEL_THROW(TestException{});
 	}
-	NontrivialReloc(double val, ThrowOnMoveOrCopyT)
-	 :	val(val), throwOnMove(true)
+	NontrivialReloc(double v, ThrowOnMoveOrCopyT)
+	 :	val(v), throwOnMove(true)
 	{	++nConstruct;
 	}
 	NontrivialReloc(NontrivialReloc && other)

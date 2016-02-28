@@ -26,7 +26,7 @@ namespace oel
 		Iterator first;
 		Iterator last;
 
-		iterator_range(Iterator first, Iterator last)  : first(first), last(last) {}
+		iterator_range(Iterator f, Iterator l)  : first(f), last(l) {}
 
 		Iterator begin() const  { return first; }
 		Iterator end() const    { return last; }

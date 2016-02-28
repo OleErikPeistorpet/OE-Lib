@@ -1,6 +1,6 @@
 #include "forward_decl_test.h"
 #include "range_view.h"
-#include "util.h"
+//#include "util.h"
 #include "compat/std_classes_extra.h"
 #include <deque>
 
@@ -139,8 +139,8 @@ TEST_F(dynarrayTest, construct)
 	}
 
 	dynarray<bool> db(50, true);
-	for (const auto & b : db)
-		EXPECT_EQ(true, b);
+	for (const auto & e : db)
+		EXPECT_EQ(true, e);
 }
 
 TEST_F(dynarrayTest, pushBack)
@@ -181,7 +181,6 @@ TEST_F(dynarrayTest, pushBack)
 
 TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 {
-	using oel::as_signed;
 	NontrivialReloc::ClearCount();
 	{
 		dynarray<NontrivialReloc> mo;
@@ -192,12 +191,12 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		mo.push_back(NontrivialReloc{VALUES[0]});
 		expected.push_back(VALUES[0]);
 		ASSERT_EQ(1U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstruct - as_signed(mo.size()), NontrivialReloc::nDestruct);
+		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(mo), NontrivialReloc::nDestruct);
 
 		mo.emplace_back(VALUES[1], ThrowOnMoveOrCopy);
 		expected.emplace_back(VALUES[1]);
 		ASSERT_EQ(2U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstruct - as_signed(mo.size()), NontrivialReloc::nDestruct);
+		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(mo), NontrivialReloc::nDestruct);
 
 		try
 		{
@@ -207,7 +206,7 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		catch (TestException &) {
 		}
 		ASSERT_EQ(expected.size(), mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstruct - as_signed(mo.size()), NontrivialReloc::nDestruct);
+		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(mo), NontrivialReloc::nDestruct);
 
 		try
 		{
@@ -217,12 +216,12 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		catch (TestException &) {
 		}
 		ASSERT_EQ(3U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstruct - as_signed(mo.size()), NontrivialReloc::nDestruct);
+		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(mo), NontrivialReloc::nDestruct);
 
 		mo.emplace_back(VALUES[3], ThrowOnMoveOrCopy);
 		expected.emplace_back(VALUES[3]);
 		ASSERT_EQ(4U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstruct - as_signed(mo.size()), NontrivialReloc::nDestruct);
+		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(mo), NontrivialReloc::nDestruct);
 
 		EXPECT_THROW( mo.emplace_back(ThrowOnConstruct), TestException );
 		ASSERT_EQ(4U, mo.size());
@@ -597,7 +596,7 @@ TEST_F(dynarrayTest, eraseSingle)
 
 TEST_F(dynarrayTest, eraseRange)
 {
-	dynarray<int> d;
+	dynarray<unsigned int> d;
 
 	for (int i = 1; i <= 5; ++i)
 		d.push_back(i);
@@ -608,7 +607,7 @@ TEST_F(dynarrayTest, eraseRange)
 	ret = d.erase(ret - 1, ret + 1);
 	EXPECT_EQ(begin(d) + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
-	EXPECT_EQ(oel::as_signed(s), d.back());
+	EXPECT_EQ(s, d.back());
 }
 
 #ifndef OEL_NO_BOOST
