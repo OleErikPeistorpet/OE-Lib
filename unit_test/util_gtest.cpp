@@ -146,7 +146,7 @@ TEST_F(utilTest, derefArgs)
 		double toFind = 2.0;
 		EXPECT_TRUE(constAlias.find(&toFind) != constAlias.end());
 
-		EXPECT_EQ(3, s.size());
+		EXPECT_EQ(3U, s.size());
 		double cmp = 0;
 		for (double * v : s)
 			EXPECT_DOUBLE_EQ(++cmp, *v);

@@ -219,3 +219,6 @@ template<typename IteratorDest, typename IteratorSource>
 struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
 																 std::declval<IteratorSource>()) ) {};
 /// @endcond
+
+template<typename T>
+struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};

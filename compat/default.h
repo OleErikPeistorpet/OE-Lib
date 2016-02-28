@@ -17,7 +17,7 @@
 	}
 #endif
 
-// std:: unique_ptr, shared_ptr, weak_ptr, basic_string
+// std:: unique_ptr, shared_ptr, weak_ptr, basic_string (reference_wrapper, pair is_trivially_copyable)
 // boost:: optional, intrusive_ptr, circular_buffer
 
 // This file is included by dynarray.h, so should not be needed in user code
@@ -28,7 +28,7 @@
 	namespace oel
 	{
 	template<typename T>
-	struct is_trivially_copyable< std::reference_wrapper<T> > : std::true_type {};
+	struct is_trivially_copyable< std::reference_wrapper<T> > : true_type {};
 	}
 #endif
 
@@ -51,6 +51,10 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 	template<typename C, typename Tr>
 	struct is_trivially_relocatable< std::basic_string<C, Tr> > : true_type {};
 #endif
+
+template<typename T, typename U>
+struct is_trivially_copyable< std::pair<T, U> > : bool_constant<
+	is_trivially_copyable<T>::value && is_trivially_copyable<U>::value > {};
 
 #ifndef OEL_NO_BOOST
 	template<typename T>

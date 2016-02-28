@@ -399,13 +399,13 @@ private:
 
 
 	template<typename InputIter>
-	InputIter _uninitCopy(std::false_type, InputIter first, size_type, T * dest, T * destEnd)
+	InputIter _uninitCopy(false_type, InputIter first, size_type, T * dest, T * destEnd)
 	{	// cannot use memcpy
 		return _detail::UninitCopy(first, dest, destEnd, _m);
 	}
 
 	template<typename CntigusIter>
-	CntigusIter _uninitCopy(std::true_type, CntigusIter const first, size_type const count, T * dest, T *)
+	CntigusIter _uninitCopy(true_type, CntigusIter const first, size_type const count, T * dest, T *)
 	{
 		// Behaviour undefined by standard if first is null
 		::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * count);
@@ -446,7 +446,7 @@ private:
 
 
 	template<typename FuncTakingLast = _detail::NoOp, typename T1 = T>
-	enable_if_t<is_trivially_relocatable<T1>::value == false>
+	enable_if_t<! is_trivially_relocatable<T1>::value>
 		_relocateData(T * dFirst, T * dLast, size_type, FuncTakingLast extraCleanupIfException = {})
 	{
 		_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m, extraCleanupIfException);
@@ -488,7 +488,7 @@ private:
 	}
 
 
-	void _eraseUnordered(iterator pos, std::true_type /*trivialRelocate*/)
+	void _eraseUnordered(iterator pos, true_type /*trivialRelocate*/)
 	{
 		OEL_ASSERT_MEM_BOUND(pos._container == &_m);
 
@@ -503,13 +503,13 @@ private:
 		raw = reinterpret_cast<aligned_union_t<T> &>(*_m.end); // relocate last element to pos
 	}
 
-	void _eraseUnordered(iterator pos, std::false_type)
+	void _eraseUnordered(iterator pos, false_type)
 	{
 		*pos = std::move(back());
 		pop_back();
 	}
 
-	void _erase(iterator pos, std::true_type /*trivialRelocate*/)
+	void _erase(iterator pos, true_type /*trivialRelocate*/)
 	{
 		T *const ptr = to_pointer_contiguous(pos);
 		OEL_ASSERT_MEM_BOUND(_m.data <= ptr && ptr < _m.end);
@@ -520,7 +520,7 @@ private:
 		--_m.end;
 	}
 
-	void _erase(iterator pos, std::false_type)
+	void _erase(iterator pos, false_type)
 	{
 		iterator last = std::move(pos + 1, end(), pos);
 		_m.end = to_pointer_contiguous(last);

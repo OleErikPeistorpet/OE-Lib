@@ -30,13 +30,13 @@ namespace statictest
 	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
 	static_assert(oel::is_trivially_copyable<ConstIter>::value, "?");
 	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
-	static_assert(!std::is_convertible<ConstIter, Iter>::value, "?");
+	static_assert(! std::is_convertible<ConstIter, Iter>::value, "?");
 
-	static_assert(oel::is_trivially_relocatable< std::tuple<long, dynarray<bool>, double> >::value, "?");
-	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value, "?");
-	static_assert(!oel::is_trivially_relocatable< std::tuple<int, NontrivialReloc, int> >::value, "?");
+	static_assert(oel::is_trivially_relocatable< std::array<std::unique_ptr<double>, 4> >::value, "?");
 
-	static_assert(oel::is_trivially_relocatable< std::unique_ptr<double> >::value, "?");
+	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >::value, "?");
+	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
+	static_assert(! oel::is_trivially_copyable< std::tuple<int, dynarray<bool>, int> >::value, "?");
 
 	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::deque<double>> >::value,
 				  "Not critical, this assert can be removed");
