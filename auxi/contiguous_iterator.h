@@ -16,14 +16,13 @@ template<typename, typename> class contiguous_ctnr_iterator;
 
 ///@{
 /// To raw pointer (unchecked)
-template<typename Ptr, typename C>
+template<typename Ptr, typename C> inline
 typename std::pointer_traits<Ptr>::element_type *
 	to_pointer_contiguous(const contiguous_ctnr_iterator<Ptr, C> & it)
 {
 	return it._pElem.operator->();
 }
-
-template<typename T, typename C>
+template<typename T, typename C> inline
 T * to_pointer_contiguous(const contiguous_ctnr_iterator<T *, C> & it)
 {
 	return it._pElem;
@@ -58,7 +57,7 @@ public:
 
 	friend typename _ptrTrait::element_type * to_pointer_contiguous<Ptr, Container>(const contiguous_ctnr_iterator &);
 
-	operator const_iterator() const
+	operator const_iterator() const noexcept
 	{
 		return const_iterator{_pElem, _container};
 	}

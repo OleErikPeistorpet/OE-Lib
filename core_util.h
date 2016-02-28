@@ -234,25 +234,38 @@ using std::iterator_traits;
 #endif
 
 
-#if _MSC_VER
+#if __GLIBCXX__
+	template<typename T, typename C> inline
+	T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, C> it) noexcept
+	{
+		return it.base();
+	}
+	template<typename Ptr, typename C> inline
+	typename std::pointer_traits<Ptr>::element_type *
+		to_pointer_contiguous(__gnu_cxx::__normal_iterator<Ptr, C> it) noexcept
+	{
+		return it.base().operator->();
+	}
+#elif _LIBCPP_VERSION
+	template<typename T> inline
+	T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return __unwrap_iter(it); }
+#elif _MSC_VER
 	template<typename T, size_t S> inline
-	T *       to_pointer_contiguous(std::_Array_iterator<T, S> it)       { return it._Unchecked(); }
+	T *       to_pointer_contiguous(std::_Array_iterator<T, S> it) noexcept       { return it._Unchecked(); }
+
 	template<typename T, size_t S> inline
-	const T * to_pointer_contiguous(std::_Array_const_iterator<T, S> it) { return it._Unchecked(); }
+	const T * to_pointer_contiguous(std::_Array_const_iterator<T, S> it) noexcept { return it._Unchecked(); }
 
 	template<typename S> inline
-	typename std::_String_iterator<S>::pointer  to_pointer_contiguous(std::_String_iterator<S> it)
+	typename std::_String_iterator<S>::pointer  to_pointer_contiguous(std::_String_iterator<S> it) noexcept
 	{
 		return it._Unchecked();
 	}
 	template<typename S> inline
-	typename std::_String_const_iterator<S>::pointer  to_pointer_contiguous(std::_String_const_iterator<S> it)
+	typename std::_String_const_iterator<S>::pointer  to_pointer_contiguous(std::_String_const_iterator<S> it) noexcept
 	{
 		return it._Unchecked();
 	}
-#elif __GLIBCXX__
-	template<typename T, typename U> inline
-	T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, U> it) noexcept { return it.base(); }
 #endif
 
 
