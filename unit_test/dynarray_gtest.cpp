@@ -1,7 +1,7 @@
 #include "forward_decl_test.h"
 #include "range_view.h"
-//#include "util.h"
 #include "compat/std_classes_extra.h"
+#include <cstdint>
 #include <deque>
 
 /// @cond INTERNAL

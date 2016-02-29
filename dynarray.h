@@ -138,7 +138,7 @@ public:
 
 	dynarray(std::initializer_list<T> init, const Alloc & a = Alloc{})  : _m(a, init.size())
 	                                                                    { _initPostAllocate(init.begin(), init.size()); }
-	dynarray(dynarray && other) noexcept    : _m(std::move(other._m)) {}
+	dynarray(dynarray && other) noexcept               : _m(std::move(other._m)) {}
 	/// If a != other.get_allocator() and T is not trivially relocatable,
 	/// behaviour is undefined (triggers OEL_ASSERT unless NDEBUG)
 	dynarray(dynarray && other, const Alloc & a) noexcept;
@@ -228,7 +228,7 @@ public:
 	                                           return pos; }
 	iterator  erase(iterator pos)            { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
-	iterator  erase(iterator first, iterator last) noexcept;
+	iterator  erase(iterator first, iterator last);
 	/// Equivalent to erase(first, end()) (but potentially faster), making first the new end
 	void      erase_back(iterator first) noexcept;
 
@@ -245,7 +245,7 @@ public:
 
 	size_type capacity() const noexcept  { return _m.reservEnd - _m.data; }
 
-	allocator_type get_allocator() const  { return _m; }
+	allocator_type get_allocator() const noexcept  { return _m; }
 
 	iterator       begin() noexcept         { return _iterator{_m.data, &_m}; }
 	const_iterator begin() const noexcept   { return _constIter{_m.data, &_m}; }
@@ -1033,7 +1033,7 @@ inline void dynarray<T, Alloc>::erase_back(iterator first) noexcept
 }
 
 template<typename T, typename Alloc>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) noexcept
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last)
 {
 	_detail::AssertTrivialRelocate<T>();
 
