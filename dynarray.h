@@ -95,15 +95,17 @@ typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarr
 template<typename T, typename Alloc/* = oel::allocator<T> */>
 class dynarray
 {
+	using _allocTrait = std::allocator_traits<Alloc>;
+
 public:
 	using value_type      = T;
 	using allocator_type  = Alloc;
 	using reference       = T &;
 	using const_reference = const T &;
-	using pointer         = typename std::allocator_traits<Alloc>::pointer;
-	using const_pointer   = typename std::allocator_traits<Alloc>::const_pointer;
-	using size_type       = typename std::allocator_traits<Alloc>::size_type;  ///< Allowed to be signed
-	using difference_type = typename std::allocator_traits<Alloc>::difference_type;
+	using pointer         = typename _allocTrait::pointer;
+	using const_pointer   = typename _allocTrait::const_pointer;
+	using size_type       = typename _allocTrait::size_type;  ///< Allowed to be signed
+	using difference_type = typename _allocTrait::difference_type;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 	using iterator       = contiguous_ctnr_iterator< pointer, _detail::DynarrBase<pointer> >;
@@ -140,8 +142,8 @@ public:
 	                                                                    { _initPostAllocate(init.begin(), init.size()); }
 	dynarray(dynarray && other) noexcept               : _m(std::move(other._m)) {}
 	/// If a != other.get_allocator() and T is not trivially relocatable,
-	/// behaviour is undefined (triggers OEL_ASSERT unless NDEBUG)
-	dynarray(dynarray && other, const Alloc & a) noexcept;
+	/// behaviour is undefined (triggers OEL_ALWAYS_ASSERT unless NDEBUG defined)
+	dynarray(dynarray && other, const Alloc & a) OEL_NOEXCEPT_NDEBUG;
 	dynarray(const dynarray & other);
 	dynarray(const dynarray & other, const Alloc & a)  : _m(a, other.size())
 	                                                   { _initPostAllocate(other.data(), other.size()); }
@@ -149,12 +151,12 @@ public:
 
 	/// If using custom Alloc with propagate_on_container_move_assignment false, behaviour is undefined
 	/// when get_allocator() != other.get_allocator() and T is not trivially relocatable
-	dynarray & operator =(dynarray && other) noexcept;
+	dynarray & operator =(dynarray && other) OEL_NOEXCEPT_NDEBUG;
 	dynarray & operator =(const dynarray & other);
 
 	dynarray & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
 
-	void      swap(dynarray & other) noexcept;
+	void      swap(dynarray & other) OEL_NOEXCEPT_NDEBUG;
 
 	/**
 	* @brief Replace the contents with source range
@@ -217,7 +219,7 @@ public:
 	void      push_back(const T & val)  { emplace_back(val); }
 
 	/// After the call, any previous iterator to the back element will be equal to end()
-	void      pop_back() noexcept;
+	void      pop_back() OEL_NOEXCEPT_NDEBUG;
 
 	/**
 	* @brief Erase the element at pos from dynarray without maintaining order of elements.
@@ -230,7 +232,7 @@ public:
 
 	iterator  erase(iterator first, iterator last);
 	/// Equivalent to erase(first, end()) (but potentially faster), making first the new end
-	void      erase_back(iterator first) noexcept;
+	void      erase_back(iterator first) OEL_NOEXCEPT_NDEBUG;
 
 	void      clear() noexcept        { erase_back(begin()); }
 
@@ -264,17 +266,17 @@ public:
 	T *             data() noexcept        { return _m.data; }
 	const T *       data() const noexcept  { return _m.data; }
 
-	reference       front() noexcept        { return *begin(); }
-	const_reference front() const noexcept  { return *begin(); }
+	reference       front() OEL_NOEXCEPT_NDEBUG        { return *begin(); }
+	const_reference front() const OEL_NOEXCEPT_NDEBUG  { return *begin(); }
 
-	reference       back() noexcept         { return *_iterator{_m.end - 1, &_m}; }
-	const_reference back() const noexcept   { return *_constIter{_m.end - 1, &_m}; }
+	reference       back() OEL_NOEXCEPT_NDEBUG         { return *_iterator{_m.end - 1, &_m}; }
+	const_reference back() const OEL_NOEXCEPT_NDEBUG   { return *_constIter{_m.end - 1, &_m}; }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
 
-	reference       operator[](size_type index) noexcept;
-	const_reference operator[](size_type index) const noexcept;
+	reference       operator[](size_type index) OEL_NOEXCEPT_NDEBUG;
+	const_reference operator[](size_type index) const OEL_NOEXCEPT_NDEBUG;
 
 	friend bool operator==(const dynarray & left, const dynarray & right)
 	{
@@ -291,7 +293,6 @@ public:
 
 
 private:
-	using _allocTrait = std::allocator_traits<Alloc>;
 	using _dynarrBase = _detail::DynarrBase<pointer>;
 
 	using _iterator  = _detail::CtnrIteratorMaker<iterator>;
@@ -361,7 +362,7 @@ private:
 				this->deallocate(data, reservEnd - data);
 		}
 
-	} _m; // One and only data member of dynarray
+	} _m; // Only data member of dynarray
 
 
 	void _resetData(pointer const newData)
@@ -847,7 +848,7 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) noexcept
+dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) OEL_NOEXCEPT_NDEBUG
  :	_m(a)
 {
 	if (a != other._m && !std::is_empty<Alloc>::value)
@@ -861,7 +862,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) noexcept
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
+dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) OEL_NOEXCEPT_NDEBUG
 {
 	// TODO: check that this gets optimized out when propagate_on_container_move_assignment
 	if (static_cast<Alloc &>(_m) != other._m &&
@@ -930,7 +931,7 @@ dynarray<T, Alloc>::~dynarray() noexcept
 }
 
 template<typename T, typename Alloc>
-void dynarray<T, Alloc>::swap(dynarray & other) noexcept
+void dynarray<T, Alloc>::swap(dynarray & other) OEL_NOEXCEPT_NDEBUG
 {
 	std::swap(static_cast<_dynarrBase &>(_m),
 			  static_cast<_dynarrBase &>(other._m));
@@ -1016,7 +1017,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::pop_back() noexcept
+inline void dynarray<T, Alloc>::pop_back() OEL_NOEXCEPT_NDEBUG
 {
 	OEL_ASSERT_MEM_BOUND(_m.data < _m.end);
 	--_m.end;
@@ -1024,7 +1025,7 @@ inline void dynarray<T, Alloc>::pop_back() noexcept
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::erase_back(iterator first) noexcept
+inline void dynarray<T, Alloc>::erase_back(iterator first) OEL_NOEXCEPT_NDEBUG
 {
 	pointer const newEnd = to_pointer_contiguous(first);
 	OEL_ASSERT_MEM_BOUND(_m.data <= newEnd && newEnd <= _m.end);
@@ -1068,13 +1069,13 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 }
 
 template<typename T, typename Alloc>
-inline T & dynarray<T, Alloc>::operator[](size_type i) noexcept
+inline T & dynarray<T, Alloc>::operator[](size_type i) OEL_NOEXCEPT_NDEBUG
 {
 	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(i));
 	return _m.data[i];
 }
 template<typename T, typename Alloc>
-inline const T & dynarray<T, Alloc>::operator[](size_type i) const noexcept
+inline const T & dynarray<T, Alloc>::operator[](size_type i) const OEL_NOEXCEPT_NDEBUG
 {
 	OEL_ASSERT_MEM_BOUND(static_cast<size_t>(size()) > static_cast<size_t>(i));
 	return _m.data[i];

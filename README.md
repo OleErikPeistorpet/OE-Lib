@@ -13,4 +13,4 @@ For better display of dynarray and the iterators in the Visual Studio debugger, 
 
 To use dense matrixes, quaternions, etc. from the Eigen library efficiently in dynarray: include `compat/eigen_dense.h`
 
-If runtime checks are desired when running without a debugger, you should customize what happens when an assert fails. This is done by defining or changing OEL_HALT() or ALWAYS_ASSERT_NOEXCEPT; see `core_util.h`
+If runtime checks are desired when running without a debugger, you should customize what happens when an assert fails. This is done by defining or changing OEL_HALT or OEL_ALWAYS_ASSERT; see `core_util.h`

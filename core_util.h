@@ -21,6 +21,12 @@
 	#define OEL_MEM_BOUND_DEBUG_LVL 2
 #endif
 
+#if defined(NDEBUG) && OEL_MEM_BOUND_DEBUG_LVL == 0
+	#define OEL_NOEXCEPT_NDEBUG noexcept
+#else
+	#define OEL_NOEXCEPT_NDEBUG
+#endif
+
 
 #if _MSC_VER
 	#define OEL_CONST_COND __pragma(warning(suppress : 4127))
@@ -30,20 +36,20 @@
 
 
 #ifndef OEL_HALT
-	/// Do not throw an exception from OEL_HALT, since it is used in noexcept functions
+	/// Could throw an exception. Or write to log with __FILE__ and __LINE__, show a message, then abort.
 	#if _MSC_VER
-		#define OEL_HALT() __debugbreak()
+		#define OEL_HALT(failedCond) __debugbreak()
 	#else
-		#define OEL_HALT() __asm__("int $3")
+		#define OEL_HALT(failedCond) __asm__("int $3")
 	#endif
 #endif
 
-#ifndef ALWAYS_ASSERT_NOEXCEPT
-	/// Standard assert implementations typically don't break on the line of the assert, so we roll our own
-	#define ALWAYS_ASSERT_NOEXCEPT(expr)  \
+#ifndef OEL_ALWAYS_ASSERT
+	/// Just breaks into debugger on failure. Could be defined to standard from \c <cassert>
+	#define OEL_ALWAYS_ASSERT(expr)  \
 		OEL_CONST_COND  \
 		do {  \
-			if (!(expr)) OEL_HALT();  \
+			if (!(expr)) OEL_HALT(#expr);  \
 		} while (false)
 #endif
 
@@ -165,12 +171,12 @@ using enable_if_t = typename std::enable_if<Condition>::type;
 #endif
 
 #if OEL_MEM_BOUND_DEBUG_LVL
-	#define OEL_ASSERT_MEM_BOUND  ALWAYS_ASSERT_NOEXCEPT
+	#define OEL_ASSERT_MEM_BOUND  OEL_ALWAYS_ASSERT
 #else
 	#define OEL_ASSERT_MEM_BOUND(expr) ((void) 0)
 #endif
 #if !defined(NDEBUG)
-	#define OEL_ASSERT  ALWAYS_ASSERT_NOEXCEPT
+	#define OEL_ASSERT  OEL_ALWAYS_ASSERT
 #else
 	#define OEL_ASSERT(expr) ((void) 0)
 #endif
