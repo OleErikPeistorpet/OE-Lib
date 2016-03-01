@@ -35,22 +35,7 @@ namespace oel
 
 namespace _detail
 {
-	template<typename Pointer>
-	struct DynarrBase
-	{
-		Pointer data;      // Pointer to beginning of data buffer
-		Pointer end;       // Pointer to one past the back object
-		Pointer reservEnd; // Pointer to end of allocated memory
-
-		template<typename ConstPtr>
-		bool DerefValid(ConstPtr pos) const
-		{
-			return static_cast<size_t>(pos - data) < static_cast<size_t>(end - data);
-		}
-
-		Pointer Begin() const { return data; }
-		Pointer End() const   { return end; }
-	};
+	template<typename Pointer> struct DynarrBase;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -65,9 +50,6 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
 /// Overloads generic erase_unordered(RandomAccessContainer &, RandomAccessContainer::size_type) (in util.h)
 template<typename T, typename A> inline
 void erase_unordered(dynarray<T, A> & d, typename dynarray<T, A>::size_type index)  { d.erase_unordered(d.begin() + index); }
-/// Useful for std::remove_if and similar (generic in util.h)
-template<typename T, typename A> inline
-void erase_back(dynarray<T, A> & d, typename dynarray<T, A>::iterator first) noexcept  { d.erase_back(first); }
 
 /// Overloads generic assign(Container &, const InputRange &) (in util.h)
 template<typename T, typename A, typename InputRange> inline
@@ -1082,5 +1064,29 @@ inline const T & dynarray<T, Alloc>::operator[](size_type i) const OEL_NOEXCEPT_
 }
 
 #undef OEL_FORCEINLINE
+
+namespace _detail
+{
+	template<typename Pointer>
+	struct DynarrBase
+	{
+		Pointer data;      // Pointer to beginning of data buffer
+		Pointer end;       // Pointer to one past the back object
+		Pointer reservEnd; // Pointer to end of allocated memory
+
+		template<typename ConstPtr>
+		bool DerefValid(ConstPtr pos) const
+		{
+			return static_cast<size_t>(pos - data) < static_cast<size_t>(end - data);
+		}
+
+		Pointer Begin() const { return data; }
+		Pointer End() const   { return end; }
+	};
+
+
+	template<typename T, typename A> inline
+	void EraseBack(dynarray<T, A> & d, typename dynarray<T, A>::iterator first) { d.erase_back(first); }
+}
 
 } // namespace oel

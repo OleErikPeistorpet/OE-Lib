@@ -610,6 +610,13 @@ TEST_F(dynarrayTest, eraseRange)
 	EXPECT_EQ(s, d.back());
 }
 
+TEST_F(dynarrayTest, eraseBack)
+{
+	oel::dynarray<int> li{1, 1, 2, 2, 2, 1, 3};
+	li.erase_back(std::remove(begin(li), end(li), 1));
+	EXPECT_EQ(4U, li.size());
+}
+
 #ifndef OEL_NO_BOOST
 TEST_F(dynarrayTest, overAligned)
 {

@@ -34,11 +34,36 @@ TEST_F(utilTest, eraseUnordered)
 	EXPECT_EQ("aa", d.front());
 }
 
-TEST_F(utilTest, eraseBack)
+TEST_F(utilTest, eraseIf)
 {
+	using namespace oel;
+
+	std::list<int> li{1, 2, 3, 4, 5, 6};
+	std::list<int> const expect{1, 3, 5};
+	dynarray<int> test1;
+	test1.append(li);
+
+	auto isEven = [](int i) { return i % 2 == 0; };
+	erase_if(li, isEven);
+	EXPECT_TRUE(expect == li);
+	erase_if(test1, isEven);
+	EXPECT_EQ(li.size(), test1.size());
+	EXPECT_TRUE(std::equal(begin(li), end(li), begin(test1)));
+}
+
+TEST_F(utilTest, eraseSuccessiveDup)
+{
+	using namespace oel;
+
 	std::list<int> li{1, 1, 2, 2, 2, 1, 3};
-	oel::erase_back(li, std::remove(begin(li), end(li), 1));
+	dynarray<int> const expect{1, 2, 1, 3};
+	dynarray<int> uniqueTest;
+	uniqueTest.assign(li);
+
+	erase_successive_dup(li);
 	EXPECT_EQ(4U, li.size());
+	erase_successive_dup(uniqueTest);
+	EXPECT_FALSE(uniqueTest != expect);
 }
 
 TEST_F(utilTest, indexValid)

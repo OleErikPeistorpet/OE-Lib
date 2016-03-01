@@ -45,9 +45,18 @@ void erase_unordered(RandomAccessContainer & c, typename RandomAccessContainer::
 	c.pop_back();
 }
 
-/// Erase the elements from first to the end of container. Overloads erase_back(dynarray &, dynarray::iterator) 
-template<typename Container> inline
-void erase_back(Container & c, typename Container::iterator first)  { c.erase(first, c.end()); }
+/**
+* @brief Erase from container all elements for which predicate returns true
+*
+* This function mimics feature from paper N4009 (C++17). Wraps std::remove_if  */
+template<typename Container, typename UnaryPredicate>
+void erase_if(Container & c, UnaryPredicate pred);
+/**
+* @brief Erase consecutive duplicate elements in container. Wraps std::unique
+*
+* To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
+template<typename Container>
+void erase_successive_dup(Container & c);
 
 
 /**
@@ -149,6 +158,29 @@ public:
 /// @cond INTERNAL
 namespace _detail
 {
+	template<typename Container> inline
+	void EraseBack(Container & c, typename Container::iterator first) { c.erase(first, c.end()); }
+
+	template<typename Container, typename UnaryPred> inline
+	auto RemoveIf(Container & c, UnaryPred p, int) -> decltype(c.remove_if(p)) { return c.remove_if(p); }
+
+	template<typename Container, typename UnaryPred>
+	void RemoveIf(Container & c, UnaryPred p, long)
+	{
+		_detail::EraseBack( c, std::remove_if(begin(c), end(c), p) );
+	}
+
+	template<typename Container> inline // pass dummy int to prefer this overload
+	auto Unique(Container & c, int) -> decltype(c.unique()) { return c.unique(); }
+
+	template<typename Container>
+	void Unique(Container & c, long)
+	{
+		_detail::EraseBack( c, std::unique(begin(c), end(c)) );
+	}
+
+////////////////////////////////////////////////////////////////////////////////
+
 	template<typename InputRange, typename OutputIter> inline
 	auto Copy(const InputRange & src, OutputIter dest, std::false_type, int) -> decltype(end(src), dest)
 	{
@@ -214,6 +246,19 @@ inline auto oel::copy_fit(const SizedInRange & src, SizedOutRange & dest) -> dec
 {
 	auto smaller = (std::min)(oel::ssize(src), oel::ssize(dest));
 	return oel::copy_unsafe(oel::make_view_n(begin(src), smaller), begin(dest));
+}
+
+
+template<typename Container, typename UnaryPredicate>
+inline void oel::erase_if(Container & c, UnaryPredicate p)
+{
+	_detail::RemoveIf(c, p, int{});
+}
+
+template<typename Container>
+inline void oel::erase_successive_dup(Container & c)
+{
+	_detail::Unique(c, int{});
 }
 
 ////////////////////////////////////////////////////////////////////////////////
