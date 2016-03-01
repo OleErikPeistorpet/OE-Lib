@@ -100,9 +100,14 @@ public:
 	* @throw std::bad_alloc if the allocation request does not succeed (same for all operations that add capacity)  */
 	dynarray(reserve_tag, size_type capacity);
 
-	/// Elements are default initialized, meaning non-class T produces indeterminate values
-	dynarray(size_type size, default_init_tag);
-	dynarray(size_type size, const T & fillVal);
+	/** @brief Uses default initialization for elements, can be significantly faster for non-class T
+	*
+	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
+	dynarray(size_type size, default_init_tag, const Alloc & a = Alloc{});
+	explicit dynarray(size_type size, const Alloc & a = Alloc{});  ///< (Value-initializes elements, same as std::vector)
+	// TODO: Document fillArg
+	template<typename Arg>
+	dynarray(size_type size, const Arg & fillArg, const Alloc & alloc = Alloc{});
 
 	dynarray(std::initializer_list<T> init);
 
@@ -167,8 +172,13 @@ public:
 	void       push_back(T && val)       { emplace_back(std::move(val)); }
 	void       push_back(const T & val)  { emplace_back(val); }
 
-	template<typename... ArgTs>
-	iterator   emplace(const_iterator position, ArgTs &&... args);
+	// TODO: Document
+	template<typename... Args>
+	bool       emplace_back_capped(Args &&... elemInitArgs);
+
+	/// Performs list-initialization of element if there is no matching constructor
+	template<typename... Args>
+	void      emplace_back(Args &&... elemInitArgs);
 
 	iterator   insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
 	iterator   insert(const_iterator position, const T & val)  { return emplace(position, val); }
@@ -655,17 +665,12 @@ void dynarray<T, Alloc>::swap(dynarray & other) NOEXCEPT
 	swap(_reserveEnd, other._reserveEnd);
 }
 
-template<typename T, typename Alloc> template<typename ForwardTravIterator>
-ForwardTravIterator dynarray<T, Alloc>::assign(ForwardTravIterator first, size_type count)
+template<typename T, typename Alloc> template<typename Arg>
+dynarray<T, Alloc>::dynarray(size_type size, const Arg & fillArg, const Alloc & a)
+ :	_m(a, size)
 {
-#ifndef OEL_NO_BOOST
-	static_assert(boost::is_convertible< iterator_traversal_t<ForwardTravIterator>, forward_traversal_tag >::value,
-				  "Type of first must meet requirements of Forward Traversal Iterator");
-#endif
-	auto const last = std::next(first, count);
-	_assignImpl(can_memmove_with<pointer, ForwardTravIterator>(),
-				first, last, count);
-	return last;
+	_m.end = _m.reservEnd;
+	_detail::UninitFillA(_m.data, _m.end, _m, fillArg);
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
@@ -824,6 +829,20 @@ void dynarray<T, Alloc>::resize(size_type newSize, default_init_tag)
 {
 	_resizeImpl(newSize, oel::uninitialized_fill_default<pointer>);
 }
+
+
+template<typename T, typename Alloc> template<typename... Args>
+inline bool dynarray<T, Alloc>::emplace_back_capped(Args &&... args)
+{
+	bool const hasRoom = _m.end < _m.reserveEnd;
+	if (hasRoom)
+	{
+		_allocTrait::construct(_m, _m.end, std::forward<Args>(args)...);
+		++_m.end;
+	}
+	return hasRoom;
+}
+
 
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::resize(size_type newSize, const T & addVal)

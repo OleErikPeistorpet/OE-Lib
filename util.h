@@ -9,7 +9,9 @@
 #include "core_util.h"
 
 #include <algorithm>
-#include <cstdint>
+#include <memory>
+#include <limits>
+#include <array>
 #include <string.h>
 #include <memory>
 
@@ -81,22 +83,28 @@ OutputIterator copy_nonoverlap(const InputRange & source, OutputIterator dest);
 template<typename InputIterator, typename Count, typename OutputIterator>
 range_ends<InputIterator, OutputIterator>  copy_nonoverlap(InputIterator first, Count count, OutputIterator dest);
 
+/// Same as std::move(InIterator, InIterator, OutIterator), but much faster for arrays of simple classes than VC++ version
+template<typename InputIterator, typename OutputIterator>
+OutputIterator move(InputIterator first, InputIterator last, OutputIterator dest);
+
+/// Throws exception if dest is smaller than source
+template<typename SizedInRange, typename SizedOutRange>
+auto copy(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest));
+/// Copies as many elements as will fit in dest
+template<typename RandomAccessRange, typename SizedOutRange>
+auto copy_fit(const RandomAccessRange & src, SizedOutRange & dest) -> decltype(begin(dest));
 
 
-template<bool Condition>
-using enable_if_t = typename std::enable_if<Condition>::type;
+/// Check if index is valid (can be used with operator[]) for array or other iterable.
+template<typename Integer, typename CountableRange>
+bool index_valid(const CountableRange & ci, Integer index);
 
 
-/// Check if index is valid (can be used with operator[]) for array or other range.
-template< typename UnsignedInt, typename Range,
-		  typename = enable_if_t<std::is_unsigned<UnsignedInt>::value> > inline
-bool index_valid(const Range & range, UnsignedInt index)   { return index < as_unsigned(oel::count(range)); }
-/// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename Range> inline
-bool index_valid(const Range & range, std::int32_t index)  { return 0 <= index && index < oel::count(range); }
-/// Check if index is valid (can be used with operator[]) for array or other range.
-template<typename Range>
-bool index_valid(const Range & range, std::int64_t index);
+///
+template<size_t I, typename T, size_t N>
+T &       get(T(& arr)[N]);
+template<size_t I, typename T, size_t N>
+const T & get(const T(& arr)[N]);
 
 
 
@@ -110,6 +118,96 @@ std::unique_ptr<T> make_unique(ArgTs &&... args)
 /// Equivalent to std::make_unique (array version).
 template< typename T, typename = enable_if_t<std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(size_t arraySize);
+/**
+* @brief Array is default-initialized, can be significantly faster for non-class elements
+*
+* Non-class elements get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
+template< typename T, typename = enable_if_t<std::is_array<T>::value> >
+std::unique_ptr<T> make_unique_default(size_t arraySize);
+
+/// Calls new T with args as the parameter list and stores it in std::unique_ptr.
+template<typename T, typename... ArgTs, typename = std::enable_if_t<!std::is_array<T>::value> >
+void set_new(std::unique_ptr<T> & ptr, ArgTs &&... args);
+/// Calls new T[arraySize]() and stores it in std::unique_ptr.
+template<typename T>
+void set_new(std::unique_ptr<T[]> & ptr, size_t arraySize);
+
+
+
+/// Helper for make_array
+template<typename T, typename...>
+struct deduce_array_type { using type = T; };
+/// Helper for make_array
+template<typename... Ts>
+struct deduce_array_type<void, Ts...>
+{
+	using type = typename std::decay< typename std::common_type<Ts...>::type >::type;
+};
+
+/// Returns std::array of same size as the number or arguments, with type deduced unless specified
+template<typename T = void, typename... Args>
+std::array<typename deduce_array_type<T, Args...>::type, sizeof...(Args)>
+	make_array(Args &&... args)  { return { std::forward<Args>(args)... }; }
+
+/// Returns std::array of same size as the number or arguments, all arguments static_cast to T
+template<typename T, typename... Args>
+std::array<T, sizeof...(Args)>  make_array_static_cast(Args &&... args);
+
+
+
+template<typename T>
+struct identity { using type = T; };
+
+template<typename T>
+using identity_t = typename identity<T>::type;
+
+/**
+* @brief Bring the value into the range [low, high].
+*
+* @return If val is greater than high, return high. If val is less than low, return low. Otherwise, return val. */
+template<typename T>
+constexpr T clamp(const T & val, const identity_t<T> & low, const identity_t<T> & high)
+{
+	//OEL_ASSERT( !(high < low) );
+	return high < val ?
+		high :
+		(val < low ? low : val);
+}
+
+
+
+///
+template<typename Count, typename T, typename InputIterator>
+Count find_idx(InputIterator first, Count count, const T & value);
+///
+template<typename T, typename InputRange> inline
+auto find_idx(const InputRange & toSearch, const T & value) -> difference_type<decltype(begin(toSearch))>
+{
+	return oel::find_idx(begin(toSearch), oel::count(toSearch), value);
+}
+
+///
+template<typename T, typename BidirectionRange> inline
+auto rfind_idx(const BidirectionRange & toSearch, const T & value) -> difference_type<decltype(begin(toSearch))>
+{
+	auto pos = oel::count(toSearch);
+	auto it = end(toSearch);
+	while (--pos != -1)
+	{
+		--it;
+		if (*it == value)
+			break;
+	}
+	return pos;
+}
+
+
+///
+template<typename ForwardRange, typename T>
+auto find_sorted(ForwardRange & ib, const T & val) -> decltype(begin(ib));
+///
+template<typename ForwardRange, typename T, typename Compare>
+auto find_sorted(ForwardRange & ib, const T & val, Compare comp) -> decltype(begin(ib));
 
 
 
@@ -121,8 +219,8 @@ std::unique_ptr<T> make_unique(size_t arraySize);
 /// @cond INTERNAL
 namespace _detail
 {
-	template<typename InputIter, typename OutputIter> inline
-	OutputIter Copy(std::false_type, InputIter first, InputIter last, OutputIter dest)
+	template<typename InputIter, typename Sentinel, typename OutputIter, typename Unused> inline
+	OutputIter Copy(std::false_type, Unused, InputIter first, Sentinel last, OutputIter dest)
 	{
 		while (first != last)
 		{
@@ -132,9 +230,10 @@ namespace _detail
 		return dest;
 	}
 
-	template<typename IterSrc, typename IterDest> inline
-	IterDest Copy(std::true_type, IterSrc const first, IterSrc const last, IterDest const dest)
-	{	// can use memcpy
+	template<typename IterSrc, typename IterDest, typename TrivialCopyFunc> inline
+	IterDest Copy(std::true_type, TrivialCopyFunc doCopy,
+				  IterSrc const first, IterSrc const last, IterDest const dest)
+	{	// can use memcpy/memmove
 		auto const count = last - first;
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != count)
@@ -145,7 +244,7 @@ namespace _detail
 		OEL_POP_DIAGNOSTIC
 		}
 	#endif
-		::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(first), count * sizeof(*first));
+		doCopy(to_pointer_contiguous(dest), to_pointer_contiguous(first), sizeof(*first) * count);
 		return dest + count;
 	}
 
@@ -183,7 +282,23 @@ namespace _detail
 } // namespace oel
 
 template<typename InputRange, typename OutputIterator>
-inline OutputIterator oel::copy_nonoverlap(const InputRange & source, OutputIterator dest)
+inline OutputIterator oel::copy_unsafe(const InputRange & src, OutputIterator dest)
+{
+	return _detail::Copy(can_memmove_with<OutputIterator, decltype(begin(src))>(),
+						 ::memcpy,
+						 begin(src), end(src), dest);
+}
+
+template<typename InputIterator, typename OutputIterator>
+inline OutputIterator oel::move(InputIterator first, InputIterator last, OutputIterator dest)
+{
+	return _detail::Copy(can_memmove_with(OutputIterator, InputIterator),
+						 ::memmove,
+						 std::make_move_iterator(first), std::make_move_iterator(last), dest);
+}
+
+template<typename SizedInRange, typename SizedOutRange>
+inline auto oel::copy(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest))
 {
 	return _detail::Copy(can_memmove_with<OutputIterator, decltype(begin(source))>(),
 						 begin(source), end(source), dest);
@@ -199,8 +314,67 @@ inline oel::range_ends<InputIterator, OutputIterator>  oel::
 
 ////////////////////////////////////////////////////////////////////////////////
 
-template<typename Range>
-inline bool oel::index_valid(const Range & r, std::int64_t idx)
+namespace oel
+{
+namespace _detail
+{
+	template<typename T, typename Range> inline
+	bool IdxValid(std::false_type, const Range & ib, T idx)
+	{
+		return as_unsigned(idx) < as_unsigned(oel::count(ib));
+	}
+
+	template<typename T, typename Range> inline
+	bool IdxValid(std::true_type, const Range & ib, T idx)
+	{
+		return 0 <= idx && idx < oel::count(ib);
+	}
+}
+}
+
+template<typename Integer, typename CountableRange>
+inline bool oel::index_valid(const CountableRange & ci, Integer idx)
+{
+	return _detail::IdxValid(bool_constant< std::is_signed<Integer>::value && std::numeric_limits<Integer>::digits < 47 >(),
+							 ci, idx);
+}
+
+
+template<size_t I, typename T, size_t N>
+inline T & oel::get(T(& arr)[N])
+{
+	static_assert(I < N, "Invalid array index");
+	return arr[I];
+}
+template<size_t I, typename T, size_t N>
+inline const T & oel::get(const T(& arr)[N])
+{
+	static_assert(I < N, "Invalid array index");
+	return arr[I];
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+namespace oel
+{
+namespace _detail
+{
+	template<typename T, typename... Args> inline
+	T * New(std::true_type, Args &&... args)
+	{
+		return new T(std::forward<Args>(args)...);
+	}
+
+	template<typename T, typename... Args> inline
+	T * New(std::false_type, Args &&... args)
+	{
+		return new T{std::forward<Args>(args)...};
+	}
+}
+}
+
+template<typename T, typename... Args, typename>
+inline std::unique_ptr<T> oel::make_unique(Args &&... args)
 {
 	auto idxU = static_cast<std::uint64_t>(idx);
 	return idxU < as_unsigned(oel::count(r)); // assumes that r size is never greater than INT64_MAX
@@ -213,6 +387,24 @@ inline std::unique_ptr<T>  oel::make_unique(size_t arraySize)
 {
 	static_assert(std::extent<T>::value == 0, "make_unique forbids T[size]. Please use T[]");
 
-	using Elem = typename std::remove_extent<T>::type;
-	return std::unique_ptr<T>( new Elem[arraySize]() ); // value-initialize
+#undef OEL_MAKE_UNIQUE_A
+
+template<typename T, typename... ArgTs, typename>
+inline void oel::set_new(std::unique_ptr<T> & up, ArgTs &&... args)
+{
+	up.reset( new T(std::forward<ArgTs>(args)...) );
+}
+
+template<typename T>
+inline void oel::set_new(std::unique_ptr<T[]> & up, size_t arraySize)
+{
+	up.reset( new T[arraySize]() );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename... Args>
+std::array<T, sizeof...(Args)>  oel::make_array_static_cast(Args &&... args)
+{
+	return { static_cast<T>(std::forward<Args>(args))... };
 }

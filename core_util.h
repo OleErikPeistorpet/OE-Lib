@@ -34,54 +34,86 @@ using std::size_t;
 using std::begin;
 using std::end;
 
-#if _MSC_VER
-	using std::cbegin;
-	using std::cend;
-	using std::rbegin;
-	using std::crbegin;
-	using std::rend;
-	using std::crend;
+#if __cplusplus >= 201402L || _MSC_VER || __GNUC__ >= 5
+	using std::cbegin;  using std::cend;
+	using std::rbegin;  using std::rend;
+	using std::crbegin; using std::crend;
 #else
 	/**
 	* @brief Const version of std::begin.
 	* @return An iterator addressing the (const) first element in the range r. */
 	template<typename Range> inline
-	auto cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+	constexpr auto cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
 	/**
 	* @brief Const version of std::end.
 	* @return An iterator positioned one beyond the (const) last element in the range r. */
 	template<typename Range> inline
-	auto cend(const Range & r) -> decltype(end(r))  { return end(r); }
+	constexpr auto cend(const Range & r) -> decltype(std::end(r))      { return std::end(r); }
 
 	/**
 	* @brief Like std::begin, but reverse iterator.
 	* @return An iterator to the reverse-beginning of the range r. */
 	template<typename Range> inline
-	auto rbegin(Range & r) -> decltype(r.rbegin())  { return r.rbegin(); }
-	/// Same as crbegin(const Range &)
-	template<typename Range> inline
-	auto rbegin(const Range & r) -> decltype(r.rbegin())  { return r.rbegin(); }
+	constexpr auto rbegin(Range & r) -> decltype(r.rbegin())        { return r.rbegin(); }
 	/// Returns a const-qualified iterator to the reverse-beginning of the range r
 	template<typename Range> inline
-	auto crbegin(const Range & r) -> decltype(rbegin(r))  { return rbegin(r); }
+	constexpr auto crbegin(const Range & r) -> decltype(oel::rbegin(r))  { return oel::rbegin(r); }
 
 	/**
 	* @brief Like std::end, but reverse iterator.
 	* @return An iterator to the reverse-end of the range r. */
 	template<typename Range> inline
-	auto rend(Range & r) -> decltype(r.rend())  { return r.rend(); }
-	/// Same as crend(const Range &)
-	template<typename Range> inline
-	auto rend(const Range & r) -> decltype(r.rend())  { return r.rend(); }
+	constexpr auto rend(Range & r) -> decltype(r.rend())        { return r.rend(); }
 	/// Returns a const-qualified iterator to the reverse-end of the range r
 	template<typename Range> inline
-	auto crend(const Range & r) -> decltype(rend(r))  { return rend(r); }
+	constexpr auto crend(const Range & r) -> decltype(oel::rend(r))  { return oel::rend(r); }
 #endif
 
+/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
+*
+* Note the global using-directive  @code
+	auto it = container.begin();     // Fails with types that don't have begin member such as built-in arrays
+	auto it = std::begin(container); // Fails with types that have only non-member begin outside of namespace std
+	// Argument-dependent lookup, as generic as it gets
+	using std::begin; auto it = begin(container);
+	auto it = adl_begin(container);  // Equivalent to line above
+@endcode  */
+template<typename Range> inline
+constexpr auto adl_begin(Range & r) -> decltype(begin(r))         { return begin(r); }
+/// Const version of adl_begin
+template<typename Range> inline
+constexpr auto adl_cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
 
-/// Returns number of elements in r (array, container or iterator_range), signed type
+/// Argument-dependent lookup non-member end, defaults to std::end
+template<typename Range> inline
+constexpr auto adl_end(Range & r) -> decltype(end(r))         { return end(r); }
+/// Const version of adl_end
+template<typename Range> inline
+constexpr auto adl_cend(const Range & r) -> decltype(end(r))  { return end(r); }
+
+
+
+template<typename T>
+constexpr typename T::difference_type ssize_zero(const T &, int)  { return {}; }
 template<typename Range>
-auto count(const Range & r) -> typename std::iterator_traits<decltype(begin(r))>::difference_type;
+constexpr auto ssize_zero(const Range & r, long)
+ -> typename std::iterator_traits<decltype(begin(r))>::difference_type  { return {}; }
+
+template<typename T>
+using difference_type = decltype( ssize_zero(std::declval<T>(), int{}) );
+
+/// Returns ib.size() as signed
+template<typename SizedRange>
+constexpr auto ssize(const SizedRange & ib) -> decltype(r.size(), difference_type<SizedRange>())  { return r.size(); }
+/// Returns number of elements in array as signed
+template<typename T, size_t Size>
+constexpr std::ptrdiff_t ssize(const T (&)[Size]) noexcept  { return Size; }
+
+/** @brief Returns number of elements in iterable (which begin and end can be called on), signed type
+*
+* Calls ssize(ib) if possible, otherwise equivalent to std::distance(begin(ib), end(ib))  */
+template<typename InputRange>
+difference_type<InputRange> count(const InputRange & ib);
 
 
 
