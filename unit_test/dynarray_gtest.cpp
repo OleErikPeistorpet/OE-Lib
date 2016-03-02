@@ -610,10 +610,10 @@ TEST_F(dynarrayTest, eraseRange)
 	EXPECT_EQ(s, d.back());
 }
 
-TEST_F(dynarrayTest, eraseBack)
+TEST_F(dynarrayTest, eraseToEnd)
 {
 	oel::dynarray<int> li{1, 1, 2, 2, 2, 1, 3};
-	li.erase_back(std::remove(begin(li), end(li), 1));
+	li.erase_to_end(std::remove(begin(li), end(li), 1));
 	EXPECT_EQ(4U, li.size());
 }
 

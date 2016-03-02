@@ -214,9 +214,9 @@ public:
 
 	iterator  erase(iterator first, iterator last);
 	/// Equivalent to erase(first, end()) (but potentially faster), making first the new end
-	void      erase_back(iterator first) OEL_NOEXCEPT_NDEBUG;
+	void      erase_to_end(iterator first) OEL_NOEXCEPT_NDEBUG;
 
-	void      clear() noexcept        { erase_back(begin()); }
+	void      clear() noexcept        { erase_to_end(begin()); }
 
 	bool      empty() const noexcept  { return _m.data == _m.end; }
 
@@ -593,7 +593,7 @@ private:
 			{	// downsizing, assign new and destroy rest
 				iterator const it = _iterator{newEnd, &_m};
 				src = copy(src, begin(), it);
-				erase_back(it);
+				erase_to_end(it);
 			}
 			else // assign to old elements as far as we can
 			{	src = copy(src, begin(), end());
@@ -628,7 +628,7 @@ private:
 		}
 		OEL_CATCH_ALL
 		{
-			erase_back(begin() + oldSize);
+			erase_to_end(begin() + oldSize);
 			OEL_WHEN_EXCEPTIONS_ON(throw);
 		}
 		return retSelect(begin() + oldSize, first);
@@ -1007,7 +1007,7 @@ inline void dynarray<T, Alloc>::pop_back() OEL_NOEXCEPT_NDEBUG
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::erase_back(iterator first) OEL_NOEXCEPT_NDEBUG
+inline void dynarray<T, Alloc>::erase_to_end(iterator first) OEL_NOEXCEPT_NDEBUG
 {
 	pointer const newEnd = to_pointer_contiguous(first);
 	OEL_ASSERT_MEM_BOUND(_m.data <= newEnd && newEnd <= _m.end);
@@ -1086,7 +1086,7 @@ namespace _detail
 
 
 	template<typename T, typename A> inline
-	void EraseBack(dynarray<T, A> & d, typename dynarray<T, A>::iterator first) { d.erase_back(first); }
+	void EraseEnd(dynarray<T, A> & d, typename dynarray<T, A>::iterator first) { d.erase_to_end(first); }
 }
 
 } // namespace oel

@@ -9,7 +9,7 @@
 #include "core_util.h"
 #include "range_view.h"
 
-#include <algorithm> // for min
+#include <algorithm>
 #include <memory>
 #include <cstdint>
 #include <string.h>
@@ -159,7 +159,7 @@ public:
 namespace _detail
 {
 	template<typename Container> inline
-	void EraseBack(Container & c, typename Container::iterator first) { c.erase(first, c.end()); }
+	void EraseEnd(Container & c, typename Container::iterator first) { c.erase(first, c.end()); }
 
 	template<typename Container, typename UnaryPred> inline
 	auto RemoveIf(Container & c, UnaryPred p, int) -> decltype(c.remove_if(p)) { return c.remove_if(p); }
@@ -167,7 +167,7 @@ namespace _detail
 	template<typename Container, typename UnaryPred>
 	void RemoveIf(Container & c, UnaryPred p, long)
 	{
-		_detail::EraseBack( c, std::remove_if(begin(c), end(c), p) );
+		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p) );
 	}
 
 	template<typename Container> inline // pass dummy int to prefer this overload
@@ -176,7 +176,7 @@ namespace _detail
 	template<typename Container>
 	void Unique(Container & c, long)
 	{
-		_detail::EraseBack( c, std::unique(begin(c), end(c)) );
+		_detail::EraseEnd( c, std::unique(begin(c), end(c)) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
