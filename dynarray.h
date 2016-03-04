@@ -70,7 +70,7 @@ typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarr
 * Also, if T is trivially relocatable, it does not need to be move or copy constructible/assignable
 * except when an instance to be moved/copied is passed as an argument by the user.
 * There are a few notable functions for which trivially relocatable T is required (checked when compiling):
-* emplace/insert/insert_r and erase(iterator, iterator)
+* emplace/insert/insert_r, erase(iterator, iterator) and dynarray(dynarray &&, const Alloc &)
 *
 * The default allocator supports over-aligned types (e.g. __m256).
 * In general, only that which differs from std::vector is documented. */
@@ -123,17 +123,14 @@ public:
 	dynarray(std::initializer_list<T> init, const Alloc & a = Alloc{})  : _m(a, init.size())
 	                                                                    { _initPostAllocate(init.begin(), init.size()); }
 	dynarray(dynarray && other) noexcept               : _m(std::move(other._m)) {}
-	/// If a != other.get_allocator() and T is not trivially relocatable,
-	/// behaviour is undefined (triggers OEL_ALWAYS_ASSERT unless NDEBUG defined)
-	dynarray(dynarray && other, const Alloc & a) OEL_NOEXCEPT_NDEBUG;
+	dynarray(dynarray && other, const Alloc & a) noexcept;
 	dynarray(const dynarray & other);
 	dynarray(const dynarray & other, const Alloc & a)  : _m(a, other.size())
 	                                                   { _initPostAllocate(other.data(), other.size()); }
 	~dynarray() noexcept;
 
-	/// If using custom Alloc with propagate_on_container_move_assignment false, behaviour is undefined
-	/// when get_allocator() != other.get_allocator() and T is not trivially relocatable
-	dynarray & operator =(dynarray && other) OEL_NOEXCEPT_NDEBUG;
+	dynarray & operator =(dynarray && other) noexcept;
+	/// Treats Alloc as if it does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other);
 
 	dynarray & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
@@ -529,9 +526,12 @@ private:
 											   { return _sizeOrEnd(r, iterator_traversal_t<Iter>(), int{}); }
 
 
-	void _moveUnequalAlloc(dynarray & src)
+	template<bool IsMoveAssignWithPropagatingAlloc = false>
+	void _allocUnequalMove(dynarray & src)
 	{
-		OEL_ASSERT(is_trivially_relocatable<T>::value);
+		static_assert(is_trivially_relocatable<T>::value || is_always_equal_allocator<Alloc>::value
+					  || IsMoveAssignWithPropagatingAlloc,
+			"This dynarray move requires trivially relocatable T or is_always_equal Alloc (or propagate if move assign)");
 
 		_assignImpl(src.begin(), src.size(), std::true_type{});
 		src._m.end = src._m.data; // elements in src conceptually destroyed
@@ -830,11 +830,11 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) OEL_NOEXCEPT_NDEBUG
+dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) noexcept
  :	_m(a)
 {
-	if (a != other._m && !std::is_empty<Alloc>::value)
-	{	_moveUnequalAlloc(other);
+	if (a != other._m && !is_always_equal_allocator<Alloc>::value)
+	{	_allocUnequalMove(other);
 	}
 	else
 	{
@@ -844,14 +844,14 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) OEL_NOEXCEPT_ND
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) OEL_NOEXCEPT_NDEBUG
+dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 {
 	// TODO: check that this gets optimized out when propagate_on_container_move_assignment
 	if (static_cast<Alloc &>(_m) != other._m &&
 		!_allocTrait::propagate_on_container_move_assignment::value)
 	{
 		_detail::Destroy(_m.data, _m.end);
-		_moveUnequalAlloc(other);
+		_allocUnequalMove<_allocTrait::propagate_on_container_move_assignment::value>(other);
 	}
 	else if (this != &other)
 	{
@@ -870,7 +870,6 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) OEL_NOEXC
 template<typename T, typename Alloc>
 inline dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(const dynarray & other)
 {
-	// No support for allocators that propagate on container copy assignment and compare unequal
 	OEL_ASSERT(!_allocTrait::propagate_on_container_copy_assignment::value || get_allocator() == other.get_allocator());
 
 	assign(other);
