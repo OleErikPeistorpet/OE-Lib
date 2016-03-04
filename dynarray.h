@@ -435,9 +435,9 @@ private:
 
 	template<typename... Unused, typename T1 = T>
 	enable_if_t<is_trivially_relocatable<T1>::value>
-		_relocateData(T * dest, T *, size_type nElems, Unused...)
+		_relocateData(T * dest, T *, size_type count, Unused...)
 	{
-		::memcpy(dest, data(), sizeof(T) * nElems);
+		::memcpy(dest, data(), sizeof(T) * count);
 	}
 
 
@@ -566,14 +566,14 @@ private:
 	template<typename InputIter>
 	InputIter _assignImpl(InputIter src, size_type const count, std::false_type)
 	{
-		auto copy = [](InputIter src, iterator dest, iterator dLast)
+		auto copy = [](InputIter src_, iterator dest, iterator dLast)
 			{
 				while (dest != dLast)
 				{
-					*dest = *src;
-					++src; ++dest;
+					*dest = *src_;
+					++src_; ++dest;
 				}
-				return src;
+				return src_;
 			};
 		pointer newEnd;
 		if (capacity() < count)
@@ -642,31 +642,31 @@ private:
 	}
 
 	template<typename InputIter>
-	InputIter _appendN(InputIter first, size_type const count, std::false_type)
+	InputIter _appendN(InputIter first, size_type const n, std::false_type)
 	{	// cannot use memcpy
-		_appendImpl( count,
-			[&first](T * dest, size_type count, Alloc & al)
+		_appendImpl( n,
+			[&first](T * dest, size_type n_, Alloc & al)
 			{
-				first = _detail::UninitCopy(first, dest, dest + count, al);
+				first = _detail::UninitCopy(first, dest, dest + n_, al);
 			} );
 		return first;
 	}
 
 	template<typename CntigusIter>
-	OEL_FORCEINLINE CntigusIter _appendN(CntigusIter const first, size_type const count, std::true_type)
+	OEL_FORCEINLINE CntigusIter _appendN(CntigusIter const first, size_type const n, std::true_type)
 	{
-		CntigusIter last = first + count;
+		CntigusIter last = first + n;
 	#if OEL_MEM_BOUND_DEBUG_LVL
-		if (count != 0)
+		if (n != 0)
 		{	// Dereference to catch out of range errors if the iterators have internal checks
 			(void)*first;
 			(void)*(last - 1);
 		}
 	#endif
-		_appendImpl( count,
-			[first](T * dest, size_type count, Alloc &)
+		_appendImpl( n,
+			[first](T * dest, size_type n_, Alloc &)
 			{	// Behaviour undefined by standard if first points to null
-				::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * count);
+				::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * n_);
 			} );
 		return last; // has been invalidated in the case of append self and reallocation
 	}
@@ -726,7 +726,7 @@ private:
 	};
 
 	template<typename InputIter>
-	iterator _insertImpl(const_iterator pos, InputIter first, size_type count)
+	iterator _insertImpl(const_iterator pos, InputIter first, size_type n)
 	{
 	#define OEL_DYNARR_INSERT_STEP0  \
 		_detail::AssertTrivialRelocate<T>();  \
@@ -737,16 +737,16 @@ private:
 
 		OEL_DYNARR_INSERT_STEP0
 		using CanMemmove = can_memmove_with<T *, InputIter>;
-		if (_unusedCapacity() >= count)
+		if (_unusedCapacity() >= n)
 		{
-			T *const dLast = pPos + count;
-			// Relocate elements to make space, conceptually destroying [pos, pos + count)
+			T *const dLast = pPos + n;
+			// Relocate elements to make space, conceptually destroying [pos, pos + n)
 			::memmove(dLast, pPos, sizeof(T) * nAfterPos);
-			_m.end += count;
+			_m.end += n;
 			// Construct new
 			OEL_CONST_COND if (CanMemmove::value)
 			{
-				_uninitCopy(CanMemmove(), first, count, pPos, dLast);
+				_uninitCopy(CanMemmove(), first, n, pPos, dLast);
 			}
 			else
 			{
@@ -769,11 +769,11 @@ private:
 		}
 		else // not enough room, reallocate
 		{
-			pPos = _insertRealloc( pPos, nAfterPos, count, _calcCap,
-					[first](dynarray & self, T * newPos, size_type count)
+			pPos = _insertRealloc( pPos, nAfterPos, n, _calcCap,
+					[first](dynarray & self, T * newPos, size_type n_)
 					{
-						T *const next = newPos + count;
-						self._uninitCopy(CanMemmove(), first, count, newPos, next);
+						T *const next = newPos + n_;
+						self._uninitCopy(CanMemmove(), first, n_, newPos, next);
 						return next;
 					} );
 		}
@@ -821,7 +821,7 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 	#pragma warning(suppress : 4100) // unreferenced formal parameter
 #endif
 		_relocateData( newData.ptr, pos, size(),
-					   [](T * pos) { pos-> ~T(); } );
+					   [](T * pos_) { pos_-> ~T(); } );
 		_swapBuf(newData);
 		_m.end = pos;
 	}
@@ -952,12 +952,12 @@ inline auto dynarray<T, Alloc>::assign(const InputRange & src) -> decltype(::adl
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::append(size_type count, const T & val)
+inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 {
-	_appendImpl( count,
-		[&val](T * dest, size_type count, Alloc & a)
+	_appendImpl( n,
+		[&val](T * dest, size_type n_, Alloc & a)
 		{
-			_detail::UninitFill(dest, dest + count, a, val);
+			_detail::UninitFill(dest, dest + n_, a, val);
 		} );
 }
 
@@ -988,12 +988,12 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
 	insert_r(const_iterator pos, const ForwardRange & src)
 {
 	auto first = ::adl_begin(src);
-	auto nElems = _sizeOrEnd<decltype(first)>(src);
+	auto count = _sizeOrEnd<decltype(first)>(src);
 
-	static_assert(std::is_same<decltype(nElems), size_type>::value,
+	static_assert(std::is_same<decltype(count), size_type>::value,
 				  "insert_r requires that source models Forward Range (Boost concept)");
 
-	return _insertImpl(pos, first, nElems);
+	return _insertImpl(pos, first, count);
 }
 
 
