@@ -45,7 +45,7 @@ template<typename T, typename Alloc>
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
 template<typename T, typename A> inline
-void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept  { a.swap(b); }
+void swap(dynarray<T, A> & a, dynarray<T, A> & b) OEL_NOEXCEPT_NDEBUG  { a.swap(b); }
 
 /// Overloads generic erase_unordered(RandomAccessContainer &, RandomAccessContainer::size_type) (in util.h)
 template<typename T, typename A> inline
