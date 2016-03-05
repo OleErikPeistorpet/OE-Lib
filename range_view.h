@@ -51,15 +51,15 @@ public:
 	using size_type       = size_t;  // difference_type would be OK
 
 	/// Initialize to empty
-	counted_view()                                 : _size() {}
+	counted_view() noexcept                        : _size() {}
 	counted_view(iterator first, size_type count)  : _begin(first), _size(count) {}
 	/// Construct from array or container with matching iterator type
 	template<typename SizedRange>
 	counted_view(SizedRange & r)  : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
 
-	size_type size() const   { return _size; }
+	size_type size() const noexcept  { return _size; }
 
-	iterator  begin() const  { return _begin; }
+	iterator  begin() const          { return _begin; }
 
 	/// Increment begin, decrementing size
 	void      drop_front()  { OEL_ASSERT_MEM_BOUND(_size > 0);  ++_begin; --_size; }
@@ -83,7 +83,7 @@ public:
 	using typename _base::difference_type;
 	using typename _base::size_type;
 
-	counted_view() = default;
+	counted_view() noexcept                        {}
 	counted_view(iterator first, size_type count)  : _base(first, count) {}
 	template<typename SizedRange>
 	counted_view(SizedRange & r)                   : _base(::adl_begin(r), oel::ssize(r)) {}
@@ -95,7 +95,7 @@ public:
 
 	/// Return plain pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous)
 	template<typename It1 = Iterator>
-	auto data() const
+	auto data() const noexcept
 	 -> decltype( to_pointer_contiguous(std::declval<It1>()) )  { return to_pointer_contiguous(this->_begin); }
 };
 

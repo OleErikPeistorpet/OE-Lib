@@ -83,6 +83,9 @@ TEST_F(utilTest, indexValid)
 TEST_F(utilTest, countedView)
 {
 	using namespace oel;
+
+	static_assert(std::is_nothrow_move_constructible<counted_view<int *>>::value, "?");
+
 	dynarray<int> i{1, 2};
 	counted_view<dynarray<int>::const_iterator> test = i;
 	EXPECT_EQ(i.size(), test.size());
