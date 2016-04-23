@@ -35,7 +35,7 @@ namespace oel
 
 namespace _detail
 {
-	template<typename Pointer> struct DynarrBase;
+	template<typename> struct DynarrBase;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

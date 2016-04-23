@@ -63,18 +63,22 @@ void erase_successive_dup(Container & c);
 * @brief Copies the elements in source into the range beginning at dest
 * @return an iterator to the end of the destination range
 *
-* The ranges shall not overlap, except if begin(source) equals dest (self assign).
-* To move instead of copy, pass move_range(source)  */
+* If the ranges overlap, behavior is undefined. To move instead of copy, pass move_range(source)  */
 template<typename InputRange, typename OutputIterator>
 OutputIterator copy_unsafe(const InputRange & source, OutputIterator dest);
 
-/// Throws exception if dest is smaller than source
+/**
+* @brief Copies the elements in source into the range dest, throws std::out_of_range if dest is smaller than source
+* @return an iterator to the end of dest
+*
+* The ranges shall not overlap, except if begin(source) equals begin(dest) (self assign).
+* To move instead of copy, pass move_range(source)  */
 template<typename SizedInRange, typename SizedOutRange>
-auto copy(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest));
-// TODO: change what's returned to make it easier to determine if truncation happened
+auto copy(const SizedInRange & source, SizedOutRange & dest) -> decltype(begin(dest));
+// TODO: change what's returned to make it easier to determine if truncation happened?
 /// Copies as many elements as will fit in dest
 template<typename SizedInRange, typename SizedOutRange>
-auto copy_fit(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest));
+auto copy_fit(const SizedInRange & source, SizedOutRange & dest) -> decltype(begin(dest));
 
 
 ///@{
@@ -197,7 +201,8 @@ namespace _detail
 	OutputIter Copy(const InputRange & src, OutputIter dest, std::false_type, long)
 	{
 		OutputIter const dLast = dest + oel::ssize(src);
-		for (auto f = begin(src); dest != dLast; )
+		auto f = begin(src);
+		while (dest != dLast)
 		{
 			*dest = *f;
 			++dest; ++f;
@@ -234,7 +239,6 @@ inline OutputIterator oel::copy_unsafe(const InputRange & src, OutputIterator de
 template<typename SizedInRange, typename SizedOutRange>
 inline auto oel::copy(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest))
 {
-	// TODO: Test for overlap if OEL_MEM_BOUND_DEBUG_LVL
 	if (oel::ssize(src) <= oel::ssize(dest))
 		return oel::copy_unsafe(src, begin(dest));
 	else
@@ -244,8 +248,8 @@ inline auto oel::copy(const SizedInRange & src, SizedOutRange & dest) -> decltyp
 template<typename SizedInRange, typename SizedOutRange>
 inline auto oel::copy_fit(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest))
 {
-	auto smaller = (std::min)(oel::ssize(src), oel::ssize(dest));
-	return oel::copy_unsafe(oel::make_view_n(begin(src), smaller), begin(dest));
+	auto count = (std::min)(oel::ssize(src), oel::ssize(dest));
+	return oel::copy_unsafe(oel::make_view_n(begin(src), count), begin(dest));
 }
 
 
