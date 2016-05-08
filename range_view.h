@@ -10,6 +10,7 @@
 
 #ifndef OEL_NO_BOOST
 	#include <boost/range/iterator_range_core.hpp>
+	#include <boost/iterator/transform_iterator.hpp>
 #endif
 
 
@@ -105,29 +106,41 @@ counted_view<Iterator> make_view_n(Iterator first, typename counted_view<Iterato
 	{ return {first, count}; }
 
 
-/// Create an iterator_range of move_iterator from two iterators
-template<typename InputIterator> inline
-iterator_range< std::move_iterator<InputIterator> >
-	move_range(InputIterator first, InputIterator last)  { using MoveIt = std::move_iterator<InputIterator>;
-	                                                       return {MoveIt{first}, MoveIt{last}}; }
+namespace view
+{
+	/// Create an iterator_range of move_iterator from two iterators
+	template<typename InputIterator> inline
+	iterator_range< std::move_iterator<InputIterator> >
+		move(InputIterator first, InputIterator last)  { using MoveIt = std::move_iterator<InputIterator>;
+														 return {MoveIt{first}, MoveIt{last}}; }
 
-/// Create a counted_view of move_iterator from iterator and count
-template<typename InputIterator> inline
-counted_view< std::move_iterator<InputIterator> >
-	move_range_n(InputIterator first, typename counted_view< std::move_iterator<InputIterator> >::size_type count)
-	{ return {std::make_move_iterator(first), count}; }
+	/// Create a counted_view of move_iterator from iterator and count
+	template<typename InputIterator> inline
+	counted_view< std::move_iterator<InputIterator> >
+		move_n(InputIterator first, typename counted_view< std::move_iterator<InputIterator> >::size_type count)
+		{ return {std::make_move_iterator(first), count}; }
 
-/// Create a counted_view of move_iterator from reference to an array or container
-template<typename Container> inline
-auto move_range(Container & c)
- -> counted_view< std::move_iterator<decltype(begin(c))> >  { return oel::move_range_n(begin(c), oel::ssize(c)); }
-/// Create a counted_view of move_iterator from counted_view
-template<typename InputIterator> inline
-counted_view< std::move_iterator<InputIterator> >
-	move_range(counted_view<InputIterator> v)  { return {std::make_move_iterator(v.begin()), v.size()}; }
-/// Create an iterator_range of move_iterator from iterator_range
-template<typename InputIterator> inline
-iterator_range< std::move_iterator<InputIterator> >
-	move_range(iterator_range<InputIterator> r)  { return oel::move_range(r.begin(), r.end()); }
+	/// Create a counted_view of move_iterator from reference to an array or container
+	template<typename Container> inline
+	auto move(Container & c)
+	 -> counted_view< std::move_iterator<decltype(begin(c))> >  { return view::move_n(begin(c), oel::ssize(c)); }
+	/// Create a counted_view of move_iterator from counted_view
+	template<typename InputIterator> inline
+	counted_view< std::move_iterator<InputIterator> >
+		move(counted_view<InputIterator> v)  { return {std::make_move_iterator(v.begin()), v.size()}; }
+	/// Create an iterator_range of move_iterator from iterator_range
+	template<typename InputIterator> inline
+	iterator_range< std::move_iterator<InputIterator> >
+		move(iterator_range<InputIterator> r)  { return view::move(r.begin(), r.end()); }
+
+
+#ifndef OEL_NO_BOOST
+	/// Create a counted_view of boost::transform_iterator from range reference
+	template<typename UnaryFunc, typename SizedRange> inline
+	auto transform(SizedRange && r, UnaryFunc f)
+	 -> counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
+		{ return {boost::make_transform_iterator(begin(r), f), oel::ssize(r)}; }
+#endif
+}
 
 } // namespace oel

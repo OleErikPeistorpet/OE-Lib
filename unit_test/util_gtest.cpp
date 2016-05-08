@@ -97,6 +97,36 @@ TEST_F(utilTest, countedView)
 	EXPECT_EQ(2, test.end()[-1]);
 }
 
+TEST_F(utilTest, viewTransform)
+{
+	using namespace oel;
+
+	int src[] { 1, 2, 3 };
+
+	struct Functor
+	{
+		void operator()(int &) const
+		{}
+		int operator()(const int & i) const
+		{
+			return i * i;
+		}
+	};
+	const auto & constRef = src;
+	dynarray<int> test( view::transform(constRef, Functor{}) );
+	EXPECT_EQ(3U, test.size());
+	EXPECT_EQ(1, test[0]);
+	EXPECT_EQ(4, test[1]);
+	EXPECT_EQ(9, test[2]);
+
+	test.append( view::transform(make_view_n(src, 2), [](int & i) { return i++; }) );
+	EXPECT_EQ(5U, test.size());
+	EXPECT_EQ(1, test[3]);
+	EXPECT_EQ(2, test[4]);
+	EXPECT_EQ(2, src[0]);
+	EXPECT_EQ(3, src[1]);
+}
+
 TEST_F(utilTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
@@ -116,7 +146,7 @@ TEST_F(utilTest, copy)
 
 	std::list<std::string> li{"aa", "bb"};
 	std::array<std::string, 2> strDest;
-	oel::copy_unsafe(oel::move_range(li), begin(strDest));
+	oel::copy_unsafe(oel::view::move(li), begin(strDest));
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
 	EXPECT_TRUE(li.front().empty());

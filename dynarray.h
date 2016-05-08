@@ -375,6 +375,7 @@ private:
 	void _swapAlloc(std::false_type, _dataOwner & o)
 	{	// propagate_on_container_swap false, standard says this is undefined if allocators compare unequal
 		OEL_ASSERT(get_allocator() == static_cast<Alloc &>(o));
+		(void) o;
 	}
 
 
