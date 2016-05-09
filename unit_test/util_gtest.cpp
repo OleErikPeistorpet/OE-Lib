@@ -103,17 +103,13 @@ TEST_F(utilTest, viewTransform)
 
 	int src[] { 1, 2, 3 };
 
-	struct Functor
-	{
-		void operator()(int &) const
-		{}
-		int operator()(const int & i) const
+	struct Fun
+	{	int operator()(int i) const
 		{
 			return i * i;
 		}
 	};
-	const auto & constRef = src;
-	dynarray<int> test( view::transform(constRef, Functor{}) );
+	dynarray<int> test( view::transform(src, Fun{}) );
 	EXPECT_EQ(3U, test.size());
 	EXPECT_EQ(1, test[0]);
 	EXPECT_EQ(4, test[1]);

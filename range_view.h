@@ -42,18 +42,18 @@ iterator_range<Iterator> make_view(Iterator first, Iterator last)  { return {fir
 /// Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
 template< typename Iterator,
           bool = std::is_base_of<std::random_access_iterator_tag,
-                                 typename std::iterator_traits<Iterator>::iterator_category>::value >
+                                 typename iterator_traits<Iterator>::iterator_category>::value >
 class counted_view
 {
 public:
 	using iterator        = Iterator;
-	using value_type      = typename std::iterator_traits<Iterator>::value_type;
-	using difference_type = typename std::iterator_traits<Iterator>::difference_type;
-	using size_type       = size_t;  // difference_type would be OK
+	using value_type      = typename iterator_traits<Iterator>::value_type;
+	using difference_type = typename iterator_traits<Iterator>::difference_type;
+	using size_type       = size_t;  // difference_type (signed) would be fine
 
 	/// Initialize to empty
-	counted_view() noexcept                        : _size() {}
-	counted_view(iterator first, size_type count)  : _begin(first), _size(count) {}
+	counted_view() noexcept                              : _size() {}
+	counted_view(iterator first, difference_type count)  : _begin(first), _size(count) { OEL_ASSERT_MEM_BOUND(count >= 0); }
 	/// Construct from array or container with matching iterator type
 	template<typename SizedRange>
 	counted_view(SizedRange & r)  : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
@@ -83,16 +83,16 @@ public:
 	using typename _base::value_type;
 	using typename _base::difference_type;
 	using typename _base::size_type;
+	using reference = typename iterator_traits<Iterator>::reference;
 
-	counted_view() noexcept                        {}
-	counted_view(iterator first, size_type count)  : _base(first, count) {}
+	counted_view() noexcept                              {}
+	counted_view(iterator first, difference_type count)  : _base(first, count) {}
 	template<typename SizedRange>
-	counted_view(SizedRange & r)                   : _base(::adl_begin(r), oel::ssize(r)) {}
+	counted_view(SizedRange & r)                         : _base(::adl_begin(r), oel::ssize(r)) {}
 
 	iterator  end() const   { return this->_begin + this->_size; }
 
-	typename std::iterator_traits<Iterator>::reference
-		operator[](difference_type index) const  { return this->_begin[index]; }
+	reference operator[](difference_type index) const  { return this->_begin[index]; }
 
 	/// Return plain pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous)
 	template<typename It1 = Iterator>
@@ -102,7 +102,7 @@ public:
 
 /// Create a counted_view from iterator and count, with type deduced from first
 template<typename Iterator> inline
-counted_view<Iterator> make_view_n(Iterator first, typename counted_view<Iterator>::size_type count)
+counted_view<Iterator> make_view_n(Iterator first, typename iterator_traits<Iterator>::difference_type count)
 	{ return {first, count}; }
 
 
@@ -112,12 +112,12 @@ namespace view
 	template<typename InputIterator> inline
 	iterator_range< std::move_iterator<InputIterator> >
 		move(InputIterator first, InputIterator last)  { using MoveIt = std::move_iterator<InputIterator>;
-														 return {MoveIt{first}, MoveIt{last}}; }
+		                                                 return {MoveIt{first}, MoveIt{last}}; }
 
 	/// Create a counted_view of move_iterator from iterator and count
 	template<typename InputIterator> inline
 	counted_view< std::move_iterator<InputIterator> >
-		move_n(InputIterator first, typename counted_view< std::move_iterator<InputIterator> >::size_type count)
+		move_n(InputIterator first, typename iterator_traits<InputIterator>::difference_type count)
 		{ return {std::make_move_iterator(first), count}; }
 
 	/// Create a counted_view of move_iterator from reference to an array or container
@@ -127,7 +127,7 @@ namespace view
 	/// Create a counted_view of move_iterator from counted_view
 	template<typename InputIterator> inline
 	counted_view< std::move_iterator<InputIterator> >
-		move(counted_view<InputIterator> v)  { return {std::make_move_iterator(v.begin()), v.size()}; }
+		move(counted_view<InputIterator> v)  { return view::move_n(v.begin(), v.size()); }
 	/// Create an iterator_range of move_iterator from iterator_range
 	template<typename InputIterator> inline
 	iterator_range< std::move_iterator<InputIterator> >

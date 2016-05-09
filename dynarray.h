@@ -27,7 +27,7 @@ namespace oel
 	using boost::single_pass_traversal_tag;
 #else
 	template<typename Iterator>
-	using iterator_traversal_t = typename std::iterator_traits<Iterator>::iterator_category;
+	using iterator_traversal_t = typename iterator_traits<Iterator>::iterator_category;
 
 	using forward_traversal_tag = std::forward_iterator_tag;
 	using single_pass_traversal_tag = std::input_iterator_tag;
