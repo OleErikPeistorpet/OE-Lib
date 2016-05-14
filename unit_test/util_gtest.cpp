@@ -2,6 +2,7 @@
 #include "dynarray.h"
 #include "gtest/gtest.h"
 #include <list>
+#include <forward_list>
 #include <deque>
 #include <array>
 #include <set>
@@ -115,7 +116,8 @@ TEST_F(utilTest, viewTransform)
 	EXPECT_EQ(4, test[1]);
 	EXPECT_EQ(9, test[2]);
 
-	test.append( view::transform(make_view_n(src, 2), [](int & i) { return i++; }) );
+	auto v = make_view_n(src, 2);
+	test.append( view::transform(v, [](int & i) { return i++; }) );
 	EXPECT_EQ(5U, test.size());
 	EXPECT_EQ(1, test[3]);
 	EXPECT_EQ(2, test[4]);
@@ -140,13 +142,13 @@ TEST_F(utilTest, copy)
 	oel::copy(test2, test);
 	EXPECT_EQ(-7, test[4]);
 
-	std::list<std::string> li{"aa", "bb"};
+	std::forward_list<std::string> li{"aa", "bb"};
 	std::array<std::string, 2> strDest;
-	oel::copy_unsafe(oel::view::move(li), begin(strDest));
+	oel::copy_unsafe(oel::view::move_iter_rng(li), begin(strDest));
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
-	EXPECT_TRUE(li.front().empty());
-	EXPECT_TRUE(li.back().empty());
+	EXPECT_TRUE(li.begin()->empty());
+	EXPECT_TRUE(std::next(li.begin())->empty());
 }
 
 TEST_F(utilTest, makeUnique)

@@ -6,7 +6,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "core_util.h"
 #include "range_view.h"
 
 #include <algorithm>
@@ -186,7 +185,7 @@ namespace _detail
 ////////////////////////////////////////////////////////////////////////////////
 
 	template<typename InputRange, typename OutputIter> inline
-	auto Copy(const InputRange & src, OutputIter dest, std::false_type, int) -> decltype(end(src), dest)
+	auto Copy(const InputRange & src, OutputIter dest, std::false_type, int) -> decltype(end(src), OutputIter{})
 	{
 		auto f = begin(src); auto l = end(src);
 		while (f != l)

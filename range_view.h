@@ -108,38 +108,37 @@ counted_view<Iterator> make_view_n(Iterator first, typename iterator_traits<Iter
 
 namespace view
 {
-	/// Create an iterator_range of move_iterator from two iterators
-	template<typename InputIterator> inline
-	iterator_range< std::move_iterator<InputIterator> >
-		move(InputIterator first, InputIterator last)  { using MoveIt = std::move_iterator<InputIterator>;
-		                                                 return {MoveIt{first}, MoveIt{last}}; }
 
-	/// Create a counted_view of move_iterator from iterator and count
-	template<typename InputIterator> inline
-	counted_view< std::move_iterator<InputIterator> >
-		move_n(InputIterator first, typename iterator_traits<InputIterator>::difference_type count)
-		{ return {std::make_move_iterator(first), count}; }
+/// Create an iterator_range of std::move_iterator from two iterators
+template<typename InputIterator> inline
+iterator_range< std::move_iterator<InputIterator> >
+	move(InputIterator first, InputIterator last)  { using MoveIt = std::move_iterator<InputIterator>;
+	                                                 return {MoveIt{first}, MoveIt{last}}; }
 
-	/// Create a counted_view of move_iterator from reference to an array or container
-	template<typename Container> inline
-	auto move(Container & c)
-	 -> counted_view< std::move_iterator<decltype(begin(c))> >  { return view::move_n(begin(c), oel::ssize(c)); }
-	/// Create a counted_view of move_iterator from counted_view
-	template<typename InputIterator> inline
-	counted_view< std::move_iterator<InputIterator> >
-		move(counted_view<InputIterator> v)  { return view::move_n(v.begin(), v.size()); }
-	/// Create an iterator_range of move_iterator from iterator_range
-	template<typename InputIterator> inline
-	iterator_range< std::move_iterator<InputIterator> >
-		move(iterator_range<InputIterator> r)  { return view::move(r.begin(), r.end()); }
+/// Create a counted_view with move_iterator from iterator and count
+template<typename InputIterator> inline
+counted_view< std::move_iterator<InputIterator> >
+	move_n(InputIterator first, typename iterator_traits<InputIterator>::difference_type count)
+	{ return {std::make_move_iterator(first), count}; }
 
+/// Create a counted_view with move_iterator from a range with size() member or an array
+template<typename SizedRange> inline
+auto move(SizedRange & r)
+ -> counted_view< std::move_iterator<decltype(begin(r))> >  { return view::move_n(begin(r), oel::ssize(r)); }
+
+/// Create an iterator_range of move_iterator from a range
+template<typename InputRange> inline
+auto move_iter_rng(InputRange & r)
+ -> iterator_range< std::move_iterator<decltype(begin(r))> >  { return view::move(begin(r), end(r)); }
 
 #ifndef OEL_NO_BOOST
-	/// Create a counted_view of boost::transform_iterator from range reference
+	/** @brief Create a view with boost::transform_iterator from a range with size() member or an array
+	*
+	* Similar to boost::adaptors::transform, but more efficient with typical use  */
 	template<typename UnaryFunc, typename SizedRange> inline
-	auto transform(SizedRange && r, UnaryFunc f)
+	auto transform(SizedRange & r, UnaryFunc f)
 	 -> counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
-		{ return {boost::make_transform_iterator(begin(r), f), oel::ssize(r)}; }
+		{ return {boost::make_transform_iterator(begin(r), std::move(f)), oel::ssize(r)}; }
 #endif
 }
 
