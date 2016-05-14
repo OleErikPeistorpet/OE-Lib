@@ -428,7 +428,7 @@ private:
 
 	template<typename FuncTakingLast = _detail::NoOp, typename T1 = T>
 	enable_if_t<! is_trivially_relocatable<T1>::value>
-		_relocateData(T * dFirst, T * dLast, size_type, FuncTakingLast extraCleanupIfException = {})
+		_relocateData(T * dFirst, T * dLast, size_type, FuncTakingLast extraCleanupIfException = FuncTakingLast{})
 	{
 		_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m, extraCleanupIfException);
 		_detail::Destroy(_m.data, _m.end);
