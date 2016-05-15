@@ -527,13 +527,8 @@ private:
 											   { return _sizeOrEnd(r, iterator_traversal_t<Iter>(), int{}); }
 
 
-	template<bool IsMoveAssignWithPropagatingAlloc = false>
 	void _allocUnequalMove(dynarray & src)
-	{
-		static_assert(is_trivially_relocatable<T>::value || is_always_equal_allocator<Alloc>::value
-					  || IsMoveAssignWithPropagatingAlloc,
-			"This dynarray move requires trivially relocatable T or is_always_equal Alloc (or propagate if move assign)");
-
+	{	// requires trivially relocatable T
 		_assignImpl(src.begin(), src.size(), std::true_type{});
 		src._m.end = src._m.data; // elements in src conceptually destroyed
 	}
@@ -834,6 +829,9 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) noexcept
  :	_m(a)
 {
+	static_assert(is_trivially_relocatable<T>::value || is_always_equal_allocator<Alloc>::value,
+		"This move constructor requires trivially relocatable T or always equal Alloc");
+
 	if (a != other._m && !is_always_equal_allocator<Alloc>::value)
 	{	_allocUnequalMove(other);
 	}
@@ -847,12 +845,16 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) noexcept
 template<typename T, typename Alloc>
 dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 {
+	static_assert(is_trivially_relocatable<T>::value || is_always_equal_allocator<Alloc>::value
+		|| _allocTrait::propagate_on_container_move_assignment::value,
+		"This move requires trivially relocatable T, Alloc::propagate_on_container_move_assignment or always equal Alloc");
+
 	// TODO: check that this gets optimized out when propagate_on_container_move_assignment
 	if (static_cast<Alloc &>(_m) != other._m &&
 		!_allocTrait::propagate_on_container_move_assignment::value)
 	{
 		_detail::Destroy(_m.data, _m.end);
-		_allocUnequalMove<_allocTrait::propagate_on_container_move_assignment::value>(other);
+		_allocUnequalMove(other);
 	}
 	else if (this != &other)
 	{
