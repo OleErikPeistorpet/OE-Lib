@@ -58,6 +58,7 @@ struct throwingAlloc : public oel::allocator<T>
 		return oel::allocator<T>::allocate(nObjs);
 	}
 };
+static_assert(! oel::is_always_equal_allocator<throwingAlloc<int>>::value, "?");
 
 // The fixture for testing dynarray.
 class dynarrayTest : public ::testing::Test
@@ -96,7 +97,7 @@ TEST_F(dynarrayTest, oelDynarrWithStdAlloc)
 		EXPECT_EQ(0, MoveOnly::nDestruct);
 
 		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
-		v.assign(oel::move_range(arr));
+		v.assign(oel::view::move(arr));
 		EXPECT_THROW( v.emplace_back(ThrowOnConstruct), TestException );
 		EXPECT_EQ(2, ssize(v));
 		EXPECT_TRUE(1.0 == *v[0]);
@@ -258,13 +259,13 @@ TEST_F(dynarrayTest, assign)
 						 MoveOnly{VALUES[1]} };
 		dynarray<MoveOnly> test;
 
-		test.assign(oel::move_range(src));
+		test.assign(oel::view::move(src));
 
 		EXPECT_EQ(2U, test.size());
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(oel::move_range_n(src, 0));
+		test.assign(oel::view::move_n(src, 0));
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);

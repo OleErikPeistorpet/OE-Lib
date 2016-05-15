@@ -62,6 +62,19 @@ struct allocator
 };
 
 
+namespace _detail
+{
+	template<typename T>
+	typename T::is_always_equal IsAlwaysEqual(int);
+	template<typename T>
+	std::is_empty<T>            IsAlwaysEqual(long);
+}
+
+/// Part of std::allocator_traits for C++17
+template<typename Alloc>
+using is_always_equal_allocator  = decltype( _detail::IsAlwaysEqual<Alloc>(int{}) );
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -116,10 +129,10 @@ namespace _detail
 		::operator delete(ptr);
 	}
 
+#ifndef OEL_NO_BOOST
 	template<size_t Align>
 	void * OpNew(std::false_type, size_t const nBytes)
 	{
-	#ifndef OEL_NO_BOOST
 		if (nBytes > 0) // test could be removed if using MSVC _aligned_malloc
 		{
 			for (;;)
@@ -143,14 +156,8 @@ namespace _detail
 		else
 		{	return nullptr;
 		}
-	#else
-		static_assert(Align == -1, // false
-			"The value of Align is not supported by operator new. Boost v1.56 required (and OEL_NO_BOOST not defined).");
-		return nullptr;
-	#endif
 	}
 
-#ifndef OEL_NO_BOOST
 	inline void OpDelete(std::false_type, void * ptr)
 	{
 		boost::alignment::aligned_free(ptr);
@@ -162,8 +169,12 @@ namespace _detail
 template<typename T>
 inline T * allocator<T>::allocate(size_t nObjects)
 {
-	void * p = _detail::OpNew<OEL_ALIGNOF(T)>(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(),
-											  sizeof(T) * nObjects);
+	using CanDefaultAlloc = _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>;
+#ifdef OEL_NO_BOOST
+	static_assert(CanDefaultAlloc::value,
+		"The value of Align is not supported by operator new. Boost v1.56 required (and OEL_NO_BOOST not defined).");
+#endif
+	void * p = _detail::OpNew<OEL_ALIGNOF(T)>(CanDefaultAlloc{}, sizeof(T) * nObjects);
 	return static_cast<T *>(p);
 }
 

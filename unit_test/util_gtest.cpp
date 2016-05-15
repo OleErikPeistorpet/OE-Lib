@@ -2,6 +2,7 @@
 #include "dynarray.h"
 #include "gtest/gtest.h"
 #include <list>
+#include <forward_list>
 #include <deque>
 #include <array>
 #include <set>
@@ -83,6 +84,9 @@ TEST_F(utilTest, indexValid)
 TEST_F(utilTest, countedView)
 {
 	using namespace oel;
+
+	static_assert(std::is_nothrow_move_constructible<counted_view<int *>>::value, "?");
+
 	dynarray<int> i{1, 2};
 	counted_view<dynarray<int>::const_iterator> test = i;
 	EXPECT_EQ(i.size(), test.size());
@@ -92,6 +96,33 @@ TEST_F(utilTest, countedView)
 	test.drop_front();
 	EXPECT_EQ(1U, test.size());
 	EXPECT_EQ(2, test.end()[-1]);
+}
+
+TEST_F(utilTest, viewTransform)
+{
+	using namespace oel;
+
+	int src[] { 1, 2, 3 };
+
+	struct Fun
+	{	int operator()(int i) const
+		{
+			return i * i;
+		}
+	};
+	dynarray<int> test( view::transform(src, Fun{}) );
+	EXPECT_EQ(3U, test.size());
+	EXPECT_EQ(1, test[0]);
+	EXPECT_EQ(4, test[1]);
+	EXPECT_EQ(9, test[2]);
+
+	auto v = make_view_n(src, 2);
+	test.append( view::transform(v, [](int & i) { return i++; }) );
+	EXPECT_EQ(5U, test.size());
+	EXPECT_EQ(1, test[3]);
+	EXPECT_EQ(2, test[4]);
+	EXPECT_EQ(2, src[0]);
+	EXPECT_EQ(3, src[1]);
 }
 
 TEST_F(utilTest, copy)
@@ -111,13 +142,13 @@ TEST_F(utilTest, copy)
 	oel::copy(test2, test);
 	EXPECT_EQ(-7, test[4]);
 
-	std::list<std::string> li{"aa", "bb"};
+	std::forward_list<std::string> li{"aa", "bb"};
 	std::array<std::string, 2> strDest;
-	oel::copy_unsafe(oel::move_range(li), begin(strDest));
+	oel::copy_unsafe(oel::view::move_iter_rng(li), begin(strDest));
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
-	EXPECT_TRUE(li.front().empty());
-	EXPECT_TRUE(li.back().empty());
+	EXPECT_TRUE(li.begin()->empty());
+	EXPECT_TRUE(std::next(li.begin())->empty());
 }
 
 TEST_F(utilTest, makeUnique)
