@@ -1,25 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
    <Type Name="oel::dynarray&lt;*&gt;">
-      <DisplayString Condition="_end - _data._Myptr &gt; 2">size={_end - _data._Myptr} {{{_data._Myptr[0]}, ... {_end[-1]}}}</DisplayString>
-      <DisplayString Condition="_end - _data._Myptr == 2">size=2 {{{_data._Myptr[0]}, {_end[-1]}}}</DisplayString>
-      <DisplayString Condition="_end - _data._Myptr == 1">size=1 {{{_data._Myptr[0]}}}</DisplayString>
-      <DisplayString>size=0</DisplayString>
+      <DisplayString Condition="_end == *($T1**)&amp;_data">{{size=0}}</DisplayString>
+      <DisplayString>{{size={_end - *($T1**)&amp;_data} back={_end[-1]}}}</DisplayString>
       <Expand>
-         <Item Name="capacity" ExcludeView="simple">_reserveEnd - _data._Myptr</Item>
+         <Item Name="[capacity]" ExcludeView="simple">_reserveEnd - *($T1**)&amp;_data</Item>
          <ArrayItems>
-            <Size>_end - _data._Myptr</Size>
-            <ValuePointer>_data._Myptr</ValuePointer>
+            <Size>_end - *($T1**)&amp;_data</Size>
+            <ValuePointer>*($T1**)&amp;_data</ValuePointer>
          </ArrayItems>
       </Expand>
    </Type>
 
    <Type Name="oel::cntigus_ctr_dbg_iterator&lt; *, oel::dynarray&lt;*&gt; &gt;">
       <DisplayString Condition="_pElem == _myCont-&gt;_end">end</DisplayString>
-      <DisplayString>[{_pElem - _myCont-&gt;_data._Myptr}] {*_pElem}</DisplayString>
+      <DisplayString>[{_pElem - *($T1*)_myCont}] {*_pElem}</DisplayString>
       <Expand>
-         <Item Name="ptr" ExcludeView="simple">(void*)_pElem</Item>
-         <Item Name="owner">_myCont</Item>
+         <Item Name="[owner]">_myCont</Item>
+         <Item Name="[pointer]" ExcludeView="simple">_pElem</Item>
       </Expand>
    </Type>
 </AutoVisualizer>
