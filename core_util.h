@@ -36,7 +36,7 @@
 
 
 #ifndef OEL_HALT
-	/// Could throw an exception. Or write to log with __FILE__ and __LINE__, show a message, then abort.
+	/// Could throw an exception instead. Or write to log with __FILE__ and __LINE__, show a message, then abort.
 	#if _MSC_VER
 		#define OEL_HALT(failedCond) __debugbreak()
 	#else
