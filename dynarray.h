@@ -523,8 +523,8 @@ private:
 																				{ return ::adl_end(r); }
 	// Returns element count as size_type if possible, else adl_end(r)
 	template<typename Iter, typename Range>
-	static auto _sizeOrEnd(const Range & r) -> decltype(_sizeOrEnd(r, iterator_traversal_t<Iter>(), int{}))
-											   { return _sizeOrEnd(r, iterator_traversal_t<Iter>(), int{}); }
+	static auto _sizeOrEnd(const Range & r) -> decltype(_sizeOrEnd(r, iterator_traversal_t<Iter>(), 0))
+											   { return _sizeOrEnd(r, iterator_traversal_t<Iter>(), 0); }
 
 
 	void _allocUnequalMove(dynarray & src)
@@ -720,68 +720,19 @@ private:
 			return newPos + 1;
 		}
 	};
-
-	template<typename InputIter>
-	iterator _insertImpl(const_iterator pos, InputIter first, size_type n)
-	{
-	#define OEL_DYNARR_INSERT_STEP0  \
-		_detail::AssertTrivialRelocate<T>();  \
-		\
-		auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
-		OEL_ASSERT_MEM_BOUND(_m.data <= pPos && pPos <= _m.end);  \
-		size_type const nAfterPos = _m.end - pPos;
-
-		OEL_DYNARR_INSERT_STEP0
-		using CanMemmove = can_memmove_with<T *, InputIter>;
-		if (_unusedCapacity() >= n)
-		{
-			T *const dLast = pPos + n;
-			// Relocate elements to make space, conceptually destroying [pos, pos + n)
-			::memmove(dLast, pPos, sizeof(T) * nAfterPos);
-			_m.end += n;
-			// Construct new
-			OEL_CONST_COND if (CanMemmove::value)
-			{
-				_uninitCopy(CanMemmove(), first, n, pPos, dLast);
-			}
-			else
-			{
-				T * dest = pPos;
-				OEL_TRY_
-				{
-					while (dest != dLast)
-					{
-						_allocTrait::construct(_m, dest, *first);
-						++first; ++dest;
-					}
-				}
-				OEL_CATCH_ALL
-				{	// relocate back to fill hole
-					::memmove(dest, dLast, sizeof(T) * nAfterPos);
-					_m.end -= (dLast - dest);
-					OEL_WHEN_EXCEPTIONS_ON(throw);
-				}
-			}
-		}
-		else // not enough room, reallocate
-		{
-			pPos = _insertRealloc( pPos, nAfterPos, n, _calcCap,
-					[first](dynarray & self, T * newPos, size_type n_)
-					{
-						T *const next = newPos + n_;
-						self._uninitCopy(CanMemmove(), first, n_, newPos, next);
-						return next;
-					} );
-		}
-		return _iterator{pPos, &_m};
-	}
 };
 
 template<typename T, typename Alloc> template<typename... Args>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
 {
-	OEL_DYNARR_INSERT_STEP0
+#define OEL_DYNARR_INSERT_STEP0  \
+	_detail::AssertTrivialRelocate<T>();  \
+	\
+	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
+	OEL_ASSERT_MEM_BOUND(_m.data <= pPos && pPos <= _m.end);  \
+	size_type const nAfterPos = _m.end - pPos;
 
+	OEL_DYNARR_INSERT_STEP0
 	if (_m.end < _m.reservEnd) // then new element fits
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
@@ -796,6 +747,61 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 	else
 	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
 							  _emplaceMakeElem{}, std::forward<Args>(args)...);
+	}
+	return _iterator{pPos, &_m};
+}
+
+template<typename T, typename Alloc> template<typename ForwardRange>
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src)
+{
+	auto first = ::adl_begin(src);
+
+	static_assert(std::is_base_of< forward_traversal_tag, iterator_traversal_t<decltype(first)> >::value,
+				  "insert_r requires that source models Forward Range (Boost concept)");
+
+	OEL_DYNARR_INSERT_STEP0
+
+	using CanMemmove = can_memmove_with<T *, decltype(first)>;
+	size_type const count = _sizeOrEnd<decltype(first)>(src);
+	if (_unusedCapacity() >= count)
+	{
+		T *const dLast = pPos + count;
+		// Relocate elements to make space, conceptually destroying [pos, pos + n)
+		::memmove(dLast, pPos, sizeof(T) * nAfterPos);
+		_m.end += count;
+		// Construct new
+		OEL_CONST_COND if (CanMemmove::value)
+		{
+			_uninitCopy(CanMemmove(), first, count, pPos, dLast);
+		}
+		else
+		{
+			T * dest = pPos;
+			OEL_TRY_
+			{
+				while (dest != dLast)
+				{
+					_allocTrait::construct(_m, dest, *first);
+					++first; ++dest;
+				}
+			}
+			OEL_CATCH_ALL
+			{	// relocate back to fill hole
+				::memmove(dest, dLast, sizeof(T) * nAfterPos);
+				_m.end -= (dLast - dest);
+				OEL_WHEN_EXCEPTIONS_ON(throw);
+			}
+		}
+	}
+	else // not enough room, reallocate
+	{
+		pPos = _insertRealloc( pPos, nAfterPos, count, _calcCap,
+			[first](dynarray & self, T * newPos, size_type count_)
+			{
+				T *const next = newPos + count_;
+				self._uninitCopy(CanMemmove(), first, count_, newPos, next);
+				return next;
+			} );
 	}
 	return _iterator{pPos, &_m};
 }
@@ -984,19 +990,6 @@ template<typename T, typename Alloc>
 OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(std::initializer_list<T> il)
 {
 	return append<>(il);
-}
-
-template<typename T, typename Alloc> template<typename ForwardRange>
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::
-	insert_r(const_iterator pos, const ForwardRange & src)
-{
-	auto first = ::adl_begin(src);
-	auto count = _sizeOrEnd<decltype(first)>(src);
-
-	static_assert(std::is_same<decltype(count), size_type>::value,
-				  "insert_r requires that source models Forward Range (Boost concept)");
-
-	return _insertImpl(pos, first, count);
 }
 
 

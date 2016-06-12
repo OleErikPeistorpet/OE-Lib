@@ -131,6 +131,7 @@ template<typename InputRange> inline
 auto move_iter_rng(InputRange & r)
  -> iterator_range< std::move_iterator<decltype(begin(r))> >  { return view::move(begin(r), end(r)); }
 
+
 #ifndef OEL_NO_BOOST
 	/** @brief Create a view with boost::transform_iterator from a range with size() member or an array
 	*
