@@ -1,16 +1,14 @@
-#include "forward_decl_test.h"
 #include "generic_array_test.h"
+#include "dynarray.h"
 
 /// @cond INTERNAL
-
-class ForwDeclared { char c; };
 
 int MyCounter::nConstruct;
 int MyCounter::nDestruct;
 
 
 using oel::dynarray;
-using oel::make_view;
+using oel::make_iterator_range;
 using oel::make_view_n;
 
 namespace statictest
@@ -112,9 +110,14 @@ TEST_F(dynarrayTest, construct)
 		ASSERT_TRUE(oel::allocator<std::string>{} == a);
 	}
 
-	{
-		Outer o;
-	}
+	dynarray<std::string> a;
+	decltype(a) b(a);
+	ASSERT_EQ(0U, b.size());
+
+	EXPECT_TRUE(dynarray<int>::const_iterator{} == dynarray<int>::iterator{});
+
+	dynarray<int> ints(0, {});
+	EXPECT_TRUE(ints.empty());
 
 	using Internal = std::deque<double *>;
 	dynarray<Internal> test{Internal(5), Internal()};
@@ -252,9 +255,9 @@ TEST_F(dynarrayTest, misc)
 	dest0.reserve(1);
 	dest0 = daSrc;
 
-	dest0.append_ret_src( make_view_n(cbegin(daSrc), daSrc.size()) );
+	dest0.append( make_view_n(cbegin(daSrc), daSrc.size()) );
 	dest0.append(make_view_n(fASrc, 2));
-	auto srcEnd = dest0.append_ret_src( make_view_n(dequeSrc.begin(), dequeSrc.size()) );
+	auto srcEnd = dest0.append( make_view_n(dequeSrc.begin(), dequeSrc.size()) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;
@@ -267,20 +270,6 @@ TEST_F(dynarrayTest, misc)
 	dest1.pop_back();
 	dest1.shrink_to_fit();
 	EXPECT_GT(cap, dest1.capacity());
-
-	{
-		dynarray<int> di{1, -2};
-		auto it = begin(di);
-		it = di.erase_unordered(it);
-		EXPECT_EQ(-2, *it);
-		it = di.erase_unordered(it);
-		EXPECT_EQ(end(di), it);
-
-		di = {1, -2};
-		erase_unordered(di, 1);
-		erase_unordered(di, 0);
-		EXPECT_TRUE(di.empty());
-	}
 }
 
 /// @endcond

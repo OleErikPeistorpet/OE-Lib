@@ -1,113 +1,14 @@
+#include "test_classes.h"
 #include "range_view.h"
 #include "compat/std_classes_extra.h"
 
-#include "gtest/gtest.h"
 #include <cstdint>
 #include <deque>
-#include <memory>
 
 /// @cond INTERNAL
-struct ThrowOnConstructT {} const ThrowOnConstruct;
-struct ThrowOnMoveOrCopyT {} const ThrowOnMoveOrCopy;
-
-class TestException : public std::exception {};
-
-struct MyCounter
-{
-	static int nConstruct;
-	static int nDestruct;
-
-	static void ClearCount()
-	{
-		nConstruct = nDestruct = 0;
-	}
-};
-
-class MoveOnly : public MyCounter
-{
-	std::unique_ptr<double> val;
-
-public:
-	explicit MoveOnly(double v)
-	 :	val(new double{v})
-	{	++nConstruct;
-	}
-	explicit MoveOnly(ThrowOnConstructT)
-	{	OEL_THROW(TestException{});
-	}
-	MoveOnly(MoveOnly && other) noexcept
-	 :	val(std::move(other.val))
-	{	++nConstruct;
-	}
-	MoveOnly & operator =(MoveOnly && other) noexcept
-	{
-		val = std::move(other.val);
-		return *this;
-	}
-	~MoveOnly() { ++nDestruct; }
-
-	operator double *() const { return val.get(); }
-};
-oel::is_trivially_relocatable<std::unique_ptr<double>> specify_trivial_relocate(MoveOnly);
-
-class NontrivialReloc : public MyCounter
-{
-	double val;
-	bool throwOnMove = false;
-
-public:
-	explicit NontrivialReloc(double v) : val(v)
-	{	++nConstruct;
-	}
-	explicit NontrivialReloc(ThrowOnConstructT)
-	{	OEL_THROW(TestException{});
-	}
-	NontrivialReloc(double v, ThrowOnMoveOrCopyT)
-	 :	val(v), throwOnMove(true)
-	{	++nConstruct;
-	}
-	NontrivialReloc(NontrivialReloc && other)
-	{
-		if (other.throwOnMove)
-		{
-			other.throwOnMove = false;
-			OEL_THROW(TestException{});
-		}
-		val = other.val;
-		++nConstruct;
-	}
-	NontrivialReloc(const NontrivialReloc & other)
-	{
-		if (other.throwOnMove)
-		{
-			OEL_THROW(TestException{});
-		}
-		val = other.val;
-		++nConstruct;
-	}
-	NontrivialReloc & operator =(const NontrivialReloc & other)
-	{
-		if (throwOnMove || other.throwOnMove)
-		{
-			throwOnMove = false;
-			OEL_THROW(TestException{});
-		}
-		val = other.val;
-		return *this;
-	}
-	~NontrivialReloc() { ++nDestruct; }
-
-	operator double() const
-	{
-		return val;
-	}
-};
-oel::false_type specify_trivial_relocate(NontrivialReloc);
-
-static_assert(oel::is_trivially_copyable<NontrivialReloc>::value == false, "?");
-
 
 using oel::make_iterator_range;
+using oel::make_view_n;
 namespace view = oel::view;
 
 template<typename ArrayString, typename ArrayChar, typename ArrayBool>
@@ -119,7 +20,7 @@ void testConstruct()
 	decltype(a) b(a);
 	ASSERT_EQ(0U, b.size());
 
-	EXPECT_TRUE(ArrayString::const_iterator{} == ArrayString::iterator{});
+	EXPECT_TRUE(typename ArrayString::const_iterator{} == typename ArrayString::iterator{});
 	{
 		ArrayString c(0, std::string{});
 		EXPECT_TRUE(c.empty());
@@ -269,7 +170,7 @@ void testAssign()
 		{
 			NontrivialReloc obj{-5.0, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign(view::counted(&obj, 1));
+			{	dest.assign(make_view_n(&obj, 1));
 			}
 			catch (TestException &) {
 			}
@@ -298,7 +199,7 @@ void testAssign()
 
 			NontrivialReloc obj{-1.3, ThrowOnMoveOrCopy};
 			try
-			{	dest.assign(view::counted(&obj, 1));
+			{	dest.assign(make_view_n(&obj, 1));
 			}
 			catch (TestException &) {
 			}
@@ -333,8 +234,8 @@ void testAssignStringStream()
 
 	ArrayString copyDest;
 
-	copyDest.assign(view::counted(cbegin(das), 2));
-	copyDest.assign( view::counted(cbegin(das), das.size()) );
+	copyDest.assign(make_view_n(cbegin(das), 2));
+	copyDest.assign( make_view_n(cbegin(das), das.size()) );
 
 	EXPECT_TRUE(das == copyDest);
 
@@ -343,7 +244,7 @@ void testAssignStringStream()
 	EXPECT_EQ(1U, copyDest.size());
 	EXPECT_EQ(das[0], copyDest[0]);
 
-	copyDest.assign(view::counted(cbegin(das) + 2, 3));
+	copyDest.assign(make_view_n(cbegin(das) + 2, 3));
 
 	EXPECT_EQ(3U, copyDest.size());
 	EXPECT_EQ(das[2], copyDest[0]);
@@ -382,7 +283,7 @@ void testAppend()
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	ArrayDouble double_dynarr, double_dynarr2;
-	double_dynarr.append_ret_src( view::counted(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.append( make_view_n(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.append(double_dynarr2);
 
 	{
@@ -417,9 +318,9 @@ void testAppendFromStringStream()
 	// Should hit static_assert
 	//dest.insert_r(dest.begin(), make_iterator_range(it, std::istream_iterator<int>()));
 
-	it = dest.append_ret_src(view::counted(it, 2));
+	it = dest.append(make_view_n(it, 2));
 
-	dest.append_ret_src(view::counted(it, 2));
+	dest.append(make_view_n(it, 2));
 
 	for (int i = 0; i < ssize(dest); ++i)
 		EXPECT_EQ(i + 1, dest[i]);
@@ -434,7 +335,7 @@ void testInsertR()
 		std::deque<double> src;
 		dest.insert_r(dest.begin(), src);
 
-		dest.insert_r< std::initializer_list<double> >(dest.begin(), {});
+		dest.template insert_r< std::initializer_list<double> >(dest.begin(), {});
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
@@ -601,8 +502,6 @@ void testWithRefWrapper()
 	ArrayReferenceWrapperArrayConstOfInt refs{arr[0], arr[1]};
 	refs.push_back(arr[2]);
 	EXPECT_EQ(3, refs.at(2).get().at(1));
-	EXPECT_TRUE(refs.at(0) == refs.at(1));
-	EXPECT_TRUE(refs.at(1) != refs.at(2));
 }
 
 /// @endcond

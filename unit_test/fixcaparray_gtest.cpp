@@ -133,11 +133,11 @@ TEST_F(fixcap_arrayTest, misc)
 	FCArray7 dest0;
 	dest0.assign(daSrc);
 
-	dest0.append_ret_src( oel::make_iterator_range(cbegin(daSrc), cend(daSrc) - 1) );
+	dest0.append( oel::make_iterator_range(cbegin(daSrc), cend(daSrc) - 1) );
 	dest0.pop_back();
-	dest0.append(view::counted(fASrc, 2));
+	dest0.append(oel::make_view_n(fASrc, 2));
 	dest0.pop_back();
-	auto srcEnd = dest0.append_ret_src( view::counted(dequeSrc.begin(), dequeSrc.size()) );
+	auto srcEnd = dest0.append( oel::make_view_n(dequeSrc.begin(), dequeSrc.size()) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	FCArray7 dest1;

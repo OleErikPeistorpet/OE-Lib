@@ -1,15 +1,17 @@
 #include "util.h"
 #include "dynarray.h"
+#include "range_algo.h"
+#include "range_view.h"
+
 #include "gtest/gtest.h"
 #include <list>
-#include <forward_list>
-#include <deque>
-#include <array>
 #include <set>
+#include <forward_list>
+#include <functional>
 
 /// @cond INTERNAL
 
-// The fixture for testing algorithms and utilities
+// The fixture for testing utilities
 class utilTest : public ::testing::Test
 {
 protected:
@@ -20,52 +22,6 @@ protected:
 
 	// Objects declared here can be used by all tests.
 };
-
-TEST_F(utilTest, eraseUnordered)
-{
-	using oel::erase_unordered;
-
-	std::deque<std::string> d{"aa", "bb", "cc"};
-
-	erase_unordered(d, 1);
-	EXPECT_EQ(2U, d.size());
-	EXPECT_EQ("cc", d.back());
-	erase_unordered(d, 1);
-	EXPECT_EQ(1U, d.size());
-	EXPECT_EQ("aa", d.front());
-}
-
-TEST_F(utilTest, eraseIf)
-{
-	using namespace oel;
-
-	std::list<int> li{1, 2, 3, 4, 5, 6};
-	std::list<int> const expect{1, 3, 5};
-	dynarray<int> test1;
-	test1.append(li);
-
-	auto isEven = [](int i) { return i % 2 == 0; };
-	erase_if(li, isEven);
-	EXPECT_TRUE(expect == li);
-	erase_if(test1, isEven);
-	EXPECT_EQ(li.size(), test1.size());
-	EXPECT_TRUE(std::equal(begin(li), end(li), begin(test1)));
-}
-
-TEST_F(utilTest, eraseSuccessiveDup)
-{
-	using namespace oel;
-
-	std::list<int> li{1, 1, 2, 2, 2, 1, 3};
-	dynarray<int> const expect{1, 2, 1, 3};
-	dynarray<int> uniqueTest;
-	uniqueTest.assign(li);
-
-	erase_successive_dup(li);
-	EXPECT_EQ(4U, li.size());
-	erase_successive_dup(uniqueTest);
-	EXPECT_FALSE(uniqueTest != expect);
-}
 
 TEST_F(utilTest, indexValid)
 {
@@ -98,6 +54,7 @@ TEST_F(utilTest, countedView)
 	EXPECT_EQ(2, test.end()[-1]);
 }
 
+#ifndef OEL_NO_BOOST
 TEST_F(utilTest, viewTransform)
 {
 	using namespace oel;
@@ -117,46 +74,41 @@ TEST_F(utilTest, viewTransform)
 	EXPECT_EQ(9, test[2]);
 
 	auto v = make_view_n(src, 2);
-	test.append( view::transform(v, [](int & i) { return i++; }) );
+	test.append(view::transform( v, std::function<int(int &)>([](int & i) { return i++; }) ));
 	EXPECT_EQ(5U, test.size());
 	EXPECT_EQ(1, test[3]);
 	EXPECT_EQ(2, test[4]);
 	EXPECT_EQ(2, src[0]);
 	EXPECT_EQ(3, src[1]);
-}
 
-TEST_F(utilTest, copy)
+	auto r = make_iterator_range(begin(src) + 1, end(src));
+	auto f = [](int i) { return i; };
+	test.assign( view::transform(r, std::ref(f)) );
+	EXPECT_EQ(2U, test.size());
+	EXPECT_EQ(src[1], test[0]);
+	EXPECT_EQ(src[2], test[1]);
+}
+#endif
+
+struct OneSizeT
 {
-	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
-	int test2[5];
-	test2[4] = -7;
-	auto fitInto = oel::make_view_n(std::begin(test2), 4);
-
-	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
-
-	oel::copy_fit(test, fitInto);
-	EXPECT_TRUE(std::equal(begin(test), begin(test) + 4, test2));
-	EXPECT_EQ(-7, test2[4]);
-
-	EXPECT_EQ(4, test[4]);
-	oel::copy(test2, test);
-	EXPECT_EQ(-7, test[4]);
-
-	std::forward_list<std::string> li{"aa", "bb"};
-	std::array<std::string, 2> strDest;
-	oel::copy_unsafe(oel::view::move_iter_rng(li), begin(strDest));
-	EXPECT_EQ("aa", strDest[0]);
-	EXPECT_EQ("bb", strDest[1]);
-	EXPECT_TRUE(li.begin()->empty());
-	EXPECT_TRUE(std::next(li.begin())->empty());
-}
+	size_t val;
+};
 
 TEST_F(utilTest, makeUnique)
 {
-	auto p1 = oel::make_unique<std::string[]>(5);
-	for (int i = 0; i < 5; ++i)
-		EXPECT_TRUE(p1[i].empty());
+	auto ps = oel::make_unique_default<std::string[]>(2);
+	EXPECT_TRUE(ps[0].empty());
+	EXPECT_TRUE(ps[1].empty());
 
+	{
+		auto p = oel::make_unique<OneSizeT>(7U);
+		EXPECT_EQ(7U, p->val);
+
+		auto a = oel::make_unique<OneSizeT[]>(5);
+		for (size_t i = 0; i < 5; ++i)
+			EXPECT_EQ(0U, a[i].val);
+	}
 	auto p2 = oel::make_unique<std::list<int>>(4, 6);
 	EXPECT_EQ(4U, p2->size());
 	EXPECT_EQ(6, p2->front());
