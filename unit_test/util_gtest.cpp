@@ -141,14 +141,20 @@ TEST_F(utilTest, copy)
 	EXPECT_EQ(4, test[4]);
 	oel::copy(test2, test);
 	EXPECT_EQ(-7, test[4]);
-
-	std::forward_list<std::string> li{"aa", "bb"};
-	std::array<std::string, 2> strDest;
-	oel::copy_unsafe(oel::view::move_iter_rng(li), begin(strDest));
+	{
+		std::forward_list<std::string> li{"aa", "bb"};
+		std::array<std::string, 2> strDest;
+		oel::copy_unsafe(oel::view::move_iter_rng(li), begin(strDest));
+		EXPECT_EQ("aa", strDest[0]);
+		EXPECT_EQ("bb", strDest[1]);
+		EXPECT_TRUE(li.begin()->empty());
+		EXPECT_TRUE(std::next(li.begin())->empty());
+	}
+	std::list<std::string> li{"aa", "bb"};
+	std::array<std::string, 4> strDest;
+	oel::copy_fit(li, strDest);
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
-	EXPECT_TRUE(li.begin()->empty());
-	EXPECT_TRUE(std::next(li.begin())->empty());
 }
 
 TEST_F(utilTest, makeUnique)

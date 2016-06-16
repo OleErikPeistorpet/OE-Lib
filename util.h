@@ -72,12 +72,13 @@ OutputIterator copy_unsafe(const InputRange & source, OutputIterator dest);
 *
 * The ranges shall not overlap, except if begin(source) equals begin(dest) (self assign).
 * To move instead of copy, pass move_range(source)  */
-template<typename SizedInRange, typename SizedOutRange>
-auto copy(const SizedInRange & source, SizedOutRange & dest) -> decltype(begin(dest));
-// TODO: change what's returned to make it easier to determine if truncation happened?
-/// Copies as many elements as will fit in dest
-template<typename SizedInRange, typename SizedOutRange>
-auto copy_fit(const SizedInRange & source, SizedOutRange & dest) -> decltype(begin(dest));
+template<typename SizedInputRange, typename SizedOutputRange>
+auto copy(const SizedInputRange & source, SizedOutputRange & dest) -> decltype(begin(dest));
+/**
+* @brief Copies as many elements as will fit in dest
+* @return Smallest of size of source and size of dest  */
+template<typename SizedInputRange, typename SizedOutputRange>
+std::ptrdiff_t copy_fit(const SizedInputRange & source, SizedOutputRange & dest);
 
 
 ///@{
@@ -196,10 +197,10 @@ namespace _detail
 		return dest;
 	}
 
-	template<typename InputRange, typename OutputIter> inline
-	OutputIter Copy(const InputRange & src, OutputIter dest, std::false_type, long)
+	template<typename InputRange, typename RandAccessIter> inline
+	RandAccessIter Copy(const InputRange & src, RandAccessIter dest, std::false_type, long)
 	{
-		OutputIter const dLast = dest + oel::ssize(src);
+		RandAccessIter const dLast = dest + oel::ssize(src);
 		auto f = begin(src);
 		while (dest != dLast)
 		{
@@ -209,11 +210,11 @@ namespace _detail
 		return dLast;
 	}
 
-	template<typename RandAccessRange, typename RandAccessIter> inline
-	RandAccessIter Copy(const RandAccessRange & src, RandAccessIter const dest, std::true_type, int)
+	template<typename CntigusRange, typename CntigusIter> inline
+	CntigusIter Copy(const CntigusRange & src, CntigusIter const dest, std::true_type, int)
 	{	// can use memcpy
 		auto const first = begin(src);
-		auto const n = end(src) - first;
+		auto const n = oel::ssize(src);
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != n)
 		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
@@ -235,8 +236,8 @@ inline OutputIterator oel::copy_unsafe(const InputRange & src, OutputIterator de
 	return _detail::Copy(src, dest, can_memmove_with<OutputIterator, decltype(begin(src))>(), int{});
 }
 
-template<typename SizedInRange, typename SizedOutRange>
-inline auto oel::copy(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest))
+template<typename SizedInputRange, typename SizedOutputRange>
+inline auto oel::copy(const SizedInputRange & src, SizedOutputRange & dest) -> decltype(begin(dest))
 {
 	if (oel::ssize(src) <= oel::ssize(dest))
 		return oel::copy_unsafe(src, begin(dest));
@@ -244,11 +245,12 @@ inline auto oel::copy(const SizedInRange & src, SizedOutRange & dest) -> decltyp
 		throw std::out_of_range("Too small dest for oel::copy");
 }
 
-template<typename SizedInRange, typename SizedOutRange>
-inline auto oel::copy_fit(const SizedInRange & src, SizedOutRange & dest) -> decltype(begin(dest))
+template<typename SizedInputRange, typename SizedOutputRange>
+inline std::ptrdiff_t oel::copy_fit(const SizedInputRange & src, SizedOutputRange & dest)
 {
-	auto count = (std::min)(oel::ssize(src), oel::ssize(dest));
-	return oel::copy_unsafe(oel::make_view_n(begin(src), count), begin(dest));
+	auto const n = std::min<std::ptrdiff_t>(oel::ssize(src), oel::ssize(dest));
+	oel::copy_unsafe(oel::make_view_n(begin(src), n), begin(dest));
+	return n;
 }
 
 
