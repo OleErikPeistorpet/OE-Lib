@@ -8,6 +8,9 @@
 
 #include "user_traits.h"
 
+#ifndef OEL_NO_BOOST
+	#include <boost/iterator/iterator_categories.hpp>
+#endif
 #include <iterator>
 
 
@@ -58,9 +61,6 @@ namespace oel
 {
 
 using std::size_t;
-
-
-using std::iterator_traits;
 
 
 using std::begin;
@@ -130,7 +130,7 @@ auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
  -> decltype( to_pointer_contiguous(it.base()) )  { return to_pointer_contiguous(it.base()); }
 
 
-/// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a std::true_type, else false_type
+/// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a true_type, else false_type
 template<typename IteratorDest, typename IteratorSource>
 struct can_memmove_with;
 
@@ -153,6 +153,26 @@ const default_init; ///< An instance of default_init_tag to pass
 /// Exists in std with C++14
 template<bool Condition>
 using enable_if_t = typename std::enable_if<Condition>::type;
+
+
+
+using std::iterator_traits;
+
+#ifndef OEL_NO_BOOST
+	template<typename Iterator>
+	using iterator_traversal_t = typename boost::iterator_traversal<Iterator>::type;
+
+	using boost::single_pass_traversal_tag;
+	using boost::forward_traversal_tag;
+	using boost::random_access_traversal_tag;
+#else
+	template<typename Iterator>
+	using iterator_traversal_t = typename iterator_traits<Iterator>::iterator_category;
+
+	using single_pass_traversal_tag = std::input_iterator_tag;
+	using forward_traversal_tag = std::forward_iterator_tag;
+	using random_access_traversal_tag = std::random_access_iterator_tag;
+#endif
 
 
 
@@ -218,7 +238,7 @@ namespace _detail
 	 -> decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
 
 	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
-	inline std::false_type CanMemmoveWith(...);
+	inline false_type CanMemmoveWith(...);
 }
 
 } // namespace oel

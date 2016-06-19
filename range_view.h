@@ -45,8 +45,7 @@ namespace oel
 
 /// Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
 template< typename Iterator,
-          bool = std::is_base_of<std::random_access_iterator_tag,
-                                 typename iterator_traits<Iterator>::iterator_category>::value >
+          bool = std::is_base_of<random_access_traversal_tag, iterator_traversal_t<Iterator>>::value >
 class counted_view
 {
 public:
