@@ -298,13 +298,13 @@ namespace _detail
 		}
 	}
 
-	template<typename T, typename Alloc> inline
+	template<typename Alloc, typename T> inline
 	void UninitFillImpl(std::true_type, T * first, T * last, Alloc &, int val = 0)
 	{
 		::memset(first, val, last - first);
 	}
 
-	template<typename T, typename Alloc, typename... Arg> inline
+	template<typename Alloc, typename T, typename... Arg> inline
 	void UninitFill(T *const first, T *const last, Alloc & alloc, const Arg &... arg)
 	{
 		// TODO: investigate libstdc++ std::fill
@@ -319,11 +319,18 @@ namespace _detail
 		UninitFill(first, last, a, arg...);
 	}
 
-	template<typename T, typename Alloc = allocator<T>> inline
-	void UninitFillDefault(T *const first, T *const last, Alloc & a = Alloc{})
+	template<typename Alloc, typename T> inline
+	void UninitFillDefault(T *const first, T *const last, Alloc & a)
 	{
 		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
 			_detail::UninitFillImpl(std::false_type{}, first, last, a);
+	}
+
+	template<typename T> inline
+	void UninitFillDefaultA(T *const first, T *const last)
+	{
+		allocator<T> a;
+		UninitFillDefault(first, last, a);
 	}
 }
 

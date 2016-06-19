@@ -174,9 +174,9 @@ public:
 	* @brief Uses default initialization for added elements, can be significantly faster for non-class T
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void      resize(size_type count, default_init_tag)  { _resizeImpl(count, _detail::UninitFillDefault<T, Alloc>); }
+	void      resize(size_type count, default_init_tag)  { _resizeImpl(count, _detail::UninitFillDefault<Alloc, T>); }
 	/// (Value-initializes added elements, same as std::vector::resize)
-	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<T, Alloc>); }
+	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<Alloc, T>); }
 
 	/// Equivalent to std::vector::insert(pos, begin(source), sLast),
 	/// where sLast is either end(source) or found by magic, see TODO put ref here
@@ -242,8 +242,8 @@ public:
 	reverse_iterator       rend() noexcept          { return reverse_iterator{begin()}; }
 	const_reverse_iterator rend() const noexcept    { return const_reverse_iterator{begin()}; }
 
-	T *             data() noexcept        { return _m.data; }
-	const T *       data() const noexcept  { return _m.data; }
+	T *            data() noexcept        { return _m.data; }
+	const T *      data() const noexcept  { return _m.data; }
 
 	reference       front() OEL_NOEXCEPT_NDEBUG        { return *begin(); }
 	const_reference front() const OEL_NOEXCEPT_NDEBUG  { return *begin(); }

@@ -38,10 +38,10 @@ class fixcap_array
 {
 public:
 	using value_type      = T;
-	using pointer         = T *;
-	using const_pointer   = const T *;
 	using reference       = T &;
 	using const_reference = const T &;
+	using pointer         = T *;
+	using const_pointer   = const T *;
 	using size_type       = Size;
 	using difference_type = std::ptrdiff_t;
 
@@ -56,64 +56,72 @@ public:
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 
-	fixcap_array() noexcept  : _size(0) {}
+	fixcap_array() noexcept  : _size() {}
 
 	/** @brief Elements are default initialized, meaning non-class T produces indeterminate values
 	* @throw length_error if size > Capacity  */
 	fixcap_array(size_type size, default_init_tag);
 	/// Throws length_error if size > Capacity. (Elements are value-initialized, same as std::vector)
 	explicit fixcap_array(size_type size);
-	fixcap_array(size_type size, const T & val); ///< Throws length_error if size > Capacity
-	fixcap_array(std::initializer_list<T> init)  { OEL_ALWAYS_ASSERT(false); }
+	fixcap_array(size_type size, const T & fillVal); ///< Throws length_error if size > Capacity
 
-	fixcap_array(const fixcap_array & other)  { _uninitCopyFrom(is_trivially_copyable<T>(), other); }
+	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_cbegin(std::declval<InputRange>()) )>
+	explicit fixcap_array(const InputRange & range)  : _size() { assign(range); }
+
+	fixcap_array(std::initializer_list<T> init)  : _size() { assign(init); }
+
 	fixcap_array(fixcap_array && other);
+	fixcap_array(const fixcap_array & other)  { _uninitCopyFrom(is_trivially_copyable<T>(), other); }
 
 	~fixcap_array() noexcept  { _detail::Destroy(data(), data() + _size); }
 
-	fixcap_array & operator =(const fixcap_array & other);
 	fixcap_array & operator =(fixcap_array && other);
+	fixcap_array & operator =(const fixcap_array & other);
 
 	fixcap_array & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
 
 	/**
-	* @brief Replace the contents with count copies from range beginning at first
+	* @brief Replace the contents with source
 	* @throw length_error if count > Capacity  */
-	template<typename InputIterator>
-	InputIterator assign(InputIterator first, size_type count);
-	/// Throws length_error if number of elements exceeds Capacity
 	template<typename InputRange>
-	void          assign(const InputRange & source)  { _assign(_getSize(source, int{}), source); }
+	auto      assign(const InputRange & source) -> decltype(::adl_begin(source))
+																	{ return _assign(_getSize(source, 0), source); }
+	void      assign(size_type count, const T & val)  { clear(); append(count, val); }
 
 	/**
-	* @brief Add count elements at end from range beginning at first (in order)
-	* @param first iterator to first element to append
-	* @param count number of elements to append
-	* @return end of input range
-	* @throw length_error if size() + count > Capacity
-	*
-	*  Any previous past-the-end iterator will point to the first element added.
-	* Strong exception safety, aka. commit or rollback semantics  */
-	template<typename InputIterator>
-	InputIterator append(InputIterator first, size_type count);
-	/**
 	* @brief Add at end the elements from range (in order)
-	* @param range object which begin and end can be called on (an array, STL container or iterator_range)
+	* @param source object which begin and end can be called on (an array, STL container or iterator_range)
 	* @return iterator pointing to first element added, or end if range is empty
 	*
-	* Otherwise same as append(InputIterator, size_type)  */
+	* Any previous past-the-end iterator will point to the first element added.
+	* Strong exception safety, aka. commit or rollback semantics  */
 	template<typename InputRange>
-	iterator      append(const InputRange & range);
-	/// Equivalent to calling append(const InputRange &) with il as argument  */
+	iterator      append(const InputRange & source);
+	/**
+	* @brief Same as append(const InputRange &), except returning past-the-last of source
+	* @return begin(source) incremented to end of source  */
+	template<typename InputRange>
+	auto      append_ret_src(const InputRange & source) -> decltype(::adl_begin(source))
+																	{ return _append(_getSize(source, 0), source); }
+	/// Equivalent to calling append(const InputRange &) with il as argument
 	iterator      append(std::initializer_list<T> il)  { return append<>(il); }
 	void          append(size_type count, const T & val);
 
 	/**
 	* @brief Added elements are default initialized, meaning non-class T produces indeterminate values
-	* @throw length_error if new_size > Capacity  */
-	void          resize(size_type newSize, default_init_tag)  {_resizeImpl(newSize, _detail::UninitFillDefault<T>); }
-	/// Throws length_error if new_size > Capacity. (Value-initializes added elements, same as std::vector::resize)
-	void          resize(size_type newSize)                    { _resizeImpl(newSize, _detail::UninitFillA<T>); }
+	* @throw length_error if count > Capacity  */
+	void          resize(size_type count, default_init_tag)  {_resizeImpl(count, _detail::UninitFillDefaultA<T>); }
+	/// Throws length_error if count > Capacity. (Value-initializes added elements, same as std::vector::resize)
+	void          resize(size_type count)                    { _resizeImpl(count, _detail::UninitFillA<T>); }
+
+	template<typename ForwardRange>
+	iterator      insert_r(const_iterator pos, const ForwardRange & source);
+
+	template<typename... Args>
+	iterator      emplace(const_iterator pos, Args &&... elemInitArgs);  ///< Throws length_error when full
+
+	iterator      insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
+	iterator      insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
 
 	template<typename... Args>
 	void          emplace_back(Args &&... elemInitArgs);  ///< Throws length_error when full
@@ -123,22 +131,17 @@ public:
 	/// Throws length_error when full
 	void          push_back(const T & val)  { emplace_back(val); }
 
-	template<typename... Args>
-	iterator      emplace(const_iterator position, Args &&... elemInitArgs);  ///< Throws length_error when full
-
-	iterator      insert(const_iterator position, T && val)       { return emplace(position, std::move(val)); }
-	iterator      insert(const_iterator position, const T & val)  { return emplace(position, val); }
-
 	void          pop_back() OEL_NOEXCEPT_NDEBUG;
 
-	iterator      erase(iterator position) noexcept;
+	iterator      erase_unordered(iterator pos)  { _eraseUnordered(pos, is_trivially_relocatable<T>());
+	                                               return pos; }
+	iterator      erase(iterator pos)            { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
 	iterator      erase(iterator first, iterator last);
+	/// Equivalent to erase(first, end()) (but potentially faster), making first the new end
+	void          erase_to_end(iterator first) OEL_NOEXCEPT_NDEBUG;
 
-	/// Equivalent to erase(first, end()) (but potentially faster)
-	void          erase_back(iterator first) OEL_NOEXCEPT_NDEBUG;
-
-	void          clear() noexcept        { erase_back(begin()); }
+	void          clear() noexcept        { erase_to_end(begin()); }
 
 	bool          empty() const noexcept  { return 0 == _size; }
 
@@ -148,13 +151,13 @@ public:
 
 	static constexpr size_type max_size() noexcept  { return Capacity; }
 
-	iterator        begin() noexcept         { return _makeIterator(_data); }
-	const_iterator  begin() const noexcept   { return _makeConstIter(_data); }
-	const_iterator  cbegin() const noexcept  { return _makeConstIter(_data); }
+	iterator       begin() noexcept         { return _makeIterator(_data); }
+	const_iterator begin() const noexcept   { return _makeConstIter(_data); }
+	const_iterator cbegin() const noexcept  { return _makeConstIter(_data); }
 
-	iterator        end() noexcept           { return _makeIterator(&_data[_size]); }
-	const_iterator  end() const noexcept     { return _makeConstIter(&_data[_size]); }
-	const_iterator  cend() const noexcept    { return _makeConstIter(&_data[_size]); }
+	iterator       end() noexcept           { return _makeIterator(&_data[_size]); }
+	const_iterator end() const noexcept     { return _makeConstIter(&_data[_size]); }
+	const_iterator cend() const noexcept    { return _makeConstIter(&_data[_size]); }
 
 	reverse_iterator       rbegin() noexcept        { return reverse_iterator{end()}; }
 	const_reverse_iterator rbegin() const noexcept  { return const_reverse_iterator{end()}; }
@@ -162,8 +165,8 @@ public:
 	reverse_iterator       rend() noexcept          { return reverse_iterator{begin()}; }
 	const_reverse_iterator rend() const noexcept    { return const_reverse_iterator{begin()}; }
 
-	T *             data() noexcept        { return reinterpret_cast<pointer>(_data); }
-	const T *       data() const noexcept  { return reinterpret_cast<const_pointer>(_data); }
+	T *            data() noexcept        { return reinterpret_cast<pointer>(_data); }
+	const T *      data() const noexcept  { return reinterpret_cast<const_pointer>(_data); }
 
 	reference       front() OEL_NOEXCEPT_NDEBUG        { return operator[](0); }
 	const_reference front() const OEL_NOEXCEPT_NDEBUG  { return operator[](0); }
@@ -226,13 +229,10 @@ private:
 	}
 
 	template<typename Range>
-	static auto _getSize(const Range & r, int) -> decltype(oel::ssize(r)) { return oel::ssize(r); }
+	static auto _getSize(const Range & r, int) -> decltype(static_cast<size_t>(oel::ssize(r))) { return oel::ssize(r); }
 
 	template<typename Range>
-	static auto _getSize(const Range & r, long) -> decltype(::adl_end(r) - ::adl_begin(r))
-												   { return ::adl_end(r) - ::adl_begin(r); }
-	template<typename Range>
-	static std::false_type _getSize(const Range &, ...) { return {}; }
+	static std::false_type _getSize(const Range &, long) { return {}; }
 
 
 	size_type _unusedCapacity() const
@@ -259,6 +259,48 @@ private:
 	}
 
 	void _setEmptyIfNot(std::true_type) {}
+
+
+	void _eraseUnordered(iterator const pos, true_type /*trivialRelocate*/)
+	{
+		OEL_ASSERT_MEM_BOUND((void *)pos._container == (void *)this);
+
+		T & elem = *pos;
+		elem.~T();
+		--_size;
+		auto &
+	#if !_MSC_VER
+			__attribute__((may_alias))
+	#endif
+			raw = reinterpret_cast<aligned_union_t<T> &>(elem);
+		raw = reinterpret_cast<aligned_union_t<T> &>(data()[_size]); // relocate last element to pos
+	}
+
+	void _eraseUnordered(iterator pos, false_type)
+	{
+		*pos = std::move(back());
+		pop_back();
+	}
+
+	void _erase(iterator pos, true_type)
+	{
+		pointer const ptr = to_pointer_contiguous(pos);
+		OEL_ASSERT_MEM_BOUND(data() <= ptr && pos < end());
+
+		ptr-> ~T();
+		pointer const next = ptr + 1;
+		size_type const nAfter = (data() + _size) - next;
+		::memmove(ptr, next, sizeof(T) * nAfter); // move [pos + 1, _end) to [pos, _end - 1)
+		--_size;
+	}
+
+	void _erase(iterator pos, false_type)
+	{
+		iterator last = std::move(pos + 1, end(), pos);
+		(*last).~T();
+		--_size;
+	}
+
 
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type newSize, UninitFillFunc initNewElems)
@@ -318,12 +360,12 @@ private:
 	}
 
 	template<typename SizeRange>
-	void _assign(size_type count, const SizeRange & range)
+	auto _assign(size_t count, const SizeRange & src) -> decltype(::adl_begin(src))
 	{
 		if (Capacity >= count)
 		{
-			auto first = ::adl_begin(range);
-			_assignInternal(can_memmove_with<pointer, decltype(first)>(), first, count);
+			auto first = ::adl_begin(src);
+			return _assignInternal(can_memmove_with<pointer, decltype(first)>(), first, count);
 		}
 		else
 		{	_throwLenExc();
@@ -331,14 +373,14 @@ private:
 	}
 
 	template<typename InputRange>
-	void _assign(std::false_type, const InputRange & range)
+	auto _assign(std::false_type, const InputRange & src) -> decltype(::adl_begin(src))
 	{	// no fast way of getting size
 		clear();
-		append(range);
+		return append_ret_src(src);
 	}
 
 	template<typename CntigusIter>
-	CntigusIter _appendN(std::true_type, CntigusIter first, size_type const count)
+	CntigusIter _appendInternal(std::true_type, CntigusIter first, size_type const count)
 	{	// use memcpy
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (count > 0)
@@ -354,7 +396,7 @@ private:
 	}
 
 	template<typename InputIter>
-	InputIter _appendN(std::false_type, InputIter src, size_type const count)
+	InputIter _appendInternal(std::false_type, InputIter src, size_type const count)
 	{	// slower copy
 		size_type newSize = _size + count;
 		src = _detail::UninitCopyA(src, data() + _size, data() + newSize);
@@ -362,27 +404,13 @@ private:
 		return src;
 	}
 
-	template<typename CntigusIter>
-	void _appendInternal(std::true_type, CntigusIter first, size_type count)
-	{	// fast copy
-		_appendN(std::true_type{}, first, count);
-	}
-
-	template<typename InputIter>
-	void _appendInternal(std::false_type, InputIter first, size_type count)
-	{	// cannot fast copy
-		_detail::UninitCopyA(first, data() + _size, data() + _size + count);
-		_size += count;
-	}
-
 	template<typename SizeRange>
-	void _append(size_type count, const SizeRange & src)
+	auto _append(size_t count, const SizeRange & src) -> decltype(::adl_begin(src))
 	{
 		if (_unusedCapacity() >= count)
 		{
 			auto first = ::adl_begin(src);
-			_appendInternal(can_memmove_with<pointer, decltype(first)>(),
-							first, count);
+			return _appendInternal(can_memmove_with<pointer, decltype(first)>(), first, count);
 		}
 		else
 		{	_throwLenExc();
@@ -390,10 +418,13 @@ private:
 	}
 
 	template<typename InputRange>
-	void _append(std::false_type, const InputRange & src)
+	auto _append(std::false_type, const InputRange & src) -> decltype(::adl_begin(src))
 	{	// number of items unknown (slowest)
-		for (auto && v : src)
-			emplace_back( std::forward<decltype(v)>(v) );
+		auto f = ::adl_begin(src); auto l = ::adl_end(src);
+		for (; f != l; ++f)
+			emplace_back(*f);
+
+		return f;
 	}
 };
 
@@ -403,7 +434,7 @@ fixcap_array<T, Capacity, Size>::fixcap_array(size_type size, default_init_tag)
 	if (Capacity >= size)
 	{
 		_size = size;
-		_detail::UninitFillDefault(data(), data() + size);
+		_detail::UninitFillDefaultA(data(), data() + size);
 	}
 	else
 	{	_throwLenExc();
@@ -416,7 +447,7 @@ fixcap_array<T, Capacity, Size>::fixcap_array(size_type size)
 	if (Capacity >= size)
 	{
 		_size = size;
-		_detail::UninitFill(data(), data() + size);
+		_detail::UninitFillA(data(), data() + size);
 	}
 	else
 	{	_throwLenExc();
@@ -464,24 +495,6 @@ inline fixcap_array<T, Capacity, Size> &  fixcap_array<T, Capacity, Size>::
 	return *this;
 }
 
-template<typename T, size_t Capacity, typename Size> template<typename InputIterator>
-InputIterator fixcap_array<T, Capacity, Size>::assign(InputIterator first, size_type count)
-{
-	if (Capacity >= count)
-		return _assignInternal(can_memmove_with<pointer, InputIterator>(), first, count);
-	else
-		_throwLenExc();
-}
-
-template<typename T, size_t Capacity, typename Size> template<typename InputIterator>
-InputIterator fixcap_array<T, Capacity, Size>::append(InputIterator first, size_type count)
-{
-	if (_unusedCapacity() >= count)
-		return _appendN(can_memmove_with<pointer, InputIterator>(), first, count);
-	else
-		_throwLenExc();
-}
-
 template<typename T, size_t Capacity, typename Size> template<typename InputRange>
 typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
 	append(const InputRange & src)
@@ -491,6 +504,20 @@ typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Si
 	_append(_getSize(src, int{}), src);
 
 	return oldEnd;
+}
+
+template<typename T, size_t Capacity, typename Size>
+void fixcap_array<T, Capacity, Size>::append(size_type n, const T & val)
+{
+	if (_unusedCapacity() >= n)
+	{
+		size_type newSize = _size + n;
+		_detail::UninitFillA(data() + _size, data() + newSize, val);
+		_size = newSize;
+	}
+	else
+	{	_throwLenExc();
+	}
 }
 
 template<typename T, size_t Capacity, typename Size> template<typename... Args>
@@ -516,17 +543,18 @@ typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Si
 
 	if (Capacity > _size)
 	{
-		auto const posPtr = const_cast<pointer>(to_pointer_contiguous(pos));
+		auto const pPos = const_cast<T *>(to_pointer_contiguous(pos));
+		size_type const nAfterPos = (data() + _size) - pPos;
 		// Temporary in case constructor throws or source is an element of this array at pos or after
 		aligned_union_t<T> local;
 		::new(&local) T(std::forward<Args>(args)...);
 		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
-		::memmove(posPtr + 1, posPtr, sizeof(T) * nAfterPos);
+		::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_size;
 
-		::memcpy(posPtr, &local, sizeof(T)); // relocate the new element to pos
+		::memcpy(pPos, &local, sizeof(T)); // relocate the new element to pos
 
-		return _makeIterator(reinterpret_cast<aligned_union_t<T> *>(posPtr));
+		return _makeIterator(reinterpret_cast<aligned_union_t<T> *>(pPos));
 	}
 	else
 	{	_throwLenExc();
@@ -539,23 +567,6 @@ inline void fixcap_array<T, Capacity, Size>::pop_back() OEL_NOEXCEPT_NDEBUG
 	OEL_ASSERT_MEM_BOUND(0 < _size);
 	--_size;
 	data()[_size].~T();
-}
-
-template<typename T, size_t Capacity, typename Size>
-typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
-	erase(iterator pos)
-{
-	_detail::AssertTrivialRelocate<T>();
-
-	pointer const posPtr = to_pointer_contiguous(pos);
-	OEL_ASSERT_MEM_BOUND(data() <= posPtr && pos < end());
-
-	posPtr-> ~T();
-	pointer const next = to_pointer_contiguous(pos) + 1;
-	size_type const nAfter = (data() + _size) - next;
-	::memmove(to_pointer_contiguous(pos), next, sizeof(T) * nAfter); // move [pos + 1, _end) to [pos, _end - 1)
-	--_size;
-	return pos;
 }
 
 template<typename T, size_t Capacity, typename Size>
@@ -581,7 +592,7 @@ typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Si
 }
 
 template<typename T, size_t Capacity, typename Size>
-void fixcap_array<T, Capacity, Size>::erase_back(iterator newEnd) OEL_NOEXCEPT_NDEBUG
+void fixcap_array<T, Capacity, Size>::erase_to_end(iterator newEnd) OEL_NOEXCEPT_NDEBUG
 {
 	pointer const first = to_pointer_contiguous(newEnd);
 	OEL_ASSERT_MEM_BOUND(data() <= first && first <= data() + _size);
