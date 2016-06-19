@@ -204,7 +204,7 @@ public:
 	* @brief Erase the element at pos from dynarray without maintaining order of elements.
 	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
-	* @return Iterator corresponding to the same index in the sequence as pos, same as for std containers. */
+	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
 	iterator  erase_unordered(iterator pos)  { _eraseUnordered(pos, is_trivially_relocatable<T>());
 	                                           return pos; }
 	iterator  erase(iterator pos)            { _erase(pos, is_trivially_relocatable<T>());  return pos; }
@@ -426,19 +426,19 @@ private:
 	}
 
 
-	template<typename FuncTakingLast = _detail::NoOp, typename T1 = T>
+	template<typename... FuncTakingLast, typename T1 = T>
 	enable_if_t<! is_trivially_relocatable<T1>::value>
-		_relocateData(T * dFirst, T * dLast, size_type, FuncTakingLast extraCleanupIfException = FuncTakingLast{})
+		_relocateData(T * dFirst, T * dLast, size_type, FuncTakingLast... extraCleanupIfException)
 	{
-		_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m, extraCleanupIfException);
+		_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m, extraCleanupIfException...);
 		_detail::Destroy(_m.data, _m.end);
 	}
 
 	template<typename... Unused, typename T1 = T>
 	enable_if_t<is_trivially_relocatable<T1>::value>
-		_relocateData(T * dest, T *, size_type count, Unused...)
+		_relocateData(T * dest, T *, size_type n, Unused...)
 	{
-		::memcpy(dest, data(), sizeof(T) * count);
+		::memcpy(dest, data(), sizeof(T) * n);
 	}
 
 
@@ -469,7 +469,7 @@ private:
 	}
 
 
-	void _eraseUnordered(iterator pos, true_type /*trivialRelocate*/)
+	void _eraseUnordered(iterator const pos, true_type /*trivialRelocate*/)
 	{
 		OEL_ASSERT_MEM_BOUND(pos._container == &_m);
 
@@ -529,12 +529,12 @@ private:
 
 	void _allocUnequalMove(dynarray & src)
 	{	// requires trivially relocatable T
-		_assignImpl(src.begin(), src.size(), std::true_type{});
+		_assignImpl(src.begin(), src.size(), true_type{});
 		src._m.end = src._m.data; // elements in src conceptually destroyed
 	}
 
 	template<typename CntigusIter>
-	CntigusIter _assignImpl(CntigusIter const first, size_type const count, std::true_type /*trivialCopy*/)
+	CntigusIter _assignImpl(CntigusIter const first, size_type const count, true_type /*trivialCopy*/)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (count != 0)
@@ -560,7 +560,7 @@ private:
 	}
 
 	template<typename InputIter>
-	InputIter _assignImpl(InputIter src, size_type const count, std::false_type)
+	InputIter _assignImpl(InputIter src, size_type const count, false_type)
 	{
 		auto copy = [](InputIter src_, iterator dest, iterator dLast)
 			{
@@ -604,7 +604,7 @@ private:
 	}
 
 	template<typename InputIter, typename Sentinel>
-	InputIter _assignImpl(InputIter first, Sentinel const last, std::false_type)
+	InputIter _assignImpl(InputIter first, Sentinel const last, false_type)
 	{	// single pass iterator, no size available
 		clear();
 		for (; first != last; ++first)
@@ -631,14 +631,14 @@ private:
 	}
 
 	template<typename Ret, typename InputIter, typename RetSelect>
-	OEL_FORCEINLINE Ret _append(InputIter first, size_type count, RetSelect retSelect)
+	OEL_FORCEINLINE Ret _append(InputIter first, size_type const n, RetSelect retSelect)
 	{
-		first = _appendN(first, count, can_memmove_with<T *, InputIter>());
-		return retSelect(end() - count, first);
+		first = _appendN(first, n, can_memmove_with<T *, InputIter>());
+		return retSelect(end() - n, first);
 	}
 
 	template<typename InputIter>
-	InputIter _appendN(InputIter first, size_type const n, std::false_type)
+	InputIter _appendN(InputIter first, size_type const n, false_type)
 	{	// cannot use memcpy
 		_appendImpl( n,
 			[&first](T * dest, size_type n_, Alloc & al)
@@ -649,7 +649,7 @@ private:
 	}
 
 	template<typename CntigusIter>
-	OEL_FORCEINLINE CntigusIter _appendN(CntigusIter const first, size_type const n, std::true_type)
+	OEL_FORCEINLINE CntigusIter _appendN(CntigusIter const first, size_type const n, true_type)
 	{
 		CntigusIter last = first + n;
 	#if OEL_MEM_BOUND_DEBUG_LVL
@@ -714,9 +714,9 @@ private:
 
 	struct _emplaceMakeElem
 	{	template<typename... Args>
-		T * operator()(dynarray & da, T *const newPos, size_type, Args &&... args) const
+		T * operator()(dynarray & d, T *const newPos, size_type, Args &&... args) const
 		{
-			_allocTrait::construct(da._m, newPos, std::forward<Args>(args)...);
+			_allocTrait::construct(d._m, newPos, std::forward<Args>(args)...);
 			return newPos + 1;
 		}
 	};
