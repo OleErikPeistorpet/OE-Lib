@@ -19,6 +19,7 @@ namespace oel
 
 #ifndef OEL_NO_BOOST
 	using boost::iterator_range;
+	using boost::make_iterator_range;
 #else
 	template<typename Iterator>
 	class iterator_range
@@ -32,17 +33,19 @@ namespace oel
 		Iterator begin() const  { return first; }
 		Iterator end() const    { return last; }
 	};
-#endif
 
-/// Create an iterator_range from two iterators, with type deduced from arguments
-template<typename Iterator> inline
-iterator_range<Iterator> make_view(Iterator first, Iterator last)  { return {first, last}; }
+	template<typename RandomAccessIterator>
+	auto ssize(const iterator_range<RandomAccessIterator> & r) -> decltype(r.last - r.first)  { return r.last - r.first; }
+
+	/// Create an iterator_range from two iterators, with type deduced from arguments
+	template<typename Iterator> inline
+	iterator_range<Iterator> make_iterator_range(Iterator first, Iterator last)  { return {first, last}; }
+#endif
 
 
 /// Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
 template< typename Iterator,
-          bool = std::is_base_of<std::random_access_iterator_tag,
-                                 typename iterator_traits<Iterator>::iterator_category>::value >
+          bool = std::is_base_of<random_access_traversal_tag, iterator_traversal_t<Iterator>>::value >
 class counted_view
 {
 public:
@@ -100,14 +103,15 @@ public:
 	 -> decltype( to_pointer_contiguous(std::declval<It1>()) )  { return to_pointer_contiguous(this->_begin); }
 };
 
-/// Create a counted_view from iterator and count, with type deduced from first
-template<typename Iterator> inline
-counted_view<Iterator> make_view_n(Iterator first, typename iterator_traits<Iterator>::difference_type count)
-	{ return {first, count}; }
-
-
+/// Make views. View is a concept described in the documentation for the Range v3 library
 namespace view
 {
+
+/// Create a counted_view from iterator and count, with type deduced from first
+template<typename Iterator> inline
+counted_view<Iterator> counted(Iterator first, typename iterator_traits<Iterator>::difference_type count)
+	{ return {first, count}; }
+
 
 /// Create an iterator_range of std::move_iterator from two iterators
 template<typename InputIterator> inline
@@ -130,6 +134,7 @@ auto move(SizedRange & r)
 template<typename InputRange> inline
 auto move_iter_rng(InputRange & r)
  -> iterator_range< std::move_iterator<decltype(begin(r))> >  { return view::move(begin(r), end(r)); }
+
 
 #ifndef OEL_NO_BOOST
 	/** @brief Create a view with boost::transform_iterator from a range with size() member or an array

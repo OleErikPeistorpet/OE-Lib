@@ -6,6 +6,7 @@
 #include <deque>
 #include <array>
 #include <set>
+#include <functional>
 
 /// @cond INTERNAL
 
@@ -98,6 +99,7 @@ TEST_F(utilTest, countedView)
 	EXPECT_EQ(2, test.end()[-1]);
 }
 
+#ifndef OEL_NO_BOOST
 TEST_F(utilTest, viewTransform)
 {
 	using namespace oel;
@@ -116,39 +118,57 @@ TEST_F(utilTest, viewTransform)
 	EXPECT_EQ(4, test[1]);
 	EXPECT_EQ(9, test[2]);
 
-	auto v = make_view_n(src, 2);
-	test.append( view::transform(v, [](int & i) { return i++; }) );
+	auto v = view::counted(src, 2);
+	test.append(view::transform( v, std::function<int(int &)>([](int & i) { return i++; }) ));
 	EXPECT_EQ(5U, test.size());
 	EXPECT_EQ(1, test[3]);
 	EXPECT_EQ(2, test[4]);
 	EXPECT_EQ(2, src[0]);
 	EXPECT_EQ(3, src[1]);
+
+	auto r = make_iterator_range(begin(src) + 1, end(src));
+	auto f = [](int i) { return i; };
+	test.assign( view::transform(r, std::ref(f)) );
+	EXPECT_EQ(2U, test.size());
+	EXPECT_EQ(src[1], test[0]);
+	EXPECT_EQ(src[2], test[1]);
 }
+#endif
 
 TEST_F(utilTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
 	test2[4] = -7;
-	auto fitInto = oel::make_view_n(std::begin(test2), 4);
+	auto fitInto = oel::view::counted(std::begin(test2), 4);
 
 	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
 
-	oel::copy_fit(test, fitInto);
+	auto n = oel::copy_fit(test, fitInto);
 	EXPECT_TRUE(std::equal(begin(test), begin(test) + 4, test2));
 	EXPECT_EQ(-7, test2[4]);
+	EXPECT_EQ(fitInto.size(), oel::as_unsigned(n));
 
 	EXPECT_EQ(4, test[4]);
-	oel::copy(test2, test);
+	auto l = oel::copy(test2, test);
 	EXPECT_EQ(-7, test[4]);
-
-	std::forward_list<std::string> li{"aa", "bb"};
-	std::array<std::string, 2> strDest;
-	oel::copy_unsafe(oel::view::move_iter_rng(li), begin(strDest));
+	EXPECT_TRUE(end(test) == l);
+	{
+		std::forward_list<std::string> li{"aa", "bb"};
+		std::array<std::string, 2> strDest;
+		auto sLast = oel::copy_unsafe(oel::view::move_iter_rng(li), begin(strDest)).src_last;
+		EXPECT_EQ("aa", strDest[0]);
+		EXPECT_EQ("bb", strDest[1]);
+		EXPECT_TRUE(li.begin()->empty());
+		EXPECT_TRUE(std::next(li.begin())->empty());
+		EXPECT_TRUE(end(li) == sLast.base());
+	}
+	std::list<std::string> li{"aa", "bb"};
+	std::array<std::string, 4> strDest;
+	n = oel::copy_fit(li, strDest);
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
-	EXPECT_TRUE(li.begin()->empty());
-	EXPECT_TRUE(std::next(li.begin())->empty());
+	EXPECT_EQ(2, n);
 }
 
 TEST_F(utilTest, makeUnique)
