@@ -12,6 +12,7 @@
 	#include <boost/align/aligned_alloc.hpp>
 #endif
 #include <string.h> // for memset
+#include <cstddef>  // for max_align_t
 
 
 namespace oel
@@ -119,19 +120,19 @@ namespace _detail
 		#endif
 
 	template<size_t> inline
-	void * OpNew(std::true_type, size_t nBytes)
+	void * OpNew(size_t nBytes, true_type)
 	{
 		return ::operator new(nBytes);
 	}
 
-	inline void OpDelete(std::true_type, void * ptr)
+	inline void OpDelete(void * ptr, true_type)
 	{
 		::operator delete(ptr);
 	}
 
 #ifndef OEL_NO_BOOST
 	template<size_t Align>
-	void * OpNew(std::false_type, size_t const nBytes)
+	void * OpNew(size_t const nBytes, false_type)
 	{
 		if (nBytes > 0) // test could be removed if using MSVC _aligned_malloc
 		{
@@ -158,7 +159,7 @@ namespace _detail
 		}
 	}
 
-	inline void OpDelete(std::false_type, void * ptr)
+	inline void OpDelete(void * ptr, false_type)
 	{
 		boost::alignment::aligned_free(ptr);
 	}
@@ -174,14 +175,14 @@ inline T * allocator<T>::allocate(size_t nObjects)
 	static_assert(CanDefaultAlloc::value,
 		"The value of Align is not supported by operator new. Boost v1.56 required (and OEL_NO_BOOST not defined).");
 #endif
-	void * p = _detail::OpNew<OEL_ALIGNOF(T)>(CanDefaultAlloc{}, sizeof(T) * nObjects);
+	void * p = _detail::OpNew<OEL_ALIGNOF(T)>(sizeof(T) * nObjects, CanDefaultAlloc{});
 	return static_cast<T *>(p);
 }
 
 template<typename T>
 inline void allocator<T>::deallocate(T * ptr, size_t)
 {
-	_detail::OpDelete(_detail::CanDefaultAlloc<OEL_ALIGNOF(T)>(), ptr);
+	_detail::OpDelete(ptr, _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -276,7 +277,7 @@ namespace _detail
 
 
 	template<typename Alloc, typename T, typename... Arg>
-	void UninitFillImpl(std::false_type, T * first, T *const last, Alloc & alloc, const Arg &... arg)
+	void UninitFillImpl(false_type, T * first, T *const last, Alloc & alloc, const Arg &... arg)
 	{
 		T *const init = first;
 		OEL_TRY_
@@ -292,7 +293,7 @@ namespace _detail
 	}
 
 	template<typename Alloc, typename T> inline
-	void UninitFillImpl(std::true_type, T * first, T * last, Alloc &, int val = 0)
+	void UninitFillImpl(true_type, T * first, T * last, Alloc &, int val = 0)
 	{
 		::memset(first, val, last - first);
 	}
@@ -309,7 +310,7 @@ namespace _detail
 	void UninitFillDefault(T *const first, T *const last, Alloc & alloc)
 	{
 		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
-			_detail::UninitFillImpl(std::false_type{}, first, last, alloc);
+			_detail::UninitFillImpl(false_type{}, first, last, alloc);
 	}
 }
 

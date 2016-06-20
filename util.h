@@ -70,7 +70,8 @@ struct last_iterators
 * @brief Copies the elements in source into the range beginning at dest
 * @return struct containing begin(source) and dest, both incremented by number of elements in source
 *
-* If the ranges overlap, behavior is undefined. To move instead of copy, pass view::move(source)  */
+* If the ranges overlap, behavior is undefined (uses memcpy when possible).
+* To move instead of copy, pass view::move(source). To mimic std::copy_n, use view::counted  */
 template<typename InputRange, typename OutputIterator>
 auto copy_unsafe(const InputRange & source, OutputIterator dest) -> last_iterators<decltype(begin(source)), OutputIterator>;
 
@@ -82,7 +83,6 @@ auto copy_unsafe(const InputRange & source, OutputIterator dest) -> last_iterato
 * To move instead of copy, pass view::move(source)  */
 template<typename SizedInputRange, typename SizedOutputRange>
 auto copy(const SizedInputRange & source, SizedOutputRange & dest) -> decltype(begin(dest));
-
 /**
 * @brief Copies as many elements as will fit in dest
 * @return number of elements copied, lesser of source size and dest size
