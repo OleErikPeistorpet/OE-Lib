@@ -638,6 +638,18 @@ TEST_F(dynarrayTest, overAligned)
 }
 #endif
 
+TEST_F(dynarrayTest, selfMoveAssign)
+{
+	dynarray<int> d(4, -3);
+	{
+		auto tmp = std::move(d);
+		d = std::move(d);
+		d = std::move(tmp);
+	}
+	EXPECT_EQ(4U, d.size());
+	EXPECT_EQ(-3, d.back());
+}
+
 TEST_F(dynarrayTest, misc)
 {
 	{

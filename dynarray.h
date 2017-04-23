@@ -342,23 +342,23 @@ private:
 		swap(_m.reservEnd, s.allocEnd);
 	}
 
-	void _moveAssignAlloc(std::true_type, _dataOwner & o)
+	void _moveAssignAlloc(std::true_type, Alloc & a)
 	{
-		static_cast<Alloc &>(_m) = std::move(o);
+		static_cast<Alloc &>(_m) = std::move(a);
 	}
 
-	void _moveAssignAlloc(std::false_type, _dataOwner &) {}
+	void _moveAssignAlloc(std::false_type, Alloc &) {}
 
-	void _swapAlloc(std::true_type, _dataOwner & o)
+	void _swapAlloc(std::true_type, Alloc & a)
 	{
 		using std::swap;
-		swap(static_cast<Alloc &>(_m), static_cast<Alloc &>(o));
+		swap(static_cast<Alloc &>(_m), a);
 	}
 
-	void _swapAlloc(std::false_type, _dataOwner & o)
+	void _swapAlloc(std::false_type, Alloc & a)
 	{	// propagate_on_container_swap false, standard says this is undefined if allocators compare unequal
-		OEL_ASSERT(get_allocator() == static_cast<Alloc &>(o));
-		(void) o;
+		OEL_ASSERT(get_allocator() == a);
+		(void) a;
 	}
 
 
@@ -696,7 +696,8 @@ private:
 	}
 
 	struct _emplaceMakeElem
-	{	template<typename... Args>
+	{
+		template<typename... Args>
 		T * operator()(dynarray & d, T *const newPos, size_type, Args &&... args) const
 		{
 			_allocTrait::construct(d._m, newPos, std::forward<Args>(args)...);
@@ -794,7 +795,8 @@ template<typename T, typename Alloc> template<typename... Args>
 void dynarray<T, Alloc>::emplace_back(Args &&... args)
 {
 	if (_m.end < _m.reservEnd)
-	{	_allocTrait::construct(_m, _m.end, std::forward<Args>(args)...);
+	{
+		_allocTrait::construct(_m, _m.end, std::forward<Args>(args)...);
 	}
 	else
 	{
@@ -822,7 +824,8 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) noexcept
 		"This move constructor requires trivially relocatable T or always equal Alloc");
 
 	if (a != other._m && !is_always_equal_allocator<Alloc>::value)
-	{	_allocUnequalMove(other);
+	{
+		_allocUnequalMove(other);
 	}
 	else
 	{
@@ -838,14 +841,13 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 		|| _allocTrait::propagate_on_container_move_assignment::value,
 		"This move requires trivially relocatable T, Alloc::propagate_on_container_move_assignment or always equal Alloc");
 
-	// TODO: check that this gets optimized out when propagate_on_container_move_assignment
 	if (static_cast<Alloc &>(_m) != other._m &&
 		!_allocTrait::propagate_on_container_move_assignment::value)
 	{
 		_detail::Destroy(_m.data, _m.end);
 		_allocUnequalMove(other);
 	}
-	else if (this != &other)
+	else
 	{
 		if (_m.data)
 		{
