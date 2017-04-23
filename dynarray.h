@@ -853,7 +853,7 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 			_m.deallocate(_m.data, capacity());
 		}
 		static_cast<_dynarrBase &>(_m) = other._m;
-		_moveAssignAlloc(_allocTrait::propagate_on_container_move_assignment(), other._m);
+		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment(), other._m);
 		other._m.reservEnd = other._m.end = other._m.data = nullptr;
 	}
 	return *this;
@@ -908,7 +908,7 @@ void dynarray<T, Alloc>::swap(dynarray & other) OEL_NOEXCEPT_NDEBUG
 {
 	std::swap(static_cast<_dynarrBase &>(_m),
 			  static_cast<_dynarrBase &>(other._m));
-	_swapAlloc(_allocTrait::propagate_on_container_swap(), other._m);
+	_swapAlloc(typename _allocTrait::propagate_on_container_swap(), other._m);
 }
 
 
