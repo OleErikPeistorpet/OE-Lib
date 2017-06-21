@@ -57,7 +57,7 @@ typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarr
 *
 * The default allocator supports over-aligned types (e.g. __m256).
 * In general, only that which differs from std::vector is documented. */
-template<typename T, typename Alloc/* = oel::allocator<T> */>
+template<typename T, typename Alloc/* = oel::allocator */>
 class dynarray
 {
 	using _allocTrait = std::allocator_traits<Alloc>;
@@ -409,17 +409,17 @@ private:
 	}
 
 
-	template<typename... FuncTakingLast, typename T1 = T>
-	enable_if_t<! is_trivially_relocatable<T1>::value>
-		_relocateData(T * dFirst, T * dLast, size_type, FuncTakingLast... extraCleanupIfException)
+	template< typename... FuncTakingLast, typename T1 = T,
+		enable_if<!is_trivially_relocatable<T1>::value> = 0 >
+	void _relocateData(T * dFirst, T * dLast, size_type, FuncTakingLast... extraCleanupIfException)
 	{
 		_detail::UninitCopy(std::make_move_iterator(_m.data), dFirst, dLast, _m, extraCleanupIfException...);
 		_detail::Destroy(_m.data, _m.end);
 	}
 
-	template<typename... Unused, typename T1 = T>
-	enable_if_t<is_trivially_relocatable<T1>::value>
-		_relocateData(T * dest, T *, size_type n, Unused...)
+	template< typename... Unused, typename T1 = T,
+		enable_if<is_trivially_relocatable<T1>::value> = 0 >
+	void _relocateData(T * dest, T *, size_type n, Unused...)
 	{
 		::memcpy(dest, data(), sizeof(T) * n);
 	}

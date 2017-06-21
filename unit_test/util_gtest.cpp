@@ -171,12 +171,25 @@ TEST_F(utilTest, copy)
 	EXPECT_EQ(2, n);
 }
 
+struct OneSizeT
+{
+	size_t val;
+};
+
 TEST_F(utilTest, makeUnique)
 {
-	auto p1 = oel::make_unique<std::string[]>(5);
-	for (int i = 0; i < 5; ++i)
-		EXPECT_TRUE(p1[i].empty());
+	auto ps = oel::make_unique_default<std::string[]>(2);
+	EXPECT_TRUE(ps[0].empty());
+	EXPECT_TRUE(ps[1].empty());
 
+	{
+		auto p = oel::make_unique<OneSizeT>(7U);
+		EXPECT_EQ(7U, p->val);
+
+		auto a = oel::make_unique<OneSizeT[]>(5);
+		for (size_t i = 0; i < 5; ++i)
+			EXPECT_EQ(0U, a[i].val);
+	}
 	auto p2 = oel::make_unique<std::list<int>>(4, 6);
 	EXPECT_EQ(4U, p2->size());
 	EXPECT_EQ(6, p2->front());

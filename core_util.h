@@ -150,9 +150,9 @@ const default_init; ///< An instance of default_init_tag to pass
 
 
 
-/// Exists in std with C++14
+/// Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
 template<bool Condition>
-using enable_if_t = typename std::enable_if<Condition>::type;
+using enable_if = typename std::enable_if<Condition, int>::type;
 
 
 

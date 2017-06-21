@@ -95,8 +95,8 @@ std::ptrdiff_t copy_fit(const SizedInputRange & source, SizedOutputRange & dest)
 ///@{
 /// Check if index is valid (can be used with operator[]) for array or other range.
 template< typename UnsignedInt, typename SizedRange,
-		  typename = enable_if_t<std::is_unsigned<UnsignedInt>::value> > inline
-bool index_valid(const SizedRange & r, UnsignedInt index)   { return index < oel::as_unsigned(oel::ssize(r)); }
+          enable_if<std::is_unsigned<UnsignedInt>::value> = 0 > inline
+bool index_valid(const SizedRange & r, UnsignedInt index)   { return index < as_unsigned(oel::ssize(r)); }
 
 template<typename SizedRange> inline
 bool index_valid(const SizedRange & r, std::int32_t index)  { return 0 <= index && index < oel::ssize(r); }
@@ -104,7 +104,7 @@ bool index_valid(const SizedRange & r, std::int32_t index)  { return 0 <= index 
 template<typename SizedRange> inline
 bool index_valid(const SizedRange & r, std::int64_t index)
 {	// assumes that r.size() is never greater than INT64_MAX
-	return static_cast<std::uint64_t>(index) < oel::as_unsigned(oel::ssize(r));
+	return static_cast<std::uint64_t>(index) < as_unsigned(oel::ssize(r));
 }
 ///@}
 
@@ -113,17 +113,17 @@ bool index_valid(const SizedRange & r, std::int64_t index)
 * @brief Same as std::make_unique, but performs direct-list-initialization if there is no matching constructor
 *
 * (Works for aggregates.) http://open-std.org/JTC1/SC22/WG21/docs/papers/2015/n4462.html  */
-template< typename T, typename... Args, typename = enable_if_t<!std::is_array<T>::value> >
+template< typename T, typename... Args, typename = enable_if<!std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(Args &&... args);
 
 /// Equivalent to std::make_unique (array version).
-template< typename T, typename = enable_if_t<std::is_array<T>::value> >
+template< typename T, typename = enable_if<std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(size_t arraySize);
 /**
 * @brief Array is default-initialized, can be significantly faster for non-class elements
 *
 * Non-class elements get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-template< typename T, typename = enable_if_t<std::is_array<T>::value> >
+template< typename T, typename = enable_if<std::is_array<T>::value> >
 std::unique_ptr<T> make_unique_default(size_t arraySize);
 
 

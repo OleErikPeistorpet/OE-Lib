@@ -38,16 +38,16 @@ struct allocator
 	void deallocate(T * ptr, size_t);
 
 	/// U constructible from Args, direct-initialization
-	template<typename U, typename... Args>
-	enable_if_t< std::is_constructible<U, Args...>::value >
-		construct(U * raw, Args &&... args)
+	template<typename U, typename... Args,
+	         enable_if< std::is_constructible<U, Args...>::value > = 0>
+	void construct(U * raw, Args &&... args)
 	{
 		::new(static_cast<void *>(raw)) U(std::forward<Args>(args)...);
 	}
 	/// U not constructible from Args, list-initialization
-	template<typename U, typename... Args>
-	enable_if_t< !std::is_constructible<U, Args...>::value >
-		construct(U * raw, Args &&... args)
+	template<typename U, typename... Args,
+	         enable_if< !std::is_constructible<U, Args...>::value > = 0>
+	void construct(U * raw, Args &&... args)
 	{
 		::new(static_cast<void *>(raw)) U{std::forward<Args>(args)...};
 	}
