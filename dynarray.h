@@ -7,6 +7,7 @@
 
 
 #include "auxi/contiguous_iterator.h"
+#include "auxi/detail.h"
 #include "compat/default.h"
 #include "align_allocator.h"
 
@@ -15,13 +16,6 @@
 
 namespace oel
 {
-
-namespace _detail
-{
-	template<typename> struct DynarrBase;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 
 /// dynarray<dynarray<T>> is efficient
 template<typename T, typename Alloc>

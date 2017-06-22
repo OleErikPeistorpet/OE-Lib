@@ -12,7 +12,7 @@
 /** @file
 * @brief specify_trivial_relocate to be overloaded for user classes
 *
-* Also provides a forward declaration of dynarray and the type trait all_true.
+* Also provides a forward declaration of dynarray and the type trait all_.
 */
 
 #if _MSC_VER && _MSC_VER < 1900
@@ -83,6 +83,7 @@ struct is_trivially_copyable :
 oel::true_type specify_trivial_relocate(MyClass &&);
 // Or if you are unsure if a member or base class is and will stay trivially relocatable:
 oel::is_trivially_relocatable<MemberTypeOfU> specify_trivial_relocate(U &&);
+
 // With nested class, use friend keyword:
 class Outer {
 	class Inner {
@@ -108,14 +109,17 @@ struct is_trivially_relocatable;
 
 template<bool...> struct bool_pack_t;
 
-/** @brief If all of Vs is true, all_true is-a std::true_type, else false_type
+template<bool... Vs>
+using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
+
+/** @brief If all of BoolConstants have value equal to true, this trait is-a std::true_type, else false_type
 *
 * Example: @code
 template<typename... Ts>
 void ProcessNumbers(Ts... n) {
-	static_assert(oel::all_true< std::is_arithmetic<Ts>::value... >::value, "Only arithmetic types, please");
+	static_assert(oel::all_< std::is_arithmetic<Ts>... >::value, "Only arithmetic types, please");
 @endcode  */
-template<bool... Vs>
-using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
+template<typename... BoolConstants>
+struct all_ : all_true<BoolConstants::value...> {};
 
 } // namespace oel

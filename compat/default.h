@@ -53,8 +53,8 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 #endif
 
 template<typename T, typename U>
-struct is_trivially_copyable< std::pair<T, U> > : bool_constant<
-	is_trivially_copyable<T>::value && is_trivially_copyable<U>::value > {};
+struct is_trivially_copyable< std::pair<T, U> >
+ :	all_< is_trivially_copyable<T>, is_trivially_copyable<U> > {};
 
 #ifndef OEL_NO_BOOST
 	template<typename T>

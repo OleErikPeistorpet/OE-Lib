@@ -20,6 +20,6 @@ struct is_trivially_relocatable< std::array<T, S> >
 
 template<typename... Ts>
 struct is_trivially_copyable< std::tuple<Ts...> >
- :	all_true< is_trivially_copyable<Ts>::value... > {};
+ :	all_< is_trivially_copyable<Ts>... > {};
 
 }
