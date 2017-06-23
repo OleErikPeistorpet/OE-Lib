@@ -127,23 +127,18 @@ public:
 	void      assign(size_type count, const T & val)  { clear(); append(count, val); }
 
 	/**
-	* @brief Add at end the elements from range (in same order), return iterator to new
+	* @brief Add at end the elements from range (return past-the-last of source)
 	* @param source an array, STL container, gsl::span, boost::iterator_range or such. Can be this dynarray.
-	* @return iterator pointing to first of the new elements in dynarray, or end if source is empty
+	* @return begin(source) incremented to end of source. The iterator is already invalidated (do not dereference) if
+	*	first pointed into same dynarray and there was insufficient capacity to avoid reallocation.
 	*
 	* Strong exception guarantee, this function has no effect if an exception is thrown.
 	* Otherwise equivalent to std::vector::insert(end(), begin(source), sLast),
 	* where sLast is either end(source) or found by magic, see TODO put ref here  */
 	template<typename InputRange>
-	iterator  append(const InputRange & source);
-	/**
-	* @brief Same as append(const InputRange &), except returning past-the-last of source
-	* @return begin(source) incremented to end of source. The iterator is already invalidated (do not dereference) if
-	*	first pointed into same dynarray and there was insufficient capacity to avoid reallocation. */
-	template<typename InputRange>
-	auto  append_ret_src(const InputRange & source) -> decltype(::adl_begin(source));
+	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
 	/// Equivalent to calling append(const InputRange &) with il as argument
-	iterator  append(std::initializer_list<T> il);
+	void      append(std::initializer_list<T> il)   { append<>(il); }
 	/// Equivalent to std::vector::insert(end(), count, val), but with strong exception guarantee
 	void      append(size_type count, const T & val);
 
@@ -590,8 +585,8 @@ private:
 		return first;
 	}
 
-	template<typename Ret, typename InputIter, typename Sentinel, typename RetSelect>
-	Ret _append(InputIter first, Sentinel const last, RetSelect retSelect)
+	template<typename InputIter, typename Sentinel>
+	InputIter _append(InputIter first, Sentinel const last, false_type)
 	{	// single pass iterator, no size available
 		size_type const oldSize = size();
 		OEL_TRY_
@@ -604,29 +599,22 @@ private:
 			erase_to_end(begin() + oldSize);
 			OEL_WHEN_EXCEPTIONS_ON(throw);
 		}
-		return retSelect(begin() + oldSize, first);
-	}
-
-	template<typename Ret, typename InputIter, typename RetSelect>
-	OEL_FORCEINLINE Ret _append(InputIter first, size_type const n, RetSelect retSelect)
-	{
-		first = _appendN(first, n, can_memmove_with<T *, InputIter>());
-		return retSelect(end() - n, first);
-	}
-
-	template<typename InputIter>
-	InputIter _appendN(InputIter first, size_type const n, false_type)
-	{	// cannot use memcpy
-		_appendImpl( n,
-			[&first](T * dest, size_type n_, Alloc & al)
-			{
-				first = _detail::UninitCopy(first, dest, dest + n_, al);
-			} );
 		return first;
 	}
 
+	template<typename InputIter>
+	InputIter _append(InputIter src, size_type const n, false_type)
+	{	// cannot use memcpy
+		_appendImpl( n,
+			[&src](T * dest, size_type n_, Alloc & a)
+			{
+				src = _detail::UninitCopy(src, dest, dest + n_, a);
+			} );
+		return src;
+	}
+
 	template<typename CntigusIter>
-	OEL_FORCEINLINE CntigusIter _appendN(CntigusIter const first, size_type const n, true_type)
+	OEL_FORCEINLINE CntigusIter _append(CntigusIter const first, size_type const n, true_type)
 	{
 		CntigusIter last = first + n;
 	#if OEL_MEM_BOUND_DEBUG_LVL
@@ -950,25 +938,10 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(const InputRange & src)
+OEL_FORCEINLINE auto dynarray<T, Alloc>::append(const InputRange & src) -> decltype(::adl_begin(src))
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _append<iterator>( ::adl_begin(src), _sizeOrEnd<IterSrc>(src),
-							  [](iterator newPos, IterSrc) { return newPos; } );
-}
-
-template<typename T, typename Alloc> template<typename InputRange>
-OEL_FORCEINLINE auto dynarray<T, Alloc>::append_ret_src(const InputRange & src) -> decltype(::adl_begin(src))
-{
-	using IterSrc = decltype(::adl_begin(src));
-	return _append<IterSrc>( ::adl_begin(src), _sizeOrEnd<IterSrc>(src),
-							 [](iterator, IterSrc sLast) { return sLast; } );
-}
-
-template<typename T, typename Alloc>
-OEL_FORCEINLINE typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::append(std::initializer_list<T> il)
-{
-	return append<>(il);
+	return _append( ::adl_begin(src), _sizeOrEnd<IterSrc>(src), can_memmove_with<T *, IterSrc>() );
 }
 
 

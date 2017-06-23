@@ -390,7 +390,7 @@ TEST_F(dynarrayTest, append)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.append_ret_src( view::counted(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.append( view::counted(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.append(double_dynarr2);
 
 	{
@@ -422,9 +422,9 @@ TEST_F(dynarrayTest, append)
 		// Should hit static_assert
 		//dest.insert_r(dest.begin(), make_iterator_range(it, std::istream_iterator<int>()));
 
-		it = dest.append_ret_src(view::counted(it, 2));
+		it = dest.append(view::counted(it, 2));
 
-		dest.append_ret_src(view::counted(it, 2));
+		dest.append(view::counted(it, 2));
 
 		for (int i = 0; i < ssize(dest); ++i)
 			EXPECT_EQ(i + 1, dest[i]);
@@ -680,9 +680,9 @@ TEST_F(dynarrayTest, misc)
 	dest0.reserve(1);
 	dest0 = daSrc;
 
-	dest0.append_ret_src( view::counted(cbegin(daSrc), daSrc.size()) );
+	dest0.append( view::counted(cbegin(daSrc), daSrc.size()) );
 	dest0.append(view::counted(fASrc, 2));
-	auto srcEnd = dest0.append_ret_src( view::counted(dequeSrc.begin(), dequeSrc.size()) );
+	auto srcEnd = dest0.append( view::counted(dequeSrc.begin(), dequeSrc.size()) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;

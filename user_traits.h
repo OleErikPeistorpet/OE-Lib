@@ -54,9 +54,9 @@ class dynarray;
 template<bool Val>
 using bool_constant = std::integral_constant<bool, Val>;
 
-
-using std::true_type; // for specify_trivial_relocate and is_trivially_copyable
+using std::true_type; // equals bool_constant<true>
 using std::false_type;
+
 
 /// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
 template<typename T>
