@@ -144,19 +144,19 @@ TEST_F(utilTest, copy)
 
 	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
 
-	auto n = oel::copy_fit(test, fitInto);
+	auto success = oel::copy_fit(test, fitInto);
 	EXPECT_TRUE(std::equal(begin(test), begin(test) + 4, test2));
 	EXPECT_EQ(-7, test2[4]);
-	EXPECT_EQ(fitInto.size(), oel::as_unsigned(n));
+	EXPECT_FALSE(success);
 
 	EXPECT_EQ(4, test[4]);
-	auto l = oel::copy(test2, test);
+	auto l = oel::copy(test2, test).dest_last;
 	EXPECT_EQ(-7, test[4]);
 	EXPECT_TRUE(end(test) == l);
 	{
 		std::forward_list<std::string> li{"aa", "bb"};
 		std::array<std::string, 2> strDest;
-		auto sLast = oel::copy_unsafe(oel::view::move_iter_rng(li), begin(strDest)).src_last;
+		auto sLast = oel::copy(oel::view::move_iter_rng(li), strDest).src_last;
 		EXPECT_EQ("aa", strDest[0]);
 		EXPECT_EQ("bb", strDest[1]);
 		EXPECT_TRUE(li.begin()->empty());
@@ -165,10 +165,10 @@ TEST_F(utilTest, copy)
 	}
 	std::list<std::string> li{"aa", "bb"};
 	std::array<std::string, 4> strDest;
-	n = oel::copy_fit(li, strDest);
+	success = oel::copy_fit(li, strDest);
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
-	EXPECT_EQ(2, n);
+	EXPECT_TRUE(success);
 }
 
 struct OneSizeT
