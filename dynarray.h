@@ -34,7 +34,7 @@ void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(sou
 /// Overloads generic append(Container &, const InputRange &) (in util.h)
 template<typename T, typename A, typename InputRange> inline
 void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
-/// Overloads generic insert(Container &, Container::const_iterator, const InputRange &)
+/// Overloads generic oel::insert (in util.h)
 template<typename T, typename A, typename ForwardRange> inline
 typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos,
                                           const ForwardRange & source)  { return dest.insert_r(pos, source); }
@@ -90,10 +90,15 @@ public:
 	explicit dynarray(size_type size, const Alloc & a = Alloc{});  ///< (Value-initializes elements, same as std::vector)
 	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
 
-	/** @brief Equivalent to std::vector(begin(range), sLast, a),
-	*	where sLast is either end(range) or found by magic, see TODO put ref here
+	/** @brief Equivalent to std::vector(begin(range), end(range), a),
+	*	where end(range) is not needed if range has size member function
 	*
-	* If you need to construct from some std::istream, check out boost/range/istream_range.hpp  */
+	* Example, construct from a standard istream with formatting (using Boost):
+	* @code
+	#include <boost/range/istream_range.hpp>
+	// ...
+	auto result = dynarray<int>(boost::range::istream_range<int>(someStream));
+	@endcode  */
 	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_cbegin(std::declval<InputRange>()) )>
 	explicit dynarray(const InputRange & range, const Alloc & a = Alloc{})  : _m(a) { assign(range); }
 
@@ -124,7 +129,7 @@ public:
 	template<typename InputRange>
 	auto      assign(const InputRange & source) -> decltype(::adl_begin(source));
 
-	void      assign(size_type count, const T & val)  { clear(); append(count, val); }
+	void      assign(size_type count, const T & val)  { clear();  append(count, val); }
 
 	/**
 	* @brief Add at end the elements from range (return past-the-last of source)
@@ -133,11 +138,11 @@ public:
 	*	first pointed into same dynarray and there was insufficient capacity to avoid reallocation.
 	*
 	* Strong exception guarantee, this function has no effect if an exception is thrown.
-	* Otherwise equivalent to std::vector::insert(end(), begin(source), sLast),
-	* where sLast is either end(source) or found by magic, see TODO put ref here  */
+	* Otherwise equivalent to std::vector::insert(end(), begin(source), end(source)),
+	* where end(source) is not needed if source has size member function  */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
-	/// Equivalent to calling append(const InputRange &) with il as argument
+	/// Equivalent to std::vector::insert(end(), il), but with strong exception guarantee
 	void      append(std::initializer_list<T> il)   { append<>(il); }
 	/// Equivalent to std::vector::insert(end(), count, val), but with strong exception guarantee
 	void      append(size_type count, const T & val);
@@ -146,12 +151,12 @@ public:
 	* @brief Uses default initialization for added elements, can be significantly faster for non-class T
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void      resize(size_type count, default_init_tag)  { _resizeImpl(count, _detail::UninitFillDefault<Alloc, T>); }
+	void      resize(size_type count, default_init_tag)  { _resizeImpl(count, _detail::UninitDefaultConstruct<Alloc, T>); }
 	/// (Value-initializes added elements, same as std::vector::resize)
 	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<Alloc, T>); }
 
-	/// Equivalent to std::vector::insert(pos, begin(source), sLast),
-	/// where sLast is either end(source) or found by magic, see TODO put ref here
+	/// Equivalent to std::vector::insert(pos, begin(source), end(source)),
+	/// where end(source) is not needed if source has size member function
 	template<typename ForwardRange>
 	iterator  insert_r(const_iterator pos, const ForwardRange & source);
 
@@ -511,8 +516,8 @@ private:
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (count != 0)
 		{	// Dereference to catch out of range errors if the iterators have internal checks
-			(void)*first;
-			(void)*(first + (count - 1));
+			(void) *first;
+			(void) *(first + (count - 1));
 		}
 	#endif
 		if (capacity() < count)
@@ -620,8 +625,8 @@ private:
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (n != 0)
 		{	// Dereference to catch out of range errors if the iterators have internal checks
-			(void)*first;
-			(void)*(last - 1);
+			(void) *first;
+			(void) *(last - 1);
 		}
 	#endif
 		_appendImpl( n,
@@ -862,7 +867,7 @@ dynarray<T, Alloc>::dynarray(size_type size, default_init_tag, const Alloc & a)
  :	_m(a, size)
 {
 	_m.end = _m.reservEnd;
-	_detail::UninitFillDefault(_m.data, _m.end, _m);
+	_detail::UninitDefaultConstruct(_m.data, _m.end, _m);
 }
 
 template<typename T, typename Alloc>
