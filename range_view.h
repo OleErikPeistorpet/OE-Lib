@@ -14,6 +14,9 @@
 #endif
 
 
+/** @file
+*/
+
 namespace oel
 {
 
@@ -25,6 +28,8 @@ namespace oel
 	class iterator_range
 	{
 	public:
+		using difference_type = typename iterator_traits<Iterator>::difference_type;
+
 		Iterator first;
 		Iterator last;
 
@@ -32,10 +37,11 @@ namespace oel
 
 		Iterator begin() const  { return first; }
 		Iterator end() const    { return last; }
-	};
 
-	template<typename RandomAccessIterator>
-	auto ssize(const iterator_range<RandomAccessIterator> & r) -> decltype(r.last - r.first)  { return r.last - r.first; }
+		template<typename It1 = Iterator,
+		         enable_if<std::is_base_of< random_access_traversal_tag, iterator_traversal_t<It1> >::value> = 0>
+		difference_type size()  { return last - first; }
+	};
 
 	/// Create an iterator_range from two iterators, with type deduced from arguments
 	template<typename Iterator> inline
@@ -44,8 +50,8 @@ namespace oel
 
 
 /// Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
-template< typename Iterator,
-          bool = std::is_base_of<random_access_traversal_tag, iterator_traversal_t<Iterator>>::value >
+template<typename Iterator,
+         bool = std::is_base_of< random_access_traversal_tag, iterator_traversal_t<Iterator> >::value>
 class counted_view
 {
 public:
@@ -61,9 +67,11 @@ public:
 	template<typename SizedRange>
 	counted_view(SizedRange & r)  : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
 
-	size_type size() const noexcept  { return _size; }
+	iterator  begin() const           { return _begin; }
 
-	iterator  begin() const          { return _begin; }
+	size_type size() const noexcept   { return _size; }
+
+	bool      empty() const noexcept  { return _size == 0; }
 
 	/// Increment begin, decrementing size
 	void      drop_front()  { OEL_ASSERT_MEM_BOUND(_size > 0);  ++_begin; --_size; }
