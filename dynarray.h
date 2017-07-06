@@ -203,6 +203,8 @@ public:
 
 	size_type capacity() const noexcept  { return _m.reservEnd - _m.data; }
 
+	size_type max_size() const noexcept  { return _allocTrait::max_size(_m); }
+
 	allocator_type get_allocator() const noexcept  { return _m; }
 
 	iterator       begin() noexcept         { return _iterator{_m.data, &_m}; }
