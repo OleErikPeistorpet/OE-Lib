@@ -229,11 +229,11 @@ namespace _detail
 
 
 #if _MSC_VER
-	__declspec(noreturn)
+	__declspec(noreturn) inline
 #else
-	__attribute__((noreturn))
+	__attribute__((noreturn)) static
 #endif
-	inline void ThrowFromCopy()
+	void ThrowFromCopy()
 	{
 		OEL_THROW(std::out_of_range("Too small dest for oel::copy"));
 	}
