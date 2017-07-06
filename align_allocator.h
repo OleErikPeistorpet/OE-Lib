@@ -8,10 +8,11 @@
 
 #include "core_util.h"
 
-#ifndef OEL_NO_BOOST
+#if !defined(OEL_NO_BOOST) && __cpp_aligned_new < 201606
 	#include <boost/align/aligned_alloc.hpp>
 #endif
-#include <cstddef>  // for max_align_t
+#include <cstddef> // for max_align_t
+#include <limits>
 
 
 namespace oel
@@ -51,6 +52,8 @@ struct allocator
 		::new(static_cast<void *>(raw)) U{std::forward<Args>(args)...};
 	}
 
+	size_t max_size() const  { return std::numeric_limits<size_t>::max() / sizeof(T); }
+
 	allocator() = default;
 	template<typename U>
 	allocator(const allocator<U> &) noexcept {}
@@ -84,16 +87,16 @@ using is_always_equal_allocator  = decltype( _detail::IsAlwaysEqual<Alloc>(int{}
 /// @cond INTERNAL
 
 #if _MSC_VER
-	#define OEL_ALIGNAS(amount, alignee) __declspec(align(amount)) alignee
+	#define OEL_ALIGNAS(amount) __declspec(align(amount))
 #else
-	#define OEL_ALIGNAS(amount, alignee) alignee __attribute__(( aligned(amount) ))
+	#define OEL_ALIGNAS(amount) __attribute__(( aligned(amount) ))
 #endif
 
 #define OEL_STORAGE_ALIGNED_TO(alignment)  \
 	template<size_t Size>  \
-	struct aligned_storage_t<Size, alignment>  \
+	struct OEL_ALIGNAS(alignment) aligned_storage_t<Size, alignment>  \
 	{  \
-		OEL_ALIGNAS(alignment, unsigned char data[Size]);  \
+		unsigned char data[Size];  \
 	}
 
 OEL_STORAGE_ALIGNED_TO(1);
@@ -112,11 +115,14 @@ namespace _detail
 {
 	template<size_t Align>
 	using CanDefaultAlloc = bool_constant<
-		#if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
-			Align <= 16 >;
+		#if defined(__STDCPP_DEFAULT_NEW_ALIGNMENT__)
+			Align <= __STDCPP_DEFAULT_NEW_ALIGNMENT__
+		#elif _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
+			Align <= 16
 		#else
-			Align <= OEL_ALIGNOF(std::max_align_t) >;
+			Align <= OEL_ALIGNOF(std::max_align_t)
 		#endif
+		>;
 
 	template<size_t> inline
 	void * OpNew(size_t nBytes, true_type)
@@ -124,12 +130,25 @@ namespace _detail
 		return ::operator new(nBytes);
 	}
 
-	inline void OpDelete(void * ptr, true_type)
+	template<size_t> inline
+	void OpDelete(void * ptr, true_type)
 	{
 		::operator delete(ptr);
 	}
 
-#ifndef OEL_NO_BOOST
+#if __cpp_aligned_new >= 201606
+	template<size_t Align> inline
+	void * OpNew(size_t nBytes, false_type)
+	{
+		return ::operator new(nBytes, std::align_val_t{Align});
+	}
+
+	template<size_t Align> inline
+	void OpDelete(void * ptr, false_type)
+	{
+		::operator delete(ptr, std::align_val_t{Align});
+	}
+#elif !defined(OEL_NO_BOOST)
 	template<size_t Align>
 	void * OpNew(size_t const nBytes, false_type)
 	{
@@ -158,10 +177,21 @@ namespace _detail
 		}
 	}
 
-	inline void OpDelete(void * ptr, false_type)
+	template<size_t> inline
+	void OpDelete(void * ptr, false_type)
 	{
 		boost::alignment::aligned_free(ptr);
 	}
+#else
+	template<size_t Align>
+	void * OpNew(size_t, false_type)
+	{
+		static_assert(Align == 0,
+			"The requested alignment requires Boost (1.56) or compiler supporting over-aligned dynamic allocation (C++17)");
+		return {};
+	}
+
+	template<size_t> void OpDelete(void *, false_type);
 #endif
 }
 /// @endcond
@@ -169,19 +199,15 @@ namespace _detail
 template<typename T>
 inline T * allocator<T>::allocate(size_t nObjects)
 {
-	using CanDefaultAlloc = _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>;
-#ifdef OEL_NO_BOOST
-	static_assert(CanDefaultAlloc::value,
-		"The value of Align is not supported by operator new. Boost v1.56 required (and OEL_NO_BOOST not defined).");
-#endif
-	void * p = _detail::OpNew<OEL_ALIGNOF(T)>(sizeof(T) * nObjects, CanDefaultAlloc{});
+	void * p = _detail::OpNew<OEL_ALIGNOF(T)>
+		(sizeof(T) * nObjects, _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>());
 	return static_cast<T *>(p);
 }
 
 template<typename T>
 inline void allocator<T>::deallocate(T * ptr, size_t)
 {
-	_detail::OpDelete(ptr, _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>());
+	_detail::OpDelete<OEL_ALIGNOF(T)>(ptr, _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>());
 }
 
 } // namespace oel

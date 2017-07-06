@@ -25,18 +25,21 @@ namespace statictest
 	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
 	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
 	static_assert(oel::can_memmove_with<float *, ConstIter>::value, "?");
-	static_assert(!oel::can_memmove_with<int *, float *>::value, "?");
+	static_assert( !oel::can_memmove_with<int *, float *>::value, "?" );
 
 	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
 	static_assert(oel::is_trivially_copyable<ConstIter>::value, "?");
 	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
-	static_assert(! std::is_convertible<ConstIter, Iter>::value, "?");
+	static_assert( !std::is_convertible<ConstIter, Iter>::value, "?" );
 
 	static_assert(oel::is_trivially_relocatable< std::array<std::unique_ptr<double>, 4> >::value, "?");
 
 	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >::value, "?");
 	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
-	static_assert(! oel::is_trivially_copyable< std::tuple<int, dynarray<bool>, int> >::value, "?");
+	static_assert( !oel::is_trivially_copyable< std::tuple<int, dynarray<bool>, int> >::value, "?" );
+
+	static_assert(OEL_ALIGNOF(oel::aligned_storage_t<32, 16>) == 16, "?");
+	static_assert(OEL_ALIGNOF(oel::aligned_storage_t<64, 64>) == 64, "?");
 
 	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::deque<double>> >::value,
 				  "Not critical, this assert can be removed");
@@ -327,8 +330,7 @@ TEST_F(dynarrayTest, assignStringStream)
 		EXPECT_EQ(0U, das.size());
 
 		std::stringstream ss{"My computer emits Hawking radiation"};
-		std::istream_iterator<std::string> begin{ss};
-		std::istream_iterator<std::string> end;
+		std::istream_iterator<std::string> begin{ss}, end;
 		das.assign(make_iterator_range(begin, end));
 
 		EXPECT_EQ(5U, das.size());
@@ -618,7 +620,7 @@ TEST_F(dynarrayTest, eraseToEnd)
 	EXPECT_EQ(4U, li.size());
 }
 
-#ifndef OEL_NO_BOOST
+#if __cpp_aligned_new >= 201606 || !defined(OEL_NO_BOOST)
 TEST_F(dynarrayTest, overAligned)
 {
 	unsigned int const testAlignment = 32;
