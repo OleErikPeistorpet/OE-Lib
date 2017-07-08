@@ -1,4 +1,5 @@
 #include "util.h"
+#include "range_algo.h"
 #include "dynarray.h"
 #include "gtest/gtest.h"
 #include <list>

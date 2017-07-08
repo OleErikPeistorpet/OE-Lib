@@ -24,17 +24,17 @@ is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 template<typename T, typename A> inline
 void swap(dynarray<T, A> & a, dynarray<T, A> & b) OEL_NOEXCEPT_NDEBUG  { a.swap(b); }
 
-/// Overloads generic erase_unordered(RandomAccessContainer &, RandomAccessContainer::size_type) (in util.h)
+/// Overloads generic erase_unordered(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
 template<typename T, typename A> inline
 void erase_unordered(dynarray<T, A> & d, typename dynarray<T, A>::size_type index)  { d.erase_unordered(d.begin() + index); }
 
-/// Overloads generic assign(Container &, const InputRange &) (in util.h)
+/// Overloads generic assign(Container &, const InputRange &) (in range_algo.h)
 template<typename T, typename A, typename InputRange> inline
 void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(source); }
-/// Overloads generic append(Container &, const InputRange &) (in util.h)
+/// Overloads generic append(Container &, const InputRange &) (in range_algo.h)
 template<typename T, typename A, typename InputRange> inline
 void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
-/// Overloads generic oel::insert (in util.h)
+/// Overloads generic oel::insert (in range_algo.h)
 template<typename T, typename A, typename ForwardRange> inline
 typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos,
                                           const ForwardRange & source)  { return dest.insert_r(pos, source); }
