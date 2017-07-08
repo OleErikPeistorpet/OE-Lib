@@ -15,12 +15,15 @@
 
 
 /** @file
+* @brief Basic utilities, included throughout the library
+*
+* Contains ssize, adl_begin, adl_end and more.
 */
 
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
 /** @brief Undefined/0: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
 *
-* Warning: 0 (or undefined by NDEBUG defined) is not binary compatible with levels 1 and 2. */
+* 0 (or undefined by NDEBUG defined) is not binary compatible with levels 1 and 2. */
 	#define OEL_MEM_BOUND_DEBUG_LVL 2
 #endif
 
@@ -66,16 +69,9 @@ using std::size_t;
 using std::begin;
 using std::end;
 
-#if __cplusplus >= 201402L || _MSC_VER || __GNUC__ >= 5
+#if __cplusplus >= 201402L || _MSC_VER
 	using std::cbegin;   using std::cend;
 	using std::crbegin;  using std::crend;
-#else
-	/// Equivalent to std::cbegin found in C++14
-	template<typename Range> inline
-	constexpr auto cbegin(const Range & r) -> decltype(std::begin(r))  { return std::begin(r); }
-	/// Equivalent to std::cend found in C++14
-	template<typename Range> inline
-	constexpr auto cend(const Range & r) -> decltype(std::end(r))      { return std::end(r); }
 #endif
 
 /** @brief Argument-dependent lookup non-member begin, defaults to std::begin
@@ -238,7 +234,7 @@ namespace _detail
 	 -> decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
 
 	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
-	inline false_type CanMemmoveWith(...);
+	false_type CanMemmoveWith(...);
 }
 
 } // namespace oel

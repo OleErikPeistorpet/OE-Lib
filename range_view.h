@@ -28,19 +28,21 @@ namespace oel
 	class iterator_range
 	{
 	public:
+		using iterator        = Iterator;
 		using difference_type = typename iterator_traits<Iterator>::difference_type;
-
-		Iterator first;
-		Iterator last;
 
 		iterator_range(Iterator f, Iterator l)  : first(f), last(l) {}
 
-		Iterator begin() const  { return first; }
-		Iterator end() const    { return last; }
+		iterator begin() const  { return first; }
+		iterator end() const    { return last; }
 
 		template<typename It1 = Iterator,
 		         enable_if<std::is_base_of< random_access_traversal_tag, iterator_traversal_t<It1> >::value> = 0>
-		difference_type size()  { return last - first; }
+		difference_type size() const  { return last - first; }
+
+	protected:
+		Iterator first;
+		Iterator last;
 	};
 
 	/// Create an iterator_range from two iterators, with type deduced from arguments
@@ -62,7 +64,7 @@ public:
 
 	/// Initialize to empty
 	counted_view() noexcept                              : _size() {}
-	counted_view(iterator first, difference_type count)  : _begin(first), _size(count) { OEL_ASSERT_MEM_BOUND(count >= 0); }
+	counted_view(Iterator first, difference_type count)  : _begin(first), _size(count) { OEL_ASSERT_MEM_BOUND(count >= 0); }
 	/// Construct from array or container with matching iterator type
 	template<typename SizedRange>
 	counted_view(SizedRange & r)  : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
@@ -97,7 +99,7 @@ public:
 	using reference = typename iterator_traits<Iterator>::reference;
 
 	counted_view() noexcept                              {}
-	counted_view(iterator first, difference_type count)  : _base(first, count) {}
+	counted_view(Iterator first, difference_type count)  : _base(first, count) {}
 	template<typename SizedRange>
 	counted_view(SizedRange & r)                         : _base(::adl_begin(r), oel::ssize(r)) {}
 
