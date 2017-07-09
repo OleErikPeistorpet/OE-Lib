@@ -34,10 +34,14 @@ void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(sou
 /// Overloads generic append(Container &, const InputRange &) (in range_algo.h)
 template<typename T, typename A, typename InputRange> inline
 void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
+/// Overloads generic append(Container &, Container::size_type, const Container::value_type &) (in range_algo.h)
+template<typename T, typename A> inline
+void append(dynarray<T, A> & dest, typename dynarray<T, A>::size_type n, const T & val)  { dest.append(n, val); }
 /// Overloads generic oel::insert (in range_algo.h)
 template<typename T, typename A, typename ForwardRange> inline
-typename dynarray<T, A>::iterator  insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos,
-                                          const ForwardRange & source)  { return dest.insert_r(pos, source); }
+typename dynarray<T, A>::iterator
+	insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, const ForwardRange & source)
+	{ return dest.insert_r(pos, source); }
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.

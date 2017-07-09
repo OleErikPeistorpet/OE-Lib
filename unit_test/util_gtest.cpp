@@ -244,4 +244,23 @@ TEST_F(utilTest, derefArgs)
 	EXPECT_EQ(3, last - d.begin());
 }
 
+template<typename Container>
+void testAppend()
+{
+	Container c;
+
+	oel::append(c, std::initializer_list<int>{1, 2});
+	EXPECT_EQ(2U, c.size());
+	oel::append(c, 3, -1);
+	EXPECT_EQ(5U, c.size());
+	EXPECT_EQ(2, c[1]);
+	EXPECT_EQ(-1, c.back());
+}
+
+TEST_F(utilTest, append)
+{
+	testAppend< std::deque<int> >();
+	testAppend< oel::dynarray<int> >();
+}
+
 /// @endcond

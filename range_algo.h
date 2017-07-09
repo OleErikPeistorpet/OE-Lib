@@ -94,9 +94,13 @@ void assign(Container & dest, const InputRange & source)  { dest.assign(begin(so
 template<typename Container, typename InputRange> inline
 void append(Container & dest, const InputRange & source)  { dest.insert(dest.end(), begin(source), end(source)); }
 
+template<typename Container> inline
+void append(Container & dest, typename Container::size_type n,
+            const typename Container::value_type & val)   { dest.resize(dest.size() + n, val); }
+
 template<typename Container, typename InputRange> inline
 typename Container::iterator insert(Container & dest, typename Container::const_iterator pos, const InputRange & source)
-													{ return dest.insert(pos, begin(source), end(source)); }
+	{ return dest.insert(pos, begin(source), end(source)); }
 ///@}
 
 
@@ -113,7 +117,8 @@ namespace _detail
 	void EraseEnd(Container & c, typename Container::iterator first) { c.erase(first, c.end()); }
 
 	template<typename Container, typename UnaryPred> inline
-	auto RemoveIf(Container & c, UnaryPred p, int) -> decltype(c.remove_if(p)) { return c.remove_if(p); }
+	auto RemoveIf(Container & c, UnaryPred p, int)
+	 -> decltype(c.remove_if(p)) { return c.remove_if(p); }
 
 	template<typename Container, typename UnaryPred>
 	void RemoveIf(Container & c, UnaryPred p, long)
