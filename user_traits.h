@@ -15,7 +15,7 @@
 * Also provides a forward declaration of dynarray and the type trait all_.
 */
 
-#if _MSC_VER && _MSC_VER < 1900
+#if defined(_MSC_VER) && _MSC_VER < 1900 && !defined(__llvm__)
 	#ifndef _ALLOW_KEYWORD_MACROS
 	#define _ALLOW_KEYWORD_MACROS 1
 	#endif

@@ -90,8 +90,7 @@ public:
 	explicit dynarray(size_type size, const Alloc & a = Alloc{});  ///< (Value-initializes elements, same as std::vector)
 	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
 
-	/** @brief Equivalent to std::vector(begin(range), end(range), a),
-	*	where end(range) is not needed if range has size member function
+	/** @brief Equivalent to std::vector(begin(range), end(range), a), where end(range) is not needed if range.size() exists
 	*
 	* Example, construct from a standard istream with formatting (using Boost):
 	* @code
@@ -121,9 +120,9 @@ public:
 
 	/**
 	* @brief Replace the contents with source range
-	* @param source an array, STL container, gsl::span, boost::iterator_range or such
-	*	Shall not be a subset of same dynarray, except if begin(source) points to first element of dynarray.
-	* @return iterator begin(source) incremented to equal the end of source range
+	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
+	* @pre begin(source) shall not point to any elements in the same dynarray except the front.
+	* @return iterator begin(source) incremented by number of elements in source
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template<typename InputRange>
@@ -134,12 +133,12 @@ public:
 	/**
 	* @brief Add at end the elements from range (return past-the-last of source)
 	* @param source an array, STL container, gsl::span, boost::iterator_range or such. Can be this dynarray.
-	* @return begin(source) incremented to end of source. The iterator is already invalidated (do not dereference) if
-	*	first pointed into same dynarray and there was insufficient capacity to avoid reallocation.
+	* @return begin(source) incremented by source size. The iterator is already invalidated (do not dereference) if
+	*	begin(source) pointed into same dynarray and there was insufficient capacity to avoid reallocation.
 	*
 	* Strong exception guarantee, this function has no effect if an exception is thrown.
 	* Otherwise equivalent to std::vector::insert(end(), begin(source), end(source)),
-	* where end(source) is not needed if source has size member function  */
+	* where end(source) is not needed if source.size() exists  */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
 	/// Equivalent to std::vector::insert(end(), il), but with strong exception guarantee
@@ -156,7 +155,7 @@ public:
 	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<Alloc, T>); }
 
 	/// Equivalent to std::vector::insert(pos, begin(source), end(source)),
-	/// where end(source) is not needed if source has size member function
+	/// where end(source) is not needed if source.size() exists
 	template<typename ForwardRange>
 	iterator  insert_r(const_iterator pos, const ForwardRange & source);
 
