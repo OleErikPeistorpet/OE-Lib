@@ -94,9 +94,8 @@ void assign(Container & dest, const InputRange & source)  { dest.assign(begin(so
 template<typename Container, typename InputRange> inline
 void append(Container & dest, const InputRange & source)  { dest.insert(dest.end(), begin(source), end(source)); }
 
-template<typename Container> inline
-void append(Container & dest, typename Container::size_type n,
-            const typename Container::value_type & val)   { dest.resize(dest.size() + n, val); }
+template<typename Container, typename T> inline
+void append(Container & dest, typename Container::size_type n, const T & val)  { dest.resize(dest.size() + n, val); }
 
 template<typename Container, typename InputRange> inline
 typename Container::iterator insert(Container & dest, typename Container::const_iterator pos, const InputRange & source)

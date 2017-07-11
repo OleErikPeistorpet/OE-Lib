@@ -34,7 +34,7 @@ void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(sou
 /// Overloads generic append(Container &, const InputRange &) (in range_algo.h)
 template<typename T, typename A, typename InputRange> inline
 void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
-/// Overloads generic append(Container &, Container::size_type, const Container::value_type &) (in range_algo.h)
+/// Overloads generic append(Container &, Container::size_type, const T &) (in range_algo.h)
 template<typename T, typename A> inline
 void append(dynarray<T, A> & dest, typename dynarray<T, A>::size_type n, const T & val)  { dest.append(n, val); }
 /// Overloads generic oel::insert (in range_algo.h)
@@ -656,7 +656,7 @@ private:
 			_scopedPtr newData{*this, _calcCap(capacity(), size() + count)};
 
 			size_type const oldSize = size();
-			pointer pos = newData.ptr + oldSize;
+			pointer const pos = newData.ptr + oldSize;
 			makeNew(pos, count, _m);
 			// Exception free from here
 			_relocateData(newData.ptr, pos, oldSize);
@@ -674,14 +674,14 @@ private:
 	{
 		_scopedPtr newData{*this, calcNewCap(capacity(), size() + nToAdd)};
 
-		size_type const nBeforePos = pos - data();
-		T *const newPos = newData.ptr + nBeforePos;
-		T *const next = makeNew(*this, newPos, nToAdd, std::forward<Args>(args)...);
+		size_type const nBefore = pos - data();
+		T *const newPos = newData.ptr + nBefore;
+		T *const afterAdded = makeNew(*this, newPos, nToAdd, std::forward<Args>(args)...);
 		// Exception free from here
-		::memcpy(newData.ptr, data(), sizeof(T) * nBeforePos); // relocate prefix
-		::memcpy(next, pos, sizeof(T) * nAfterPos);   // relocate suffix
+		::memcpy(newData.ptr, data(), sizeof(T) * nBefore); // relocate prefix
+		::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);  // relocate suffix
 
-		_m.end = next + nAfterPos;
+		_m.end = afterAdded + nAfterPos;
 		_swapBuf(newData);
 
 		return newPos;
@@ -774,9 +774,9 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert_r(const_iterat
 		pPos = _insertRealloc( pPos, nAfterPos, count, _calcCap,
 			[first](dynarray & self, T * newPos, size_type count_)
 			{
-				T *const next = newPos + count_;
-				self._uninitCopy(CanMemmove(), first, count_, newPos, next);
-				return next;
+				T *const dLast = newPos + count_;
+				self._uninitCopy(CanMemmove(), first, count_, newPos, dLast);
+				return dLast;
 			} );
 	}
 	return _iterator{pPos, &_m};
