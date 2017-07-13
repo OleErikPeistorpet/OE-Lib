@@ -12,9 +12,27 @@
 namespace oel
 {
 
+template<typename, typename> class contiguous_ctnr_iterator;
+
+///@{
+/// To raw pointer (unchecked)
+template<typename Ptr, typename C>
+typename std::pointer_traits<Ptr>::element_type *
+	to_pointer_contiguous(const contiguous_ctnr_iterator<Ptr, C> & it)
+{
+	return it._pElem.operator->();
+}
+
+template<typename T, typename C>
+T * to_pointer_contiguous(const contiguous_ctnr_iterator<T *, C> & it)
+{
+	return it._pElem;
+}
+///@}
+
 /** @brief Debug iterator for container with contiguous memory
 *
-* Wraps a pointer with error checks. The class has significant overhead. */
+* Wraps a pointer with error checks. Note: a pair of value-initialized iterators count as an empty range  */
 template<typename Ptr, typename Container>
 class contiguous_ctnr_iterator
 {
@@ -37,6 +55,8 @@ public:
 	using difference_type = typename _ptrTrait::difference_type;
 
 	using const_iterator = contiguous_ctnr_iterator<typename _ptrTrait::template rebind<value_type const>, Container>;
+
+	friend typename _ptrTrait::element_type * to_pointer_contiguous<Ptr, Container>(const contiguous_ctnr_iterator &);
 
 	operator const_iterator() const
 	{
@@ -126,8 +146,7 @@ public:
 		return tmp -= offset;
 	}
 
-	template<typename Ptr1>
-	difference_type operator -(const contiguous_ctnr_iterator<Ptr1, Container> & right) const
+	difference_type operator -(const const_iterator & right) const
 	{	// return difference of iterators
 		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem - right._pElem;
@@ -135,7 +154,7 @@ public:
 
 	reference operator[](difference_type offset) const
 	{
-		return *(operator +(offset));
+		return *contiguous_ctnr_iterator{_pElem + offset, _container};
 	}
 
 	template<typename Ptr1>
@@ -178,17 +197,10 @@ public:
 		return !(*this < right);
 	}
 
-	/// Return pointer (unchecked)
-	friend typename std::remove_reference<reference>::type *
-		to_pointer_contiguous(const contiguous_ctnr_iterator & it) noexcept
-	{
-		return std::addressof(*it._pElem);
-	}
-
 
 	/// Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
 	pointer           _pElem;
-	const Container * _container; ///< Parent container. Note: a pair of value-initialized iterators count as an empty range
+	const Container * _container; ///< Parent container
 
 #undef OEL_ARRITER_CHECK_COMPAT
 };
