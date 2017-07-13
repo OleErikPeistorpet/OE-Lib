@@ -157,7 +157,7 @@ TEST_F(utilTest, copy)
 	{
 		std::forward_list<std::string> li{"aa", "bb"};
 		std::array<std::string, 2> strDest;
-		auto sLast = oel::copy(oel::view::move_iter_rng(li), strDest).src_last;
+		auto sLast = oel::copy(oel::view::move(li), strDest).src_last;
 		EXPECT_EQ("aa", strDest[0]);
 		EXPECT_EQ("bb", strDest[1]);
 		EXPECT_TRUE(li.begin()->empty());

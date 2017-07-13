@@ -96,6 +96,7 @@ public:
 
 	/** @brief Equivalent to std::vector(begin(range), end(range), a), where end(range) is not needed if range.size() exists
 	*
+	* To move instead of copy, pass view::move(range).
 	* Example, construct from a standard istream with formatting (using Boost):
 	* @code
 	#include <boost/range/istream_range.hpp>
@@ -136,7 +137,7 @@ public:
 
 	/**
 	* @brief Add at end the elements from range (return past-the-last of source)
-	* @param source an array, STL container, gsl::span, boost::iterator_range or such. Can be this dynarray.
+	* @param source an array, STL container, gsl::span, boost::iterator_range or such. Can be (subrange of) this dynarray.
 	* @return begin(source) incremented by source size. The iterator is already invalidated (do not dereference) if
 	*	begin(source) pointed into same dynarray and there was insufficient capacity to avoid reallocation.
 	*
@@ -240,10 +241,10 @@ public:
 	const_reference operator[](size_type index) const OEL_NOEXCEPT_NDEBUG;
 
 	friend bool operator==(const dynarray & left, const dynarray & right)
-	{
-		return left.size() == right.size() &&
-		       std::equal(left.begin(), left.end(), right.begin());
-	}
+		{
+			return left.size() == right.size() &&
+			       std::equal(left.begin(), left.end(), right.begin());
+		}
 	friend bool operator!=(const dynarray & left, const dynarray & right)  { return !(left == right); }
 
 
@@ -404,6 +405,10 @@ private:
 
 	static size_type _calcCap(size_type oldCap, size_type newSize)
 	{	// growth factor is 1.5
+		//enum {
+		//	preDivAdd = sizeof(T) < 8 ? 8 / sizeof(T) : 1
+		//};
+		//return (std::max)(oldCap + (oldCap + preDivAdd) / 2, newSize);
 		return (std::max)(oldCap + oldCap / 2, newSize);
 	}
 
