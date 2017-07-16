@@ -9,6 +9,7 @@
 #include "range_view.h"
 
 #include <algorithm>
+#include <functional> // for equal_to
 #include <string.h>
 
 
@@ -37,13 +38,13 @@ void erase_unordered(RandomAccessContainer & c, typename RandomAccessContainer::
 *
 * This function mimics feature from paper N4009 (C++17). Wraps std::remove_if  */
 template<typename Container, typename UnaryPredicate>
-void erase_if(Container & c, UnaryPredicate pred);
+void erase_if(Container & c, UnaryPredicate p);
 /**
 * @brief Erase consecutive duplicate elements in container. Wraps std::unique
 *
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
-template<typename Container>
-void erase_successive_dup(Container & c);
+template< typename Container, typename BinaryPredicate = std::equal_to<typename Container::value_type> >
+void erase_successive_dup(Container & c, BinaryPredicate isDup = BinaryPredicate{});
 
 
 
@@ -95,7 +96,7 @@ template<typename Container, typename InputRange> inline
 void append(Container & dest, const InputRange & source)  { dest.insert(dest.end(), begin(source), end(source)); }
 
 template<typename Container, typename T> inline
-void append(Container & dest, typename Container::size_type n, const T & val)  { dest.resize(dest.size() + n, val); }
+void append(Container & dest, typename Container::size_type count, const T & val)  { dest.resize(dest.size() + count, val); }
 
 template<typename Container, typename InputRange> inline
 typename Container::iterator insert(Container & dest, typename Container::const_iterator pos, const InputRange & source)
@@ -116,7 +117,7 @@ namespace _detail
 	void EraseEnd(Container & c, typename Container::iterator first) { c.erase(first, c.end()); }
 
 	template<typename Container, typename UnaryPred> inline
-	auto RemoveIf(Container & c, UnaryPred p, int)
+	auto RemoveIf(Container & c, UnaryPred p, int)  // pass dummy int to prefer this overload
 	 -> decltype(c.remove_if(p)) { return c.remove_if(p); }
 
 	template<typename Container, typename UnaryPred>
@@ -125,13 +126,14 @@ namespace _detail
 		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p) );
 	}
 
-	template<typename Container> inline // pass dummy int to prefer this overload
-	auto Unique(Container & c, int) -> decltype(c.unique()) { return c.unique(); }
+	template<typename Container, typename BinaryPred> inline
+	auto Unique(Container & c, BinaryPred p, int)
+	 -> decltype(c.unique(p)) { return c.unique(p); }
 
-	template<typename Container>
-	void Unique(Container & c, long)
+	template<typename Container, typename BinaryPred>
+	void Unique(Container & c, BinaryPred p, long)
 	{
-		_detail::EraseEnd( c, std::unique(begin(c), end(c)) );
+		_detail::EraseEnd( c, std::unique(begin(c), end(c), p) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -273,8 +275,8 @@ inline void oel::erase_if(Container & c, UnaryPredicate p)
 	_detail::RemoveIf(c, p, int{});
 }
 
-template<typename Container>
-inline void oel::erase_successive_dup(Container & c)
+template<typename Container, typename BinaryPredicate>
+inline void oel::erase_successive_dup(Container & c, BinaryPredicate p)
 {
-	_detail::Unique(c, int{});
+	_detail::Unique(c, p, int{});
 }
