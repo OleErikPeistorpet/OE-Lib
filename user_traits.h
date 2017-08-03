@@ -12,26 +12,8 @@
 /** @file
 * @brief specify_trivial_relocate to be overloaded for user classes
 *
-* Also provides a forward declaration of dynarray and the type trait all_.
+* Also provides forward declarations of dynarray and all_.
 */
-
-#if defined(_MSC_VER) && _MSC_VER < 1900 && !defined(__llvm__)
-	#ifndef _ALLOW_KEYWORD_MACROS
-	#define _ALLOW_KEYWORD_MACROS 1
-	#endif
-
-	#ifndef noexcept
-	#define noexcept throw()
-	#endif
-
-	#undef constexpr
-	#define constexpr
-
-	#define OEL_ALIGNOF __alignof
-#else
-	#define OEL_ALIGNOF alignof
-#endif
-
 
 #if defined(__has_include)
 	#if !__has_include(<boost/config.hpp>)
@@ -58,7 +40,7 @@ using std::true_type; // equals bool_constant<true>
 using std::false_type;
 
 
-/// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
+/// Equivalent to std::is_trivially_copyable, but may be specialized for some types
 template<typename T>
 struct is_trivially_copyable :
 	#if __GLIBCXX__ && __GNUC__ == 4
@@ -81,8 +63,12 @@ struct is_trivially_copyable :
 * Declare a function in the namespace of the type like this:
 @code
 oel::true_type specify_trivial_relocate(MyClass &&);
+
 // Or if you are unsure if a member or base class is and will stay trivially relocatable:
-oel::is_trivially_relocatable<MemberTypeOfU> specify_trivial_relocate(U &&);
+class MyClass {
+	std::string name;
+};
+oel::is_trivially_relocatable<std::string> specify_trivial_relocate(MyClass &&);
 
 // With nested class, use friend keyword:
 class Outer {
@@ -107,12 +93,7 @@ struct is_trivially_relocatable;
 // Many useful classes are declared trivially relocatable, see compat folder
 
 
-template<bool...> struct bool_pack_t;
-
-template<bool... Vs>
-using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
-
-/** @brief If all of BoolConstants have value equal to true, this trait is-a std::true_type, else false_type
+/** @brief If all of BoolConstants have value equal to true, this is-a true_type, else false_type
 *
 * Example: @code
 template<typename... Ts>
@@ -120,6 +101,6 @@ void ProcessNumbers(Ts... n) {
 	static_assert(oel::all_< std::is_arithmetic<Ts>... >::value, "Only arithmetic types, please");
 @endcode  */
 template<typename... BoolConstants>
-struct all_ : all_true<BoolConstants::value...> {};
+struct all_;
 
 } // namespace oel

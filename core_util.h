@@ -8,7 +8,7 @@
 
 #include "user_traits.h"
 
-#ifndef OEL_NO_BOOST
+#ifndef OEL_NO_BOOST // conditionally defined in user_traits.h
 	#include <boost/iterator/iterator_categories.hpp>
 #endif
 #include <iterator>
@@ -19,6 +19,24 @@
 *
 * Contains ssize, adl_begin, adl_end and more.
 */
+
+#if defined(_MSC_VER) && _MSC_VER < 1900 && !defined(__llvm__)
+	#ifndef _ALLOW_KEYWORD_MACROS
+	#define _ALLOW_KEYWORD_MACROS 1
+	#endif
+
+	#ifndef noexcept
+	#define noexcept throw()
+	#endif
+
+	#undef constexpr
+	#define constexpr
+
+	#define OEL_ALIGNOF __alignof
+#else
+	#define OEL_ALIGNOF alignof
+#endif
+
 
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
 /** @brief Undefined/0: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
@@ -62,9 +80,6 @@
 
 namespace oel
 {
-
-using std::size_t;
-
 
 using std::begin;
 using std::end;
@@ -152,23 +167,10 @@ using enable_if = typename std::enable_if<Condition, int>::type;
 
 
 
-using std::iterator_traits;
+template<bool...> struct bool_pack_t;
 
-#ifndef OEL_NO_BOOST
-	template<typename Iterator>
-	using iterator_traversal_t = typename boost::iterator_traversal<Iterator>::type;
-
-	using boost::single_pass_traversal_tag;
-	using boost::forward_traversal_tag;
-	using boost::random_access_traversal_tag;
-#else
-	template<typename Iterator>
-	using iterator_traversal_t = typename iterator_traits<Iterator>::iterator_category;
-
-	using single_pass_traversal_tag = std::input_iterator_tag;
-	using forward_traversal_tag = std::forward_iterator_tag;
-	using random_access_traversal_tag = std::random_access_iterator_tag;
-#endif
+template<bool... Vs>
+using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
 
 
 
@@ -201,6 +203,28 @@ using std::iterator_traits;
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
+
+using std::size_t;
+
+
+using std::iterator_traits;
+
+#ifndef OEL_NO_BOOST
+	template<typename Iterator>
+	using iterator_traversal_t = typename boost::iterator_traversal<Iterator>::type;
+
+	using boost::single_pass_traversal_tag;
+	using boost::forward_traversal_tag;
+	using boost::random_access_traversal_tag;
+#else
+	template<typename Iterator>
+	using iterator_traversal_t = typename iterator_traits<Iterator>::iterator_category;
+
+	using single_pass_traversal_tag = std::input_iterator_tag;
+	using forward_traversal_tag = std::forward_iterator_tag;
+	using random_access_traversal_tag = std::random_access_iterator_tag;
+#endif
+
 
 #if _MSC_VER
 	template<typename T, size_t S> inline
@@ -247,3 +271,7 @@ struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<It
 
 template<typename T>
 struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};
+
+
+template<typename... BoolConstants>
+struct oel::all_ : all_true<BoolConstants::value...> {};
