@@ -49,7 +49,7 @@ class contiguous_ctnr_iterator
 public:
 	using iterator_category = std::random_access_iterator_tag;
 
-	using value_type      = typename std::remove_const<typename _ptrTrait::element_type>::type;
+	using value_type      = typename Container::value_type;
 	using pointer         = Ptr;
 	using reference       = decltype(*std::declval<Ptr>());
 	using difference_type = typename _ptrTrait::difference_type;

@@ -75,7 +75,7 @@ namespace _detail
 
 /// Part of std::allocator_traits for C++17
 template<typename Alloc>
-using is_always_equal_allocator  = decltype( _detail::IsAlwaysEqual<Alloc>(int{}) );
+struct is_always_equal_allocator  : decltype( _detail::IsAlwaysEqual<Alloc>(int{}) ) {};
 
 
 

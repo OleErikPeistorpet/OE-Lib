@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "core_util.h"
+#include "align_allocator.h"
 
 #include <string.h> // for memset
 
@@ -14,7 +14,15 @@ namespace oel
 {
 namespace _detail
 {
-	template<typename> struct DynarrBase;
+	template<typename, typename> struct DynarrBase;
+
+	struct DynarrCommon
+	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
+		OEL_NORETURN static void AtThrow()
+		{
+			OEL_THROW(std::out_of_range("Bad index dynarray::at"));
+		}
+	};
 
 
 #if __GLIBCXX__ && __GNUC__ == 4
@@ -44,24 +52,24 @@ namespace _detail
 	};
 
 
-	template<typename Alloc, bool = std::is_empty<Alloc>::value>
-	struct AllocRefOptimizeEmpty
+	template< typename Alloc, bool = is_always_equal_allocator<Alloc>::value && std::is_default_constructible<Alloc>::value >
+	struct AllocRefOptimized
 	{
 		Alloc & alloc;
 	#if _MSC_VER
-		void operator =(AllocRefOptimizeEmpty) = delete;
+		void operator =(AllocRefOptimized) = delete;
 	#endif
-		AllocRefOptimizeEmpty(Alloc & a) : alloc(a) {}
+		AllocRefOptimized(Alloc & a) : alloc(a) {}
 
 		Alloc & Get() { return alloc; }
 	};
 
 	template<typename Alloc>
-	struct AllocRefOptimizeEmpty<Alloc, true>
+	struct AllocRefOptimized<Alloc, true>
 	{
-		void operator =(AllocRefOptimizeEmpty) = delete;
+		void operator =(AllocRefOptimized) = delete;
 
-		AllocRefOptimizeEmpty(Alloc &) {}
+		AllocRefOptimized(Alloc &) {}
 
 		Alloc Get() { return Alloc{}; }
 	};

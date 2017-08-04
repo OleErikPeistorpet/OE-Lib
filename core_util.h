@@ -59,16 +59,16 @@
 #endif
 
 
-#ifndef OEL_HALT
-	/// Could throw an exception instead. Or write to log with __FILE__ and __LINE__, show a message, then abort.
-	#if _MSC_VER
-		#define OEL_HALT(failedCond) __debugbreak()
-	#else
-		#define OEL_HALT(failedCond) __asm__("int $3")
-	#endif
-#endif
-
 #ifndef OEL_ALWAYS_ASSERT
+	#ifndef OEL_HALT
+	/// Could throw an exception instead. Or write to log with __FILE__ and __LINE__, show a message, then abort.
+		#if _MSC_VER
+		#define OEL_HALT(failedCond) __debugbreak()
+		#else
+		#define OEL_HALT(failedCond) __asm__("int $3")
+		#endif
+	#endif
+
 	/// Just breaks into debugger on failure. Could be defined to standard from \c <cassert>
 	#define OEL_ALWAYS_ASSERT(expr)  \
 		OEL_CONST_COND  \
@@ -191,6 +191,7 @@ using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true
 	#define OEL_WHEN_EXCEPTIONS_ON(x)
 #endif
 
+
 #if OEL_MEM_BOUND_DEBUG_LVL
 	#define OEL_ASSERT_MEM_BOUND  OEL_ALWAYS_ASSERT
 #else
@@ -200,6 +201,13 @@ using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true
 	#define OEL_ASSERT  OEL_ALWAYS_ASSERT
 #else
 	#define OEL_ASSERT(expr) ((void) 0)
+#endif
+
+
+#if _MSC_VER
+	#define OEL_NORETURN __declspec(noreturn)
+#else
+	#define OEL_NORETURN __attribute__((noreturn))
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////

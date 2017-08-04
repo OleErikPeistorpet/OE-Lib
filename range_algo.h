@@ -164,14 +164,9 @@ namespace _detail
 	}
 
 
-#if _MSC_VER
-	__declspec(noreturn) inline
-#else
-	__attribute__((noreturn)) static
-#endif
-	void ThrowFromCopy()
+	OEL_NORETURN static void ThrowFromCopy()
 	{
-		OEL_THROW(std::out_of_range("Too small dest for oel::copy"));
+		OEL_THROW(std::out_of_range("Too small dest oel::copy"));
 	}
 
 	template<typename Ret, typename InputRange, typename OutputRange, typename FuncItersParam, typename FuncNoParam>
@@ -193,7 +188,7 @@ namespace _detail
 		return succeed(src, dest);
 	}
 
-	template<typename Ret, typename IterSrc, typename IterDest, typename InputRange, typename OutputRange>
+	template<typename Ret, typename IterSrc, typename IterDest, typename InputRange, typename OutputRange> inline
 	Ret Copy(const InputRange & src, OutputRange & dest, long)
 	{
 		return _detail::CopyImpl<Ret>
