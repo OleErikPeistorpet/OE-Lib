@@ -29,7 +29,7 @@ namespace oel
 	{
 	public:
 		using iterator        = Iterator;
-		using difference_type = typename iterator_traits<Iterator>::difference_type;
+		using difference_type = iterator_difference_t<Iterator>;
 
 		iterator_range(Iterator f, Iterator l)  : _begin(f), _end(l) {}
 
@@ -58,26 +58,26 @@ class counted_view
 {
 public:
 	using iterator        = Iterator;
-	using value_type      = typename iterator_traits<Iterator>::value_type;
-	using difference_type = typename iterator_traits<Iterator>::difference_type;
+	using value_type      = typename std::iterator_traits<Iterator>::value_type;
+	using difference_type = iterator_difference_t<Iterator>;
 	using size_type       = size_t;  // difference_type (signed) would be fine
 
 	/// Initialize to empty
-	counted_view() noexcept                      : _size() {}
-	counted_view(Iterator f, difference_type n)  : _begin(f), _size(n) { OEL_ASSERT_MEM_BOUND(n >= 0); }
+	constexpr counted_view() noexcept                      : _size() {}
+	constexpr counted_view(Iterator f, difference_type n)  : _begin(f), _size(n) { OEL_ASSERT_MEM_BOUND(n >= 0); }
 	/// Construct from array or container with matching iterator type
-	template<typename SizedRange>
-	counted_view(SizedRange & r)  : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
+	template<typename SizedRange, enable_if<!std::is_same<SizedRange, counted_view>::value> = 0>
+	constexpr counted_view(SizedRange & r)  : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
 
-	iterator  begin() const           { return _begin; }
+	constexpr iterator  begin() const           { return _begin; }
 
-	size_type size() const noexcept   { return _size; }
+	constexpr size_type size() const noexcept   { return _size; }
 
-	bool      empty() const noexcept  { return 0 == _size; }
+	constexpr bool      empty() const noexcept  { return 0 == _size; }
 
 	/// Increment begin, decrementing size
 	void      drop_front()  { OEL_ASSERT_MEM_BOUND(_size > 0);  ++_begin; --_size; }
-	/// Decrement end
+	/// Decrement size (and end)
 	void      drop_back()   { OEL_ASSERT_MEM_BOUND(_size > 0);  --_size; }
 
 protected:
@@ -96,20 +96,20 @@ public:
 	using typename _base::value_type;
 	using typename _base::difference_type;
 	using typename _base::size_type;
-	using reference = typename iterator_traits<Iterator>::reference;
+	using reference = typename std::iterator_traits<Iterator>::reference;
 
-	counted_view() noexcept                      {}
-	counted_view(Iterator f, difference_type n)  : _base(f, n) {}
-	template<typename SizedRange>
-	counted_view(SizedRange & r)                 : _base(::adl_begin(r), oel::ssize(r)) {}
+	constexpr counted_view() noexcept                      {}
+	constexpr counted_view(Iterator f, difference_type n)  : _base(f, n) {}
+	template<typename SizedRange, enable_if<!std::is_same<SizedRange, counted_view>::value> = 0>
+	constexpr counted_view(SizedRange & r)                 : _base(r) {}
 
-	iterator  end() const   { return this->_begin + this->_size; }
+	constexpr iterator  end() const   { return this->_begin + this->_size; }
 
-	reference operator[](difference_type index) const  { return this->_begin[index]; }
+	constexpr reference operator[](difference_type index) const  { return this->_begin[index]; }
 
 	/// Return plain pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous)
 	template<typename It = Iterator>
-	auto data() const noexcept
+	constexpr auto data() const noexcept
 	 -> decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
 };
 
@@ -119,7 +119,7 @@ namespace view
 
 /// Create a counted_view from iterator and count, with type deduced from first
 template<typename Iterator> inline
-counted_view<Iterator> counted(Iterator first, typename iterator_traits<Iterator>::difference_type count)
+constexpr counted_view<Iterator> counted(Iterator first, iterator_difference_t<Iterator> count)
 	{ return {first, count}; }
 
 
@@ -132,7 +132,7 @@ iterator_range< std::move_iterator<InputIterator> >
 /// Create a counted_view with move_iterator from iterator and count
 template<typename InputIterator> inline
 counted_view< std::move_iterator<InputIterator> >
-	move_n(InputIterator first, typename iterator_traits<InputIterator>::difference_type count)
+	move_n(InputIterator first, iterator_difference_t<InputIterator> count)
 	{ return {std::make_move_iterator(first), count}; }
 
 #include "auxi/view_detail_move.inc"

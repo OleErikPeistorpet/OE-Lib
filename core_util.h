@@ -60,16 +60,30 @@
 
 
 #ifndef OEL_ALWAYS_ASSERT
+	#if defined(__has_builtin)
+	#define OEL_HAS_BUILTIN_TRAP __has_builtin(__builtin_trap)
+	#else
+	#define OEL_HAS_BUILTIN_TRAP defined(__GNUC__)
+	#endif
+
 	#ifndef OEL_HALT
-	/// Could throw an exception instead. Or write to log with __FILE__ and __LINE__, show a message, then abort.
+	/** Could throw an exception instead, or do whatever. If it contains assembly, compilation will likely fail.
+	*
+	* Example: @code
+	#define OEL_HALT(failedCond) throw std::logic_error(failedCond ", assertion failed in " __FILE__)
+	@endcode  */
 		#if _MSC_VER
 		#define OEL_HALT(failedCond) __debugbreak()
+		#elif OEL_HAS_BUILTIN_TRAP
+		#define OEL_HALT(failedCond) __builtin_trap()
 		#else
-		#define OEL_HALT(failedCond) __asm__("int $3")
+		#define OEL_HALT(failedCond) std::abort()
 		#endif
 	#endif
 
-	/// Just breaks into debugger on failure. Could be defined to standard from \c <cassert>
+	#undef OEL_HAS_BUILTIN_TRAP
+
+	/// Executes OEL_HALT on failure. Could be defined to standard assert or your own
 	#define OEL_ALWAYS_ASSERT(expr)  \
 		OEL_CONST_COND  \
 		do {  \
@@ -215,18 +229,19 @@ using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true
 using std::size_t;
 
 
-using std::iterator_traits;
+template<typename Iterator>
+using iterator_difference_t = typename std::iterator_traits<Iterator>::difference_type;
 
+template<typename Iterator>
+using iterator_traversal_t
 #ifndef OEL_NO_BOOST
-	template<typename Iterator>
-	using iterator_traversal_t = typename boost::iterator_traversal<Iterator>::type;
+	= typename boost::iterator_traversal<Iterator>::type;
 
 	using boost::single_pass_traversal_tag;
 	using boost::forward_traversal_tag;
 	using boost::random_access_traversal_tag;
 #else
-	template<typename Iterator>
-	using iterator_traversal_t = typename iterator_traits<Iterator>::iterator_category;
+	= typename std::iterator_traits<Iterator>::iterator_category;
 
 	using single_pass_traversal_tag = std::input_iterator_tag;
 	using forward_traversal_tag = std::forward_iterator_tag;
