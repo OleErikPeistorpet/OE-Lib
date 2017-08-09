@@ -55,6 +55,9 @@ public:
 
 	using const_iterator = contiguous_ctnr_iterator<typename _ptrTrait::template rebind<value_type const>, Container>;
 
+#if _MSC_VER
+	#pragma warning(suppress : 4396) // cannot use inline when friend declaration refers to function template specialization
+#endif
 	friend typename _ptrTrait::element_type * to_pointer_contiguous<Ptr, Container>(const contiguous_ctnr_iterator &);
 
 	operator const_iterator() const noexcept
