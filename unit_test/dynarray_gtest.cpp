@@ -1,12 +1,12 @@
-#include "forward_decl_test.h"
+#include "test_classes.h"
 #include "range_view.h"
+#include "dynarray.h"
 #include "compat/std_classes_extra.h"
+
 #include <cstdint>
 #include <deque>
 
 /// @cond INTERNAL
-
-class ForwDeclared { char c; };
 
 int MyCounter::nConstruct;
 int MyCounter::nDestruct;
@@ -47,6 +47,11 @@ namespace statictest
 	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
 				  "Not critical, this assert can be removed");
 }
+
+struct noDefaultConstructAlloc : public oel::allocator<int>
+{
+	noDefaultConstructAlloc(int) {}
+};
 
 template<typename T>
 struct throwingAlloc : public oel::allocator<T>
@@ -117,10 +122,6 @@ TEST_F(dynarrayTest, construct)
 	{
 		oel::allocator<int> a;
 		ASSERT_TRUE(oel::allocator<std::string>{} == a);
-	}
-
-	{
-		Outer o;
 	}
 
 	dynarray<std::string> a;
@@ -694,13 +695,18 @@ TEST_F(dynarrayTest, misc)
 
 	{
 		dynarray<int> di{1, -2};
+
 		auto it = begin(di);
+		auto & val = end(di)[-1];
+		EXPECT_EQ(-2, val);
+		EXPECT_TRUE(&val == &it[1]);
+
 		it = di.erase_unordered(it);
 		EXPECT_EQ(-2, *it);
 		it = di.erase_unordered(it);
 		EXPECT_EQ(end(di), it);
 
-		di = {1, -2};
+		di.resize(2);
 		erase_unordered(di, 1);
 		erase_unordered(di, 0);
 		EXPECT_TRUE(di.empty());
@@ -711,6 +717,11 @@ TEST_F(dynarrayTest, misc)
 	dest1.pop_back();
 	dest1.shrink_to_fit();
 	EXPECT_GT(cap, dest1.capacity());
+
+	{
+		dynarray<int, noDefaultConstructAlloc> test(noDefaultConstructAlloc(0));
+		test.push_back(1);
+	}
 }
 
 /// @endcond
