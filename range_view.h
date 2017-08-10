@@ -105,6 +105,8 @@ public:
 
 	constexpr iterator  end() const   { return this->_begin + this->_size; }
 
+	constexpr reference back() const  { return end()[-1]; }
+
 	constexpr reference operator[](difference_type index) const  { return this->_begin[index]; }
 
 	/// Return plain pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous)
