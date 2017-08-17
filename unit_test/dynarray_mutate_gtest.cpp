@@ -63,13 +63,13 @@ TEST_F(dynarrayTest, oelDynarrWithStdAlloc)
 		dynarray< MoveOnly, std::allocator<MoveOnly> > v;
 
 		v.emplace_back(-1.0);
-		EXPECT_THROW( v.emplace_back(ThrowOnConstruct), TestException );
+		EXPECT_THROW( v.emplace_back(throwOnConstruct), TestException );
 		EXPECT_EQ(1, MoveOnly::nConstructions);
 		EXPECT_EQ(0, MoveOnly::nDestruct);
 
 		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
 		v.assign(oel::view::move(arr));
-		EXPECT_THROW( v.emplace_back(ThrowOnConstruct), TestException );
+		EXPECT_THROW( v.emplace_back(throwOnConstruct), TestException );
 		EXPECT_EQ(2, ssize(v));
 		EXPECT_TRUE(1.0 == *v[0]);
 		EXPECT_TRUE(2.0 == *v[1]);
@@ -89,13 +89,13 @@ TEST_F(dynarrayTest, pushBack)
 		up.push_back(MoveOnly{VALUES[0]});
 		ASSERT_EQ(1U, up.size());
 
-		EXPECT_THROW( up.emplace_back(ThrowOnConstruct), TestException );
+		EXPECT_THROW( up.emplace_back(throwOnConstruct), TestException );
 		ASSERT_EQ(1U, up.size());
 
 		up.push_back(MoveOnly{VALUES[1]});
 		ASSERT_EQ(2U, up.size());
 
-		EXPECT_THROW( up.emplace_back(ThrowOnConstruct), TestException );
+		EXPECT_THROW( up.emplace_back(throwOnConstruct), TestException );
 		ASSERT_EQ(2U, up.size());
 
 		up.push_back( std::move(up.back()) );
@@ -128,56 +128,45 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		ASSERT_EQ(1U, mo.size());
 		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(mo), NontrivialReloc::nDestruct);
 
-		mo.emplace_back(VALUES[1], ThrowOnMoveOrCopy);
+		mo.emplace_back(VALUES[1]);
 		expected.emplace_back(VALUES[1]);
 		ASSERT_EQ(2U, mo.size());
 		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(mo), NontrivialReloc::nDestruct);
 
+		NontrivialReloc::countToThrowOn = 1;
 		try
 		{
-			mo.push_back(NontrivialReloc{VALUES[2]});
-			expected.push_back(VALUES[2]);
+			for(;;)
+			{
+				mo.push_back(NontrivialReloc{VALUES[2]});
+				expected.push_back(VALUES[2]);
+			}
 		}
 		catch (TestException &) {
 		}
 		ASSERT_EQ(expected.size(), mo.size());
 		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(mo), NontrivialReloc::nDestruct);
 
-		try
-		{
-			mo.push_back(NontrivialReloc{VALUES[2]});
-			expected.push_back(VALUES[2]);
-		}
-		catch (TestException &) {
-		}
-		ASSERT_EQ(3U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(mo), NontrivialReloc::nDestruct);
-
-		mo.emplace_back(VALUES[3], ThrowOnMoveOrCopy);
+		mo.emplace_back(VALUES[3]);
 		expected.emplace_back(VALUES[3]);
-		ASSERT_EQ(4U, mo.size());
+		ASSERT_EQ(expected.size(), mo.size());
+
+		EXPECT_THROW( mo.emplace_back(throwOnConstruct), TestException );
+		ASSERT_EQ(expected.size(), mo.size());
 		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(mo), NontrivialReloc::nDestruct);
 
-		EXPECT_THROW( mo.emplace_back(ThrowOnConstruct), TestException );
-		ASSERT_EQ(4U, mo.size());
-
+		NontrivialReloc::countToThrowOn = 3;
 		try
 		{
-			mo.push_back( std::move(mo.front()) );
-			expected.push_back(expected.front());
+			for(;;)
+			{
+				mo.push_back(mo.front());
+				expected.push_back(expected.front());
+			}
 		}
 		catch (TestException &) {
 		}
 		ASSERT_EQ(expected.size(), mo.size());
-
-		try
-		{
-			mo.push_back( std::move(mo.front()) );
-			expected.push_back(expected.front());
-		}
-		catch (TestException &) {
-		}
-		EXPECT_EQ(5U, mo.size());
 
 		EXPECT_TRUE( std::equal(begin(mo), end(mo), begin(expected)) );
 	}
@@ -208,7 +197,8 @@ TEST_F(dynarrayTest, assign)
 	{
 		dynarray<NontrivialReloc> dest;
 		{
-			NontrivialReloc obj{-5.0, ThrowOnMoveOrCopy};
+			NontrivialReloc obj{-5.0};
+			NontrivialReloc::countToThrowOn = 0;
 			try
 			{	dest.assign(view::counted(&obj, 1));
 			}
@@ -225,7 +215,8 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_DOUBLE_EQ(2.0, dest.at(1));
 		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(dest), NontrivialReloc::nDestruct);
 		{
-			NontrivialReloc obj{-3.3, ThrowOnMoveOrCopy};
+			NontrivialReloc obj{-3.3};
+			NontrivialReloc::countToThrowOn = 0;
 			try
 			{	dest.assign(make_iterator_range(&obj, &obj + 1));
 			}
@@ -238,7 +229,8 @@ TEST_F(dynarrayTest, assign)
 			EXPECT_LE(2U, dest.capacity());
 			EXPECT_TRUE(dest.empty());
 
-			NontrivialReloc obj{-1.3, ThrowOnMoveOrCopy};
+			NontrivialReloc obj{-1.3};
+			NontrivialReloc::countToThrowOn = 0;
 			try
 			{	dest.assign(view::counted(&obj, 1));
 			}
@@ -413,13 +405,13 @@ TEST_F(dynarrayTest, insert)
 		EXPECT_EQ(VALUES[2], *ptr);
 		ASSERT_EQ(1U, up.size());
 
-		EXPECT_THROW( up.emplace(begin(up), ThrowOnConstruct), TestException );
+		EXPECT_THROW( up.emplace(begin(up), throwOnConstruct), TestException );
 		ASSERT_EQ(1U, up.size());
 
 		up.insert(begin(up), MoveOnly{VALUES[0]});
 		ASSERT_EQ(2U, up.size());
 
-		EXPECT_THROW( up.emplace(begin(up) + 1, ThrowOnConstruct), TestException );
+		EXPECT_THROW( up.emplace(begin(up) + 1, throwOnConstruct), TestException );
 		ASSERT_EQ(2U, up.size());
 
 		up.insert(end(up), MoveOnly{VALUES[3]});
@@ -590,18 +582,6 @@ TEST_F(dynarrayTest, overAligned)
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 }
 #endif
-
-TEST_F(dynarrayTest, selfMoveAssign)
-{
-	dynarray<int> d(4, -3);
-	{
-		auto tmp = std::move(d);
-		d = std::move(d);
-		d = std::move(tmp);
-	}
-	EXPECT_EQ(4U, d.size());
-	EXPECT_EQ(-3, d.back());
-}
 
 TEST_F(dynarrayTest, misc)
 {

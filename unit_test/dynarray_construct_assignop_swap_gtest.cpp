@@ -9,6 +9,7 @@
 
 int MyCounter::nConstructions;
 int MyCounter::nDestruct;
+int MyCounter::countToThrowOn = -1;
 
 int AllocCounter::nAllocations;
 int AllocCounter::nDeallocations;
@@ -21,7 +22,12 @@ using dynarrayTrackingAlloc = dynarray< T, TrackingAllocator<T> >;
 
 class dynarrayConstructTest : public ::testing::Test
 {
+	static_assert(_detail::is_trivially_default_constructible<TrivialDefaultConstruct>::value, "?");
+	static_assert( !_detail::is_trivially_default_constructible<NontrivialConstruct>::value, "?" );
+
 protected:
+	std::array<unsigned, 3> sizes;
+
 	dynarrayConstructTest()
 	{
 		AllocCounter::nAllocations = 0;
@@ -44,25 +50,7 @@ protected:
 
 		ASSERT_EQ(AllocCounter::nDeallocations + 1, AllocCounter::nAllocations);
 	}
-
-	std::array<unsigned, 3> sizes;
 };
-
-struct TrivialDefaultConstruct
-{
-	TrivialDefaultConstruct() = default;
-	TrivialDefaultConstruct(TrivialDefaultConstruct &&) = delete;
-	TrivialDefaultConstruct(const TrivialDefaultConstruct &) = delete;
-};
-static_assert(_detail::is_trivially_default_constructible<TrivialDefaultConstruct>::value, "?");
-
-struct NontrivialConstruct : MyCounter
-{
-	NontrivialConstruct(const NontrivialConstruct &) = delete;
-	NontrivialConstruct() { ++nConstructions; }
-	~NontrivialConstruct() { ++nDestruct; }
-};
-static_assert( !_detail::is_trivially_default_constructible<NontrivialConstruct>::value, "?" );
 
 namespace
 {
@@ -85,7 +73,7 @@ namespace
 
 	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >::value, "?");
 	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
-	static_assert( !oel::is_trivially_copyable< std::tuple<int, dynarray<bool>, int> >::value, "?" );
+	static_assert( !oel::is_trivially_copyable< std::tuple<int, NontrivialReloc, int> >::value, "?" );
 
 	static_assert(OEL_ALIGNOF(oel::aligned_storage_t<32, 16>) == 16, "?");
 	static_assert(OEL_ALIGNOF(oel::aligned_storage_t<64, 64>) == 64, "?");
@@ -99,8 +87,6 @@ namespace
 
 TEST_F(dynarrayConstructTest, misc)
 {
-	// TODO: Test exception safety of constructors
-
 	{
 		oel::allocator<int> a;
 		ASSERT_TRUE(oel::allocator<std::string>{} == a);
@@ -124,10 +110,8 @@ TEST_F(dynarrayConstructTest, constructEmpty)
 
 TEST_F(dynarrayConstructTest, constructReserve)
 {
-	for (int i = 0; i < ssize(sizes); ++i)
+	for (auto const n : sizes)
 	{
-		auto const n = sizes[i];
-
 		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
 
 		dynarrayTrackingAlloc<TrivialDefaultConstruct> a(reserve, n);
@@ -145,10 +129,8 @@ TEST_F(dynarrayConstructTest, constructReserve)
 
 TEST_F(dynarrayConstructTest, constructNDefaultTrivial)
 {
-	for (int i = 0; i < ssize(sizes); ++i)
+	for (auto const n : sizes)
 	{
-		auto const n = sizes[i];
-
 		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
 
 		dynarrayTrackingAlloc<TrivialDefaultConstruct> a(n, default_init);
@@ -165,10 +147,8 @@ TEST_F(dynarrayConstructTest, constructNDefaultTrivial)
 
 TEST_F(dynarrayConstructTest, constructNDefault)
 {
-	for (int i = 0; i < ssize(sizes); ++i)
+	for (auto const n : sizes)
 	{
-		auto const n = sizes[i];
-
 		AllocCounter::nConstructCalls = 0;
 		NontrivialConstruct::ClearCount();
 
@@ -191,10 +171,8 @@ TEST_F(dynarrayConstructTest, constructNDefault)
 
 TEST_F(dynarrayConstructTest, constructN)
 {
-	for (int i = 0; i < ssize(sizes); ++i)
+	for (auto const n : sizes)
 	{
-		auto const n = sizes[i];
-
 		AllocCounter::nConstructCalls = 0;
 
 		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
@@ -213,10 +191,8 @@ TEST_F(dynarrayConstructTest, constructN)
 
 TEST_F(dynarrayConstructTest, constructNChar)
 {
-	for (int i = 0; i < ssize(sizes); ++i)
+	for (auto const n : sizes)
 	{
-		auto const n = sizes[i];
-
 		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
 
 		dynarrayTrackingAlloc<unsigned char> a(n);
@@ -278,5 +254,87 @@ TEST_F(dynarrayConstructTest, constructContiguousRange)
 	dynarray<char> test(str);
 	EXPECT_TRUE( 0 == str.compare(0, 4, test.data(), test.size()) );
 }
+
+TEST_F(dynarrayConstructTest, selfMoveAssign)
+{
+	dynarray<int> d(4, -3);
+	{
+		auto tmp = std::move(d);
+		d = std::move(d);
+		d = std::move(tmp);
+	}
+	EXPECT_EQ(4U, d.size());
+	EXPECT_EQ(-3, d.back());
+}
+
+template<typename T, typename... Arg>
+void testConstructNThrowing(const Arg &... arg)
+{
+OEL_WHEN_EXCEPTIONS_ON(
+	for (auto i : {0, 1, 99})
+	{
+		AllocCounter::nConstructCalls = 0;
+		T::ClearCount();
+		T::countToThrowOn = i;
+
+		ASSERT_THROW(
+			dynarrayTrackingAlloc<T> a(100, arg...),
+			TestException );
+
+		ASSERT_EQ(i + 1, AllocCounter::nConstructCalls);
+		ASSERT_EQ(i, T::nConstructions);
+		ASSERT_EQ(i, T::nDestruct);
+
+		ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	}
+)
+}
+
+OEL_WHEN_EXCEPTIONS_ON(
+
+TEST_F(dynarrayConstructTest, constructNDefaultThrowing)
+{
+	testConstructNThrowing<NontrivialConstruct>(default_init);
+}
+
+TEST_F(dynarrayConstructTest, constructNThrowing)
+{
+	testConstructNThrowing<NontrivialConstruct>();
+}
+
+TEST_F(dynarrayConstructTest, constructNFillThrowing)
+{
+	testConstructNThrowing<NontrivialReloc>(NontrivialReloc(-7));
+}
+
+TEST_F(dynarrayConstructTest, copyConstructThrowing)
+{
+	int const SIZE = 100;
+	dynarrayTrackingAlloc<NontrivialReloc> a(reserve, SIZE);
+	for (int n = 0; n < SIZE; ++n)
+		a.emplace_back(n + 0.5);
+
+	AllocCounter::nAllocations = 0;
+	for (auto i : {0, 1, SIZE - 1})
+	{
+		AllocCounter::nConstructCalls = 0;
+		NontrivialReloc::ClearCount();
+		NontrivialReloc::countToThrowOn = i;
+
+		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
+
+		ASSERT_THROW(
+			auto b(a),
+			TestException );
+
+		ASSERT_EQ(i + 1, AllocCounter::nConstructCalls);
+		ASSERT_EQ(i, NontrivialReloc::nConstructions);
+		ASSERT_EQ(i, NontrivialReloc::nDestruct);
+
+		ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations);
+		ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	}
+}
+) // OEL_WHEN_EXCEPTIONS_ON
 
 /// @endcond

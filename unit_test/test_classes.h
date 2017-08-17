@@ -5,8 +5,7 @@
 
 /// @cond INTERNAL
 
-struct ThrowOnConstructT {} const ThrowOnConstruct;
-struct ThrowOnMoveOrCopyT {} const ThrowOnMoveOrCopy;
+struct ThrowOnConstructT {} const throwOnConstruct;
 
 class TestException : public std::exception {};
 
@@ -14,10 +13,21 @@ struct MyCounter
 {
 	static int nConstructions;
 	static int nDestruct;
+	static int countToThrowOn;
 
 	static void ClearCount()
 	{
 		nConstructions = nDestruct = 0;
+		countToThrowOn = -1;
+	}
+
+	void ConditionalThrow()
+	{
+		if (0 <= countToThrowOn)
+		{
+			if (0 == countToThrowOn--)
+				OEL_THROW(TestException{});
+		}
 	}
 };
 
@@ -30,69 +40,52 @@ public:
 	 :	val(new double{v})
 	{	++nConstructions;
 	}
-	explicit MoveOnly(ThrowOnConstructT)
-	{	OEL_THROW(TestException{});
-	}
+
+	explicit MoveOnly(ThrowOnConstructT) { OEL_THROW(TestException{}); }
+
 	MoveOnly(MoveOnly && other) noexcept
 	 :	val(std::move(other.val))
 	{	++nConstructions;
 	}
+
 	MoveOnly & operator =(MoveOnly && other) noexcept
 	{
 		val = std::move(other.val);
 		return *this;
 	}
+
 	~MoveOnly() { ++nDestruct; }
 
 	operator double *() const { return val.get(); }
 };
-oel::is_trivially_relocatable<std::unique_ptr<double>> specify_trivial_relocate(MoveOnly);
+oel::true_type specify_trivial_relocate(MoveOnly);
 
 class NontrivialReloc : public MyCounter
 {
 	double val;
-	bool throwOnMove = false;
 
 public:
-	explicit NontrivialReloc(double v) : val(v)
+	explicit NontrivialReloc(double v)
+	 :	val(v)
 	{	++nConstructions;
 	}
-	explicit NontrivialReloc(ThrowOnConstructT)
-	{	OEL_THROW(TestException{});
-	}
-	NontrivialReloc(double v, ThrowOnMoveOrCopyT)
-	 :	val(v), throwOnMove(true)
-	{	++nConstructions;
-	}
-	NontrivialReloc(NontrivialReloc && other)
-	{
-		if (other.throwOnMove)
-		{
-			other.throwOnMove = false;
-			OEL_THROW(TestException{});
-		}
-		val = other.val;
-		++nConstructions;
-	}
+
+	explicit NontrivialReloc(ThrowOnConstructT) { OEL_THROW(TestException{}); }
+
 	NontrivialReloc(const NontrivialReloc & other)
 	{
-		if (other.throwOnMove)
-		{
-			OEL_THROW(TestException{});
-		}
+		ConditionalThrow();
 		val = other.val;
 		++nConstructions;
 	}
+
 	NontrivialReloc & operator =(const NontrivialReloc & other)
 	{
-		if (throwOnMove || other.throwOnMove)
-		{
-			throwOnMove = false;
-			OEL_THROW(TestException{});
-		}
+		ConditionalThrow();
 		val = other.val;
 		return *this;
 	}
+
 	~NontrivialReloc() { ++nDestruct; }
 
 	operator double() const
@@ -102,7 +95,25 @@ public:
 };
 oel::false_type specify_trivial_relocate(NontrivialReloc);
 
-static_assert(oel::is_trivially_copyable<NontrivialReloc>::value == false, "?");
+struct TrivialDefaultConstruct
+{
+	TrivialDefaultConstruct() = default;
+	TrivialDefaultConstruct(TrivialDefaultConstruct &&) = delete;
+	TrivialDefaultConstruct(const TrivialDefaultConstruct &) = delete;
+};
+
+struct NontrivialConstruct : MyCounter
+{
+	NontrivialConstruct(const NontrivialConstruct &) = delete;
+
+	NontrivialConstruct()
+	{
+		ConditionalThrow();
+		++nConstructions;
+	}
+
+	~NontrivialConstruct() { ++nDestruct; }
+};
 
 
 struct AllocCounter
