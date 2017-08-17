@@ -29,6 +29,8 @@ protected:
 		AllocCounter::nConstructCalls = 0;
 
 		MyCounter::ClearCount();
+
+		sizes = {{0, 1, 200}};
 	}
 
 	template<typename T>
@@ -41,7 +43,7 @@ protected:
 			EXPECT_EQ(val, e);
 	}
 
-	std::array<unsigned, 3> sizes = {{0, 1, 200}};
+	std::array<unsigned, 3> sizes;
 };
 
 struct TrivialDefaultConstruct
@@ -228,7 +230,7 @@ TEST_F(dynarrayConstructTest, constructNFill)
 
 		ASSERT_EQ(a.size(), 11U);
 		for (const auto & e : a)
-			ASSERT_EQ(97, e);
+			ASSERT_TRUE(97.0 == e);
 
 		EXPECT_EQ(1 + 11, NontrivialReloc::nConstructions);
 

@@ -551,6 +551,26 @@ TEST_F(dynarrayTest, eraseToEnd)
 	EXPECT_EQ(4U, li.size());
 }
 
+TEST_F(dynarrayTest, eraseUnordered)
+{
+	dynarray<int> di{1, -2};
+
+	auto it = begin(di);
+	auto & val = end(di)[-1];
+	EXPECT_EQ(-2, val);
+	EXPECT_TRUE(&val == &it[1]);
+
+	it = di.erase_unordered(it);
+	EXPECT_EQ(-2, *it);
+	it = di.erase_unordered(it);
+	EXPECT_EQ(end(di), it);
+
+	di.resize(2);
+	erase_unordered(di, 1);
+	erase_unordered(di, 0);
+	EXPECT_TRUE(di.empty());
+}
+
 #if __cpp_aligned_new >= 201606 || !defined(OEL_NO_BOOST)
 TEST_F(dynarrayTest, overAligned)
 {
@@ -605,9 +625,7 @@ TEST_F(dynarrayTest, misc)
 	ASSERT_NO_THROW(daSrc.at(2));
 	ASSERT_THROW(daSrc.at(3), std::out_of_range);
 
-	std::deque<size_t> dequeSrc;
-	dequeSrc.push_back(4);
-	dequeSrc.push_back(5);
+	std::deque<size_t> dequeSrc{4, 5};
 
 	dynarray<size_t> dest0;
 	dest0.reserve(1);
@@ -619,28 +637,9 @@ TEST_F(dynarrayTest, misc)
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;
-	dynarray<size_t>::const_iterator( dest1.append(daSrc) );
+	dest1.append(daSrc);
 	dest1.append(fASrc);
 	dest1.append(dequeSrc);
-
-	{
-		dynarray<int> di{1, -2};
-
-		auto it = begin(di);
-		auto & val = end(di)[-1];
-		EXPECT_EQ(-2, val);
-		EXPECT_TRUE(&val == &it[1]);
-
-		it = di.erase_unordered(it);
-		EXPECT_EQ(-2, *it);
-		it = di.erase_unordered(it);
-		EXPECT_EQ(end(di), it);
-
-		di.resize(2);
-		erase_unordered(di, 1);
-		erase_unordered(di, 0);
-		EXPECT_TRUE(di.empty());
-	}
 
 	auto cap = dest1.capacity();
 	dest1.pop_back();
