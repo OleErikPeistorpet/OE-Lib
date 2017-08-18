@@ -102,7 +102,7 @@ TEST_F(dynarrayTest, pushBack)
 		ASSERT_EQ(3U, up.size());
 
 		EXPECT_EQ(VALUES[0], *up[0]);
-		EXPECT_EQ(nullptr, up[1]);
+		EXPECT_EQ(nullptr, up[1].get());
 		EXPECT_EQ(VALUES[1], *up[2]);
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
@@ -427,13 +427,13 @@ TEST_F(dynarrayTest, insert)
 		}
 
 		auto it = up.insert( begin(up) + 2, std::move(up[2]) );
-		EXPECT_EQ(up[2], *it);
-		EXPECT_EQ(nullptr, up[3]);
+		EXPECT_EQ(up[2].get(), it->get());
+		EXPECT_EQ(nullptr, up[3].get());
 
 		auto const val = *up.back();
 		up.insert( end(up) - 1, std::move(up.back()) );
 		ASSERT_EQ(6U, up.size());
-		EXPECT_EQ(nullptr, up.back());
+		EXPECT_EQ(nullptr, up.back().get());
 		EXPECT_EQ(val, *end(up)[-2]);
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);

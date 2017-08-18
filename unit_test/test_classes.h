@@ -56,7 +56,9 @@ public:
 
 	~MoveOnly() { ++nDestruct; }
 
-	operator double *() const { return val.get(); }
+	const double * get() const { return val.get(); }
+
+	double operator*() const { return *val; }
 };
 oel::true_type specify_trivial_relocate(MoveOnly);
 
@@ -148,5 +150,23 @@ struct TrackingAllocator : oel::allocator<T>, AllocCounter
 		_base::construct(raw, std::forward<Args>(args)...);
 	}
 };
+
+template<typename T, bool PropagateOnMoveAssign>
+struct StatefulAllocator : TrackingAllocator<T>
+{
+	using propagate_on_container_move_assignment = oel::bool_constant<PropagateOnMoveAssign>;
+
+	int id;
+
+	StatefulAllocator(int id_ = 0) : id(id_) {}
+};
+
+template<typename T, typename U, bool PropagateOnMoveAssign>
+bool operator==(StatefulAllocator<T, PropagateOnMoveAssign> a, StatefulAllocator<U, PropagateOnMoveAssign> b)
+{ return a.id == b.id; }
+
+template<typename T, typename U, bool PropagateOnMoveAssign>
+bool operator!=(StatefulAllocator<T, PropagateOnMoveAssign> a, StatefulAllocator<U, PropagateOnMoveAssign> b)
+{ return !(a == b); }
 
 /// @endcond
