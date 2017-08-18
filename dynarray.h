@@ -107,8 +107,8 @@ public:
 	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_cbegin(std::declval<InputRange>()) )>
 	explicit dynarray(const InputRange & range, const Alloc & a = Alloc{})  : _m(a) { assign(range); }
 
-	dynarray(std::initializer_list<T> init, const Alloc & a = Alloc{})  : _m(a, init.size())
-	                                                                    { _initPostAllocate(init.begin(), init.size()); }
+	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})  : _m(a, il.size())
+	                                                                  { _initPostAllocate(il.begin(), il.size()); }
 	dynarray(dynarray && other) noexcept               : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, const Alloc & a) noexcept;
 	dynarray(const dynarray & other);
@@ -118,7 +118,7 @@ public:
 
 	dynarray & operator =(dynarray && other) noexcept;
 	/// Treats Alloc as if it does not have propagate_on_container_copy_assignment
-	dynarray & operator =(const dynarray & other);
+	dynarray & operator =(const dynarray & other)    { assign(other);  return *this; }
 
 	dynarray & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
 
@@ -187,8 +187,8 @@ public:
 	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
-	iterator  erase_unordered(iterator pos)  { _eraseUnordered(pos, is_trivially_relocatable<T>());
-	                                           return pos; }
+	iterator  erase_unordered(iterator pos)  { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
+
 	iterator  erase(iterator pos)            { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
 	iterator  erase(iterator first, iterator last);
@@ -367,23 +367,22 @@ private:
 
 
 	template<typename InputIter>
-	InputIter _uninitCopy(false_type, InputIter first, size_type, T * dest, T * destEnd)
+	void _uninitCopy(false_type, InputIter first, size_type, T * dest, T * destEnd)
 	{	// cannot use memcpy
-		return _detail::UninitCopy<Alloc>(first, dest, destEnd, _m);
+		_detail::UninitCopy<Alloc>(first, dest, destEnd, _m);
 	}
 
 	template<typename CntigusIter>
-	CntigusIter _uninitCopy(true_type, CntigusIter const first, size_type const count, T * dest, T *)
+	void _uninitCopy(true_type, CntigusIter first, size_type n, T * dest, T *)
 	{
 		// Behaviour undefined by standard if first is null
-		::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * count);
-		return first + count;
+		::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * n);
 	}
 
-	void _initPostAllocate(const T *const first, size_type const count)
+	void _initPostAllocate(const T *const first, size_type const n)
 	{
 		_m.end = _m.reservEnd;
-		_uninitCopy(is_trivially_copyable<T>(), first, count, _m.data, _m.end);
+		_uninitCopy(is_trivially_copyable<T>(), first, n, _m.data, _m.end);
 	}
 
 
@@ -438,9 +437,9 @@ private:
 	}
 
 
-	void _growTo(size_type newCapacity)
+	void _growTo(size_type newCap)
 	{
-		_scopedPtr newData{_m, newCapacity};
+		_scopedPtr newData{_m, newCap};
 
 		pointer const newEnd = newData.ptr + size();
 		_relocateData(newData.ptr, newEnd, size());
@@ -465,7 +464,7 @@ private:
 	}
 
 
-	void _eraseUnordered(iterator const pos, true_type /*trivialRelocate*/)
+	void _eraseUnorder(iterator const pos, true_type /*trivialRelocate*/)
 	{
 		OEL_ASSERT_MEM_BOUND(pos._container == &_m);
 
@@ -480,7 +479,7 @@ private:
 		raw = reinterpret_cast<aligned_union_t<T> &>(*_m.end); // relocate last element to pos
 	}
 
-	void _eraseUnordered(iterator pos, false_type)
+	void _eraseUnorder(iterator pos, false_type)
 	{
 		*pos = std::move(back());
 		pop_back();
@@ -864,15 +863,6 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment(), other._m);
 		other._m.reservEnd = other._m.end = other._m.data = nullptr;
 	}
-	return *this;
-}
-
-template<typename T, typename Alloc>
-inline dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(const dynarray & other)
-{
-	OEL_ASSERT(!_allocTrait::propagate_on_container_copy_assignment::value || get_allocator() == other.get_allocator());
-
-	assign(other);
 	return *this;
 }
 
