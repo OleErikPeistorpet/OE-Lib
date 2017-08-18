@@ -25,7 +25,7 @@ namespace _detail
 template<typename T, size_t C, typename S>
 is_trivially_relocatable<T> specify_trivial_relocate(fixcap_array<T, C, S> &&);
 
-/// Overloads generic erase_unordered(RandomAccessContainer &, RandomAccessContainer::size_type) (in util.h)
+/// Overloads generic erase_unordered(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
 template<typename T, size_t C, typename S> inline
 void erase_unordered(fixcap_array<T, C, S> & a,
                      typename fixcap_array<T, C, S>::size_type index)  { a.erase_unordered(a.begin() + index); }
@@ -72,7 +72,7 @@ public:
 	fixcap_array(std::initializer_list<T> init)  : _size() { assign(init); }
 
 	fixcap_array(fixcap_array && other);
-	fixcap_array(const fixcap_array & other)  { _uninitCopyFrom(is_trivially_copyable<T>(), other); }
+	fixcap_array(const fixcap_array & other)  { _uninitCopyFrom<is_trivially_copyable<T>::value>(other); }
 
 	~fixcap_array() noexcept  { _detail::Destroy(data(), data() + _size); }
 
@@ -133,7 +133,7 @@ public:
 	                                               return pos; }
 	iterator  erase(iterator pos)            { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
-	iterator  erase(iterator first, iterator last);
+	iterator  erase(iterator first, const_iterator last);
 	/// Equivalent to erase(first, end()) (but potentially faster), making first the new end
 	void      erase_to_end(iterator first) OEL_NOEXCEPT_NDEBUG;
 
@@ -225,11 +225,21 @@ private:
 		throw std::length_error("Not enough space in fixcap_array");
 	}
 
-	template<typename Range>
-	static auto _getSize(const Range & r, int) -> decltype(static_cast<size_t>(oel::ssize(r))) { return oel::ssize(r); }
+
+	template<typename Range> // pass dummy int to prefer this overload
+	static auto _getSize(const Range & r, int) -> decltype( static_cast<size_t>(oel::ssize(r)) ) { return oel::ssize(r); }
 
 	template<typename Range>
 	static std::false_type _getSize(const Range &, long) { return {}; }
+
+	template<typename Range>
+	static auto _count(const Range & r, int) -> decltype( static_cast<size_t>(oel::ssize(r)) ) { return oel::ssize(r); }
+
+	template<typename Range>
+	static size_t _count(const Range & r, long)
+	{
+		return std::distance(::adl_begin(r), ::adl_end(r));
+	}
 
 
 	size_type _unusedCapacity() const
@@ -237,17 +247,23 @@ private:
 		return Capacity - _size;
 	}
 
-	void _uninitCopyFrom(std::false_type, const fixcap_array<T, Capacity, Size> & src)
-	{	// non-trivial copy
-		_size = src._size;
-		_detail::UninitCopyA(src.data(), data(), data() + src._size);
+	template<typename InputIter>
+	static void _uninitCopy(false_type, InputIter first, size_type, T * dest, T * destEnd)
+	{
+		_detail::UninitCopyA(first, dest, destEnd);
 	}
 
-	void _uninitCopyFrom(std::true_type, const fixcap_array<T, Capacity, Size> & src)
-	{	// trivial copy
-		//_size = src._size;
-		//::memcpy(data(), src.data(), sizeof(T) * src._size);
-		::memcpy(this, &src, sizeof(T) * sizeof src._size + src._size);
+	template<typename CntigusIter>
+	static void _uninitCopy(true_type, CntigusIter first, size_type n, T * dest, T *)
+	{
+		::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * n);
+	}
+
+	template<bool Trivial>
+	void _uninitCopyFrom(const fixcap_array & src)
+	{
+		_size = src._size;
+		_uninitCopy(bool_constant<Trivial>(), src.data(), src._size, data(), data() + _size);
 	}
 
 	void _setEmptyIfNot(std::false_type)
@@ -469,7 +485,7 @@ inline fixcap_array<T, Capacity, Size>::fixcap_array(fixcap_array && other)
 {
 	_detail::AssertTrivialRelocate<T>();
 
-	_uninitCopyFrom(std::true_type{}, other);
+	_uninitCopyFrom<true>(other);
 	other._setEmptyIfNot(_detail::is_trivially_destructible<T>());
 }
 
@@ -547,6 +563,62 @@ typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Si
 	}
 }
 
+template<typename T, size_t Capacity, typename Size> template<typename ForwardRange>
+typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
+	insert_r(const_iterator pos, const ForwardRange & src)
+{
+	auto first = ::adl_begin(src);
+
+	static_assert(std::is_base_of< forward_traversal_tag, iterator_traversal_t<decltype(first)> >::value,
+				  "insert_r requires that source models Forward Range (Boost concept)");
+
+	_detail::AssertTrivialRelocate<T>();
+
+	OEL_ASSERT_MEM_BOUND(begin() <= pos && pos <= end());
+
+	using CanMemmove = can_memmove_with<T *, decltype(first)>;
+	size_type const n = _count(src, int{});
+	if (_unusedCapacity() >= n)
+	{
+		auto const pPos = const_cast<T *>(to_pointer_contiguous(pos));
+		size_t const bytesAfterPos = sizeof(T) * ( _size - (pPos - data()) );
+		T *const dLast = pPos + n;
+		// Relocate elements to make space, conceptually destroying [pos, pos + n)
+		::memmove(dLast, pPos, bytesAfterPos);
+
+		_size += n;
+		// Construct new
+		OEL_CONST_COND if (CanMemmove::value)
+		{
+			_uninitCopy(CanMemmove(), first, n, pPos, dLast);
+		}
+		else
+		{
+			T * dest = pPos;
+			OEL_TRY_
+			{
+				while (dest != dLast)
+				{
+					::new(dest) T(*first);
+					++first; ++dest;
+				}
+			}
+			OEL_CATCH_ALL
+			{	// relocate back to fill hole
+				::memmove(dest, dLast, bytesAfterPos);
+				_size -= (dLast - dest);
+				OEL_WHEN_EXCEPTIONS_ON(throw);
+			}
+		}
+
+		return _makeIterator(reinterpret_cast<aligned_union_t<T> *>(pPos));
+	}
+	else
+	{	_throwLenExc();
+	}
+}
+
+
 template<typename T, size_t Capacity, typename Size>
 inline void fixcap_array<T, Capacity, Size>::pop_back() OEL_NOEXCEPT_NDEBUG
 {
@@ -557,12 +629,12 @@ inline void fixcap_array<T, Capacity, Size>::pop_back() OEL_NOEXCEPT_NDEBUG
 
 template<typename T, size_t Capacity, typename Size>
 typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
-	erase(iterator first, iterator last)
+	erase(iterator first, const_iterator last)
 {
 	_detail::AssertTrivialRelocate<T>();
 
-	pointer const pFirst = to_pointer_contiguous(first);
-	pointer const pLast = to_pointer_contiguous(last);
+	T *const      pFirst = to_pointer_contiguous(first);
+	const T *const pLast = to_pointer_contiguous(last);
 	OEL_ASSERT_MEM_BOUND(data() <= pFirst && pFirst <= pLast && last <= end());
 
 	difference_type nErase = pLast - pFirst;

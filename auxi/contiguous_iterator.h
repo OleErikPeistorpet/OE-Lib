@@ -8,6 +8,8 @@
 
 #include "../core_util.h"
 
+#include <memory>
+
 
 namespace oel
 {

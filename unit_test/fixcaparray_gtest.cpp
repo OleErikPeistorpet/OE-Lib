@@ -56,10 +56,10 @@ TEST_F(fixcap_arrayTest, appendFromStringStream)
 	testAppendFromStringStream<	fixcap_array<int, 5> >();
 }
 
-//TEST_F(fixcap_arrayTest, insertR)
-//{
-//	testInsertR< fixcap_array<double, 8>, fixcap_array<int, 4> >();
-//}
+TEST_F(fixcap_arrayTest, insertR)
+{
+	testInsertR< fixcap_array<double, 8>, fixcap_array<int, 4> >();
+}
 
 TEST_F(fixcap_arrayTest, insert)
 {

@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "core_util.h"
+#include "../core_util.h"
 
 #include <string.h> // for memset
 
@@ -68,7 +68,7 @@ namespace _detail
 
 
 	template<typename T>
-	void Destroy(T * first, T *const last) noexcept
+	void Destroy(T * first, const T * last) noexcept
 	{	// first > last is OK, does nothing
 		OEL_CONST_COND if (!is_trivially_destructible<T>::value) // for speed with optimizations off (debug build)
 		{
