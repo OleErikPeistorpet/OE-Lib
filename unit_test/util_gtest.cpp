@@ -4,22 +4,11 @@
 #include "gtest/gtest.h"
 #include <list>
 #include <set>
+#include <array>
 
 /// @cond INTERNAL
 
-// The fixture for testing utilities
-class utilTest : public ::testing::Test
-{
-protected:
-	utilTest()
-	{
-		// You can do set-up work for each test here.
-	}
-
-	// Objects declared here can be used by all tests.
-};
-
-TEST_F(utilTest, indexValid)
+TEST(utilTest, indexValid)
 {
 	using namespace oel;
 
@@ -38,7 +27,7 @@ struct OneSizeT
 	size_t val;
 };
 
-TEST_F(utilTest, makeUnique)
+TEST(utilTest, makeUnique)
 {
 	auto ps = oel::make_unique_default<std::string[]>(2);
 	EXPECT_TRUE(ps[0].empty());
@@ -65,7 +54,7 @@ struct BlahBy
 	unsigned short size() const  { return 2; }
 };
 
-TEST_F(utilTest, ssize)
+TEST(utilTest, ssize)
 {
 	BlahBy bb;
 	auto const test = oel::ssize(bb);
@@ -78,7 +67,7 @@ TEST_F(utilTest, ssize)
 	ASSERT_EQ(2, test);
 }
 
-TEST_F(utilTest, derefArgs)
+TEST(utilTest, derefArgs)
 {
 	using namespace oel;
 	dynarray< std::unique_ptr<double> > d;
@@ -103,6 +92,23 @@ TEST_F(utilTest, derefArgs)
 	}
 	auto last = std::unique(d.begin(), d.end(), deref_args<std::equal_to<double>>{});
 	EXPECT_EQ(3, last - d.begin());
+}
+
+TEST(utilTest, toPointerContiguous)
+{
+	using namespace oel;
+
+	std::array<int, 3> a; (void) a;
+	using P  = decltype( to_pointer_contiguous(a.begin()) );
+	using CP = decltype( to_pointer_contiguous(a.cbegin()) );
+	static_assert(std::is_same<P, int *>::value, "?");
+	static_assert(std::is_same<CP, const int *>::value, "?");
+
+	std::basic_string<wchar_t> s;
+	using Q  = decltype( to_pointer_contiguous(s.begin()) );
+	using CQ = decltype( to_pointer_contiguous(s.cbegin()) );
+	static_assert(std::is_same<Q, wchar_t *>::value, "?");
+	static_assert(std::is_same<CQ, const wchar_t *>::value, "?");
 }
 
 /// @endcond
