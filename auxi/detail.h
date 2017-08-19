@@ -52,7 +52,8 @@ namespace _detail
 	};
 
 
-	template< typename Alloc, bool = is_always_equal_allocator<Alloc>::value && std::is_default_constructible<Alloc>::value >
+	template< typename Alloc,
+		bool = is_always_equal_allocator<Alloc>::value && std::is_default_constructible<Alloc>::value >
 	struct AllocRefOptimized
 	{
 		Alloc & alloc;
@@ -67,8 +68,6 @@ namespace _detail
 	template<typename Alloc>
 	struct AllocRefOptimized<Alloc, true>
 	{
-		void operator =(AllocRefOptimized) = delete;
-
 		AllocRefOptimized(Alloc &) {}
 
 		Alloc Get() { return Alloc{}; }

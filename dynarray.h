@@ -273,29 +273,33 @@ private:
 	};
 
 
-	struct _scopedPtrBase
-	{
-		pointer ptr;  // owner
-		pointer allocEnd;
-	};
 	using _allocRef = _detail::AllocRefOptimized<Alloc>;
 
-	struct _scopedPtr : public _scopedPtrBase, private _allocRef
+	struct _scopedPtr : private _allocRef
 	{
-		using _scopedPtrBase::ptr;
+		pointer data;  // owner
+		pointer allocEnd;
 
 		_scopedPtr(Alloc & a, size_type const allocSize)
 		 :	_allocRef(a)
 		{
-			ptr = this->Get().allocate(allocSize);
-			this->allocEnd = ptr + allocSize;
+			data = this->Get().allocate(allocSize);
+			allocEnd = data + allocSize;
 		}
 		_scopedPtr(const _scopedPtr &) = delete;
+		void operator =(const _scopedPtr &) = delete;
 
 		~_scopedPtr()
 		{
-			if (ptr)
-				this->Get().deallocate(ptr, this->allocEnd - ptr);
+			if (data)
+				this->Get().deallocate(data, allocEnd - data);
+		}
+
+		void Swap(_internBase & other)
+		{
+			using std::swap;
+			swap(other.data, data);
+			swap(other.reservEnd, allocEnd);
 		}
 	};
 
@@ -337,13 +341,6 @@ private:
 			_m.deallocate(_m.data, capacity());
 
 		_m.data = newData;
-	}
-
-	void _swapBuf(_scopedPtr & s)
-	{
-		using std::swap;
-		swap(_m.data, s.ptr);
-		swap(_m.reservEnd, s.allocEnd);
 	}
 
 	void _moveAssignAlloc(std::true_type, Alloc & a)
@@ -439,13 +436,13 @@ private:
 
 	void _growTo(size_type newCap)
 	{
-		_scopedPtr newData{_m, newCap};
+		_scopedPtr newBuf{_m, newCap};
 
-		pointer const newEnd = newData.ptr + size();
-		_relocateData(newData.ptr, newEnd, size());
+		pointer const newEnd = newBuf.data + size();
+		_relocateData(newBuf.data, newEnd, size());
 
 		_m.end = newEnd;
-		_swapBuf(newData);
+		newBuf.Swap(_m);
 	}
 
 	template<typename UninitFillFunc>
@@ -666,16 +663,16 @@ private:
 		}
 		else
 		{
-			_scopedPtr newData{_m, _calcCap(capacity(), size() + count)};
+			_scopedPtr newBuf{_m, _calcCap(capacity(), size() + count)};
 
 			size_type const oldSize = size();
-			pointer const pos = newData.ptr + oldSize;
+			pointer const pos = newBuf.data + oldSize;
 			makeNew(pos, count, _m);
 			// Exception free from here
-			_relocateData(newData.ptr, pos, oldSize);
+			_relocateData(newBuf.data, pos, oldSize);
 
 			_m.end = pos;
-			_swapBuf(newData);
+			newBuf.Swap(_m);
 		}
 		_m.end += count;
 	}
@@ -685,17 +682,17 @@ private:
 	T * _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
 					   CalcCapFunc calcNewCap, MakeFuncInsert makeNew, Args &&... args)
 	{
-		_scopedPtr newData{_m, calcNewCap(capacity(), size() + nToAdd)};
+		_scopedPtr newBuf{_m, calcNewCap(capacity(), size() + nToAdd)};
 
 		size_type const nBefore = pos - data();
-		T *const newPos = newData.ptr + nBefore;
+		T *const newPos = newBuf.data + nBefore;
 		T *const afterAdded = makeNew(*this, newPos, nToAdd, std::forward<Args>(args)...);
 		// Exception free from here
-		::memcpy(newData.ptr, data(), sizeof(T) * nBefore); // relocate prefix
+		::memcpy(newBuf.data, data(), sizeof(T) * nBefore); // relocate prefix
 		::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);  // relocate suffix
 
 		_m.end = afterAdded + nAfterPos;
-		_swapBuf(newData);
+		newBuf.Swap(_m);
 
 		return newPos;
 	}
@@ -805,16 +802,16 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 	}
 	else
 	{
-		_scopedPtr newData{_m, _calcCapAddOne(capacity())};
+		_scopedPtr newBuf{_m, _calcCapAddOne(capacity())};
 
-		pointer const pos = newData.ptr + size();
+		pointer const pos = newBuf.data + size();
 		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
 #if _MSC_VER
 	#pragma warning(suppress : 4100) // unreferenced formal parameter
 #endif
-		_relocateData( newData.ptr, pos, size(),
+		_relocateData( newBuf.data, pos, size(),
 					   [](T * pos_) { pos_-> ~T(); } );
-		_swapBuf(newData);
+		newBuf.Swap(_m);
 		_m.end = pos;
 	}
 	++_m.end;
