@@ -292,6 +292,17 @@ namespace _detail
 		}
 	};
 
+////////////////////////////////////////////////////////////////////////////////
+
+	inline void MemcpyMaybeNull(void * dest, const void * src, size_t nBytes)
+	{	// memcpy(nullptr, nullptr, 0) is undefined behavior.
+		// The problem is that checking can have significant performance hit
+	#if __GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9)
+		if (nBytes > 0)
+	#endif
+			::memcpy(dest, src, nBytes);
+	}
+
 
 	template<typename T>   // (target, source)
 	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *);

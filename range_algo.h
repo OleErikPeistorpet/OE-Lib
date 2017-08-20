@@ -148,7 +148,7 @@ namespace _detail
 			(void) *(dest + (n - 1));
 		}
 	#endif
-		::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(src), sizeof(*src) * n);
+		_detail::MemcpyMaybeNull(to_pointer_contiguous(dest), to_pointer_contiguous(src), sizeof(*src) * n);
 		return src + n;
 	}
 

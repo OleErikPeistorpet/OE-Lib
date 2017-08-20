@@ -372,8 +372,7 @@ private:
 	template<typename CntigusIter>
 	void _uninitCopy(true_type, CntigusIter first, size_type n, T * dest, T *)
 	{
-		// Behaviour undefined by standard if first is null
-		::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * n);
+		_detail::MemcpyMaybeNull(dest, to_pointer_contiguous(first), sizeof(T) * n);
 	}
 
 	void _initPostAllocate(const T *const first, size_type const n)
@@ -430,7 +429,7 @@ private:
 		enable_if<is_trivially_relocatable<T1>::value> = 0 >
 	void _relocateData(T * dest, T *, size_type n, Unused...)
 	{
-		::memcpy(dest, data(), sizeof(T) * n);
+		_detail::MemcpyMaybeNull(dest, data(), sizeof(T) * n);
 	}
 
 
@@ -546,7 +545,7 @@ private:
 		{	_m.end = _m.data + count;
 		}
 		// Not portable. Check for self assignment or use memmove?
-		::memcpy(data(), to_pointer_contiguous(first), sizeof(T) * count);
+		_detail::MemcpyMaybeNull(data(), to_pointer_contiguous(first), sizeof(T) * count);
 
 		return first + count;
 	}
@@ -646,8 +645,8 @@ private:
 	#endif
 		_appendImpl( n,
 			[first](T * dest, size_type n_, Alloc &)
-			{	// Behaviour undefined by standard if first points to null
-				::memcpy(dest, to_pointer_contiguous(first), sizeof(T) * n_);
+			{
+				_detail::MemcpyMaybeNull(dest, to_pointer_contiguous(first), sizeof(T) * n_);
 			} );
 		return last; // has been invalidated in the case of append self and reallocation
 	}
@@ -688,9 +687,11 @@ private:
 		T *const newPos = newBuf.data + nBefore;
 		T *const afterAdded = makeNew(*this, newPos, nToAdd, std::forward<Args>(args)...);
 		// Exception free from here
-		::memcpy(newBuf.data, data(), sizeof(T) * nBefore); // relocate prefix
-		::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);  // relocate suffix
-
+		if (_m.data)
+		{
+			::memcpy(newBuf.data, data(), sizeof(T) * nBefore); // relocate prefix
+			::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);  // relocate suffix
+		}
 		_m.end = afterAdded + nAfterPos;
 		newBuf.Swap(_m);
 
