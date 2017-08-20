@@ -128,7 +128,7 @@ struct AllocCounter
 };
 
 template<typename T>
-struct TrackingAllocator : oel::allocator<T>, AllocCounter
+struct TrackingAllocator : oel::allocator<T>
 {
 	using _base = oel::allocator<T>;
 
@@ -136,19 +136,19 @@ struct TrackingAllocator : oel::allocator<T>, AllocCounter
 
 	T * allocate(size_type nObjects)
 	{
-		++nAllocations;
+		++AllocCounter::nAllocations;
 		return _base::allocate(nObjects);
 	}
 	void deallocate(T * ptr, size_type nObjects)
 	{
-		++nDeallocations;
+		++AllocCounter::nDeallocations;
 		_base::deallocate(ptr, nObjects);
 	}
 
 	template<typename U, typename... Args>
 	void construct(U * raw, Args &&... args)
 	{
-		++nConstructCalls;
+		++AllocCounter::nConstructCalls;
 		_base::construct(raw, std::forward<Args>(args)...);
 	}
 };

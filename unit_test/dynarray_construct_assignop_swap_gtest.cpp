@@ -269,7 +269,7 @@ void testMoveAssign(Alloc a0, Alloc a1)
 		for (int i = 0; i < nl; ++i)
 			left.emplace_back(0.5);
 
-		auto const nAllocBefore = Alloc::nAllocations;
+		auto const nAllocBefore = AllocCounter::nAllocations;
 
 		auto const ptr = right.data();
 
@@ -280,7 +280,7 @@ void testMoveAssign(Alloc a0, Alloc a1)
 		else
 			EXPECT_TRUE(left.get_allocator() == a1);
 
-		EXPECT_EQ(nAllocBefore, Alloc::nAllocations);
+		EXPECT_EQ(nAllocBefore, AllocCounter::nAllocations);
 		EXPECT_EQ(9, MoveOnly::nConstructions - MoveOnly::nDestruct);
 
 		if (0 == nl)
@@ -291,24 +291,25 @@ void testMoveAssign(Alloc a0, Alloc a1)
 		ASSERT_EQ(9U, left.size());
 		EXPECT_EQ(ptr, left.data());
 	}
+	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 
 TEST_F(dynarrayConstructTest, moveAssign)
 {
-	testMoveAssign< TrackingAllocator<MoveOnly> >({}, {});
+	TrackingAllocator<MoveOnly> a;
+	testMoveAssign(a, a);
+
 	testMoveAssign< StatefulAllocator<MoveOnly, true> >({0}, {1});
 }
 
 TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
 {
 	using Alloc = StatefulAllocator<MoveOnly, false>;
-	{
-		Alloc a0, a1;
-		ASSERT_TRUE(a0 == a1);
-		testMoveAssign<Alloc>(a0, a1);
-	}
+
+	testMoveAssign(Alloc{}, Alloc{});
+
 	MoveOnly::ClearCount();
-	// allocators not comparing equal
+	// not propagating, not equal, cannot steal the memory
 	for (auto const na : {0, 1, 101})
 		for (auto const nb : {0, 1, 2})
 		{
@@ -325,14 +326,14 @@ TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
 
 			auto const capBefore = a.capacity();
 
-			auto const nExpectAlloc = Alloc::nAllocations + (b.size() < a.size() ? 1 : 0);
+			auto const nExpectAlloc = AllocCounter::nAllocations + (b.size() < a.size() ? 1 : 0);
 
 			b = std::move(a);
 
 			EXPECT_EQ(1, a.get_allocator().id);
 			EXPECT_EQ(2, b.get_allocator().id);
 
-			EXPECT_EQ(nExpectAlloc, Alloc::nAllocations);
+			EXPECT_EQ(nExpectAlloc, AllocCounter::nAllocations);
 			EXPECT_EQ(na, MoveOnly::nConstructions - MoveOnly::nDestruct);
 
 			EXPECT_TRUE(a.empty());
@@ -342,7 +343,7 @@ TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
 				EXPECT_TRUE(b[i].get() && *b[i] == i + 0.5);
 		}
 
-	ASSERT_EQ(Alloc::nAllocations, Alloc::nDeallocations);
+	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 
 TEST_F(dynarrayConstructTest, selfMoveAssign)
