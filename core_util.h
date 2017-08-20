@@ -217,13 +217,6 @@ using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true
 	#define OEL_ASSERT(expr) ((void) 0)
 #endif
 
-
-#if _MSC_VER
-	#define OEL_NORETURN __declspec(noreturn)
-#else
-	#define OEL_NORETURN __attribute__((noreturn))
-#endif
-
 ////////////////////////////////////////////////////////////////////////////////
 
 using std::size_t;
@@ -286,6 +279,20 @@ using iterator_traversal_t
 
 namespace _detail
 {
+	struct Throw
+	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
+	#if _MSC_VER
+		__declspec(noreturn)
+	#else
+		__attribute__((noreturn))
+	#endif
+		static void OutOfRange(const char * what)
+		{
+			OEL_THROW(std::out_of_range(what));
+		}
+	};
+
+
 	template<typename T>   // (target, source)
 	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *);
 

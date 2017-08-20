@@ -164,10 +164,7 @@ namespace _detail
 	}
 
 
-	OEL_NORETURN static void ThrowFromCopy()
-	{
-		OEL_THROW(std::out_of_range("Too small dest oel::copy"));
-	}
+	inline const char * ErrorCopyMsg() { return "Too small dest oel::copy"; }
 
 	template<typename Ret, typename InputRange, typename OutputRange, typename FuncItersParam, typename FuncNoParam>
 	Ret CopyImpl(const InputRange & from, OutputRange & to, FuncItersParam succeed, FuncNoParam fail)
@@ -194,7 +191,7 @@ namespace _detail
 		return _detail::CopyImpl<Ret>
 			(	src, dest,
 				[](IterSrc s, IterDest d) { return Ret{s, d}; },
-				[]() -> Ret { ThrowFromCopy(); }
+				[]() -> Ret { Throw::OutOfRange(ErrorCopyMsg()); }
 			);
 	}
 
@@ -206,7 +203,7 @@ namespace _detail
 		if (n <= oel::ssize(dest))
 			return{ oel::copy_unsafe(src, begin(dest)).src_last, begin(dest) + n };
 		else
-			ThrowFromCopy();
+			Throw::OutOfRange(ErrorCopyMsg());
 	}
 
 	template<typename InputRange, typename OutputRange> inline

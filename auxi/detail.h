@@ -16,14 +16,6 @@ namespace _detail
 {
 	template<typename, typename> struct DynarrBase;
 
-	struct DynarrCommon
-	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
-		OEL_NORETURN static void AtThrow()
-		{
-			OEL_THROW(std::out_of_range("Bad index dynarray::at"));
-		}
-	};
-
 
 #if __GLIBCXX__ && __GNUC__ == 4
 	template<typename T>

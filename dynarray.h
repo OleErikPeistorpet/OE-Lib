@@ -555,14 +555,14 @@ private:
 	InputIter _assignImpl(InputIter src, size_type const count, false_type)
 	{
 		auto copy = [](InputIter src_, iterator dest, iterator dLast)
+		{
+			while (dest != dLast)
 			{
-				while (dest != dLast)
-				{
-					*dest = *src_;
-					++src_; ++dest;
-				}
-				return src_;
-			};
+				*dest = *src_;
+				++src_; ++dest;
+			}
+			return src_;
+		};
 		pointer newEnd;
 		if (capacity() < count)
 		{	// not enough room, allocate
@@ -1004,7 +1004,7 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 	if (_indexValid(i))
 		return _m.data[i];
 	else
-		_detail::DynarrCommon::AtThrow();
+		_detail::Throw::OutOfRange("Bad index dynarray::at");
 }
 
 template<typename T, typename Alloc>
