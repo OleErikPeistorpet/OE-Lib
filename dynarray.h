@@ -90,7 +90,7 @@ public:
 
 	/** @brief Uses default initialization for elements, can be significantly faster for non-class T
 	*
-	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
+	* @copydetails resize(size_type, default_init_tag)  */
 	dynarray(size_type size, default_init_tag, const Alloc & a = Alloc{});
 	explicit dynarray(size_type size, const Alloc & a = Alloc{});  ///< (Value-initializes elements, same as std::vector)
 	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
@@ -172,11 +172,15 @@ public:
 	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
 	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
 
-	/// The default allocator performs list-initialization of element if there is no matching constructor
+	/**
+	* @brief The default allocator performs list-initialization of element if there is no matching constructor
+	*
+	* @copydoc push_back(T &&)  */
 	template<typename... Args>
 	void      emplace_back(Args &&... elemInitArgs);
-
+	/// Strong exception guarantee only if T is noexcept move constructible or trivially relocatable
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
+	/// See push_back(T &&)
 	void      push_back(const T & val)  { emplace_back(val); }
 
 	/// After the call, any previous iterator to the back element will be equal to end()

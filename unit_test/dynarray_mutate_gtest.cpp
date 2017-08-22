@@ -448,16 +448,7 @@ TEST_F(dynarrayTest, resize)
 	d.resize(S1);
 	ASSERT_EQ(S1, d.size());
 
-	int nExcept = 0;
-	try
-	{
-		d.resize((size_t)-8, oel::default_init);
-	}
-	catch (std::bad_alloc &)
-	{
-		++nExcept;
-	}
-	EXPECT_EQ(1, nExcept);
+	EXPECT_THROW(d.resize(d.max_size(), oel::default_init), std::bad_alloc);
 
 	EXPECT_EQ(S1, d.size());
 	for (const auto & e : d)
@@ -580,6 +571,8 @@ TEST_F(dynarrayTest, overAligned)
 	special.shrink_to_fit();
 	EXPECT_GT(5U, special.capacity());
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
+
+	EXPECT_THROW(special.reserve(special.max_size()), std::bad_alloc);
 }
 #endif
 
