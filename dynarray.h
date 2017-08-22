@@ -68,8 +68,12 @@ public:
 	using const_reference = const T &;
 	using pointer         = typename _allocTrait::pointer;
 	using const_pointer   = typename _allocTrait::const_pointer;
-	using size_type       = typename _allocTrait::size_type;  ///< Allowed to be signed
 	using difference_type = typename _allocTrait::difference_type;
+#ifndef OEL_USE_SIGNED_SIZE
+	using size_type       = typename _allocTrait::size_type;
+#else
+	using size_type       = difference_type;
+#endif
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 	using iterator       = contiguous_ctnr_iterator<pointer, _internBase>;
@@ -417,16 +421,16 @@ private:
 	}
 
 
-	template< typename... FuncTakingLast, typename T1 = T,
-		enable_if<!is_trivially_relocatable<T1>::value> = 0 >
+	template< typename... FuncTakingLast, typename T_ = T,
+		enable_if<!is_trivially_relocatable<T_>::value> = 0 >
 	void _relocateData(T * dFirst, T * dLast, size_type, FuncTakingLast... extraCleanupIfException)
 	{
 		_detail::UninitCopy<Alloc>(std::make_move_iterator(_m.data), dFirst, dLast, _m, extraCleanupIfException...);
 		_detail::Destroy(_m.data, _m.end);
 	}
 
-	template< typename... Unused, typename T1 = T,
-		enable_if<is_trivially_relocatable<T1>::value> = 0 >
+	template< typename... Unused, typename T_ = T,
+		enable_if<is_trivially_relocatable<T_>::value> = 0 >
 	void _relocateData(T * dest, T *, size_type n, Unused...)
 	{
 		_detail::MemcpyMaybeNull(dest, data(), sizeof(T) * n);
@@ -510,8 +514,9 @@ private:
 	}
 
 	template<typename Range>
-	static auto _sizeOrEnd(const Range & r, single_pass_traversal_tag, long) -> decltype(::adl_end(r))
-																				{ return ::adl_end(r); }
+	static auto _sizeOrEnd(const Range & r, single_pass_traversal_tag, long)
+	 -> decltype(::adl_end(r)) { return ::adl_end(r); }
+
 	// Returns element count as size_type if possible, else adl_end(r)
 	template<typename Iter, typename Range>
 	static auto _sizeOrEnd(const Range & r) -> decltype(_sizeOrEnd(r, iterator_traversal_t<Iter>(), 0))
