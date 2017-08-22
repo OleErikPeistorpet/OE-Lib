@@ -69,11 +69,7 @@ public:
 	using pointer         = typename _allocTrait::pointer;
 	using const_pointer   = typename _allocTrait::const_pointer;
 	using difference_type = typename _allocTrait::difference_type;
-#ifndef OEL_USE_SIGNED_SIZE
-	using size_type       = typename _allocTrait::size_type;
-#else
-	using size_type       = difference_type;
-#endif
+	using size_type       = size_t;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 	using iterator       = contiguous_ctnr_iterator<pointer, _internBase>;
@@ -385,11 +381,6 @@ private:
 		_uninitCopy(is_trivially_copyable<T>(), first, n, _m.data, _m.end);
 	}
 
-
-	bool _indexValid(size_t i) const
-	{	// using size_t in case size_type is signed
-		return i < static_cast<size_t>(_m.end - _m.data);
-	}
 
 	size_type _unusedCapacity() const
 	{
@@ -1007,7 +998,7 @@ inline T & dynarray<T, Alloc>::at(size_type i)
 template<typename T, typename Alloc>
 const T & dynarray<T, Alloc>::at(size_type i) const
 {
-	if (_indexValid(i))
+	if (i < size()) // would be unsafe with signed size_type
 		return _m.data[i];
 	else
 		_detail::Throw::OutOfRange("Bad index dynarray::at");
@@ -1016,13 +1007,13 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 template<typename T, typename Alloc>
 inline T & dynarray<T, Alloc>::operator[](size_type i) OEL_NOEXCEPT_NDEBUG
 {
-	OEL_ASSERT_MEM_BOUND(_indexValid(i));
+	OEL_ASSERT_MEM_BOUND(i < size());
 	return _m.data[i];
 }
 template<typename T, typename Alloc>
 inline const T & dynarray<T, Alloc>::operator[](size_type i) const OEL_NOEXCEPT_NDEBUG
 {
-	OEL_ASSERT_MEM_BOUND(_indexValid(i));
+	OEL_ASSERT_MEM_BOUND(i < size());
 	return _m.data[i];
 }
 

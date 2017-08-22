@@ -60,7 +60,7 @@ public:
 	using iterator        = Iterator;
 	using value_type      = typename std::iterator_traits<Iterator>::value_type;
 	using difference_type = iterator_difference_t<Iterator>;
-#ifndef OEL_USE_SIGNED_SIZE
+#ifndef OEL_VIEW_SIGNED_SIZE
 	using size_type       = size_t;
 #else
 	using size_type       = difference_type;
