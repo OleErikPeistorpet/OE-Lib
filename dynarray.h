@@ -315,9 +315,16 @@ private:
 
 	size_type _calcCapAddOne() const
 	{
-		enum { minGrow = sizeof(pointer) >= sizeof(T) ?
-				2 * sizeof(pointer) / sizeof(T) : // Want to grow by 2 * sizeof(pointer) bytes,
-				(sizeof(T) <= 2040 ? 2 : 1) };    // at least 2 elements if they fit in a 4K page
+		enum {
+		#if _WIN64
+			startBytesGood = 24,
+		#else
+			startBytesGood = 4 * sizeof(int),
+		#endif
+			minGrow = 2 * sizeof(T) <= startBytesGood ?
+				startBytesGood / sizeof(T) :
+				(sizeof(T) < 1020 ? 2 : 1)
+		};
 		size_type reserved = capacity();
 		// Growth factor is 1.5
 		return reserved + (std::max)(reserved / 2, size_type(minGrow));
