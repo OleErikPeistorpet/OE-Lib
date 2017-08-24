@@ -5,7 +5,7 @@
 
 
 // std:: unique_ptr, shared_ptr, weak_ptr, basic_string (pair is_trivially_copyable)
-// boost:: optional, intrusive_ptr, circular_buffer
+// boost:: intrusive_ptr, circular_buffer
 
 // This file is included by dynarray.h, so should not be needed in user code
 
@@ -13,10 +13,10 @@
 
 #include <memory>
 #ifndef OEL_NO_BOOST
-	#include <boost/optional/optional_fwd.hpp>
 	#include <boost/circular_buffer_fwd.hpp>
 
-	namespace boost {
+	namespace boost
+	{
 	template<typename T> class intrusive_ptr;
 	}
 #endif
@@ -27,8 +27,9 @@
 
 	namespace oel
 	{
-	template<typename C, typename Tr>
-	struct is_trivially_relocatable< std::basic_string<C, Tr> > : true_type{};
+	template<typename C, typename Tr, typename Alloc>
+	struct is_trivially_relocatable< std::basic_string<C, Tr, Alloc> >
+	 :	is_trivially_relocatable<Alloc> {};
 	}
 #endif
 
@@ -51,10 +52,6 @@ struct is_trivially_copyable< std::pair<T, U> >
  :	all_< is_trivially_copyable<T>, is_trivially_copyable<U> > {};
 
 #ifndef OEL_NO_BOOST
-	template<typename T>
-	struct is_trivially_relocatable< boost::optional<T> >
-	 :	is_trivially_relocatable<T> {};
-
 	template<typename T>
 	struct is_trivially_relocatable< boost::intrusive_ptr<T> > : true_type {};
 

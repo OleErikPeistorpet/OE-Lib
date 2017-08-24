@@ -4,7 +4,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-// is_trivially_relocatable std:: array, optional
+// is_trivially_relocatable std::array
 // is_trivially_copyable std:: reference_wrapper, tuple
 
 #include "../user_traits.h"
@@ -12,19 +12,6 @@
 #include <array>
 #include <tuple>
 #include <functional> // for reference_wrapper
-
-#if defined(__has_include)
-#if __has_include(<optional>)
-	#include <optional>
-
-	namespace oel
-	{
-	template<typename T>
-	struct is_trivially_relocatable< std::optional<T> >
-	 :	is_trivially_relocatable<T>{};
-	}
-#endif
-#endif
 
 namespace oel
 {
