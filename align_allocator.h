@@ -35,22 +35,22 @@ struct allocator
 	using propagate_on_container_move_assignment = std::true_type;
 
 	T * allocate(size_t nObjects);
-	void deallocate(T * ptr, size_t);
+	void deallocate(T * ptr, size_t) noexcept;
 
 	/// U constructible from Args, direct-initialization
 	template<typename U, typename... Args,
 	         enable_if< std::is_constructible<U, Args...>::value > = 0>
 	void construct(U * raw, Args &&... args)
-	{
-		::new(static_cast<void *>(raw)) U(std::forward<Args>(args)...);
-	}
+		{
+			::new(static_cast<void *>(raw)) U(std::forward<Args>(args)...);
+		}
 	/// U not constructible from Args, list-initialization
 	template<typename U, typename... Args,
 	         enable_if< !std::is_constructible<U, Args...>::value > = 0>
 	void construct(U * raw, Args &&... args)
-	{
-		::new(static_cast<void *>(raw)) U{std::forward<Args>(args)...};
-	}
+		{
+			::new(static_cast<void *>(raw)) U{std::forward<Args>(args)...};
+		}
 
 	size_t max_size() const  { return std::numeric_limits<size_t>::max() / sizeof(T); }
 
@@ -205,7 +205,7 @@ inline T * allocator<T>::allocate(size_t nObjects)
 }
 
 template<typename T>
-inline void allocator<T>::deallocate(T * ptr, size_t)
+inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 {
 	_detail::OpDelete<OEL_ALIGNOF(T)>(ptr, _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>());
 }
