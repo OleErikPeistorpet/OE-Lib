@@ -155,19 +155,20 @@ struct range_ends
 
 #if _MSC_VER
 	template<typename T, size_t S> inline
-	T *       to_pointer_contiguous(std::_Array_iterator<T, S> it)       { return it._Unchecked(); }
+	T *       to_pointer_contiguous(std::_Array_iterator<T, S> it)       { return _Unchecked(it); }
+
 	template<typename T, size_t S> inline
-	const T * to_pointer_contiguous(std::_Array_const_iterator<T, S> it) { return it._Unchecked(); }
+	const T * to_pointer_contiguous(std::_Array_const_iterator<T, S> it) { return _Unchecked(it); }
 
 	template<typename S> inline
 	typename std::_String_iterator<S>::pointer  to_pointer_contiguous(std::_String_iterator<S> it)
 	{
-		return it._Unchecked();
+		return _Unchecked(it);
 	}
 	template<typename S> inline
 	typename std::_String_const_iterator<S>::pointer  to_pointer_contiguous(std::_String_const_iterator<S> it)
 	{
-		return it._Unchecked();
+		return _Unchecked(it);
 	}
 #elif __GLIBCXX__
 	template<typename T, typename U> inline
