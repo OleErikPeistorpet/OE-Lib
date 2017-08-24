@@ -842,7 +842,7 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 {
 	static_assert(is_trivially_relocatable<T>::value || is_always_equal_allocator<Alloc>::value
 		|| _allocTrait::propagate_on_container_move_assignment::value,
-		"This move requires trivially relocatable T, Alloc::propagate_on_container_move_assignment or always equal Alloc");
+		"Move assign requires trivially relocatable T, Alloc::propagate_on_container_move_assignment or always equal Alloc");
 
 	if (static_cast<Alloc &>(_m) != other._m &&
 		!_allocTrait::propagate_on_container_move_assignment::value)
@@ -850,7 +850,7 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
 		_detail::Destroy(_m.data, _m.end);
 		_allocUnequalMove(other);
 	}
-	else
+	else // take allocated memory from other
 	{
 		if (_m.data)
 		{
@@ -967,7 +967,7 @@ inline void dynarray<T, Alloc>::pop_back() OEL_NOEXCEPT_NDEBUG
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_to_end(iterator first) OEL_NOEXCEPT_NDEBUG
 {
-	pointer const newEnd = to_pointer_contiguous(first);
+	T *const newEnd = to_pointer_contiguous(first);
 	OEL_ASSERT_MEM_BOUND(_m.data <= newEnd && newEnd <= _m.end);
 	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
