@@ -15,7 +15,7 @@ namespace oel
 template<typename, typename> class contiguous_ctnr_iterator;
 
 ///@{
-/// To raw pointer (unchecked)
+//! To raw pointer (unchecked)
 template<typename Ptr, typename C> inline
 typename std::pointer_traits<Ptr>::element_type *
 	to_pointer_contiguous(const contiguous_ctnr_iterator<Ptr, C> & it)
@@ -200,9 +200,9 @@ public:
 	}
 
 
-	/// Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
+	//! Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
 	pointer           _pElem;
-	const Container * _container; ///< Parent container
+	const Container * _container; //!< Parent container
 
 #undef OEL_ARRITER_CHECK_COMPAT
 };
@@ -228,7 +228,7 @@ namespace _detail
 } // namespace oel
 
 #if _MSC_VER
-	/// Mark contiguous_ctnr_iterator as checked
+	//! Mark contiguous_ctnr_iterator as checked
 	template<typename P, typename C>
 	struct std::_Is_checked_helper< oel::contiguous_ctnr_iterator<P, C> >
 	 :	public std::true_type {};

@@ -18,16 +18,16 @@
 namespace oel
 {
 
-/// Same as std::aligned_storage<Size, Align>::type, with support for alignment above that of std::max_align_t (up to 128)
+//! Same as std::aligned_storage<Size, Align>::type, with support for alignment above that of std::max_align_t (up to 128)
 template<size_t Size, size_t Align>
 struct aligned_storage_t;
-/// Currently only one type, meant to support multiple
+//! Currently only one type, meant to support multiple
 template<typename T>
 using aligned_union_t = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
 
 
 
-/// An automatic alignment allocator. Does not compile if the alignment of T is not supported.
+//! An automatic alignment allocator. Does not compile if the alignment of T is not supported.
 template<typename T>
 struct allocator
 {
@@ -37,14 +37,14 @@ struct allocator
 	T * allocate(size_t nObjects);
 	void deallocate(T * ptr, size_t) noexcept;
 
-	/// U constructible from Args, direct-initialization
+	//! U constructible from Args, direct-initialization
 	template<typename U, typename... Args,
 	         enable_if< std::is_constructible<U, Args...>::value > = 0>
 	void construct(U * raw, Args &&... args)
 		{
 			::new(static_cast<void *>(raw)) U(std::forward<Args>(args)...);
 		}
-	/// U not constructible from Args, list-initialization
+	//! U not constructible from Args, list-initialization
 	template<typename U, typename... Args,
 	         enable_if< !std::is_constructible<U, Args...>::value > = 0>
 	void construct(U * raw, Args &&... args)
@@ -73,7 +73,7 @@ namespace _detail
 	std::is_empty<T>            IsAlwaysEqual(long);
 }
 
-/// Part of std::allocator_traits for C++17
+//! Part of std::allocator_traits for C++17
 template<typename Alloc>
 struct is_always_equal_allocator  : decltype( _detail::IsAlwaysEqual<Alloc>(int{}) ) {};
 
@@ -84,7 +84,7 @@ struct is_always_equal_allocator  : decltype( _detail::IsAlwaysEqual<Alloc>(int{
 // The rest of the file is not for users (implementation)
 
 
-/// @cond INTERNAL
+//! @cond INTERNAL
 
 #if _MSC_VER
 	#define OEL_ALIGNAS(amount) __declspec(align(amount))
@@ -194,7 +194,7 @@ namespace _detail
 	template<size_t> void OpDelete(void *, false_type);
 #endif
 }
-/// @endcond
+//! @endcond
 
 template<typename T>
 inline T * allocator<T>::allocate(size_t nObjects)

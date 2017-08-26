@@ -36,7 +36,7 @@
 namespace oel
 {
 
-/// std::unique_ptr assumed trivially relocatable if the deleter is
+//! std::unique_ptr assumed trivially relocatable if the deleter is
 template<typename T, typename Del>
 struct is_trivially_relocatable< std::unique_ptr<T, Del> >
  :	is_trivially_relocatable<Del> {};

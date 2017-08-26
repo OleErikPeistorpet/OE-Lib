@@ -19,17 +19,17 @@
 namespace oel
 {
 
-/// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
+//! Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T> inline
 constexpr typename std::make_signed<T>::type   as_signed(T val) noexcept  { return (typename std::make_signed<T>::type)val; }
-/// Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
+//! Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
 template<typename T> inline
 constexpr typename std::make_unsigned<T>::type as_unsigned(T val) noexcept
 	{ return (typename std::make_unsigned<T>::type)val; }
 
 
 ///@{
-/// Check if index is valid (can be used with operator[]) for array or other range.
+//! Check if index is valid (can be used with operator[]) for array or other range.
 template< typename UnsignedInt, typename SizedRange,
           enable_if<std::is_unsigned<UnsignedInt>::value> = 0 > inline
 bool index_valid(const SizedRange & r, UnsignedInt index)   { return index < as_unsigned(oel::ssize(r)); }
@@ -52,7 +52,7 @@ bool index_valid(const SizedRange & r, std::int64_t index)
 template< typename T, typename... Args, typename = enable_if<!std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(Args &&... args);
 
-/// Equivalent to std::make_unique (array version).
+//! Equivalent to std::make_unique (array version).
 template< typename T, typename = enable_if<std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(size_t arraySize);
 /**

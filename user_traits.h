@@ -22,7 +22,7 @@
 #endif
 
 
-/// Obscure Efficient Library
+//! Obscure Efficient Library
 namespace oel
 {
 
@@ -40,7 +40,7 @@ using std::true_type; // equals bool_constant<true>
 using std::false_type;
 
 
-/// Equivalent to std::is_trivially_copyable, but may be specialized for some types
+//! Equivalent to std::is_trivially_copyable, but may be specialized for some types
 template<typename T>
 struct is_trivially_copyable :
 	#if __GLIBCXX__ && __GNUC__ == 4
@@ -86,7 +86,7 @@ template<typename T>
 #endif
 	specify_trivial_relocate(T &&);
 
-/// Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
+//! Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
 template<typename T>
 struct is_trivially_relocatable;
 

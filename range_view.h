@@ -45,13 +45,13 @@ namespace oel
 		Iterator _end;
 	};
 
-	/// Create an iterator_range from two iterators, with type deduced from arguments
+	//! Create an iterator_range from two iterators, with type deduced from arguments
 	template<typename Iterator> inline
 	iterator_range<Iterator> make_iterator_range(Iterator first, Iterator last)  { return {first, last}; }
 #endif
 
 
-/// Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
+//! Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
 template<typename Iterator,
          bool = std::is_base_of< random_access_traversal_tag, iterator_traversal_t<Iterator> >::value>
 class counted_view
@@ -66,10 +66,10 @@ public:
 	using size_type       = difference_type;
 #endif
 
-	/// Initialize to empty
+	//! Initialize to empty
 	constexpr counted_view() noexcept                      : _size() {}
 	constexpr counted_view(Iterator f, difference_type n)  : _begin(f), _size(n) { OEL_ASSERT_MEM_BOUND(n >= 0); }
-	/// Construct from array or container with matching iterator type
+	//! Construct from array or container with matching iterator type
 	template<typename SizedRange, enable_if<!std::is_same<SizedRange, counted_view>::value> = 0>
 	constexpr counted_view(SizedRange & r)  : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
 
@@ -79,9 +79,9 @@ public:
 
 	constexpr bool      empty() const noexcept  { return 0 == _size; }
 
-	/// Increment begin, decrementing size
+	//! Increment begin, decrementing size
 	void      drop_front()  { OEL_ASSERT_MEM_BOUND(_size > 0);  ++_begin; --_size; }
-	/// Decrement size (and end)
+	//! Decrement size (and end)
 	void      drop_back()   { OEL_ASSERT_MEM_BOUND(_size > 0);  --_size; }
 
 protected:
@@ -89,7 +89,7 @@ protected:
 	size_type _size;
 };
 
-/// Specialization for random-access Iterator
+//! Specialization for random-access Iterator
 template<typename Iterator>
 class counted_view<Iterator, true> : public counted_view<Iterator, false>
 {
@@ -113,29 +113,29 @@ public:
 
 	constexpr reference operator[](difference_type index) const  { return this->_begin[index]; }
 
-	/// Return plain pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous)
+	//! Return plain pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous)
 	template<typename It = Iterator>
 	constexpr auto data() const noexcept
 	 -> decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
 };
 
-/// Make views. View is a concept described in the documentation for the Range v3 library
+//! Make views. View is a concept described in the documentation for the Range v3 library
 namespace view
 {
 
-/// Create a counted_view from iterator and count, with type deduced from first
+//! Create a counted_view from iterator and count, with type deduced from first
 template<typename Iterator> inline
 constexpr counted_view<Iterator> counted(Iterator first, iterator_difference_t<Iterator> count)
 	{ return {first, count}; }
 
 
-/// Create an iterator_range of std::move_iterator from two iterators
+//! Create an iterator_range of std::move_iterator from two iterators
 template<typename InputIterator> inline
 iterator_range< std::move_iterator<InputIterator> >
 	move(InputIterator first, InputIterator last)  { using MoveIt = std::move_iterator<InputIterator>;
 	                                                 return {MoveIt{first}, MoveIt{last}}; }
 
-/// Create a counted_view with move_iterator from iterator and count
+//! Create a counted_view with move_iterator from iterator and count
 template<typename InputIterator> inline
 counted_view< std::move_iterator<InputIterator> >
 	move_n(InputIterator first, iterator_difference_t<InputIterator> count)

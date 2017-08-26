@@ -83,7 +83,7 @@
 
 	#undef OEL_HAS_BUILTIN_TRAP
 
-	/// Executes OEL_HALT on failure. Could be defined to standard assert or your own
+	//! Executes OEL_HALT on failure. Can be defined to standard assert or your own
 	#define OEL_ALWAYS_ASSERT(expr)  \
 		OEL_CONST_COND  \
 		do {  \
@@ -114,14 +114,14 @@ using std::end;
 @endcode  */
 template<typename Range> inline
 constexpr auto adl_begin(Range & r) -> decltype(begin(r))         { return begin(r); }
-/// Const version of adl_begin
+//! Const version of adl_begin(), analogous to std::cbegin
 template<typename Range> inline
 constexpr auto adl_cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
 
-/// Argument-dependent lookup non-member end, defaults to std::end
+//! Argument-dependent lookup non-member end, defaults to std::end
 template<typename Range> inline
 constexpr auto adl_end(Range & r) -> decltype(end(r))         { return end(r); }
-/// Const version of adl_end
+//! Const version of adl_end()
 template<typename Range> inline
 constexpr auto adl_cend(const Range & r) -> decltype(end(r))  { return end(r); }
 
@@ -135,18 +135,18 @@ using oel::adl_cend;
 namespace oel
 {
 
-/// Returns r.size() as signed (SizedRange::difference_type)
+//! Returns r.size() as signed (SizedRange::difference_type)
 template<typename SizedRange> inline
 constexpr auto ssize(const SizedRange & r)
  -> decltype( static_cast<typename SizedRange::difference_type>(r.size()) )
      { return static_cast<typename SizedRange::difference_type>(r.size()); }
-/// Returns number of elements in array as signed type
+//! Returns number of elements in array as signed type
 template<typename T, std::ptrdiff_t Size> inline
 constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
 
-/// Convert iterator to pointer. This should be overloaded for each class of contiguous iterator (C++17 concept)
+//! Convert iterator to pointer. This should be overloaded for each class of contiguous iterator (C++17 concept)
 template<typename T> inline
 T * to_pointer_contiguous(T * ptr) noexcept  { return ptr; }
 
@@ -155,27 +155,27 @@ auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
  -> decltype( to_pointer_contiguous(it.base()) )  { return to_pointer_contiguous(it.base()); }
 
 
-/// If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a true_type, else false_type
+//! If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a true_type, else false_type
 template<typename IteratorDest, typename IteratorSource>
 struct can_memmove_with;
 
 
 
-/// Tag to select a constructor that allocates a minimum amount of storage
+//! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {	explicit reserve_tag() {}
 }
-const reserve; ///< An instance of reserve_tag to pass
+const reserve; //!< An instance of reserve_tag to pass
 
-/// Tag to specify default initialization
+//! Tag to specify default initialization
 struct default_init_tag
 {	explicit default_init_tag() {}
 }
-const default_init; ///< An instance of default_init_tag to pass
+const default_init; //!< An instance of default_init_tag to pass
 
 
 
-/// Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
+//! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
 template<bool Condition>
 using enable_if = typename std::enable_if<Condition, int>::type;
 
@@ -317,11 +317,11 @@ namespace _detail
 
 } // namespace oel
 
-/// @cond FALSE
+//! @cond FALSE
 template<typename IteratorDest, typename IteratorSource>
 struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
 																 std::declval<IteratorSource>()) ) {};
-/// @endcond
+//! @endcond
 
 template<typename T>
 struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};

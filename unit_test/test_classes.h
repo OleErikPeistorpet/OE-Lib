@@ -5,7 +5,7 @@
 #include <memory>
 #include "gtest/gtest.h"
 
-/// @cond INTERNAL
+//! @cond INTERNAL
 
 struct ThrowOnConstructT {} const throwOnConstruct;
 
@@ -171,4 +171,4 @@ template<typename T, typename U, bool PropagateOnMoveAssign>
 bool operator!=(StatefulAllocator<T, PropagateOnMoveAssign> a, StatefulAllocator<U, PropagateOnMoveAssign> b)
 { return !(a == b); }
 
-/// @endcond
+//! @endcond

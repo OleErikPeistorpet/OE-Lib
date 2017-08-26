@@ -17,27 +17,27 @@
 namespace oel
 {
 
-/// dynarray<dynarray<T>> is efficient
+//! dynarray<dynarray<T>> is efficient
 template<typename T, typename Alloc>
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
 template<typename T, typename A> inline
 void swap(dynarray<T, A> & a, dynarray<T, A> & b) OEL_NOEXCEPT_NDEBUG  { a.swap(b); }
 
-/// Overloads generic erase_unordered(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
+//! Overloads generic erase_unordered(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
 template<typename T, typename A> inline
 void erase_unordered(dynarray<T, A> & d, typename dynarray<T, A>::size_type index)  { d.erase_unordered(d.begin() + index); }
 
-/// Overloads generic assign(Container &, const InputRange &) (in range_algo.h)
+//! Overloads generic assign(Container &, const InputRange &) (in range_algo.h)
 template<typename T, typename A, typename InputRange> inline
 void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(source); }
-/// Overloads generic append(Container &, const InputRange &) (in range_algo.h)
+//! Overloads generic append(Container &, const InputRange &) (in range_algo.h)
 template<typename T, typename A, typename InputRange> inline
 void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
-/// Overloads generic append(Container &, Container::size_type, const T &) (in range_algo.h)
+//! Overloads generic append(Container &, Container::size_type, const T &) (in range_algo.h)
 template<typename T, typename A> inline
 void append(dynarray<T, A> & dest, typename dynarray<T, A>::size_type n, const T & val)  { dest.append(n, val); }
-/// Overloads generic oel::insert (in range_algo.h)
+//! Overloads generic oel::insert (in range_algo.h)
 template<typename T, typename A, typename ForwardRange> inline
 typename dynarray<T, A>::iterator
 	insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, const ForwardRange & source)
@@ -85,14 +85,14 @@ public:
 	dynarray() noexcept                          : _m(Alloc{}) {}
 	explicit dynarray(const Alloc & a) noexcept  : _m(a) {}
 
-	/// Construct empty dynarray with space reserved for at least capacity elements
+	//! Construct empty dynarray with space reserved for at least capacity elements
 	dynarray(reserve_tag, size_type capacity, const Alloc & a = Alloc{})  : _m(a, capacity) {}
 
 	/** @brief Uses default initialization for elements, can be significantly faster for non-class T
 	*
 	* @copydetails resize(size_type, default_init_tag)  */
 	dynarray(size_type size, default_init_tag, const Alloc & a = Alloc{});
-	explicit dynarray(size_type size, const Alloc & a = Alloc{});  ///< (Value-initializes elements, same as std::vector)
+	explicit dynarray(size_type size, const Alloc & a = Alloc{});  //!< (Value-initializes elements, same as std::vector)
 	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
 
 	/** @brief Equivalent to std::vector(begin(range), end(range), a), where end(range) is not needed if range.size() exists
@@ -117,7 +117,7 @@ public:
 	~dynarray() noexcept;
 
 	dynarray & operator =(dynarray && other) noexcept;
-	/// Treats Alloc as if it does not have propagate_on_container_copy_assignment
+	//! Treats Alloc as if it does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other)    { assign(other);  return *this; }
 
 	dynarray & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
@@ -147,9 +147,9 @@ public:
 	* where end(source) is not needed if source.size() exists  */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
-	/// Equivalent to std::vector::insert(end(), il), but with strong exception guarantee
+	//! Equivalent to std::vector::insert(end(), il), but with strong exception guarantee
 	void      append(std::initializer_list<T> il)   { append<>(il); }
-	/// Equivalent to std::vector::insert(end(), count, val), but with strong exception guarantee
+	//! Equivalent to std::vector::insert(end(), count, val), but with strong exception guarantee
 	void      append(size_type count, const T & val);
 
 	/**
@@ -157,15 +157,15 @@ public:
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 	void      resize(size_type count, default_init_tag)  { _resizeImpl(count, _detail::UninitDefaultConstruct<Alloc, T>); }
-	/// (Value-initializes added elements, same as std::vector::resize)
+	//! (Value-initializes added elements, same as std::vector::resize)
 	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<Alloc, T>); }
 
-	/// Equivalent to std::vector::insert(pos, begin(source), end(source)),
-	/// where end(source) is not needed if source.size() exists
+	//! Equivalent to std::vector::insert(pos, begin(source), end(source)),
+	//! where end(source) is not needed if source.size() exists
 	template<typename ForwardRange>
 	iterator  insert_r(const_iterator pos, const ForwardRange & source);
 
-	/// The default allocator performs list-initialization of element if there is no matching constructor
+	//! The default allocator performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
 	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
 
@@ -178,12 +178,12 @@ public:
 	* @copydoc push_back(T &&)  */
 	template<typename... Args>
 	void      emplace_back(Args &&... elemInitArgs);
-	/// Strong exception guarantee only if T is noexcept move constructible or trivially relocatable
+	//! Strong exception guarantee only if T is noexcept move constructible or trivially relocatable
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
-	/// See push_back(T &&)
+	//! See push_back(T &&)
 	void      push_back(const T & val)  { emplace_back(val); }
 
-	/// After the call, any previous iterator to the back element will be equal to end()
+	//! After the call, any previous iterator to the back element will be equal to end()
 	void      pop_back() OEL_NOEXCEPT_NDEBUG;
 
 	/**
@@ -196,7 +196,7 @@ public:
 	iterator  erase(iterator pos)            { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
 	iterator  erase(iterator first, iterator last);
-	/// Equivalent to erase(first, end()) (but potentially faster), making first the new end
+	//! Equivalent to erase(first, end()) (but potentially faster), making first the new end
 	void      erase_to_end(iterator first) OEL_NOEXCEPT_NDEBUG;
 
 	void      clear() noexcept        { erase_to_end(begin()); }
@@ -207,7 +207,7 @@ public:
 
 	void      reserve(size_type minCap)  { if (capacity() < minCap) _growTo(minCap); }
 
-	/// It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
+	//! It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
 	void      shrink_to_fit();
 
 	size_type capacity() const noexcept  { return _m.reservEnd - _m.data; }
