@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "core_util.h"
+#include "util.h"
 
 #ifndef OEL_NO_BOOST
 	#include <boost/range/iterator_range_core.hpp>

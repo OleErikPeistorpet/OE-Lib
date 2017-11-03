@@ -12,15 +12,8 @@
 /** @file
 * @brief specify_trivial_relocate to be overloaded for user classes
 *
-* Also provides forward declarations of dynarray and all_.
+* Also provides all_ and a forward declaration of dynarray.
 */
-
-#if defined(__has_include)
-	#if !__has_include(<boost/config.hpp>)
-	#define OEL_NO_BOOST 1
-	#endif
-#endif
-
 
 //! Obscure Efficient Library
 namespace oel
@@ -93,6 +86,12 @@ struct is_trivially_relocatable;
 // Many useful classes are declared trivially relocatable, see compat folder
 
 
+
+template<bool...> struct bool_pack_t;
+
+template<bool... Vs>
+using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
+
 /** @brief If all of BoolConstants have value equal to true, this is-a true_type, else false_type
 *
 * Example: @code
@@ -101,6 +100,6 @@ void ProcessNumbers(Ts... n) {
 	static_assert(oel::all_< std::is_arithmetic<Ts>... >::value, "Only arithmetic types, please");
 @endcode  */
 template<typename... BoolConstants>
-struct all_;
+struct all_ : all_true<BoolConstants::value...> {};
 
 } // namespace oel

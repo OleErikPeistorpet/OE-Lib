@@ -1,6 +1,5 @@
 #include "dynarray.h"
 #include "test_classes.h"
-#include "util.h"
 #include "compat/std_classes_extra.h"
 
 #include <string>
