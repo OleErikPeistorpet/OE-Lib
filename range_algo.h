@@ -164,7 +164,7 @@ namespace _detail
 	}
 
 
-	inline const char * ErrorCopyMsg() { return "Too small dest oel::copy"; }
+	const char *const errorCopyMsg = "Too small dest oel::copy";
 
 	template<typename Ret, typename InputRange, typename OutputRange, typename FuncItersParam, typename FuncNoParam>
 	Ret CopyImpl(const InputRange & from, OutputRange & to, FuncItersParam succeed, FuncNoParam fail)
@@ -191,7 +191,7 @@ namespace _detail
 		return _detail::CopyImpl<Ret>
 			(	src, dest,
 				[](IterSrc s, IterDest d) { return Ret{s, d}; },
-				[]() -> Ret { Throw::OutOfRange(ErrorCopyMsg()); }
+				[]() -> Ret { Throw::OutOfRange(errorCopyMsg); }
 			);
 	}
 
@@ -203,7 +203,7 @@ namespace _detail
 		if (n <= oel::ssize(dest))
 			return{ oel::copy_unsafe(src, begin(dest)).src_last, begin(dest) + n };
 		else
-			Throw::OutOfRange(ErrorCopyMsg());
+			Throw::OutOfRange(errorCopyMsg);
 	}
 
 	template<typename InputRange, typename OutputRange> inline
