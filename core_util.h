@@ -193,6 +193,13 @@ using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true
 // The rest of the file is not for users (implementation)
 
 
+#ifdef __GNUC__
+	#define OEL_GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
+#else
+	#define OEL_GCC_VERSION 0
+#endif
+
+
 #if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
 	#define OEL_THROW(exception)      throw exception
 	#define OEL_TRY_                  try
@@ -297,7 +304,7 @@ namespace _detail
 	inline void MemcpyMaybeNull(void * dest, const void * src, size_t nBytes)
 	{	// memcpy(nullptr, nullptr, 0) is undefined behavior.
 		// The problem is that checking can have significant performance hit
-	#if __GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9)
+	#if OEL_GCC_VERSION >= 409
 		if (nBytes > 0)
 	#endif
 			::memcpy(dest, src, nBytes);

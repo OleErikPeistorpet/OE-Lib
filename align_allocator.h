@@ -160,7 +160,7 @@ namespace _detail
 				if (p)
 					return p;
 
-			#if !__GLIBCXX__ || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9) || __GNUC__ > 4
+			#if !defined(__GLIBCXX__) || OEL_GCC_VERSION >= 409
 				auto handler = std::get_new_handler();
 			#else
 				auto handler = std::set_new_handler(nullptr);
