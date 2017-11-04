@@ -1,0 +1,56 @@
+#pragma once
+
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
+#if defined(_MSC_VER) && _MSC_VER < 1900 && !defined(__llvm__)
+	#ifndef _ALLOW_KEYWORD_MACROS
+	#define _ALLOW_KEYWORD_MACROS 1
+	#endif
+
+	#ifndef noexcept
+	#define noexcept throw()
+	#endif
+
+	#undef constexpr
+	#define constexpr
+
+	#define OEL_ALIGNOF __alignof
+#else
+	#define OEL_ALIGNOF alignof
+#endif
+
+
+#ifdef __GNUC__
+	#define OEL_GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
+#else
+	#define OEL_GCC_VERSION 0
+#endif
+
+#if defined(__has_builtin)
+	#define OEL_HAS_BUILTIN_TRAP __has_builtin(__builtin_trap)
+#else
+	#define OEL_HAS_BUILTIN_TRAP defined(__GNUC__)
+#endif
+
+
+#if _MSC_VER
+	#define OEL_CONST_COND __pragma(warning(suppress : 4127))
+#else
+	#define OEL_CONST_COND
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+
+#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
+	#define OEL_THROW(exception)      throw exception
+	#define OEL_TRY_                  try
+	#define OEL_CATCH_ALL             catch (...)
+	#define OEL_WHEN_EXCEPTIONS_ON(x) x
+#else
+	#define OEL_THROW(exception)      std::terminate()
+	#define OEL_TRY_
+	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
+	#define OEL_WHEN_EXCEPTIONS_ON(x)
+#endif

@@ -10,9 +10,9 @@
 // This file is included by dynarray.h, so should not be needed in user code
 
 #include "../user_traits.h"
-#include "../core_macros.h"
 
 #include <memory>
+
 #ifndef OEL_NO_BOOST
 	#include <boost/circular_buffer_fwd.hpp>
 

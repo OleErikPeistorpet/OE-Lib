@@ -10,7 +10,6 @@
 
 #include <algorithm>
 #include <functional> // for equal_to
-#include <string.h>
 
 
 /** @file

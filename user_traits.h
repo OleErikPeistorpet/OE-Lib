@@ -15,6 +15,13 @@
 * Also provides all_ and a forward declaration of dynarray.
 */
 
+#if defined(__has_include)
+	#if !__has_include(<boost/config.hpp>)
+	#define OEL_NO_BOOST 1
+	#endif
+#endif
+
+
 //! Obscure Efficient Library
 namespace oel
 {
@@ -89,10 +96,11 @@ struct is_trivially_relocatable;
 
 template<bool...> struct bool_pack_t;
 
+//! If all of Vs are equal to true, this is-a true_type, else false_type
 template<bool... Vs>
 using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
 
-/** @brief If all of BoolConstants have value equal to true, this is-a true_type, else false_type
+/** @brief Similar to std::conjunction, but is not short-circuiting
 *
 * Example: @code
 template<typename... Ts>
