@@ -274,7 +274,7 @@ void testMoveAssign(Alloc a0, Alloc a1)
 
 		left = std::move(right);
 
-		if (std::allocator_traits<Alloc>::propagate_on_container_move_assignment::value)
+		OEL_CONST_COND if (std::allocator_traits<Alloc>::propagate_on_container_move_assignment::value)
 			EXPECT_TRUE(left.get_allocator() == a0);
 		else
 			EXPECT_TRUE(left.get_allocator() == a1);

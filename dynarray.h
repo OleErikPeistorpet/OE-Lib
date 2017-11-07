@@ -168,12 +168,12 @@ public:
 
 	iterator  insert(const_iterator pos, std::initializer_list<T> il)  { return insert_r(pos, il); }
 
+	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
+	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
+
 	//! The default allocator performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
 	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
-
-	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
-	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
 
 	/**
 	* @brief The default allocator performs list-initialization of element if there is no matching constructor
@@ -254,6 +254,12 @@ public:
 			       std::equal(left.begin(), left.end(), right.begin());
 		}
 	friend bool operator!=(const dynarray & left, const dynarray & right)  { return !(left == right); }
+
+	friend bool operator <(const dynarray & left, const dynarray & right)
+		{
+			return std::lexicographical_compare(left.begin(), left.end(), right.begin(), right.end());
+		}
+	friend bool operator >(const dynarray & left, const dynarray & right)  { return right < left; }
 
 
 
