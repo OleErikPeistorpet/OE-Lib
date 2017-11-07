@@ -303,6 +303,7 @@ TEST_F(dynarrayTest, append)
 		dest.append(src);
 
 		dest.append({});
+		EXPECT_EQ(0U, dest.size());
 
 		double const TEST_VAL = 6.6;
 		dest.append(2, TEST_VAL);
@@ -364,7 +365,8 @@ TEST_F(dynarrayTest, insertR)
 		std::deque<double> src;
 		dest.insert_r(dest.begin(), src);
 
-		dest.insert_r< std::initializer_list<double> >(dest.begin(), {});
+		dest.insert(dest.begin(), std::initializer_list<double>{});
+		EXPECT_EQ(0U, dest.size());
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
@@ -375,7 +377,7 @@ TEST_F(dynarrayTest, insertR)
 
 	{
 		dynarray<int> int_dynarr;
-		int_dynarr.insert_r(int_dynarr.begin(), std::initializer_list<int>{1, 2, 3, 4});
+		int_dynarr.insert(int_dynarr.begin(), {1, 2, 3, 4});
 
 		double_dynarr.insert_r(double_dynarr.end(), int_dynarr);
 	}

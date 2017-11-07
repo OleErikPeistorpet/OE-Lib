@@ -10,6 +10,7 @@
 #include "auxi/detail.h"
 #include "compat/default.h"
 #include "align_allocator.h"
+#include "make_unique.h" // not needed, just convenient
 
 #include <algorithm>
 
@@ -95,9 +96,9 @@ public:
 	explicit dynarray(size_type size, const Alloc & a = Alloc{});  //!< (Value-initializes elements, same as std::vector)
 	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
 
-	/** @brief Equivalent to std::vector(begin(range), end(range), a), where end(range) is not needed if range.size() exists
+	/** @brief Equivalent to std::vector(begin(r), end(r), a), where end(r) is not needed if r.size() exists
 	*
-	* To move instead of copy, pass view::move(range).
+	* To move instead of copy, pass view::move(r).
 	* Example, construct from a standard istream with formatting (using Boost):
 	* @code
 	#include <boost/range/istream_range.hpp>
@@ -105,7 +106,7 @@ public:
 	auto result = dynarray<int>(boost::range::istream_range<int>(someStream));
 	@endcode  */
 	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_cbegin(std::declval<InputRange>()) )>
-	explicit dynarray(const InputRange & range, const Alloc & a = Alloc{})  : _m(a) { assign(range); }
+	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})  : _m(a) { assign(r); }
 
 	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})  : _m(a, il.size())
 	                                                                  { _initPostAllocate(il.begin(), il.size()); }
@@ -156,14 +157,16 @@ public:
 	* @brief Uses default initialization for added elements, can be significantly faster for non-class T
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void      resize(size_type count, default_init_tag)  { _resizeImpl(count, _detail::UninitDefaultConstruct<Alloc, T>); }
+	void      resize(size_type n, default_init_tag)  { _resizeImpl(n, _detail::UninitDefaultConstruct<Alloc, T>); }
 	//! (Value-initializes added elements, same as std::vector::resize)
-	void      resize(size_type count)                    { _resizeImpl(count, _detail::UninitFill<Alloc, T>); }
+	void      resize(size_type n)                    { _resizeImpl(n, _detail::UninitFill<Alloc, T>); }
 
 	//! Equivalent to std::vector::insert(pos, begin(source), end(source)),
 	//! where end(source) is not needed if source.size() exists
 	template<typename ForwardRange>
 	iterator  insert_r(const_iterator pos, const ForwardRange & source);
+
+	iterator  insert(const_iterator pos, std::initializer_list<T> il)  { return insert_r(pos, il); }
 
 	//! The default allocator performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
@@ -177,7 +180,7 @@ public:
 	*
 	* @copydoc push_back(T &&)  */
 	template<typename... Args>
-	void      emplace_back(Args &&... elemInitArgs);
+	void      emplace_back(Args &&... args);
 	//! Strong exception guarantee only if T is noexcept move constructible or trivially relocatable
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
 	//! See push_back(T &&)
@@ -710,7 +713,8 @@ private:
 };
 
 template<typename T, typename Alloc> template<typename... Args>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
+typename dynarray<T, Alloc>::iterator
+	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
 {
 #define OEL_DYNARR_INSERT_STEP0  \
 	_detail::AssertTrivialRelocate<T>();  \
@@ -739,7 +743,8 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterato
 }
 
 template<typename T, typename Alloc> template<typename ForwardRange>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src)
+typename dynarray<T, Alloc>::iterator
+	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src)
 {
 	auto first = ::adl_begin(src);
 
@@ -949,7 +954,8 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-OEL_FORCEINLINE auto dynarray<T, Alloc>::append(const InputRange & src) -> decltype(::adl_begin(src))
+OEL_FORCEINLINE auto dynarray<T, Alloc>::
+	append(const InputRange & src) -> decltype(::adl_begin(src))
 {
 	using IterSrc = decltype(::adl_begin(src));
 	return _append( ::adl_begin(src), _sizeOrEnd<IterSrc>(src), can_memmove_with<T *, IterSrc>() );
