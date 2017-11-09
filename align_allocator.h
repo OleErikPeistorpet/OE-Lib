@@ -52,7 +52,7 @@ struct allocator
 			::new(static_cast<void *>(raw)) U{std::forward<Args>(args)...};
 		}
 
-	size_t max_size() const  { return std::numeric_limits<size_t>::max() / sizeof(T); }
+	constexpr size_t max_size() const  { return std::numeric_limits<size_t>::max() / sizeof(T); }
 
 	allocator() = default;
 	template<typename U>
@@ -65,17 +65,10 @@ struct allocator
 };
 
 
-namespace _detail
-{
-	template<typename T>
-	typename T::is_always_equal IsAlwaysEqual(int);
-	template<typename T>
-	std::is_empty<T>            IsAlwaysEqual(long);
-}
 
 //! Part of std::allocator_traits for C++17
 template<typename Alloc>
-struct is_always_equal_allocator  : decltype( _detail::IsAlwaysEqual<Alloc>(int{}) ) {};
+struct is_always_equal_allocator;
 
 
 
@@ -210,4 +203,16 @@ inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 	_detail::OpDelete<OEL_ALIGNOF(T)>(ptr, _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>());
 }
 
+
+namespace _detail
+{
+	template<typename T>
+	typename T::is_always_equal IsAlwaysEqual(int);
+	template<typename T>
+	std::is_empty<T> IsAlwaysEqual(long);
+}
+
 } // namespace oel
+
+template<typename Alloc>
+struct oel::is_always_equal_allocator : decltype( _detail::IsAlwaysEqual<Alloc>(int{}) ) {};
