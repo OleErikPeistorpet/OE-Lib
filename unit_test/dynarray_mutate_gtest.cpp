@@ -536,7 +536,7 @@ TEST_F(dynarrayTest, eraseToEnd)
 	EXPECT_EQ(4U, li.size());
 }
 
-TEST_F(dynarrayTest, eraseUnordered)
+TEST_F(dynarrayTest, eraseUnstable)
 {
 	dynarray<int> di{1, -2};
 
@@ -545,14 +545,14 @@ TEST_F(dynarrayTest, eraseUnordered)
 	EXPECT_EQ(-2, val);
 	EXPECT_TRUE(&val == &it[1]);
 
-	it = di.erase_unordered(it);
+	it = di.erase_unstable(it);
 	EXPECT_EQ(-2, *it);
-	it = di.erase_unordered(it);
+	it = di.erase_unstable(it);
 	EXPECT_EQ(end(di), it);
 
 	di.resize(2);
-	erase_unordered(di, 1);
-	erase_unordered(di, 0);
+	erase_unstable(di, 1);
+	erase_unstable(di, 0);
 	EXPECT_TRUE(di.empty());
 }
 

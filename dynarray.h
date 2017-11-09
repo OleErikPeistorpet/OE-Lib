@@ -25,9 +25,9 @@ is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 template<typename T, typename A> inline
 void swap(dynarray<T, A> & a, dynarray<T, A> & b) OEL_NOEXCEPT_NDEBUG  { a.swap(b); }
 
-//! Overloads generic erase_unordered(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
+//! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
 template<typename T, typename A> inline
-void erase_unordered(dynarray<T, A> & d, typename dynarray<T, A>::size_type index)  { d.erase_unordered(d.begin() + index); }
+void erase_unstable(dynarray<T, A> & d, typename dynarray<T, A>::size_type index)  { d.erase_unstable(d.begin() + index); }
 
 //! Overloads generic assign(Container &, const InputRange &) (in range_algo.h)
 template<typename T, typename A, typename InputRange> inline
@@ -190,13 +190,13 @@ public:
 	void      pop_back() OEL_NOEXCEPT_NDEBUG;
 
 	/**
-	* @brief Erase the element at pos from dynarray without maintaining order of elements.
+	* @brief Erase the element at pos without maintaining order of elements after pos.
 	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
-	iterator  erase_unordered(iterator pos)  { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase_unstable(iterator pos)  { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
 
-	iterator  erase(iterator pos)            { _erase(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase(iterator pos)           { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
 	iterator  erase(iterator first, iterator last);
 	//! Equivalent to erase(first, end()) (but potentially faster), making first the new end

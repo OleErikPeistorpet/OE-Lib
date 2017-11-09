@@ -21,12 +21,12 @@
 namespace oel
 {
 
-/** @brief Erase the element at index from container without maintaining order of elements.
+/** @brief Erase the element at index from container without maintaining order of elements after.
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template<typename RandomAccessContainer> inline
-void erase_unordered(RandomAccessContainer & c, typename RandomAccessContainer::size_type index)
+void erase_unstable(RandomAccessContainer & c, typename RandomAccessContainer::size_type index)
 {
 	c[index] = std::move(c.back());
 	c.pop_back();
@@ -95,11 +95,16 @@ template<typename Container, typename InputRange> inline
 void append(Container & dest, const InputRange & source)  { dest.insert(dest.end(), begin(source), end(source)); }
 
 template<typename Container, typename T> inline
-void append(Container & dest, typename Container::size_type count, const T & val)  { dest.resize(dest.size() + count, val); }
+void append(Container & dest, typename Container::size_type count, const T & val)
+{
+	dest.resize(dest.size() + count, val);
+}
 
 template<typename Container, typename InputRange> inline
 typename Container::iterator insert(Container & dest, typename Container::const_iterator pos, const InputRange & source)
-	{ return dest.insert(pos, begin(source), end(source)); }
+{
+	return dest.insert(pos, begin(source), end(source));
+}
 ///@}
 
 

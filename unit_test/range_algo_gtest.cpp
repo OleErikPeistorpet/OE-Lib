@@ -20,16 +20,16 @@ protected:
 	// Objects declared here can be used by all tests.
 };
 
-TEST_F(rangeTest, eraseUnordered)
+TEST_F(rangeTest, eraseUnstable)
 {
-	using oel::erase_unordered;
+	using oel::erase_unstable;
 
 	std::deque<std::string> d{"aa", "bb", "cc"};
 
-	erase_unordered(d, 1);
+	erase_unstable(d, 1);
 	EXPECT_EQ(2U, d.size());
 	EXPECT_EQ("cc", d.back());
-	erase_unordered(d, 1);
+	erase_unstable(d, 1);
 	EXPECT_EQ(1U, d.size());
 	EXPECT_EQ("aa", d.front());
 }
