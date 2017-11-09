@@ -125,21 +125,22 @@ namespace view
 
 //! Create a counted_view from iterator and count, with type deduced from first
 template<typename Iterator> inline
-constexpr counted_view<Iterator> counted(Iterator first, iterator_difference_t<Iterator> count)
-	{ return {first, count}; }
+constexpr counted_view<Iterator> counted(Iterator first, iterator_difference_t<Iterator> count)  { return {first, count}; }
 
 
 //! Create an iterator_range of std::move_iterator from two iterators
 template<typename InputIterator> inline
 iterator_range< std::move_iterator<InputIterator> >
-	move(InputIterator first, InputIterator last)  { using MoveIt = std::move_iterator<InputIterator>;
-	                                                 return {MoveIt{first}, MoveIt{last}}; }
+	move(InputIterator first, InputIterator last)  { using MovIt = std::move_iterator<InputIterator>;
+	                                                 return {MovIt{first}, MovIt{last}}; }
 
 //! Create a counted_view with move_iterator from iterator and count
 template<typename InputIterator> inline
 counted_view< std::move_iterator<InputIterator> >
 	move_n(InputIterator first, iterator_difference_t<InputIterator> count)
-	{ return {std::make_move_iterator(first), count}; }
+	{
+		return {std::make_move_iterator(first), count};
+	}
 
 #include "auxi/view_detail_move.inc"
 
@@ -154,11 +155,14 @@ auto move(InputRange & r)
 #ifndef OEL_NO_BOOST
 	/** @brief Create a view with boost::transform_iterator from a range with size() member or an array
 	*
-	* Similar to boost::adaptors::transform, but more efficient with typical use  */
+	* Similar to boost::adaptors::transform, but more efficient with typical use.
+	* Note that passing an rvalue range should result in a compile error. Use a named variable.  */
 	template<typename UnaryFunc, typename SizedRange> inline
 	auto transform(SizedRange & r, UnaryFunc f)
 	 -> counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
-		{ return {boost::make_transform_iterator(begin(r), std::move(f)), oel::ssize(r)}; }
+		{
+			return {boost::make_transform_iterator(begin(r), std::move(f)), oel::ssize(r)};
+		}
 #endif
 }
 
