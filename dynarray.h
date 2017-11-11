@@ -657,8 +657,6 @@ private:
 	template<typename MakeFuncAppend>
 	void _appendImpl(size_type const count, MakeFuncAppend makeNew)
 	{
-		_assertNothrowMoveConstruct();
-
 		if (_unusedCapacity() >= count)
 			makeNew(_m.end, count, _m);
 		else
@@ -793,6 +791,8 @@ typename dynarray<T, Alloc>::iterator
 template<typename T, typename Alloc> template<typename MakeFuncAppend>
 void dynarray<T, Alloc>::_appendRealloc(size_type const count, MakeFuncAppend makeNew)
 {
+	_assertNothrowMoveConstruct();
+
 	_scopedPtr newBuf{_m, _calcCap(capacity(), size() + count)};
 
 	size_type const oldSize = size();

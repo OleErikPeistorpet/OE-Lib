@@ -38,7 +38,7 @@ namespace oel
 
 		template<typename It = Iterator,
 		         enable_if<std::is_base_of< random_access_traversal_tag, iterator_traversal_t<It> >::value> = 0>
-		difference_type size() const  { return _end - _begin; }
+		size_t size() const  { return _end - _begin; }
 
 	protected:
 		Iterator _begin;

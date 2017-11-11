@@ -77,6 +77,7 @@ namespace _detail
 		static void OutOfRange(const char * what)
 		{
 			OEL_THROW(std::out_of_range(what));
+			(void) what; // avoid warning when exceptions disabled
 		}
 	};
 }
