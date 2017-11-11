@@ -180,7 +180,7 @@ public:
 	*
 	* @copydoc push_back(T &&)  */
 	template<typename... Args>
-	void      emplace_back(Args &&... args);
+	reference emplace_back(Args &&... args);
 	//! Strong exception guarantee only if T is noexcept move constructible or trivially relocatable
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
 	//! See push_back(T &&)
@@ -271,12 +271,6 @@ public:
 private:
 	using _iterator  = _detail::CtnrIteratorMaker<iterator>;
 	using _constIter = _detail::CtnrIteratorMaker<const_iterator>;
-
-#if _MSC_VER && OEL_MEM_BOUND_DEBUG_LVL == 0 && _ITERATOR_DEBUG_LEVEL == 0
-	#define OEL_FORCEINLINE __forceinline
-#else
-	#define OEL_FORCEINLINE inline
-#endif
 
 	struct _assertNothrowMoveConstruct
 	{
@@ -642,7 +636,7 @@ private:
 	}
 
 	template<typename CntigusIter>
-	OEL_FORCEINLINE CntigusIter _append(CntigusIter const first, size_type const n, true_type)
+	CntigusIter _append(CntigusIter const first, size_type const n, true_type)
 	{
 		CntigusIter last = first + n;
 	#if OEL_MEM_BOUND_DEBUG_LVL
@@ -661,29 +655,20 @@ private:
 	}
 
 	template<typename MakeFuncAppend>
-	OEL_FORCEINLINE void _appendImpl(size_type const count, MakeFuncAppend makeNew)
+	void _appendImpl(size_type const count, MakeFuncAppend makeNew)
 	{
 		_assertNothrowMoveConstruct();
 
 		if (_unusedCapacity() >= count)
-		{
 			makeNew(_m.end, count, _m);
-		}
 		else
-		{
-			_scopedPtr newBuf{_m, _calcCap(capacity(), size() + count)};
+			_appendRealloc(count, makeNew);
 
-			size_type const oldSize = size();
-			pointer const pos = newBuf.data + oldSize;
-			makeNew(pos, count, _m);
-			// Exception free from here
-			_relocateData(newBuf.data, pos, oldSize);
-
-			_m.end = pos;
-			newBuf.Swap(_m);
-		}
 		_m.end += count;
 	}
+
+	template<typename MakeFuncAppend> // not defined inline to encourage compiler to inline calling function
+	void _appendRealloc(size_type const count, MakeFuncAppend makeNew);
 
 
 	template<typename CalcCapFunc, typename MakeFuncInsert, typename... Args>
@@ -805,8 +790,23 @@ typename dynarray<T, Alloc>::iterator
 }
 #undef OEL_DYNARR_INSERT_STEP0
 
+template<typename T, typename Alloc> template<typename MakeFuncAppend>
+void dynarray<T, Alloc>::_appendRealloc(size_type const count, MakeFuncAppend makeNew)
+{
+	_scopedPtr newBuf{_m, _calcCap(capacity(), size() + count)};
+
+	size_type const oldSize = size();
+	pointer const pos = newBuf.data + oldSize;
+	makeNew(pos, count, _m);
+	// Exception free from here
+	_relocateData(newBuf.data, pos, oldSize);
+
+	_m.end = pos;
+	newBuf.Swap(_m);
+}
+
 template<typename T, typename Alloc> template<typename... Args>
-void dynarray<T, Alloc>::emplace_back(Args &&... args)
+T & dynarray<T, Alloc>::emplace_back(Args &&... args)
 {
 	if (_m.end < _m.reservEnd)
 	{
@@ -826,7 +826,10 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 		newBuf.Swap(_m);
 		_m.end = pos;
 	}
+	pointer const pos = _m.end;
 	++_m.end;
+
+	return *pos;
 }
 
 
@@ -960,8 +963,7 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-OEL_FORCEINLINE auto dynarray<T, Alloc>::
-	append(const InputRange & src) -> decltype(::adl_begin(src))
+inline auto dynarray<T, Alloc>::append(const InputRange & src) -> decltype(::adl_begin(src))
 {
 	using IterSrc = decltype(::adl_begin(src));
 	return _append( ::adl_begin(src), _sizeOrEnd<IterSrc>(src), can_memmove_with<T *, IterSrc>() );
@@ -1032,8 +1034,6 @@ inline const T & dynarray<T, Alloc>::operator[](size_type i) const OEL_NOEXCEPT_
 	OEL_ASSERT_MEM_BOUND(i < size());
 	return _m.data[i];
 }
-
-#undef OEL_FORCEINLINE
 
 namespace _detail
 {
