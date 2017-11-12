@@ -118,7 +118,11 @@ typename Container::iterator insert(Container & dest, typename Container::const_
 namespace _detail
 {
 	template<typename Container> inline
-	void EraseEnd(Container & c, typename Container::iterator first) { c.erase(first, c.end()); }
+	auto EraseEnd(Container & c, typename Container::iterator f, int)
+	 -> decltype(c.erase_to_end(f)) { return c.erase_to_end(f); }
+
+	template<typename Container> inline
+	void EraseEnd(Container & c, typename Container::iterator f, long) { c.erase(f, c.end()); }
 
 	template<typename Container, typename UnaryPred> inline
 	auto RemoveIf(Container & c, UnaryPred p, int)  // pass dummy int to prefer this overload
@@ -127,7 +131,7 @@ namespace _detail
 	template<typename Container, typename UnaryPred>
 	void RemoveIf(Container & c, UnaryPred p, long)
 	{
-		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p) );
+		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p), int{} );
 	}
 
 	template<typename Container, typename BinaryPred> inline
@@ -137,7 +141,7 @@ namespace _detail
 	template<typename Container, typename BinaryPred>
 	void Unique(Container & c, BinaryPred p, long)
 	{
-		_detail::EraseEnd( c, std::unique(begin(c), end(c), p) );
+		_detail::EraseEnd( c, std::unique(begin(c), end(c), p), int{} );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -200,14 +204,17 @@ namespace _detail
 	}
 
 	template<typename Ret, typename, typename, typename SizedRange, typename RanAccessRange>
-	auto Copy(const SizedRange & src, RanAccessRange & dest, int)
-	 -> decltype( oel::ssize(src), Ret() )
+	Ret Copy(const SizedRange & src, RanAccessRange & dest, decltype( oel::ssize(src), int() ))
 	{
 		auto const n = oel::ssize(src);
 		if (n <= oel::ssize(dest))
-			return{ oel::copy_unsafe(src, begin(dest)).src_last, begin(dest) + n };
+		{
+			auto srcLast = oel::copy_unsafe(src, begin(dest)).src_last;
+			return {srcLast, begin(dest) + n};
+		}
 		else
-			Throw::OutOfRange(errorCopyMsg);
+		{	Throw::OutOfRange(errorCopyMsg);
+		}
 	}
 
 	template<typename InputRange, typename OutputRange> inline
@@ -223,8 +230,7 @@ namespace _detail
 	}
 
 	template<typename SizedRange, typename RanAccessRange>
-	auto CopyFit(const SizedRange & src, RanAccessRange & dest, int)
-	 -> decltype( oel::ssize(src), bool() )
+	bool CopyFit(const SizedRange & src, RanAccessRange & dest, decltype( oel::ssize(src), int() ))
 	{
 		auto const destSize = oel::ssize(dest);
 		auto n = oel::ssize(src);

@@ -501,7 +501,7 @@ private:
 
 	template<typename Range, typename IterTrav> // pass dummy int to prefer this overload
 	static auto _sizeOrEnd(const Range & r, IterTrav, int) -> decltype( static_cast<size_type>(oel::ssize(r)) )
-															   { return static_cast<size_type>(oel::ssize(r)); }
+	                                                           { return static_cast<size_type>(oel::ssize(r)); }
 	template<typename Range>
 	static size_type _sizeOrEnd(const Range & r, forward_traversal_tag, long)
 	{
@@ -515,7 +515,7 @@ private:
 	// Returns element count as size_type if possible, else adl_end(r)
 	template<typename Iter, typename Range>
 	static auto _sizeOrEnd(const Range & r) -> decltype(_sizeOrEnd(r, iterator_traversal_t<Iter>(), 0))
-											   { return _sizeOrEnd(r, iterator_traversal_t<Iter>(), 0); }
+	                                           { return _sizeOrEnd(r, iterator_traversal_t<Iter>(), 0); }
 
 
 	void _allocUnequalMove(dynarray & src)
@@ -1061,10 +1061,6 @@ namespace _detail
 		Pointer Begin() const { return data; }
 		Pointer End() const   { return end; }
 	};
-
-
-	template<typename T, typename A> inline
-	void EraseEnd(dynarray<T, A> & d, typename dynarray<T, A>::iterator first) { d.erase_to_end(first); }
 }
 
 } // namespace oel
