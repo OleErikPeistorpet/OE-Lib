@@ -94,11 +94,24 @@ TEST(utilTest, derefArgs)
 	EXPECT_EQ(3, last - d.begin());
 }
 
+template<typename T>
+struct PointerLike
+{
+	using difference_type = ptrdiff_t;
+	using element_type = T;
+
+	T * p;
+
+	T * operator->() const { return p; }
+	T & operator *() const { return *p; }
+};
+
 TEST(utilTest, toPointerContiguous)
 {
 	using namespace oel;
 
-	std::array<int, 3> a; (void) a;
+	std::array<int, 3> a;
+
 	using P  = decltype( to_pointer_contiguous(a.begin()) );
 	using CP = decltype( to_pointer_contiguous(a.cbegin()) );
 	static_assert(std::is_same<P, int *>::value, "?");
@@ -109,6 +122,13 @@ TEST(utilTest, toPointerContiguous)
 	using CQ = decltype( to_pointer_contiguous(s.cbegin()) );
 	static_assert(std::is_same<Q, wchar_t *>::value, "?");
 	static_assert(std::is_same<CQ, const wchar_t *>::value, "?");
+
+	auto addr = &a[0];
+	using Iter = contiguous_ctnr_iterator<PointerLike<int>, dynarray<int>>;
+	Iter it{{addr}, nullptr};
+	static_assert(std::is_same<PointerLike<int>, Iter::pointer>::value, "?");
+	auto result = to_pointer_contiguous(it);
+	EXPECT_EQ(addr, result);
 }
 
 /// @endcond

@@ -496,12 +496,12 @@ void testErase()
 	ret = d.erase(ret);
 	EXPECT_EQ(begin(d) + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
-	EXPECT_DOUBLE_EQ(s, d.back());
+	EXPECT_EQ(5, static_cast<int>(d.back()));
 
 	ret = d.erase(end(d) - 1);
 	EXPECT_EQ(end(d), ret);
 	ASSERT_EQ(s - 3, d.size());
-	EXPECT_DOUBLE_EQ(1, d.front());
+	EXPECT_EQ(1, static_cast<int>(d.front()));
 }
 
 TEST_F(dynarrayTest, eraseSingle)
