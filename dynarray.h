@@ -128,7 +128,7 @@ public:
 	/**
 	* @brief Replace the contents with source range
 	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
-	* @pre begin(source) shall not point to any elements in the same dynarray except the front.
+	* @pre begin(source) shall not point to any elements in this dynarray except the front.
 	* @return iterator begin(source) incremented by number of elements in source
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
@@ -139,18 +139,21 @@ public:
 
 	/**
 	* @brief Add at end the elements from range (return past-the-last of source)
-	* @param source an array, STL container, gsl::span, boost::iterator_range or such. Can be (subrange of) this dynarray.
+	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
+	* @pre source shall not be this dynarray or refer to any elements in it unless:
+	*	T is trivially relocatable, and either source.size() exists or source models Forward Range (Boost concept).
 	* @return begin(source) incremented by source size. The iterator is already invalidated (do not dereference) if
-	*	begin(source) pointed into same dynarray and there was insufficient capacity to avoid reallocation.
+	*	begin(source) pointed into this dynarray and there was insufficient capacity to avoid reallocation.
 	*
-	* Strong exception guarantee, this function has no effect if an exception is thrown.
-	* Otherwise equivalent to std::vector::insert(end(), begin(source), end(source)),
-	* where end(source) is not needed if source.size() exists  */
+	* Strong exception guarantee if T is noexcept move constructible or trivially relocatable. Otherwise equivalent to
+	* std::vector::insert(end(), begin(source), end(source)), where end(source) is not needed if source.size() exists  */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
-	//! Equivalent to std::vector::insert(end(), il), but with strong exception guarantee
+	//! Equivalent to std::vector::insert(end(), il), but
+	//! with strong exception guarantee if T is noexcept move constructible or trivially relocatable
 	void      append(std::initializer_list<T> il)   { append<>(il); }
-	//! Equivalent to std::vector::insert(end(), count, val), but with strong exception guarantee
+	//! Equivalent to std::vector::insert(end(), count, val), but
+	//! with strong exception guarantee if T is noexcept move constructible or trivially relocatable
 	void      append(size_type count, const T & val);
 
 	/**
@@ -208,6 +211,7 @@ public:
 
 	size_type size() const noexcept   { return _m.end - _m.data; }
 
+	//! Strong exception guarantee only if T is noexcept move constructible or trivially relocatable
 	void      reserve(size_type minCap)  { if (capacity() < minCap) _growTo(minCap); }
 
 	//! It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
@@ -271,13 +275,6 @@ public:
 private:
 	using _iterator  = _detail::CtnrIteratorMaker<iterator>;
 	using _constIter = _detail::CtnrIteratorMaker<const_iterator>;
-
-	struct _assertNothrowMoveConstruct
-	{
-		OEL_WHEN_EXCEPTIONS_ON(
-			static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
-				"This function requires that T is noexcept move constructible or trivially relocatable"); )
-	};
 
 
 	using _allocRef = _detail::AllocRefOptimized<Alloc>;
@@ -668,6 +665,23 @@ private:
 	template<typename MakeFuncAppend> // not defined inline to encourage compiler to inline calling function
 	void _appendRealloc(size_type const count, MakeFuncAppend makeNew);
 
+	template<typename... Args>
+	void _emplaceBackRealloc(Args &&... args)
+	{
+		_scopedPtr newBuf{_m, _calcCapAddOne(capacity())};
+
+		size_type const oldSize = size();
+		pointer const pos = newBuf.data + oldSize;
+		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
+#if _MSC_VER
+	#pragma warning(suppress : 4100) // unreferenced formal parameter
+#endif
+		_relocateData( newBuf.data, pos, oldSize,
+				[](T * pos_) { pos_-> ~T(); } );
+		_m.end = pos;
+		newBuf.Swap(_m);
+	}
+
 
 	template<typename CalcCapFunc, typename MakeFuncInsert, typename... Args>
 	T * _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
@@ -791,15 +805,13 @@ typename dynarray<T, Alloc>::iterator
 template<typename T, typename Alloc> template<typename MakeFuncAppend>
 void dynarray<T, Alloc>::_appendRealloc(size_type const count, MakeFuncAppend makeNew)
 {
-	_assertNothrowMoveConstruct();
-
 	_scopedPtr newBuf{_m, _calcCap(capacity(), size() + count)};
 
 	size_type const oldSize = size();
 	pointer const pos = newBuf.data + oldSize;
 	makeNew(pos, count, _m);
-	// Exception free from here
-	_relocateData(newBuf.data, pos, oldSize);
+	_relocateData(newBuf.data, pos, oldSize,
+		[count](T * pos_) { _detail::Destroy(pos_, pos_ + count); } );
 
 	_m.end = pos;
 	newBuf.Swap(_m);
@@ -809,23 +821,10 @@ template<typename T, typename Alloc> template<typename... Args>
 T & dynarray<T, Alloc>::emplace_back(Args &&... args)
 {
 	if (_m.end < _m.reservEnd)
-	{
 		_allocTrait::construct(_m, _m.end, std::forward<Args>(args)...);
-	}
 	else
-	{
-		_scopedPtr newBuf{_m, _calcCapAddOne(capacity())};
+		_emplaceBackRealloc(std::forward<Args>(args)...);
 
-		pointer const pos = newBuf.data + size();
-		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
-#if _MSC_VER
-	#pragma warning(suppress : 4100) // unreferenced formal parameter
-#endif
-		_relocateData( newBuf.data, pos, size(),
-					   [](T * pos_) { pos_-> ~T(); } );
-		newBuf.Swap(_m);
-		_m.end = pos;
-	}
 	pointer const pos = _m.end;
 	++_m.end;
 
@@ -924,14 +923,22 @@ void dynarray<T, Alloc>::swap(dynarray & other) OEL_NOEXCEPT_NDEBUG
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::shrink_to_fit()
 {
-	_assertNothrowMoveConstruct();
+	OEL_WHEN_EXCEPTIONS_ON(
+		static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
+			"This function requires that T is noexcept move constructible or trivially relocatable"); )
 
 	size_type const used = size();
 	pointer newData;
 	if (0 < used)
 	{
-		newData = _m.allocate(used);
-
+		OEL_TRY_
+		{
+			newData = _m.allocate(used);
+		}
+		OEL_CATCH_ALL
+		{
+			return;
+		}
 		pointer const newEnd = newData + used;
 		_relocateData(newData, newEnd, used);
 		_m.end = newEnd;
