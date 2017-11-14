@@ -23,6 +23,7 @@
 * Contains as_signed/as_unsigned, index_valid, ssize, adl_begin, adl_end, deref_args and more.
 */
 
+//! Functions marked with OEL_NOEXCEPT_NDEBUG will only throw exceptions from OEL_ALWAYS_ASSERT (none by default)
 #if defined(NDEBUG) && OEL_MEM_BOUND_DEBUG_LVL == 0
 	#define OEL_NOEXCEPT_NDEBUG noexcept
 #else
@@ -45,7 +46,9 @@ constexpr typename std::make_signed<T>::type   as_signed(T val) noexcept  { retu
 //! Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
 template<typename T> inline
 constexpr typename std::make_unsigned<T>::type as_unsigned(T val) noexcept
-	{ return (typename std::make_unsigned<T>::type)val; }
+	{
+		return (typename std::make_unsigned<T>::type)val;
+	}
 
 
 

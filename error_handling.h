@@ -26,7 +26,7 @@
 	* Example: @code
 	#define OEL_HALT(failedCond) throw std::logic_error(failedCond ", assertion failed in " __FILE__)
 	@endcode  */
-		#if _MSC_VER
+		#if defined(_MSC_VER)
 		#define OEL_HALT(failedCond) __debugbreak()
 		#elif OEL_HAS_BUILTIN_TRAP
 		#define OEL_HALT(failedCond) __builtin_trap()
@@ -69,7 +69,7 @@ namespace _detail
 {
 	struct Throw
 	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
-	#if _MSC_VER
+	#ifdef _MSC_VER
 		__declspec(noreturn)
 	#else
 		__attribute__((noreturn))

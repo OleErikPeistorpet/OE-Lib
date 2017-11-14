@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "align_allocator.h"
+#include "align_allocator.h" // for is_always_equal_allocator
 
 #include <string.h> // for memset
 
@@ -49,7 +49,7 @@ namespace _detail
 	struct AllocRefOptimized
 	{
 		Alloc & alloc;
-	#if _MSC_VER
+	#ifdef _MSC_VER
 		void operator =(AllocRefOptimized) = delete;
 	#endif
 		AllocRefOptimized(Alloc & a) : alloc(a) {}

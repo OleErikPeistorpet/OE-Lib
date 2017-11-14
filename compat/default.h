@@ -23,7 +23,7 @@
 #endif
 
 // std::string in GCC 5 with _GLIBCXX_USE_CXX11_ABI is not trivially relocatable (uses pointer to internal buffer)
-#if _MSC_VER || (__GLIBCXX__ && !_GLIBCXX_USE_CXX11_ABI) || _LIBCPP_VERSION
+#if (_MSC_VER || _LIBCPP_VERSION || __GLIBCXX__) && !_GLIBCXX_USE_CXX11_ABI
 	#include <string>
 
 	namespace oel

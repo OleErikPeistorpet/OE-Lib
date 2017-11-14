@@ -225,7 +225,7 @@ namespace _detail
 
 } // namespace oel
 
-#if _MSC_VER
+#ifdef _MSC_VER
 	//! Mark contiguous_ctnr_iterator as checked
 	template<typename P, typename C>
 	struct std::_Is_checked_helper< oel::contiguous_ctnr_iterator<P, C> >

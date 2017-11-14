@@ -79,7 +79,7 @@ struct is_always_equal_allocator;
 
 //! @cond INTERNAL
 
-#if _MSC_VER
+#ifdef _MSC_VER
 	#define OEL_ALIGNAS(amount) __declspec(align(amount))
 #else
 	#define OEL_ALIGNAS(amount) __attribute__(( aligned(amount) ))
@@ -215,4 +215,4 @@ namespace _detail
 } // namespace oel
 
 template<typename Alloc>
-struct oel::is_always_equal_allocator : decltype( _detail::IsAlwaysEqual<Alloc>(int{}) ) {};
+struct oel::is_always_equal_allocator : decltype( _detail::IsAlwaysEqual<Alloc>(0) ) {};
