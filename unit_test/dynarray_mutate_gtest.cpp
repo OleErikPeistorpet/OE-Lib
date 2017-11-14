@@ -211,8 +211,8 @@ TEST_F(dynarrayTest, assign)
 		{
 			NontrivialReloc obj{-5.0};
 			NontrivialReloc::countToThrowOn = 0;
-			try
-			{	dest.assign(view::counted(&obj, 1));
+			try {
+				dest.assign(view::counted(&obj, 1));
 			}
 			catch (TestException &) {
 			}
@@ -229,8 +229,8 @@ TEST_F(dynarrayTest, assign)
 		{
 			NontrivialReloc obj{-3.3};
 			NontrivialReloc::countToThrowOn = 0;
-			try
-			{	dest.assign(make_iterator_range(&obj, &obj + 1));
+			try {
+				dest.assign(make_iterator_range(&obj, &obj + 1));
 			}
 			catch (TestException &) {
 			}
@@ -243,8 +243,8 @@ TEST_F(dynarrayTest, assign)
 
 			NontrivialReloc obj{-1.3};
 			NontrivialReloc::countToThrowOn = 0;
-			try
-			{	dest.assign(view::counted(&obj, 1));
+			try {
+				dest.assign(view::counted(&obj, 1));
 			}
 			catch (TestException &) {
 			}

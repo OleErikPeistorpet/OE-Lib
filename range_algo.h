@@ -186,8 +186,8 @@ namespace _detail
 				*dest = *src;
 				++dest; ++src;
 			}
-			else
-			{	return fail();
+			else {
+				return fail();
 			}
 		}
 		return succeed(src, dest);
@@ -212,8 +212,8 @@ namespace _detail
 			auto srcLast = oel::copy_unsafe(src, begin(dest)).src_last;
 			return {srcLast, begin(dest) + n};
 		}
-		else
-		{	Throw::OutOfRange(errorCopyMsg);
+		else {
+			Throw::OutOfRange(errorCopyMsg);
 		}
 	}
 

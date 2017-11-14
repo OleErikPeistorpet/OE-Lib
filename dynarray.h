@@ -52,7 +52,7 @@ typename dynarray<T, A>::iterator
 * Also, if T is trivially relocatable, it does not need to be move or copy constructible/assignable
 * except when an instance to be moved/copied is passed as an argument by the user.
 * There are a few notable functions for which trivially relocatable T is required (checked when compiling):
-* emplace/insert/insert_r, erase(iterator, iterator) and dynarray(dynarray &&, const Alloc &)
+* emplace, insert, insert_r and erase(iterator, iterator)
 *
 * For any operation which may reallocate and is specified to have strong exception guarantee for std::vector:
 * If T's move constructor is not noexcept and T is not trivially relocatable, dynarray will use the throwing
@@ -453,9 +453,9 @@ private:
 			_growTo(_calcCap(capacity(), newSize));
 
 		T *const newEnd = _m.data + newSize;
-		if (_m.end < newEnd) // then construct new
+		if (_m.end < newEnd)
 			initAdded(_m.end, newEnd, _m);
-		else // downsizing
+		else
 			_detail::Destroy(newEnd, _m.end);
 
 		_m.end = newEnd;
@@ -523,8 +523,13 @@ private:
 	                                           { return _sizeOrEnd(r, iterator_traversal_t<Iter>(), 0); }
 
 
-	void _allocUnequalMove(dynarray & src)
-	{	// requires trivially relocatable T
+	void _allocUnequalMove(dynarray & src, false_type)
+	{
+		_append(std::make_move_iterator(src.begin()), src.size(), false_type{});
+	}
+
+	void _allocUnequalMove(dynarray & src, true_type /*trivialRelocate*/)
+	{
 		_assignImpl(src.begin(), src.size(), true_type{});
 		src._m.end = src._m.data; // elements in src conceptually destroyed
 	}
@@ -546,8 +551,8 @@ private:
 			_m.end = _m.data + count;
 			_m.reservEnd = _m.end;
 		}
-		else
-		{	_m.end = _m.data + count;
+		else {
+			_m.end = _m.data + count;
 		}
 		// Not portable. Check for self assignment or use memmove?
 		_detail::MemcpyMaybeNull(data(), to_pointer_contiguous(first), sizeof(T) * count);
@@ -587,8 +592,8 @@ private:
 				src = copy(src, begin(), it);
 				erase_to_end(it);
 			}
-			else // assign to old elements as far as we can
-			{	src = copy(src, begin(), end());
+			else { // assign to old elements as far as we can
+				src = copy(src, begin(), end());
 			}
 		}
 		while (_m.end < newEnd)
@@ -742,8 +747,8 @@ typename dynarray<T, Alloc>::iterator
 
 		::memcpy(pPos, &tmp, sizeof(T)); // relocate the new element to pos
 	}
-	else
-	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
+	else {
+		pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
 							  _emplaceMakeElem{}, std::forward<Args>(args)...);
 	}
 	return _iterator{pPos, &_m};
@@ -840,12 +845,9 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
-	static_assert(is_trivially_relocatable<T>::value || is_always_equal_allocator<Alloc>::value,
-		"This move constructor requires trivially relocatable T or always equal Alloc");
-
 	if (a != other._m && !is_always_equal_allocator<Alloc>::value)
 	{
-		_allocUnequalMove(other);
+		_allocUnequalMove(other, is_trivially_relocatable<T>());
 	}
 	else
 	{
@@ -858,15 +860,11 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other)
 	OEL_NOEXCEPT(_allocTrait::propagate_on_container_move_assignment::value || is_always_equal_allocator<Alloc>::value)
 {
-	static_assert(is_trivially_relocatable<T>::value || is_always_equal_allocator<Alloc>::value
-		|| _allocTrait::propagate_on_container_move_assignment::value,
-		"Move assign requires trivially relocatable T, Alloc::propagate_on_container_move_assignment or always equal Alloc");
-
 	if (static_cast<Alloc &>(_m) != other._m &&
 		!_allocTrait::propagate_on_container_move_assignment::value)
 	{
-		_detail::Destroy(_m.data, _m.end);
-		_allocUnequalMove(other);
+		clear();
+		_allocUnequalMove(other, is_trivially_relocatable<T>());
 	}
 	else // take allocated memory from other
 	{
@@ -948,8 +946,8 @@ void dynarray<T, Alloc>::shrink_to_fit()
 		_relocateData(newData, newEnd, used);
 		_m.end = newEnd;
 	}
-	else
-	{	_m.end = newData = nullptr;
+	else {
+		_m.end = newData = nullptr;
 	}
 	_resetData(newData); // careful, cannot change _m.reservEnd until after
 	_m.reservEnd = _m.end;
