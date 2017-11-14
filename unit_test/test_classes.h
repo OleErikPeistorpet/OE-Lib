@@ -3,6 +3,7 @@
 #include "util.h"
 
 #include <memory>
+#include <unordered_map>
 #include "gtest/gtest.h"
 
 //! @cond INTERNAL
@@ -125,6 +126,17 @@ struct AllocCounter
 	static int nAllocations;
 	static int nDeallocations;
 	static int nConstructCalls;
+
+	static std::unordered_map<void *, std::size_t> sizeFromPtr;
+
+	static void ClearAll()
+	{
+		nAllocations = 0;
+		nDeallocations = 0;
+		nConstructCalls = 0;
+
+		sizeFromPtr.clear();
+	}
 };
 
 template<typename T>
@@ -136,12 +148,21 @@ struct TrackingAllocator : oel::allocator<T>
 
 	T * allocate(size_type nObjects)
 	{
+		auto const p = _base::allocate(nObjects);
 		++AllocCounter::nAllocations;
-		return _base::allocate(nObjects);
+		AllocCounter::sizeFromPtr[p] = nObjects;
+		return p;
 	}
+
 	void deallocate(T * ptr, size_type nObjects)
 	{
 		++AllocCounter::nDeallocations;
+		// verify that nObjects matches earlier call to allocate
+		auto it = AllocCounter::sizeFromPtr.find(ptr);
+		ASSERT_TRUE(it != AllocCounter::sizeFromPtr.end());
+		EXPECT_EQ(it->second, nObjects);
+		AllocCounter::sizeFromPtr.erase(it);
+
 		_base::deallocate(ptr, nObjects);
 	}
 

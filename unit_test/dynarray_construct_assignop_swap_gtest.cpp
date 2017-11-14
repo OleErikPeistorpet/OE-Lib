@@ -13,6 +13,7 @@ int MyCounter::countToThrowOn = -1;
 int AllocCounter::nAllocations;
 int AllocCounter::nDeallocations;
 int AllocCounter::nConstructCalls;
+std::unordered_map<void *, std::size_t> AllocCounter::sizeFromPtr;
 
 using namespace oel;
 
@@ -29,10 +30,7 @@ protected:
 
 	dynarrayConstructTest()
 	{
-		AllocCounter::nAllocations = 0;
-		AllocCounter::nDeallocations = 0;
-		AllocCounter::nConstructCalls = 0;
-
+		AllocCounter::ClearAll();
 		MyCounter::ClearCount();
 
 		sizes = {{0, 1, 200}};
