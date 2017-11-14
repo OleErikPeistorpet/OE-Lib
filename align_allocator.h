@@ -165,8 +165,8 @@ namespace _detail
 				(*handler)();
 			}
 		}
-		else {
-			return nullptr;
+		else
+		{	return nullptr;
 		}
 	}
 

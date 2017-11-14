@@ -551,8 +551,8 @@ private:
 			_m.end = _m.data + count;
 			_m.reservEnd = _m.end;
 		}
-		else {
-			_m.end = _m.data + count;
+		else
+		{	_m.end = _m.data + count;
 		}
 		// Not portable. Check for self assignment or use memmove?
 		_detail::MemcpyMaybeNull(data(), to_pointer_contiguous(first), sizeof(T) * count);
@@ -592,8 +592,8 @@ private:
 				src = copy(src, begin(), it);
 				erase_to_end(it);
 			}
-			else { // assign to old elements as far as we can
-				src = copy(src, begin(), end());
+			else // assign to old elements as far as we can
+			{	src = copy(src, begin(), end());
 			}
 		}
 		while (_m.end < newEnd)
@@ -747,8 +747,8 @@ typename dynarray<T, Alloc>::iterator
 
 		::memcpy(pPos, &tmp, sizeof(T)); // relocate the new element to pos
 	}
-	else {
-		pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
+	else
+	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
 							  _emplaceMakeElem{}, std::forward<Args>(args)...);
 	}
 	return _iterator{pPos, &_m};
@@ -946,8 +946,8 @@ void dynarray<T, Alloc>::shrink_to_fit()
 		_relocateData(newData, newEnd, used);
 		_m.end = newEnd;
 	}
-	else {
-		_m.end = newData = nullptr;
+	else
+	{	_m.end = newData = nullptr;
 	}
 	_resetData(newData); // careful, cannot change _m.reservEnd until after
 	_m.reservEnd = _m.end;
