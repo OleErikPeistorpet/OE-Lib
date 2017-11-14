@@ -54,7 +54,12 @@ typename dynarray<T, A>::iterator
 * There are a few notable functions for which trivially relocatable T is required (checked when compiling):
 * emplace/insert/insert_r, erase(iterator, iterator) and dynarray(dynarray &&, const Alloc &)
 *
+* For any operation which may reallocate and is specified to have strong exception guarantee for std::vector:
+* If T's move constructor is not noexcept and T is not trivially relocatable, dynarray will use the throwing
+* move constructor, and the exception guarantee is lowered to basic.
+*
 * The default allocator supports over-aligned types (e.g. __m256).
+*
 * In general, only that which differs from std::vector is documented. */
 template<typename T, typename Alloc/* = oel::allocator */>
 class dynarray
@@ -111,13 +116,14 @@ public:
 	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})  : _m(a, il.size())
 	                                                                  { _initPostAllocate(il.begin(), il.size()); }
 	dynarray(dynarray && other) noexcept               : _m(std::move(other._m)) {}
-	dynarray(dynarray && other, const Alloc & a) noexcept;
+	dynarray(dynarray && other, const Alloc & a);
 	dynarray(const dynarray & other);
 	dynarray(const dynarray & other, const Alloc & a)  : _m(a, other.size())
 	                                                   { _initPostAllocate(other.data(), other.size()); }
 	~dynarray() noexcept;
 
-	dynarray & operator =(dynarray && other) noexcept;
+	dynarray & operator =(dynarray && other) OEL_NOEXCEPT(_allocTrait::propagate_on_container_move_assignment::value
+	                                                      || is_always_equal_allocator<Alloc>::value);
 	//! Treats Alloc as if it does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other)    { assign(other);  return *this; }
 
@@ -184,12 +190,10 @@ public:
 	* @copydoc push_back(T &&)  */
 	template<typename... Args>
 	reference emplace_back(Args &&... args);
-	//! Strong exception guarantee only if T is noexcept move constructible or trivially relocatable
+
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
-	//! See push_back(T &&)
 	void      push_back(const T & val)  { emplace_back(val); }
 
-	//! After the call, any previous iterator to the back element will be equal to end()
 	void      pop_back() OEL_NOEXCEPT_NDEBUG;
 
 	/**
@@ -211,7 +215,6 @@ public:
 
 	size_type size() const noexcept   { return _m.end - _m.data; }
 
-	//! Strong exception guarantee only if T is noexcept move constructible or trivially relocatable
 	void      reserve(size_type minCap)  { if (capacity() < minCap) _growTo(minCap); }
 
 	//! It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
@@ -467,7 +470,7 @@ private:
 		elem.~T();
 		--_m.end;
 		auto &
-	#if !_MSC_VER
+	#ifndef _MSC_VER
 			__attribute__((may_alias))
 	#endif
 			raw = reinterpret_cast<aligned_union_t<T> &>(elem);
@@ -500,8 +503,10 @@ private:
 
 
 	template<typename Range, typename IterTrav> // pass dummy int to prefer this overload
-	static auto _sizeOrEnd(const Range & r, IterTrav, int) -> decltype( static_cast<size_type>(oel::ssize(r)) )
-	                                                           { return static_cast<size_type>(oel::ssize(r)); }
+	static auto _sizeOrEnd(const Range & r, IterTrav, int)
+	 -> decltype( static_cast<size_type>(oel::ssize(r)) )
+	     { return static_cast<size_type>(oel::ssize(r)); }
+
 	template<typename Range>
 	static size_type _sizeOrEnd(const Range & r, forward_traversal_tag, long)
 	{
@@ -670,13 +675,12 @@ private:
 	{
 		_scopedPtr newBuf{_m, _calcCapAddOne(capacity())};
 
-		size_type const oldSize = size();
-		pointer const pos = newBuf.data + oldSize;
+		pointer const pos = newBuf.data + size();
 		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
-#if _MSC_VER
+#ifdef _MSC_VER
 	#pragma warning(suppress : 4100) // unreferenced formal parameter
 #endif
-		_relocateData( newBuf.data, pos, oldSize,
+		_relocateData( newBuf.data, pos, size(),
 				[](T * pos_) { pos_-> ~T(); } );
 		_m.end = pos;
 		newBuf.Swap(_m);
@@ -833,7 +837,7 @@ T & dynarray<T, Alloc>::emplace_back(Args &&... args)
 
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) noexcept
+dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
 	static_assert(is_trivially_relocatable<T>::value || is_always_equal_allocator<Alloc>::value,
@@ -851,7 +855,8 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a) noexcept
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) noexcept
+dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other)
+	OEL_NOEXCEPT(_allocTrait::propagate_on_container_move_assignment::value || is_always_equal_allocator<Alloc>::value)
 {
 	static_assert(is_trivially_relocatable<T>::value || is_always_equal_allocator<Alloc>::value
 		|| _allocTrait::propagate_on_container_move_assignment::value,

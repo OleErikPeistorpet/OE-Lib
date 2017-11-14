@@ -9,15 +9,19 @@
 	#define _ALLOW_KEYWORD_MACROS 1
 	#endif
 
+	#undef constexpr
+	#define constexpr
+
 	#ifndef noexcept
 	#define noexcept throw()
 	#endif
 
-	#undef constexpr
-	#define constexpr
+	#define OEL_NOEXCEPT(expr)
 
 	#define OEL_ALIGNOF __alignof
 #else
+	#define OEL_NOEXCEPT(expr) noexcept(expr)
+
 	#define OEL_ALIGNOF alignof
 #endif
 
@@ -35,7 +39,7 @@
 #endif
 
 
-#if _MSC_VER
+#ifdef _MSC_VER
 	#define OEL_CONST_COND __pragma(warning(suppress : 4127))
 #else
 	#define OEL_CONST_COND
