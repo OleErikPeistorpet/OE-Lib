@@ -13,7 +13,6 @@
 	#include <boost/iterator/iterator_categories.hpp>
 #endif
 #include <iterator>
-#include <cstdint>
 #include <string.h> // for memcpy
 
 
@@ -68,13 +67,11 @@ template< typename UnsignedInt, typename SizedRange,
           enable_if<std::is_unsigned<UnsignedInt>::value> = 0 > inline
 constexpr bool index_valid(const SizedRange & r, UnsignedInt index)   { return index < as_unsigned(oel::ssize(r)); }
 
-template<typename SizedRange> inline
-constexpr bool index_valid(const SizedRange & r, std::int32_t index)  { return 0 <= index && index < oel::ssize(r); }
-
-template<typename SizedRange> inline
-constexpr bool index_valid(const SizedRange & r, std::int64_t index)
-	{	// assumes that r.size() is never greater than INT64_MAX
-		return static_cast<std::uint64_t>(index) < as_unsigned(oel::ssize(r));
+template< typename SignedInt, typename SizedRange,
+          enable_if<std::is_signed<SignedInt>::value> = 0 > inline
+constexpr bool index_valid(const SizedRange & r, SignedInt index)
+	{	// assumes that r.size() never is greater than numeric_limits<long long>::max
+		return static_cast<unsigned long long>(index) < as_unsigned(oel::ssize(r));
 	}
 ///@}
 

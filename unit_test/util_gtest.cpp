@@ -1,4 +1,4 @@
-#include "make_unique.h"
+//#include "make_unique.h"
 #include "dynarray.h"
 
 #include "gtest/gtest.h"
@@ -8,18 +8,43 @@
 
 /// @cond INTERNAL
 
+template<typename SizeT>
+struct DummyRange
+{
+	using difference_type = typename std::make_signed<SizeT>::type;
+
+	SizeT n;
+
+	SizeT size() const { return n; }
+};
+
 TEST(utilTest, indexValid)
 {
 	using namespace oel;
 
-	std::list<std::string> li{"aa", "bb"};
+	DummyRange<unsigned> r1{1};
 
-	EXPECT_TRUE( index_valid(li, std::int64_t(1)) );
-	EXPECT_FALSE(index_valid(li, 2));
-	EXPECT_FALSE( index_valid(li, std::uint64_t(-1)) );
+	EXPECT_TRUE(index_valid(r1, (std::ptrdiff_t) 0));
+	EXPECT_FALSE(index_valid(r1, (size_t) 1));
+	EXPECT_FALSE(index_valid(r1, -1));
+	EXPECT_FALSE(index_valid(r1, (size_t) -1));
+	{
+		auto const size = std::numeric_limits<unsigned>::max();
+		DummyRange<unsigned> r2{size};
 
-	//long l = 1L;
-	//EXPECT_TRUE(index_valid(li, l));
+		EXPECT_FALSE(index_valid(r2, -2));
+		EXPECT_FALSE(index_valid(r2, (long long) -2));
+		EXPECT_FALSE(index_valid(r2, (unsigned) -1));
+		EXPECT_TRUE(index_valid(r2, size - 1));
+	}
+	{
+		auto const size = as_unsigned(std::numeric_limits<long long>::max());
+		DummyRange<unsigned long long> r2{size};
+
+		EXPECT_FALSE(index_valid(r2, (unsigned long long) -2));
+		EXPECT_FALSE(index_valid(r2, (long long) -2));
+		EXPECT_TRUE(index_valid(r2, size - 1));
+	}
 }
 
 struct OneSizeT
@@ -47,7 +72,7 @@ TEST(utilTest, makeUnique)
 	EXPECT_EQ(6, p2->back());
 }
 
-struct BlahBy
+struct RangeWithLargerDiffT
 {
 	using difference_type = long;
 
@@ -56,13 +81,10 @@ struct BlahBy
 
 TEST(utilTest, ssize)
 {
-	BlahBy bb;
-	auto const test = oel::ssize(bb);
+	RangeWithLargerDiffT r;
+	auto const test = oel::ssize(r);
 
 	static_assert(std::is_same<decltype(test), long const>::value, "?");
-
-	auto v = std::is_same<short, decltype( oel::as_signed(bb.size()) )>::value;
-	EXPECT_TRUE(v);
 
 	ASSERT_EQ(2, test);
 }

@@ -9,18 +9,7 @@
 
 /// @cond INTERNAL
 
-class rangeTest : public ::testing::Test
-{
-protected:
-	rangeTest()
-	{
-		// You can do set-up work for each test here.
-	}
-
-	// Objects declared here can be used by all tests.
-};
-
-TEST_F(rangeTest, eraseUnstable)
+TEST(rangeTest, eraseUnstable)
 {
 	using oel::erase_unstable;
 
@@ -34,7 +23,7 @@ TEST_F(rangeTest, eraseUnstable)
 	EXPECT_EQ("aa", d.front());
 }
 
-TEST_F(rangeTest, eraseIf)
+TEST(rangeTest, eraseIf)
 {
 	using namespace oel;
 
@@ -51,7 +40,7 @@ TEST_F(rangeTest, eraseIf)
 	EXPECT_TRUE(std::equal(begin(li), end(li), begin(test1)));
 }
 
-TEST_F(rangeTest, eraseSuccessiveDup)
+TEST(rangeTest, eraseSuccessiveDup)
 {
 	using namespace oel;
 
@@ -66,7 +55,7 @@ TEST_F(rangeTest, eraseSuccessiveDup)
 	EXPECT_FALSE(uniqueTest != expect);
 }
 
-TEST_F(rangeTest, countedView)
+TEST(rangeTest, countedView)
 {
 	using namespace oel;
 
@@ -84,7 +73,7 @@ TEST_F(rangeTest, countedView)
 }
 
 #ifndef OEL_NO_BOOST
-TEST_F(rangeTest, viewTransform)
+TEST(rangeTest, viewTransform)
 {
 	using namespace oel;
 
@@ -119,7 +108,7 @@ TEST_F(rangeTest, viewTransform)
 }
 #endif
 
-TEST_F(rangeTest, copy)
+TEST(rangeTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
@@ -168,7 +157,7 @@ void testAppend()
 	EXPECT_EQ(-1, c.back());
 }
 
-TEST_F(rangeTest, append)
+TEST(rangeTest, append)
 {
 	testAppend< std::deque<int> >();
 	testAppend< oel::dynarray<int> >();
