@@ -13,6 +13,7 @@
 	#include <boost/iterator/iterator_categories.hpp>
 #endif
 #include <iterator>
+#include <cstdint>
 #include <string.h> // for memcpy
 
 
@@ -61,19 +62,10 @@ template<typename T, std::ptrdiff_t Size> inline
 constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
-///@{
 //! Check if index is valid (can be used with operator[]) for array or other range.
-template< typename UnsignedInt, typename SizedRange,
-          enable_if<std::is_unsigned<UnsignedInt>::value> = 0 > inline
-constexpr bool index_valid(const SizedRange & r, UnsignedInt index)   { return index < as_unsigned(oel::ssize(r)); }
+template<typename Integral, typename SizedRange>
+constexpr bool index_valid(const SizedRange & r, Integral index);
 
-template< typename SignedInt, typename SizedRange,
-          enable_if<std::is_signed<SignedInt>::value> = 0 > inline
-constexpr bool index_valid(const SizedRange & r, SignedInt index)
-	{	// assumes that r.size() never is greater than numeric_limits<long long>::max
-		return static_cast<unsigned long long>(index) < as_unsigned(oel::ssize(r));
-	}
-///@}
 
 
 using std::begin;
@@ -266,3 +258,31 @@ struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<It
 
 template<typename T>
 struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};
+
+
+namespace oel
+{
+namespace _detail
+{
+	template<typename SignedInt, typename UnsignedInt> inline
+	constexpr bool IndexValid(SignedInt size, UnsignedInt i, std::false_type) { return i < as_unsigned(size); }
+
+	template<typename SignedInt0, typename SignedInt1> inline
+	constexpr bool IndexValid(SignedInt0 size, SignedInt1 i, std::true_type)
+	{	// assumes that r.size() never is greater than numeric_limits<long long>::max
+		return static_cast<unsigned long long>(i) < as_unsigned(size);
+	}
+
+	inline constexpr bool IndexValid(std::int32_t size, std::int32_t i, std::true_type)
+	{	// 32-bit optimized
+		return (0 <= i) & (i < size);
+	}
+}
+
+}
+
+template<typename Integral, typename SizedRange>
+inline constexpr bool oel::index_valid(const SizedRange & r, Integral i)
+{
+	return _detail::IndexValid(oel::ssize(r), i, std::is_signed<Integral>());
+}
