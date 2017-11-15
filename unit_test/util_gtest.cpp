@@ -36,6 +36,7 @@ TEST(utilTest, indexValid)
 		EXPECT_FALSE(index_valid(r2, (long long) -2));
 		EXPECT_FALSE(index_valid(r2, (unsigned) -1));
 		EXPECT_TRUE(index_valid(r2, size - 1));
+		EXPECT_TRUE(index_valid(r2, 0));
 	}
 	{
 		auto const size = as_unsigned(std::numeric_limits<long long>::max());

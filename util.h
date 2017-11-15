@@ -13,7 +13,6 @@
 	#include <boost/iterator/iterator_categories.hpp>
 #endif
 #include <iterator>
-#include <cstdint>
 #include <string.h> // for memcpy
 
 
@@ -264,18 +263,16 @@ namespace oel
 {
 namespace _detail
 {
-	template<typename SignedInt, typename UnsignedInt> inline
-	constexpr bool IndexValid(SignedInt size, UnsignedInt i, std::false_type) { return i < as_unsigned(size); }
-
-	template<typename SignedInt0, typename SignedInt1> inline
-	constexpr bool IndexValid(SignedInt0 size, SignedInt1 i, std::true_type)
+	template<typename UnsignedInt, typename T> inline
+	constexpr bool IndexValid(UnsignedInt size, T i, false_type)
 	{	// assumes that r.size() never is greater than numeric_limits<long long>::max
-		return static_cast<unsigned long long>(i) < as_unsigned(size);
+		return static_cast<unsigned long long>(i) < size;
 	}
 
-	inline constexpr bool IndexValid(std::int32_t size, std::int32_t i, std::true_type)
+	template<typename UnsignedInt, typename T> inline
+	constexpr bool IndexValid(UnsignedInt size, T i, true_type)
 	{	// 32-bit optimized
-		return (0 <= i) & (i < size);
+		return (0 <= i) & (as_unsigned(i) < size);
 	}
 }
 
@@ -284,5 +281,7 @@ namespace _detail
 template<typename Integral, typename SizedRange>
 inline constexpr bool oel::index_valid(const SizedRange & r, Integral i)
 {
-	return _detail::IndexValid(oel::ssize(r), i, std::is_signed<Integral>());
+	auto const us = as_unsigned(oel::ssize(r));
+	using NotBigInts = bool_constant<sizeof us < sizeof(long long) && sizeof i < sizeof(long long)>;
+	return _detail::IndexValid(us, i, NotBigInts{});
 }
