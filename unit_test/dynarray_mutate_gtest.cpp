@@ -1,18 +1,22 @@
 #include "test_classes.h"
 #include "range_view.h"
+
+#ifdef _MSC_VER
+// unreachable code warnings from EXPECT_THROW containing throwOnConstruct
+#pragma warning(push)
+#pragma warning(disable : 4702)
+#endif
+
 #include "dynarray.h"
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include <cstdint>
 #include <deque>
 
 /// @cond INTERNAL
-
-#ifdef _MSC_VER
-	#define MSC_SUPPRESS_UNREACHABLE  \
-		__pragma(warning(suppress : 4702))
-#else
-	#define MSC_SUPPRESS_UNREACHABLE
-#endif
 
 using oel::dynarray;
 using oel::make_iterator_range;
@@ -70,14 +74,14 @@ TEST_F(dynarrayTest, oelDynarrWithStdAlloc)
 		dynarray< MoveOnly, std::allocator<MoveOnly> > v;
 
 		v.emplace_back(-1.0);
-	MSC_SUPPRESS_UNREACHABLE
+
 		EXPECT_THROW( v.emplace_back(throwOnConstruct), TestException );
 		EXPECT_EQ(1, MoveOnly::nConstructions);
 		EXPECT_EQ(0, MoveOnly::nDestruct);
 
 		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
 		v.assign(oel::view::move(arr));
-	MSC_SUPPRESS_UNREACHABLE
+
 		EXPECT_THROW( v.emplace_back(throwOnConstruct), TestException );
 		EXPECT_EQ(2, ssize(v));
 		EXPECT_TRUE(1.0 == *v[0]);
@@ -98,14 +102,12 @@ TEST_F(dynarrayTest, pushBack)
 		up.push_back(MoveOnly{VALUES[0]});
 		ASSERT_EQ(1U, up.size());
 
-	MSC_SUPPRESS_UNREACHABLE
 		EXPECT_THROW( up.emplace_back(throwOnConstruct), TestException );
 		ASSERT_EQ(1U, up.size());
 
 		up.push_back(MoveOnly{VALUES[1]});
 		ASSERT_EQ(2U, up.size());
 
-	MSC_SUPPRESS_UNREACHABLE
 		EXPECT_THROW( up.emplace_back(throwOnConstruct), TestException );
 		ASSERT_EQ(2U, up.size());
 
@@ -162,7 +164,6 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		expected.emplace_back(VALUES[3]);
 		ASSERT_EQ(expected.size(), mo.size());
 
-	MSC_SUPPRESS_UNREACHABLE
 		EXPECT_THROW( mo.emplace_back(throwOnConstruct), TestException );
 		ASSERT_EQ(expected.size(), mo.size());
 		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(mo), NontrivialReloc::nDestruct);
@@ -419,14 +420,12 @@ TEST_F(dynarrayTest, insert)
 		EXPECT_EQ(VALUES[2], *ptr);
 		ASSERT_EQ(1U, up.size());
 
-	MSC_SUPPRESS_UNREACHABLE
 		EXPECT_THROW( up.emplace(begin(up), throwOnConstruct), TestException );
 		ASSERT_EQ(1U, up.size());
 
 		up.insert(begin(up), MoveOnly{VALUES[0]});
 		ASSERT_EQ(2U, up.size());
 
-	MSC_SUPPRESS_UNREACHABLE
 		EXPECT_THROW( up.emplace(begin(up) + 1, throwOnConstruct), TestException );
 		ASSERT_EQ(2U, up.size());
 

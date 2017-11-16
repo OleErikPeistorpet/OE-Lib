@@ -227,9 +227,9 @@ using iterator_traversal_t
 namespace _detail
 {
 	inline void MemcpyMaybeNull(void * dest, const void * src, size_t nBytes)
-	{	// memcpy(nullptr, nullptr, 0) is undefined behavior.
-		// The problem is that checking can have significant performance hit
-	#if OEL_GCC_VERSION >= 409
+	{	// memcpy(nullptr, nullptr, 0) is UB. The trouble is that checking can have significant performance hit.
+		// GCC 4.9 and up known to need the check in some cases
+	#if (!defined __GNUC__ && !defined _MSC_VER) || OEL_GCC_VERSION >= 409 || _MSC_VER >= 2000
 		if (nBytes > 0)
 	#endif
 			::memcpy(dest, src, nBytes);
