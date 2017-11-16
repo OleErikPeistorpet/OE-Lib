@@ -504,8 +504,7 @@ private:
 
 	template<typename Range, typename IterTrav> // pass dummy int to prefer this overload
 	static auto _sizeOrEnd(const Range & r, IterTrav, int)
-	 -> decltype( static_cast<size_type>(oel::ssize(r)) )
-	     { return static_cast<size_type>(oel::ssize(r)); }
+	 -> decltype( static_cast<size_type>(oel::ssize(r)) ) { return oel::ssize(r); }
 
 	template<typename Range>
 	static size_type _sizeOrEnd(const Range & r, forward_traversal_tag, long)
@@ -672,8 +671,25 @@ private:
 		_m.end += count;
 	}
 
-	template<typename MakeFuncAppend> // not defined inline to encourage compiler to inline calling function
-	void _appendRealloc(size_type const count, MakeFuncAppend makeNew);
+	template<typename MakeFuncAppend>
+#ifdef _MSC_VER
+	__declspec(noinline) // to get the compiler to inline calling function
+#else
+	__attribute__((noinline))
+#endif
+	void _appendRealloc(size_type const count, MakeFuncAppend makeNew)
+	{
+		_scopedPtr newBuf{_m, _calcCap(capacity(), size() + count)};
+
+		size_type const oldSize = size();
+		pointer const pos = newBuf.data + oldSize;
+		makeNew(pos, count, _m);
+		_relocateData(newBuf.data, pos, oldSize,
+			[count](T * pos_) { _detail::Destroy(pos_, pos_ + count); } );
+
+		_m.end = pos;
+		newBuf.Swap(_m);
+	}
 
 	template<typename... Args>
 	void _emplaceBackRealloc(Args &&... args)
@@ -810,21 +826,6 @@ typename dynarray<T, Alloc>::iterator
 	return _iterator{pPos, &_m};
 }
 #undef OEL_DYNARR_INSERT_STEP0
-
-template<typename T, typename Alloc> template<typename MakeFuncAppend>
-void dynarray<T, Alloc>::_appendRealloc(size_type const count, MakeFuncAppend makeNew)
-{
-	_scopedPtr newBuf{_m, _calcCap(capacity(), size() + count)};
-
-	size_type const oldSize = size();
-	pointer const pos = newBuf.data + oldSize;
-	makeNew(pos, count, _m);
-	_relocateData(newBuf.data, pos, oldSize,
-		[count](T * pos_) { _detail::Destroy(pos_, pos_ + count); } );
-
-	_m.end = pos;
-	newBuf.Swap(_m);
-}
 
 template<typename T, typename Alloc> template<typename... Args>
 T & dynarray<T, Alloc>::emplace_back(Args &&... args)
