@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "align_allocator.h" // for is_always_equal_allocator
+#include "util.h"
 
 #include <string.h> // for memset
 
@@ -45,7 +45,7 @@ namespace _detail
 
 
 	template< typename Alloc,
-		bool = is_always_equal_allocator<Alloc>::value && std::is_default_constructible<Alloc>::value >
+		bool = std::is_empty<Alloc>::value && std::is_default_constructible<Alloc>::value >
 	struct AllocRefOptimized
 	{
 		Alloc & alloc;

@@ -496,6 +496,42 @@ TEST_F(dynarrayTest, resize)
 	EXPECT_TRUE(nested.back().empty());
 }
 
+struct StatefulAlwaysEqualAlloc
+{
+	using value_type = int;
+	using is_always_equal = std::true_type;
+
+	value_type * buf = nullptr;
+	size_t size = 0;
+
+	StatefulAlwaysEqualAlloc() = default;
+
+	template<size_t N>
+	StatefulAlwaysEqualAlloc(value_type (&array)[N])
+	 :	buf(array), size(N) {
+	}
+
+	value_type * allocate(size_t n)
+	{
+		if (n > size)
+			OEL_THROW(std::length_error("StatefulAlwaysEqualAlloc::allocate n > size"));
+
+		size = 0;
+		return buf;
+	}
+
+	void deallocate(value_type *, size_t) {}
+};
+
+TEST_F(dynarrayTest, statefulAlwaysEqualDefaultConstructibleAlloc)
+{
+	int mem[5];
+	StatefulAlwaysEqualAlloc a{mem};
+	dynarray<int, StatefulAlwaysEqualAlloc> d(a);
+
+	d.resize(5);
+}
+
 template<typename T>
 void testErase()
 {
