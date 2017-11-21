@@ -627,17 +627,25 @@ TEST_F(dynarrayTest, overAligned)
 }
 #endif
 
+TEST_F(dynarrayTest, greaterThanMax)
+{
+	struct Size2
+	{
+		char a[2];
+	};
+
+	dynarray<Size2> d;
+	size_t const n = std::numeric_limits<size_t>::max() / 2 + 1;
+
+	EXPECT_THROW(d.reserve(n), std::length_error);
+	EXPECT_THROW(d.resize(n), std::length_error);
+	EXPECT_THROW(d.resize(n, oel::default_init), std::length_error);
+	ASSERT_TRUE(d.empty());
+	EXPECT_THROW(d.append(n, Size2{}), std::length_error);
+}
+
 TEST_F(dynarrayTest, misc)
 {
-	{
-		dynarray<int> arr[]{ dynarray<int>(/*size*/ 2, 1), {1, 1}, {1, 3} };
-		dynarray< std::reference_wrapper<const dynarray<int>> > refs{arr[0], arr[1]};
-		refs.push_back(arr[2]);
-		EXPECT_EQ(3, refs.at(2).get().at(1));
-		EXPECT_TRUE(refs.at(0) == refs.at(1));
-		EXPECT_TRUE(refs.at(1) != refs.at(2));
-	}
-
 	size_t fASrc[] = { 2, 3 };
 
 	dynarray<size_t> daSrc(oel::reserve, 2);

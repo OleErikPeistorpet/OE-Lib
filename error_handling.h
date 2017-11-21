@@ -69,15 +69,16 @@ namespace _detail
 {
 	struct Throw
 	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
-	#ifdef _MSC_VER
-		__declspec(noreturn)
-	#else
-		__attribute__((noreturn))
-	#endif
-		static void OutOfRange(const char * what)
+		OEL_NORETURN static void OutOfRange(const char * what)
 		{
 			OEL_THROW(std::out_of_range(what));
 			(void) what; // avoid warning when exceptions disabled
+		}
+
+		OEL_NORETURN static void LengthError(const char * what)
+		{
+			OEL_THROW(std::length_error(what));
+			(void) what;
 		}
 	};
 }

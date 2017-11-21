@@ -290,7 +290,7 @@ private:
 		_scopedPtr(Alloc & a, size_type const allocSize)
 		 :	_allocRef(a)
 		{
-			data = this->Get().allocate(allocSize);
+			data = _allocate(this->Get(), allocSize);
 			allocEnd = data + allocSize;
 		}
 		_scopedPtr(const _scopedPtr &) = delete;
@@ -322,7 +322,7 @@ private:
 		_memOwner(const Alloc & a, size_type const capacity)
 		 :	Alloc(a)
 		{
-			end = data = this->allocate(capacity);
+			end = data = _allocate(*this, capacity);
 			reservEnd = data + capacity;
 		}
 		_memOwner(_memOwner && other)
@@ -349,6 +349,17 @@ private:
 
 		_m.data = newData;
 	}
+
+	static pointer _allocate(Alloc & a, size_type const n)
+	{
+		if (n <= _allocTrait::max_size(a))
+			return a.allocate(n);
+		else
+			_detail::Throw::LengthError("Going over dynarray max_size");
+	}
+
+	static pointer _allocate(Alloc && a, size_type n) { return _allocate(a, n); }
+
 
 	void _moveAssignAlloc(std::true_type, Alloc & a)
 	{
@@ -546,7 +557,7 @@ private:
 		if (capacity() < count)
 		{
 			// Deallocating first might be better, but then the _m pointers would have to be nulled in case allocate throws
-			_resetData(_m.allocate(count));
+			_resetData(_allocate(_m, count));
 			_m.end = _m.data + count;
 			_m.reservEnd = _m.end;
 		}
@@ -574,7 +585,7 @@ private:
 		pointer newEnd;
 		if (capacity() < count)
 		{	// not enough room, allocate
-			pointer const newData = _m.allocate(count);
+			pointer const newData = _allocate(_m, count);
 			// Old elements might hold some limited resource, destroying them before constructing new is probably good
 			_detail::Destroy(_m.data, _m.end);
 			_resetData(newData);
@@ -919,7 +930,7 @@ dynarray<T, Alloc>::~dynarray() noexcept
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::swap(dynarray & other) OEL_NOEXCEPT_NDEBUG
 {
-	std::swap<_internBase>(_m, other._m);
+	std::swap(static_cast<_internBase &>(_m), static_cast<_internBase &>(other._m));
 	_swapAlloc(typename _allocTrait::propagate_on_container_swap(), other._m);
 }
 

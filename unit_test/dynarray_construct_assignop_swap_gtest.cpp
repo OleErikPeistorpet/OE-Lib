@@ -1,7 +1,7 @@
 #include "dynarray.h"
 #include "test_classes.h"
-#include "compat/std_classes_extra.h"
 
+#include <array>
 #include <string>
 
 /// @cond INTERNAL
@@ -49,39 +49,6 @@ protected:
 	}
 };
 
-namespace
-{
-	using Iter = dynarray<float>::iterator;
-	using ConstIter = dynarray<float>::const_iterator;
-
-	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>::value, "?");
-
-	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
-	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
-	static_assert(oel::can_memmove_with<float *, ConstIter>::value, "?");
-	static_assert( !oel::can_memmove_with<int *, float *>::value, "?" );
-
-	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
-	static_assert(oel::is_trivially_copyable<ConstIter>::value, "?");
-	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
-	static_assert( !std::is_convertible<ConstIter, Iter>::value, "?" );
-
-	static_assert(oel::is_trivially_relocatable< std::array<std::unique_ptr<double>, 4> >::value, "?");
-
-	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >::value, "?");
-	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
-	static_assert( !oel::is_trivially_copyable< std::tuple<int, NontrivialReloc, int> >::value, "?" );
-
-	static_assert(OEL_ALIGNOF(oel::aligned_storage_t<32, 16>) == 16, "?");
-	static_assert(OEL_ALIGNOF(oel::aligned_storage_t<64, 64>) == 64, "?");
-
-	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::string> >::value,
-				  "Not critical, this assert can be removed");
-
-	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
-				  "Not critical, this assert can be removed");
-}
-
 TEST_F(dynarrayConstructTest, misc)
 {
 	{
@@ -103,6 +70,27 @@ TEST_F(dynarrayConstructTest, constructEmpty)
 	EXPECT_EQ(0U, a.capacity());
 	EXPECT_EQ(0, AllocCounter::nAllocations);
 	ASSERT_EQ(0, AllocCounter::nDeallocations);
+}
+
+TEST_F(dynarrayConstructTest, greaterThanMax)
+{
+	struct Size2
+	{
+		char a[2];
+	};
+
+	using Test = dynarray<Size2>;	
+#ifndef _MSC_VER
+	const
+#else
+	volatile // trick to avoid unreachable code warnings
+#endif
+		size_t n = std::numeric_limits<size_t>::max() / 2 + 1;
+
+	EXPECT_THROW(Test d(reserve, n), std::length_error);
+	EXPECT_THROW(Test d(n, default_init), std::length_error);
+	EXPECT_THROW(Test d(n), std::length_error);
+	EXPECT_THROW(Test d(n, Size2{}), std::length_error);
 }
 
 TEST_F(dynarrayConstructTest, constructReserve)
@@ -421,5 +409,22 @@ TEST_F(dynarrayConstructTest, copyConstructThrowing)
 	}
 }
 ) // OEL_WHEN_EXCEPTIONS_ON
+
+TEST_F(dynarrayConstructTest, swap)
+{
+	dynarrayTrackingAlloc<int> a, b{1, 2};
+	auto const p = a.data();
+	const auto & r = b.back();
+
+	swap(a, b);
+	EXPECT_EQ(b.data(), p);
+	EXPECT_EQ(2, r);
+	EXPECT_EQ(&a.back(), &r);
+
+	b.swap(a);
+	EXPECT_EQ(a.data(), p);
+	EXPECT_EQ(2, r);
+	EXPECT_EQ(&b.back(), &r);
+}
 
 /// @endcond
