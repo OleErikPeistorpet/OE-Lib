@@ -930,7 +930,9 @@ dynarray<T, Alloc>::~dynarray() noexcept
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::swap(dynarray & other) OEL_NOEXCEPT_NDEBUG
 {
-	std::swap(static_cast<_internBase &>(_m), static_cast<_internBase &>(other._m));
+	_internBase & a = _m;
+	_internBase & b = other._m;
+	std::swap(a, b);
 	_swapAlloc(typename _allocTrait::propagate_on_container_swap(), other._m);
 }
 
