@@ -79,7 +79,7 @@ TEST_F(dynarrayConstructTest, greaterThanMax)
 		char a[2];
 	};
 
-	using Test = dynarray<Size2>;	
+	using Test = dynarray<Size2>;
 #ifndef _MSC_VER
 	const
 #else
@@ -203,7 +203,7 @@ TEST_F(dynarrayConstructTest, constructNFill)
 
 		ASSERT_EQ(a.size(), 11U);
 		for (const auto & e : a)
-			ASSERT_TRUE(97.0 == e);
+			ASSERT_TRUE(97.0 == *e);
 
 		EXPECT_EQ(1 + 11, NontrivialReloc::nConstructions);
 
@@ -238,6 +238,96 @@ TEST_F(dynarrayConstructTest, constructContiguousRange)
 	std::string str = "AbCd";
 	dynarray<char> test(str);
 	EXPECT_TRUE( 0 == str.compare(0, 4, test.data(), test.size()) );
+}
+
+
+template<typename Alloc>
+void testMoveConstruct(Alloc a0, Alloc a1)
+{
+	for (auto const nl : {0, 1, 80})
+	{
+		dynarray<MoveOnly, Alloc> right(a0);
+
+		for (int i = 0; i < 9; ++i)
+			right.emplace_back(0.5);
+
+		auto const nAllocBefore = AllocCounter::nAllocations;
+
+		auto const ptr = right.data();
+
+		dynarray<MoveOnly, Alloc> left(std::move(right), a1);
+
+		EXPECT_TRUE(left.get_allocator() == a1);
+
+		EXPECT_EQ(nAllocBefore, AllocCounter::nAllocations);
+		EXPECT_EQ(9, MoveOnly::nConstructions - MoveOnly::nDestruct);
+
+		if (0 == nl)
+		{
+			ASSERT_TRUE(right.empty());
+			EXPECT_EQ(0U, right.capacity());
+		}
+		ASSERT_EQ(9U, left.size());
+		EXPECT_EQ(ptr, left.data());
+	}
+	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+}
+
+TEST_F(dynarrayConstructTest, moveConstructWithAlloc)
+{
+	TrackingAllocator<MoveOnly> a;
+	testMoveConstruct(a, a);
+
+	testMoveConstruct< StatefulAllocator<MoveOnly, false> >({0}, {0});
+}
+
+template<typename T>
+void testConstructMoveElements()
+{
+	AllocCounter::ClearAll();
+	T::ClearCount();
+	// not propagating, not equal, cannot steal the memory
+	for (auto const na : {0, 1, 101})
+	{
+		using Alloc = StatefulAllocator<T, false>;
+		dynarray<T, Alloc> a(reserve, na, Alloc{1});
+
+		for (int i = 0; i < na; ++i)
+			a.emplace_back(i + 0.5);
+
+		auto const capBefore = a.capacity();
+
+		auto const nExpectAlloc = AllocCounter::nAllocations + (a.empty() ? 0 : 1);
+
+		dynarray<T, Alloc> b(std::move(a), Alloc{2});
+
+		ASSERT_FALSE(a.get_allocator() == b.get_allocator());
+
+		EXPECT_EQ(1, a.get_allocator().id);
+		EXPECT_EQ(2, b.get_allocator().id);
+
+		EXPECT_EQ(nExpectAlloc, AllocCounter::nAllocations);
+		OEL_CONST_COND if (is_trivially_relocatable<T>::value)
+		{
+			EXPECT_EQ(na, T::nConstructions - T::nDestruct);
+			EXPECT_TRUE(a.empty());
+		}
+		else
+		{	EXPECT_EQ(b.size(), a.size());
+		}
+		EXPECT_EQ(capBefore, a.capacity());
+		ASSERT_EQ(na, ssize(b));
+		for (int i = 0; i < na; ++i)
+			EXPECT_TRUE(b[i].get() && *b[i] == i + 0.5);
+	}
+	EXPECT_EQ(AllocCounter::nConstructCalls, T::nDestruct);
+	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+}
+
+TEST_F(dynarrayConstructTest, moveConstructUnequalAlloc)
+{
+	testConstructMoveElements<MoveOnly>();
+	testConstructMoveElements<NontrivialReloc>();
 }
 
 template<typename Alloc>
@@ -287,19 +377,19 @@ TEST_F(dynarrayConstructTest, moveAssign)
 	testMoveAssign< StatefulAllocator<MoveOnly, true> >({0}, {1});
 }
 
-TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
+template<typename T>
+void testAssignMoveElements()
 {
-	using Alloc = StatefulAllocator<MoveOnly, false>;
-
-	testMoveAssign(Alloc{}, Alloc{});
-
-	MoveOnly::ClearCount();
+	AllocCounter::ClearAll();
+	T::ClearCount();
 	// not propagating, not equal, cannot steal the memory
 	for (auto const na : {0, 1, 101})
+	{
 		for (auto const nb : {0, 1, 2})
 		{
-			dynarray<MoveOnly, Alloc> a(reserve, na, Alloc{1});
-			dynarray<MoveOnly, Alloc> b(reserve, nb, Alloc{2});
+			using Alloc = StatefulAllocator<T, false>;
+			dynarray<T, Alloc> a(reserve, na, Alloc{1});
+			dynarray<T, Alloc> b(reserve, nb, Alloc{2});
 
 			ASSERT_FALSE(a.get_allocator() == b.get_allocator());
 
@@ -319,16 +409,31 @@ TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
 			EXPECT_EQ(2, b.get_allocator().id);
 
 			EXPECT_EQ(nExpectAlloc, AllocCounter::nAllocations);
-			EXPECT_EQ(na, MoveOnly::nConstructions - MoveOnly::nDestruct);
-
-			EXPECT_TRUE(a.empty());
+			OEL_CONST_COND if (is_trivially_relocatable<T>::value)
+			{
+				EXPECT_EQ(na, T::nConstructions - T::nDestruct);
+				EXPECT_TRUE(a.empty());
+			}
+			else
+			{	EXPECT_EQ(b.size(), a.size());
+			}
 			EXPECT_EQ(capBefore, a.capacity());
 			ASSERT_EQ(na, ssize(b));
 			for (int i = 0; i < na; ++i)
 				EXPECT_TRUE(b[i].get() && *b[i] == i + 0.5);
 		}
+		EXPECT_EQ(AllocCounter::nConstructCalls, T::nDestruct);
+		EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	}
+}
 
-	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
+{
+	using Alloc = StatefulAllocator<MoveOnly, false>;
+	testMoveAssign(Alloc{}, Alloc{});
+
+	testAssignMoveElements<MoveOnly>();
+	testAssignMoveElements<NontrivialReloc>();
 }
 
 TEST_F(dynarrayConstructTest, selfMoveAssign)
@@ -342,6 +447,7 @@ TEST_F(dynarrayConstructTest, selfMoveAssign)
 	EXPECT_EQ(4U, d.size());
 	EXPECT_EQ(-3, d.back());
 }
+
 
 template<typename T, typename... Arg>
 void testConstructNThrowing(const Arg &... arg)

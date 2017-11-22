@@ -224,8 +224,8 @@ TEST_F(dynarrayTest, assign)
 		dest = {NontrivialReloc{-1.0}};
 		EXPECT_EQ(1U, dest.size());
 		dest = {NontrivialReloc{1.0}, NontrivialReloc{2.0}};
-		EXPECT_DOUBLE_EQ(1.0, dest.at(0));
-		EXPECT_DOUBLE_EQ(2.0, dest.at(1));
+		EXPECT_EQ(1.0, *dest.at(0));
+		EXPECT_EQ(2.0, *dest.at(1));
 		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(dest), NontrivialReloc::nDestruct);
 		{
 			NontrivialReloc obj{-3.3};
@@ -235,7 +235,7 @@ TEST_F(dynarrayTest, assign)
 			}
 			catch (TestException &) {
 			}
-			EXPECT_TRUE(dest.empty() || dest.at(1) == 2.0);
+			EXPECT_TRUE(dest.empty() || *dest.at(1) == 2.0);
 		}
 		{
 			dest.clear();

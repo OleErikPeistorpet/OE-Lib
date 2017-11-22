@@ -61,7 +61,7 @@ public:
 
 	const double * get() const { return val.get(); }
 
-	double operator*() const { return *val; }
+	double operator *() const { return *val; }
 };
 oel::true_type specify_trivial_relocate(MoveOnly);
 
@@ -93,10 +93,11 @@ public:
 
 	~NontrivialReloc() { ++nDestruct; }
 
-	operator double() const
-	{
-		return val;
-	}
+	operator double() const { return val; }
+
+	double operator *() const { return val; }
+
+	const double * get() const { return &val; }
 };
 oel::false_type specify_trivial_relocate(NontrivialReloc);
 

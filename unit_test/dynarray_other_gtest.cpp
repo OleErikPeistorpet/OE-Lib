@@ -55,8 +55,8 @@ TEST(dynarrayOtherTest, compare)
 	EXPECT_TRUE(b);
 	b = arr[1] == dynarray<int>{2};
 	EXPECT_TRUE(b);
-	b = arr[2] == dynarray<int>{2, 1};
-	EXPECT_TRUE(b);
+	b = arr[2] != dynarray<int>{2, 1};
+	EXPECT_FALSE(b);
 
 	EXPECT_TRUE(arr[2] > arr[1]);
 	EXPECT_TRUE(arr[1] > arr[0]);
