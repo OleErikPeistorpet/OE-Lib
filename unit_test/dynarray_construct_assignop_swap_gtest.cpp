@@ -81,9 +81,7 @@ TEST_F(dynarrayConstructTest, greaterThanMax)
 
 	using Test = dynarray<Size2>;
 #ifndef _MSC_VER
-	const
-#else
-	volatile // trick to avoid unreachable code warnings
+	const // unreachable code warnings
 #endif
 		size_t n = std::numeric_limits<size_t>::max() / 2 + 1;
 
