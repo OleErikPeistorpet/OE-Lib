@@ -9,7 +9,6 @@
 #include "util.h"
 
 #ifndef OEL_NO_BOOST
-	#include <boost/range/iterator_range_core.hpp>
 	#include <boost/iterator/transform_iterator.hpp>
 #endif
 
@@ -20,35 +19,28 @@
 namespace oel
 {
 
-#ifndef OEL_NO_BOOST
-	using boost::iterator_range;
-	using boost::make_iterator_range;
-#else
-	template<typename Iterator>
-	class iterator_range
-	{
-	public:
-		using iterator        = Iterator;
-		using difference_type = iterator_difference_t<Iterator>;
+//! A minimal substitute for boost::iterator_range
+template<typename Iterator>
+class iterator_range
+{
+public:
+	iterator_range(Iterator f, Iterator l)  : _begin(f), _end(l) {}
 
-		iterator_range(Iterator f, Iterator l)  : _begin(f), _end(l) {}
+	Iterator begin() const  { return _begin; }
+	Iterator end() const    { return _end; }
 
-		iterator begin() const  { return _begin; }
-		iterator end() const    { return _end; }
+protected:
+	Iterator _begin;
+	Iterator _end;
+};
 
-		template<typename It = Iterator,
-		         enable_if<std::is_base_of< random_access_traversal_tag, iterator_traversal_t<It> >::value> = 0>
-		size_t size() const  { return _end - _begin; }
+template<typename Iterator,
+         enable_if<std::is_base_of< random_access_traversal_tag, iterator_traversal_t<Iterator> >::value> = 0>
+iterator_difference_t<Iterator> ssize(const iterator_range<Iterator> & r)   { return r.end() - r.begin(); }
 
-	protected:
-		Iterator _begin;
-		Iterator _end;
-	};
-
-	//! Create an iterator_range from two iterators, with type deduced from arguments
-	template<typename Iterator> inline
-	iterator_range<Iterator> make_iterator_range(Iterator first, Iterator last)  { return {first, last}; }
-#endif
+//! Create an iterator_range from two iterators, with type deduced from arguments
+template<typename Iterator> inline
+iterator_range<Iterator> make_iterator_range(Iterator first, Iterator last)  { return {first, last}; }
 
 
 //! Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
