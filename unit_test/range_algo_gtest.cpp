@@ -6,6 +6,7 @@
 #include <forward_list>
 #include <deque>
 #include <array>
+#include <valarray>
 
 /// @cond INTERNAL
 
@@ -108,6 +109,17 @@ TEST(rangeTest, viewTransform)
 }
 #endif
 
+TEST(rangeTest, copyUnsafe)
+{
+	std::valarray<int> src(2);
+	src[0] = 1;
+	src[1] = 2;
+	std::valarray<int> dest(2);
+	oel::copy_unsafe(src, begin(dest));
+	EXPECT_EQ(1, dest[0]);
+	EXPECT_EQ(2, dest[1]);
+}
+
 TEST(rangeTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
@@ -153,13 +165,13 @@ void testAppend()
 	EXPECT_EQ(2U, c.size());
 	oel::append(c, 3, -1);
 	EXPECT_EQ(5U, c.size());
-	EXPECT_EQ(2, c[1]);
+	EXPECT_EQ( 2, *std::next(c.begin()) );
 	EXPECT_EQ(-1, c.back());
 }
 
 TEST(rangeTest, append)
 {
-	testAppend< std::deque<int> >();
+	testAppend< std::list<int> >();
 	testAppend< oel::dynarray<int> >();
 }
 

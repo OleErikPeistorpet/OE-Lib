@@ -98,7 +98,7 @@ template<bool...> struct bool_pack_t;
 
 //! If all of Vs are equal to true, this is-a true_type, else false_type
 template<bool... Vs>
-using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
+using all_true  = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
 
 /** @brief Similar to std::conjunction, but is not short-circuiting
 *
@@ -109,5 +109,19 @@ void ProcessNumbers(Ts... n) {
 @endcode  */
 template<typename... BoolConstants>
 struct all_ : all_true<BoolConstants::value...> {};
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+namespace _detail
+{
+	template<typename Range>
+	typename Range::difference_type DiffT(int);
+
+	template<typename> std::ptrdiff_t DiffT(long);
+}
 
 } // namespace oel

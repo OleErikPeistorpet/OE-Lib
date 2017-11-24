@@ -41,21 +41,25 @@ using enable_if = typename std::enable_if<Condition, int>::type;
 
 //! Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T> inline
-constexpr typename std::make_signed<T>::type   as_signed(T val) noexcept  { return (typename std::make_signed<T>::type)val; }
+constexpr typename std::make_signed<T>::type
+	as_signed(T val) noexcept                  { return (typename std::make_signed<T>::type) val; }
 //! Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
 template<typename T> inline
-constexpr typename std::make_unsigned<T>::type as_unsigned(T val) noexcept
-	{
-		return (typename std::make_unsigned<T>::type)val;
-	}
+constexpr typename std::make_unsigned<T>::type
+	as_unsigned(T val) noexcept                { return (typename std::make_unsigned<T>::type) val; }
 
 
 
-//! Returns r.size() as signed (SizedRange::difference_type)
+//! Range::difference_type if present, else std::ptrdiff_t
+template<typename Range>
+using range_difference_t  = decltype( _detail::DiffT<Range>(0) );
+
+
+//! Returns r.size() as signed type
 template<typename SizedRange> inline
 constexpr auto ssize(const SizedRange & r)
- -> decltype( static_cast<typename SizedRange::difference_type>(r.size()) )
-     { return static_cast<typename SizedRange::difference_type>(r.size()); }
+ -> decltype( static_cast< range_difference_t<SizedRange> >(r.size()) )
+     { return static_cast< range_difference_t<SizedRange> >(r.size()); }
 //! Returns number of elements in array as signed type
 template<typename T, std::ptrdiff_t Size> inline
 constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
