@@ -34,8 +34,7 @@ protected:
 	Iterator _end;
 };
 
-template<typename Iterator,
-         enable_if<std::is_base_of< random_access_traversal_tag, iterator_traversal_t<Iterator> >::value> = 0>
+template<typename Iterator, enable_if< iterator_is_random_access<Iterator>::value > = 0>
 iterator_difference_t<Iterator> ssize(const iterator_range<Iterator> & r)   { return r.end() - r.begin(); }
 
 //! Create an iterator_range from two iterators, with type deduced from arguments
@@ -44,8 +43,7 @@ iterator_range<Iterator> make_iterator_range(Iterator first, Iterator last)  { r
 
 
 //! Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
-template<typename Iterator,
-         bool = std::is_base_of< random_access_traversal_tag, iterator_traversal_t<Iterator> >::value>
+template<typename Iterator, bool = iterator_is_random_access<Iterator>::value>
 class counted_view
 {
 public:

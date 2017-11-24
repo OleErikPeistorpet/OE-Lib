@@ -40,7 +40,7 @@ struct throwingAlloc : public oel::allocator<T>
 		return oel::allocator<T>::allocate(nObjs);
 	}
 };
-static_assert(! oel::is_always_equal_allocator<throwingAlloc<int>>::value, "?");
+static_assert(! oel::is_always_equal<throwingAlloc<int>>::value, "?");
 
 // The fixture for testing dynarray.
 class dynarrayTest : public ::testing::Test

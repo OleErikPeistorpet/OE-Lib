@@ -123,7 +123,7 @@ public:
 	~dynarray() noexcept;
 
 	dynarray & operator =(dynarray && other) OEL_NOEXCEPT(_allocTrait::propagate_on_container_move_assignment::value
-	                                                      || is_always_equal_allocator<Alloc>::value);
+	                                                      || is_always_equal<Alloc>::value);
 	//! Treats Alloc as if it does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other)    { assign(other);  return *this; }
 
@@ -857,7 +857,7 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
-	if (a != other._m && !is_always_equal_allocator<Alloc>::value)
+	if (a != other._m && !is_always_equal<Alloc>::value)
 	{
 		_allocUnequalMove(other, is_trivially_relocatable<T>());
 	}
@@ -870,7 +870,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
 
 template<typename T, typename Alloc>
 dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other)
-	OEL_NOEXCEPT(_allocTrait::propagate_on_container_move_assignment::value || is_always_equal_allocator<Alloc>::value)
+	OEL_NOEXCEPT(_allocTrait::propagate_on_container_move_assignment::value || is_always_equal<Alloc>::value)
 {
 	if (static_cast<Alloc &>(_m) != other._m &&
 		!_allocTrait::propagate_on_container_move_assignment::value)

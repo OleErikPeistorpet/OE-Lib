@@ -67,8 +67,8 @@ struct allocator
 
 
 //! Part of std::allocator_traits for C++17
-template<typename Alloc>
-struct is_always_equal_allocator;
+template<typename T>
+struct is_always_equal;
 
 
 
@@ -214,5 +214,5 @@ namespace _detail
 
 } // namespace oel
 
-template<typename Alloc>
-struct oel::is_always_equal_allocator : decltype( _detail::IsAlwaysEqual<Alloc>(0) ) {};
+template<typename T>
+struct oel::is_always_equal : decltype( _detail::IsAlwaysEqual<T>(0) ) {};

@@ -188,6 +188,9 @@ using iterator_traversal_t
 	using random_access_traversal_tag = std::random_access_iterator_tag;
 #endif
 
+template<typename Iterator>
+using iterator_is_random_access = std::is_base_of< random_access_traversal_tag, iterator_traversal_t<Iterator> >;
+
 
 #if __GLIBCXX__
 	template<typename T, typename C> inline
