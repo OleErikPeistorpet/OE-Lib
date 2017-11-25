@@ -50,7 +50,7 @@ void erase_successive_dup(Container & c, BinaryPredicate isDup = BinaryPredicate
 template<typename IteratorSource>
 struct copy_unsafe_return
 {
-	IteratorSource src_last;
+	IteratorSource source_last;
 };
 /**
 * @brief Copies the elements in source into the range beginning at dest
@@ -65,7 +65,7 @@ auto copy_unsafe(const SizedInputRange & source, RandomAccessIter dest)
 template<typename IteratorSource, typename IteratorDest>
 struct last_iterators
 {
-	IteratorSource src_last;
+	IteratorSource source_last;
 	IteratorDest   dest_last;
 };
 /**
@@ -198,7 +198,7 @@ namespace _detail
 	{
 		return _detail::CopyImpl<Ret>
 			(	src, dest,
-				[](IterSrc s, IterDest d) { return Ret{s, d}; },
+				[](IterSrc si, IterDest di) { return Ret{si, di}; },
 				[]() -> Ret { Throw::OutOfRange(errorCopyMsg); }
 			);
 	}
@@ -209,8 +209,8 @@ namespace _detail
 		auto const n = oel::ssize(src);
 		if (n <= oel::ssize(dest))
 		{
-			auto srcLast = oel::copy_unsafe(src, begin(dest)).src_last;
-			return {srcLast, begin(dest) + n};
+			auto sLast = oel::copy_unsafe(src, begin(dest)).source_last;
+			return {sLast, begin(dest) + n};
 		}
 		else
 		{	Throw::OutOfRange(errorCopyMsg);
