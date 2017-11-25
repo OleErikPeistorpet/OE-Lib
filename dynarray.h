@@ -361,9 +361,10 @@ private:
 	static pointer _allocate(Alloc && a, size_type n) { return _allocate(a, n); }
 
 
-	void _moveAssignAlloc(std::true_type, Alloc & a)
+	void _moveAssignAlloc(std::true_type, Alloc & src)
 	{
-		static_cast<Alloc &>(_m) = std::move(a);
+		Alloc & a = _m;
+		a = std::move(src);
 	}
 
 	void _moveAssignAlloc(std::false_type, Alloc &) {}

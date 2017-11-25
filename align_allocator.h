@@ -21,7 +21,7 @@ namespace oel
 //! Same as std::aligned_storage<Size, Align>::type, with support for alignment above that of std::max_align_t (up to 128)
 template<size_t Size, size_t Align>
 struct aligned_storage_t;
-//! Currently only one type, meant to support multiple
+//! A trivial type of same size and alignment as type T, suitable for use as uninitialized storage for an object
 template<typename T>
 using aligned_union_t = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
 
@@ -208,6 +208,7 @@ namespace _detail
 {
 	template<typename T>
 	typename T::is_always_equal IsAlwaysEqual(int);
+
 	template<typename T>
 	std::is_empty<T> IsAlwaysEqual(long);
 }
