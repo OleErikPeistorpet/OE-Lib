@@ -127,8 +127,9 @@ TEST(rangeTest, copy)
 	test2[4] = -7;
 	auto fitInto = oel::view::counted(std::begin(test2), 4);
 
+OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
-
+)
 	auto success = oel::copy_fit(test, fitInto);
 	EXPECT_TRUE(std::equal(begin(test), begin(test) + 4, test2));
 	EXPECT_EQ(-7, test2[4]);
