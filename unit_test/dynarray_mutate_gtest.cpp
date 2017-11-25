@@ -35,7 +35,7 @@ struct throwingAlloc : public oel::allocator<T>
 	T * allocate(size_t nObjs)
 	{
 		if (nObjs > throwIfGreater)
-			throw std::bad_alloc{};
+			OEL_THROW(std::bad_alloc{});
 
 		return oel::allocator<T>::allocate(nObjs);
 	}
@@ -263,6 +263,8 @@ TEST_F(dynarrayTest, assign)
 	EXPECT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
 }
 
+// std::stringstream doesn't seem to work using libstdc++ with -fno-exceptions
+#if !defined __GLIBCXX__ || defined __EXCEPTIONS
 TEST_F(dynarrayTest, assignStringStream)
 {
 	{
@@ -314,6 +316,7 @@ TEST_F(dynarrayTest, assignStringStream)
 		EXPECT_TRUE(copyDest.empty());
 	}
 }
+#endif
 
 TEST_F(dynarrayTest, append)
 {
@@ -359,6 +362,7 @@ TEST_F(dynarrayTest, append)
 	EXPECT_DOUBLE_EQ(3, double_dynarr[6]);
 	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
 
+#if !defined __GLIBCXX__ || defined __EXCEPTIONS
 	{
 		std::stringstream ss("1 2 3 4 5");
 
@@ -376,6 +380,7 @@ TEST_F(dynarrayTest, append)
 		for (int i = 0; i < ssize(dest); ++i)
 			EXPECT_EQ(i + 1, dest[i]);
 	}
+#endif
 }
 
 TEST_F(dynarrayTest, insertR)
@@ -639,6 +644,7 @@ OEL_WHEN_EXCEPTIONS_ON(
 }
 #endif
 
+#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
 TEST_F(dynarrayTest, greaterThanMax)
 {
 	struct Size2
@@ -649,16 +655,13 @@ TEST_F(dynarrayTest, greaterThanMax)
 	dynarray<Size2> d;
 	size_t const n = std::numeric_limits<size_t>::max() / 2 + 1;
 
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(d.reserve(n), std::length_error); )
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(d.resize(n), std::length_error); )
-OEL_WHEN_EXCEPTIONS_ON(
+	EXPECT_THROW(d.reserve(n), std::length_error);
+	EXPECT_THROW(d.resize(n), std::length_error);
 	EXPECT_THROW(d.resize(n, oel::default_init), std::length_error);
-	ASSERT_TRUE(d.empty()); )
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(d.append(n, Size2{}), std::length_error); )
+	ASSERT_TRUE(d.empty());
+	EXPECT_THROW(d.append(n, Size2{}), std::length_error);
 }
+#endif
 
 TEST_F(dynarrayTest, misc)
 {
@@ -670,8 +673,8 @@ TEST_F(dynarrayTest, misc)
 	daSrc.insert(begin(daSrc) + 1, 1);
 	ASSERT_EQ(3U, daSrc.size());
 
-	ASSERT_NO_THROW(daSrc.at(2));
 OEL_WHEN_EXCEPTIONS_ON(
+	ASSERT_NO_THROW(daSrc.at(2));
 	ASSERT_THROW(daSrc.at(3), std::out_of_range);
 )
 	std::deque<size_t> dequeSrc{4, 5};

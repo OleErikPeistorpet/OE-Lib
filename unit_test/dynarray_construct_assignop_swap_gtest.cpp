@@ -72,6 +72,7 @@ TEST_F(dynarrayConstructTest, constructEmpty)
 	ASSERT_EQ(0, AllocCounter::nDeallocations);
 }
 
+#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
 TEST_F(dynarrayConstructTest, greaterThanMax)
 {
 	struct Size2
@@ -85,15 +86,12 @@ TEST_F(dynarrayConstructTest, greaterThanMax)
 #endif
 		size_t n = std::numeric_limits<size_t>::max() / 2 + 1;
 
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(Test d(reserve, n), std::length_error); )
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(Test d(n, default_init), std::length_error); )
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(Test d(n), std::length_error); )
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(Test d(n, Size2{}), std::length_error); )
+	EXPECT_THROW(Test d(reserve, n), std::length_error);
+	EXPECT_THROW(Test d(n, default_init), std::length_error);
+	EXPECT_THROW(Test d(n), std::length_error);
+	EXPECT_THROW(Test d(n, Size2{}), std::length_error);
 }
+#endif
 
 TEST_F(dynarrayConstructTest, constructReserve)
 {
