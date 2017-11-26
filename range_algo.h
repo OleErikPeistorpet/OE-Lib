@@ -118,11 +118,11 @@ typename Container::iterator insert(Container & dest, typename Container::const_
 namespace _detail
 {
 	template<typename Container> inline
-	auto EraseEnd(Container & c, typename Container::iterator f, int)
+	auto EraseEnd(Container & c, typename Container::iterator f)
 	 -> decltype(c.erase_to_end(f)) { return c.erase_to_end(f); }
 
-	template<typename Container> inline
-	void EraseEnd(Container & c, typename Container::iterator f, long) { c.erase(f, c.end()); }
+	template<typename Container, typename... None> inline
+	void EraseEnd(Container & c, typename Container::iterator f, None...) { c.erase(f, c.end()); }
 
 	template<typename Container, typename UnaryPred> inline
 	auto RemoveIf(Container & c, UnaryPred p, int)  // pass dummy int to prefer this overload
@@ -131,7 +131,7 @@ namespace _detail
 	template<typename Container, typename UnaryPred>
 	void RemoveIf(Container & c, UnaryPred p, long)
 	{
-		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p), int{} );
+		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p) );
 	}
 
 	template<typename Container, typename BinaryPred> inline
@@ -141,7 +141,7 @@ namespace _detail
 	template<typename Container, typename BinaryPred>
 	void Unique(Container & c, BinaryPred p, long)
 	{
-		_detail::EraseEnd( c, std::unique(begin(c), end(c), p), int{} );
+		_detail::EraseEnd( c, std::unique(begin(c), end(c), p) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
