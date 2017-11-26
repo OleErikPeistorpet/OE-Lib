@@ -14,21 +14,13 @@ namespace oel
 
 template<typename, typename> class contiguous_ctnr_iterator;
 
-///@{
 //! To raw pointer (unchecked)
 template<typename Ptr, typename C> inline
 typename std::pointer_traits<Ptr>::element_type *
 	to_pointer_contiguous(const contiguous_ctnr_iterator<Ptr, C> & it)
 {
-	return it._pElem.operator->();
+	return _detail::ToAddress(it._pElem);
 }
-
-template<typename T, typename C> inline
-T * to_pointer_contiguous(const contiguous_ctnr_iterator<T *, C> & it)
-{
-	return it._pElem;
-}
-///@}
 
 /** @brief Debug iterator for container with contiguous memory
 *

@@ -13,6 +13,7 @@
 	#include <boost/iterator/iterator_categories.hpp>
 #endif
 #include <iterator>
+#include <memory>  // for pointer_traits
 #include <string.h> // for memcpy
 
 
@@ -74,7 +75,7 @@ constexpr bool index_valid(const SizedRange & r, Integral index);
 using std::begin;
 using std::end;
 
-#if __cplusplus >= 201402L || _MSC_VER
+#if __cplusplus >= 201402L || defined _MSC_VER
 	using std::cbegin;   using std::cend;
 	using std::crbegin;  using std::crend;
 #endif
@@ -153,13 +154,15 @@ struct can_memmove_with;
 
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
-{	explicit reserve_tag() {}
+{
+	explicit reserve_tag() {}
 }
 const reserve; //!< An instance of reserve_tag to pass
 
 //! Tag to specify default initialization
 struct default_init_tag
-{	explicit default_init_tag() {}
+{
+	explicit default_init_tag() {}
 }
 const default_init; //!< An instance of default_init_tag to pass
 
@@ -196,21 +199,30 @@ template<typename Iterator>
 using iterator_is_random_access = std::is_base_of< random_access_traversal_tag, iterator_traversal_t<Iterator> >;
 
 
-#if __GLIBCXX__
-	template<typename T, typename C> inline
-	T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, C> it) noexcept
+namespace _detail
+{
+	//! Part of pointer_traits_traits for C++17
+	template<typename Ptr> inline
+	typename std::pointer_traits<Ptr>::element_type * ToAddress(Ptr p) noexcept
 	{
-		return it.base();
+		return p.operator->();
 	}
+
+	template<typename T> inline
+	T * ToAddress(T * p) { return p; }
+}
+
+#ifdef __GLIBCXX__
 	template<typename Ptr, typename C> inline
 	typename std::pointer_traits<Ptr>::element_type *
 		to_pointer_contiguous(__gnu_cxx::__normal_iterator<Ptr, C> it) noexcept
 	{
-		return it.base().operator->();
+		return _detail::ToAddress(it.base());
 	}
 #elif _LIBCPP_VERSION
 	template<typename T> inline
 	T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return __unwrap_iter(it); }
+
 #elif _MSC_VER
 	template<typename T, size_t S> inline
 	T *       to_pointer_contiguous(std::_Array_iterator<T, S> it) noexcept       { return _Unchecked(it); }
@@ -288,7 +300,7 @@ namespace _detail
 template<typename Integral, typename SizedRange>
 inline constexpr bool oel::index_valid(const SizedRange & r, Integral i)
 {
-	auto const us = as_unsigned(oel::ssize(r));
-	using NotBigInts = bool_constant<sizeof us < sizeof(long long) && sizeof i < sizeof(long long)>;
-	return _detail::IndexValid(us, i, NotBigInts{});
+	using T = decltype(oel::ssize(r));
+	using NotBigInts = bool_constant<sizeof(T) < sizeof(long long) && sizeof i < sizeof(long long)>;
+	return _detail::IndexValid(as_unsigned(oel::ssize(r)), i, NotBigInts{});
 }

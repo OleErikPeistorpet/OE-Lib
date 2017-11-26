@@ -91,8 +91,8 @@ public:
 	dynarray() noexcept                          : _m(Alloc{}) {}
 	explicit dynarray(const Alloc & a) noexcept  : _m(a) {}
 
-	//! Construct empty dynarray with space reserved for at least capacity elements
-	dynarray(reserve_tag, size_type capacity, const Alloc & a = Alloc{})  : _m(a, capacity) {}
+	//! Construct empty dynarray with space reserved for at least minCap elements
+	dynarray(reserve_tag, size_type minCap, const Alloc & a = Alloc{})  : _m(a, minCap) {}
 
 	/** @brief Uses default initialization for elements, can be significantly faster for non-class T
 	*
@@ -516,7 +516,7 @@ private:
 
 	template<typename Range, typename IterTrav> // pass dummy int to prefer this overload
 	static auto _sizeOrEnd(const Range & r, IterTrav, int)
-	 -> decltype( static_cast<size_type>(oel::ssize(r)) ) { return oel::ssize(r); }
+	 -> decltype( oel::ssize(r), size_type() ) { return oel::ssize(r); }
 
 	template<typename Range>
 	static size_type _sizeOrEnd(const Range & r, forward_traversal_tag, long)
@@ -899,24 +899,24 @@ inline dynarray<T, Alloc>::dynarray(const dynarray & other)
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, default_init_tag, const Alloc & a)
- :	_m(a, size)
+dynarray<T, Alloc>::dynarray(size_type n, default_init_tag, const Alloc & a)
+ :	_m(a, n)
 {
 	_m.end = _m.reservEnd;
 	_detail::UninitDefaultConstruct<Alloc>(_m.data, _m.end, _m);
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, const Alloc & a)
- :	_m(a, size)
+dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
+ :	_m(a, n)
 {
 	_m.end = _m.reservEnd;
 	_detail::UninitFill<Alloc>(_m.data, _m.end, _m);
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type size, const T & val, const Alloc & a)
- :	_m(a, size)
+dynarray<T, Alloc>::dynarray(size_type n, const T & val, const Alloc & a)
+ :	_m(a, n)
 {
 	_m.end = _m.reservEnd;
 	_detail::UninitFill<Alloc>(_m.data, _m.end, _m, val);

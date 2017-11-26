@@ -32,10 +32,12 @@
 	#define OEL_GCC_VERSION 0
 #endif
 
-#if defined(__has_builtin)
+#ifdef __has_builtin
 	#define OEL_HAS_BUILTIN_TRAP __has_builtin(__builtin_trap)
+#elif __GNUC__
+	#define OEL_HAS_BUILTIN_TRAP 1
 #else
-	#define OEL_HAS_BUILTIN_TRAP defined(__GNUC__)
+	#define OEL_HAS_BUILTIN_TRAP 0
 #endif
 
 

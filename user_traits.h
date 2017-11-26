@@ -43,9 +43,9 @@ using std::false_type;
 //! Equivalent to std::is_trivially_copyable, but may be specialized for some types
 template<typename T>
 struct is_trivially_copyable :
-	#if __GLIBCXX__ && __GNUC__ == 4
+	#if defined __GLIBCXX__ && __GNUC__ == 4
 		bool_constant< (__has_trivial_copy(T) && __has_trivial_assign(T))
-			#if __INTEL_COMPILER
+			#ifdef __INTEL_COMPILER
 				|| __is_pod(T)
 			#endif
 			> {};

@@ -58,7 +58,7 @@ public:
 
 	//! Initialize to empty
 	constexpr counted_view() noexcept                      : _size() {}
-	constexpr counted_view(Iterator f, difference_type n)  : _begin(f), _size(n) { OEL_ASSERT_MEM_BOUND(n >= 0); }
+	constexpr counted_view(Iterator f, difference_type n);
 	//! Construct from array or container with matching iterator type
 	template<typename SizedRange, enable_if<!std::is_same<SizedRange, counted_view>::value> = 0>
 	constexpr counted_view(SizedRange & r)  : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
@@ -70,9 +70,9 @@ public:
 	constexpr bool      empty() const noexcept  { return 0 == _size; }
 
 	//! Increment begin, decrementing size
-	void      drop_front()  { OEL_ASSERT_MEM_BOUND(_size > 0);  ++_begin; --_size; }
+	void      drop_front();
 	//! Decrement size (and end)
-	void      drop_back()   { OEL_ASSERT_MEM_BOUND(_size > 0);  --_size; }
+	void      drop_back();
 
 protected:
 	Iterator  _begin;
@@ -154,6 +154,40 @@ auto move(InputRange & r)
 			return {boost::make_transform_iterator(begin(r), std::move(f)), oel::ssize(r)};
 		}
 #endif
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Implementation only in rest of the file
+
+
+template<typename Iterator, bool B>
+constexpr counted_view<Iterator, B>::counted_view(Iterator f, difference_type n)
+ :	_begin(f), _size(n)
+{
+#if __cplusplus >= 201402L
+	OEL_ASSERT_MEM_BOUND(n >= 0);
+#endif
+}
+
+template<typename Iterator, bool B>
+void counted_view<Iterator, B>::drop_front()
+{
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	OEL_ASSERT_MEM_BOUND(_size > 0);
+#endif
+	++_begin; --_size;
+}
+
+template<typename Iterator, bool B>
+void counted_view<Iterator, B>::drop_back()
+{
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	OEL_ASSERT_MEM_BOUND(_size > 0);
+#endif
+	--_size;
 }
 
 } // namespace oel

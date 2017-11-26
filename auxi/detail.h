@@ -17,17 +17,17 @@ namespace _detail
 	template<typename, typename> struct DynarrBase;
 
 
-#if __GLIBCXX__ && __GNUC__ == 4
+#if defined __GLIBCXX__ && __GNUC__ == 4
 	template<typename T>
 	using is_trivially_default_constructible = bool_constant< __has_trivial_constructor(T)
-		#if __INTEL_COMPILER
+		#ifdef __INTEL_COMPILER
 			|| __is_pod(T)
 		#endif
 		>;
 
 	template<typename T>
 	using is_trivially_destructible = bool_constant< __has_trivial_destructor(T)
-		#if __INTEL_COMPILER
+		#ifdef __INTEL_COMPILER
 			|| __is_pod(T)
 		#endif
 		>;

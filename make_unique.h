@@ -8,8 +8,6 @@
 
 #include "util.h"
 
-#include <memory>
-
 
 /** @file
 */

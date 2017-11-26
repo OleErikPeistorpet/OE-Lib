@@ -276,8 +276,8 @@ TEST_F(dynarrayTest, assignStringStream)
 		EXPECT_EQ(0U, das.size());
 
 		std::stringstream ss{"My computer emits Hawking radiation"};
-		std::istream_iterator<std::string> begin{ss}, end;
-		das.assign(make_iterator_range(begin, end));
+		std::istream_iterator<std::string> b{ss}, e;
+		das.assign(make_iterator_range(b, e));
 
 		EXPECT_EQ(5U, das.size());
 
@@ -289,17 +289,17 @@ TEST_F(dynarrayTest, assignStringStream)
 
 		decltype(das) copyDest;
 
-		copyDest.assign(view::counted(cbegin(das), 2));
-		copyDest.assign( view::counted(cbegin(das), das.size()) );
+		copyDest.assign(view::counted(das.cbegin(), 2));
+		copyDest.assign( view::counted(begin(das), das.size()) );
 
 		EXPECT_TRUE(das == copyDest);
 
-		copyDest.assign(make_iterator_range(cbegin(das), cbegin(das) + 1));
+		copyDest.assign(make_iterator_range(das.cbegin(), das.cbegin() + 1));
 
 		EXPECT_EQ(1U, copyDest.size());
 		EXPECT_EQ(das[0], copyDest[0]);
 
-		copyDest.assign(view::counted(cbegin(das) + 2, 3));
+		copyDest.assign(view::counted(das.cbegin() + 2, 3));
 
 		EXPECT_EQ(3U, copyDest.size());
 		EXPECT_EQ(das[2], copyDest[0]);
@@ -683,9 +683,9 @@ OEL_WHEN_EXCEPTIONS_ON(
 	dest0.reserve(1);
 	dest0 = daSrc;
 
-	dest0.append( view::counted(cbegin(daSrc), daSrc.size()) );
+	dest0.append( view::counted(daSrc.cbegin(), daSrc.size()) );
 	dest0.append(view::counted(fASrc, 2));
-	auto srcEnd = dest0.append( view::counted(dequeSrc.begin(), dequeSrc.size()) );
+	auto srcEnd = dest0.append( view::counted(begin(dequeSrc), dequeSrc.size()) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;
