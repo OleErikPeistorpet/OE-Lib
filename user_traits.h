@@ -42,16 +42,7 @@ using std::false_type;
 
 //! Equivalent to std::is_trivially_copyable, but may be specialized for some types
 template<typename T>
-struct is_trivially_copyable :
-	#if defined __GLIBCXX__ && __GNUC__ == 4
-		bool_constant< (__has_trivial_copy(T) && __has_trivial_assign(T))
-			#ifdef __INTEL_COMPILER
-				|| __is_pod(T)
-			#endif
-			> {};
-	#else
-		std::is_trivially_copyable<T> {};
-	#endif
+struct is_trivially_copyable;
 
 /**
 * @brief Function declaration to specify that T does not have a pointer member to any of its data members
@@ -113,7 +104,8 @@ struct all_ : all_true<BoolConstants::value...> {};
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
+//
+// Implementation only in rest of the file
 
 
 namespace _detail
@@ -125,3 +117,15 @@ namespace _detail
 }
 
 } // namespace oel
+
+template<typename T>
+struct oel::is_trivially_copyable :
+	#if defined __GLIBCXX__ && __GNUC__ == 4
+		bool_constant< (__has_trivial_copy(T) && __has_trivial_assign(T))
+			#ifdef __INTEL_COMPILER
+				|| __is_pod(T)
+			#endif
+			> {};
+	#else
+		std::is_trivially_copyable<T> {};
+	#endif

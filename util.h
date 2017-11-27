@@ -201,7 +201,7 @@ using iterator_is_random_access = std::is_base_of< random_access_traversal_tag, 
 
 namespace _detail
 {
-	//! Part of pointer_traits_traits for C++17
+	// Part of pointer_traits for C++17
 	template<typename Ptr> inline
 	typename std::pointer_traits<Ptr>::element_type * ToAddress(Ptr p) noexcept
 	{
