@@ -155,11 +155,11 @@ public:
 	* std::vector::insert(end(), begin(source), end(source)), where end(source) is not needed if source.size() exists  */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
-	//! Equivalent to std::vector::insert(end(), il), but
-	//! with strong exception guarantee if T is noexcept move constructible or trivially relocatable
+	//! @brief Equivalent to std::vector::insert(end(), il), but
+	//!	with strong exception guarantee if T is noexcept move constructible or trivially relocatable
 	void      append(std::initializer_list<T> il)   { append<>(il); }
-	//! Equivalent to std::vector::insert(end(), count, val), but
-	//! with strong exception guarantee if T is noexcept move constructible or trivially relocatable
+	//! @brief Equivalent to std::vector::insert(end(), count, val), but
+	//!	with strong exception guarantee if T is noexcept move constructible or trivially relocatable
 	void      append(size_type count, const T & val);
 
 	/**
@@ -170,8 +170,8 @@ public:
 	//! (Value-initializes added elements, same as std::vector::resize)
 	void      resize(size_type n)                    { _resizeImpl(n, _detail::UninitFill<Alloc, T>); }
 
-	//! Equivalent to std::vector::insert(pos, begin(source), end(source)),
-	//! where end(source) is not needed if source.size() exists
+	//! @brief Equivalent to std::vector::insert(pos, begin(source), end(source)),
+	//!	where end(source) is not needed if source.size() exists
 	template<typename ForwardRange>
 	iterator  insert_r(const_iterator pos, const ForwardRange & source);
 
@@ -184,10 +184,7 @@ public:
 	template<typename... Args>
 	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
 
-	/**
-	* @brief The default allocator performs list-initialization of element if there is no matching constructor
-	*
-	* @copydoc push_back(T &&)  */
+	//! The default allocator performs list-initialization of element if there is no matching constructor
 	template<typename... Args>
 	reference emplace_back(Args &&... args);
 

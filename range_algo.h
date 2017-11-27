@@ -114,7 +114,6 @@ typename Container::iterator insert(Container & dest, typename Container::const_
 // Implementation only in rest of the file
 
 
-//! @cond INTERNAL
 namespace _detail
 {
 	template<typename Container> inline
@@ -242,7 +241,6 @@ namespace _detail
 		return success;
 	}
 }
-//! @endcond
 
 } // namespace oel
 
