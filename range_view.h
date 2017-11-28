@@ -103,7 +103,7 @@ public:
 
 	constexpr reference operator[](difference_type index) const  { return this->_begin[index]; }
 
-	//! Return plain pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous)
+	//! Return raw pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous(T *))
 	template<typename It = Iterator>
 	constexpr auto data() const noexcept
 	 -> decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }

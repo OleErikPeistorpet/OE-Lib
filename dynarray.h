@@ -101,7 +101,7 @@ public:
 	explicit dynarray(size_type size, const Alloc & a = Alloc{});  //!< (Value-initializes elements, same as std::vector)
 	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
 
-	/** @brief Equivalent to std::vector(begin(r), end(r), a), where end(r) is not needed if r.size() exists
+	/** @brief Equivalent to `std::vector(begin(r), end(r), a)`, where end(r) is not needed if r.size() exists
 	*
 	* To move instead of copy, pass view::move(r).
 	* Example, construct from a standard istream with formatting (using Boost):
@@ -134,8 +134,8 @@ public:
 	/**
 	* @brief Replace the contents with source range
 	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
-	* @pre begin(source) shall not point to any elements in this dynarray except the front.
-	* @return iterator begin(source) incremented by number of elements in source
+	* @pre `begin(source)` shall not point to any elements in this dynarray except the front.
+	* @return iterator `begin(source)` incremented by number of elements in source
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template<typename InputRange>
@@ -148,17 +148,17 @@ public:
 	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
 	* @pre source shall not be this dynarray or refer to any elements in it unless:
 	*	T is trivially relocatable, and either source.size() exists or source models Forward Range (Boost concept).
-	* @return begin(source) incremented by source size. The iterator is already invalidated (do not dereference) if
-	*	begin(source) pointed into this dynarray and there was insufficient capacity to avoid reallocation.
+	* @return `begin(source)` incremented by source size. The iterator is already invalidated (do not dereference) if
+	*	`begin(source)` pointed into this dynarray and there was insufficient capacity to avoid reallocation.
 	*
 	* Strong exception guarantee if T is noexcept move constructible or trivially relocatable. Otherwise equivalent to
-	* std::vector::insert(end(), begin(source), end(source)), where end(source) is not needed if source.size() exists  */
+	* `std::vector::insert(end(), begin(source), end(source))`, where end(source) is not needed if source.size() exists  */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
-	//! @brief Equivalent to std::vector::insert(end(), il), but
+	//! @brief Equivalent to `std::vector::insert(end(), il)`, but
 	//!	with strong exception guarantee if T is noexcept move constructible or trivially relocatable
 	void      append(std::initializer_list<T> il)   { append<>(il); }
-	//! @brief Equivalent to std::vector::insert(end(), count, val), but
+	//! @brief Equivalent to `std::vector::insert(end(), count, val)`, but
 	//!	with strong exception guarantee if T is noexcept move constructible or trivially relocatable
 	void      append(size_type count, const T & val);
 
@@ -170,7 +170,7 @@ public:
 	//! (Value-initializes added elements, same as std::vector::resize)
 	void      resize(size_type n)                    { _resizeImpl(n, _detail::UninitFill<Alloc, T>); }
 
-	//! @brief Equivalent to std::vector::insert(pos, begin(source), end(source)),
+	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where end(source) is not needed if source.size() exists
 	template<typename ForwardRange>
 	iterator  insert_r(const_iterator pos, const ForwardRange & source);
@@ -203,7 +203,7 @@ public:
 	iterator  erase(iterator pos)           { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
 	iterator  erase(iterator first, iterator last);
-	//! Equivalent to erase(first, end()) (but potentially faster), making first the new end
+	//! Equivalent to `erase(first, end())` (but potentially faster), making first the new end
 	void      erase_to_end(iterator first) OEL_NOEXCEPT_NDEBUG;
 
 	void      clear() noexcept        { erase_to_end(begin()); }

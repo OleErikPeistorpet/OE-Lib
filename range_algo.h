@@ -72,7 +72,7 @@ struct last_iterators
 * @brief Copies the elements in source range into dest range, throws std::out_of_range if dest is smaller than source
 * @return struct containing begin(source) and begin(dest), both incremented by number of elements in source
 *
-* The ranges shall not overlap, except if begin(source) equals begin(dest) (self assign).
+* The ranges shall not overlap, except if `begin(source)` equals `begin(dest)` (self assign).
 * To move instead of copy, pass view::move(source)  */
 template<typename InputRange, typename RandomAccessRange>
 auto copy(const InputRange & source, RandomAccessRange & dest)
