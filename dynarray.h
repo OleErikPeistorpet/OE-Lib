@@ -528,11 +528,12 @@ private:
 
 	void _allocUnequalMove(dynarray & src, false_type)
 	{
-		_append(std::make_move_iterator(src.begin()), src.size(), false_type{});
+		_assignImpl(std::make_move_iterator(src.begin()), src.size(), false_type{});
 	}
 
 	void _allocUnequalMove(dynarray & src, true_type /*trivialRelocate*/)
 	{
+		_detail::Destroy(_m.data, _m.end);
 		_assignImpl(src.begin(), src.size(), true_type{});
 		src._m.end = src._m.data; // elements in src conceptually destroyed
 	}
@@ -868,7 +869,6 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other)
 	if (static_cast<Alloc &>(_m) != other._m &&
 		!_allocTrait::propagate_on_container_move_assignment::value)
 	{
-		clear();
 		_allocUnequalMove(other, is_trivially_relocatable<T>());
 	}
 	else // take allocated memory from other
