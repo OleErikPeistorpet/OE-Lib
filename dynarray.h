@@ -287,7 +287,7 @@ private:
 		_scopedPtr(Alloc & a, size_type const allocSize)
 		 :	_allocRef(a)
 		{
-			data = _allocate(this->Get(), allocSize);
+			data = _allocate(a, allocSize);
 			allocEnd = data + allocSize;
 		}
 		_scopedPtr(const _scopedPtr &) = delete;
@@ -355,8 +355,6 @@ private:
 			_detail::Throw::LengthError("Going over dynarray max_size");
 	}
 
-	static pointer _allocate(Alloc && a, size_type n) { return _allocate(a, n); }
-
 
 	void _moveAssignAlloc(std::true_type, Alloc & src)
 	{
@@ -405,25 +403,22 @@ private:
 
 	static size_type _calcCapAddOne(size_type const oldCap, size_type = 0)
 	{
-		enum {
-		#if _WIN64
-			startBytesGood = 24,
-		#else
-			startBytesGood = 4 * sizeof(int),
-		#endif
+		enum
+		{	a = 3 * sizeof(void *),
+			b = 4 * sizeof(int),
+			startBytesGood = a > b ? a : b,
 			minGrow = 2 * sizeof(T) <= startBytesGood ?
 				startBytesGood / sizeof(T) :
-				(sizeof(T) < 1020 ? 2 : 1)
+				(sizeof(T) <= 8 * sizeof(int) ? 2 : 1)
 		};
-		return oldCap + std::max<size_type>(oldCap / 2, minGrow);
+		OEL_CONST_COND if (minGrow > 1)
+			return oldCap + std::max<size_type>(oldCap / 2, minGrow);
+		else
+			return oldCap + oldCap / 2 + 1;
 	}
 
 	static size_type _calcCap(size_type oldCap, size_type newSize)
 	{	// growth factor is 1.5
-		//enum {
-		//	preDivAdd = sizeof(T) < 8 ? 8 / sizeof(T) : 1
-		//};
-		//return (std::max)(oldCap + (oldCap + preDivAdd) / 2, newSize);
 		return (std::max)(oldCap + oldCap / 2, newSize);
 	}
 
