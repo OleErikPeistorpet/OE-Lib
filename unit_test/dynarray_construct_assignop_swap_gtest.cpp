@@ -105,7 +105,7 @@ TEST_F(dynarrayConstructTest, constructReserve)
 		ASSERT_TRUE(a.capacity() >= n);
 
 		if (n > 0)
-			ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations);
+		{	ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations); }
 	}
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 
@@ -123,7 +123,7 @@ TEST_F(dynarrayConstructTest, constructNDefaultTrivial)
 		ASSERT_EQ(a.size(), n);
 
 		if (n > 0)
-			ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations);
+		{	ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations); }
 	}
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 
@@ -147,7 +147,7 @@ TEST_F(dynarrayConstructTest, constructNDefault)
 			ASSERT_EQ(a.size(), n);
 
 			if (n > 0)
-				ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations);
+			{	ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations); }
 		}
 		ASSERT_EQ(NontrivialConstruct::nConstructions, NontrivialConstruct::nDestruct);
 	}
@@ -169,7 +169,7 @@ TEST_F(dynarrayConstructTest, constructN)
 		ASSERT_EQ(a.size(), n);
 
 		if (n > 0)
-			ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations);
+		{	ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations); }
 	}
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
@@ -188,7 +188,7 @@ TEST_F(dynarrayConstructTest, constructNChar)
 			ASSERT_EQ(0, c);
 
 		if (n > 0)
-			ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations);
+		{	ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations); }
 	}
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
