@@ -55,9 +55,10 @@ struct copy_unsafe_return
 /**
 * @brief Copies the elements in source into the range beginning at dest
 * @return begin(source) incremented by source size
+* @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* If the ranges overlap, behavior is undefined (uses memcpy when possible).
-* To move instead of copy, pass view::move(source). To mimic std::copy_n, use view::counted  */
+* Requires that source has size() member or is an array, and that dest is a Random Access Iterator.
+* To move instead of copy, pass `view::move(source)`. To mimic std::copy_n, use view::counted  */
 template<typename SizedInputRange, typename RandomAccessIter>
 auto copy_unsafe(const SizedInputRange & source, RandomAccessIter dest)
  -> copy_unsafe_return<decltype(begin(source))>;
@@ -70,10 +71,11 @@ struct last_iterators
 };
 /**
 * @brief Copies the elements in source range into dest range, throws std::out_of_range if dest is smaller than source
-* @return struct containing begin(source) and begin(dest), both incremented by number of elements in source
+* @return struct containing begin(source) and begin(dest), both incremented by the number of elements in source
+* @pre The ranges shall not overlap, except if `begin(source)` equals `begin(dest)` (then elements are self assigned)
 *
-* The ranges shall not overlap, except if `begin(source)` equals `begin(dest)` (self assign).
-* To move instead of copy, pass view::move(source)  */
+* Requires that dest is a Random Access Range (Boost concept) to compile.
+* To move instead of copy, wrap source with view::move or view::move_n  */
 template<typename InputRange, typename RandomAccessRange>
 auto copy(const InputRange & source, RandomAccessRange & dest)
  -> last_iterators<decltype(begin(source)), decltype(begin(dest))>;

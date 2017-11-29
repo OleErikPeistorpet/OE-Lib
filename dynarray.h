@@ -103,7 +103,7 @@ public:
 
 	/** @brief Equivalent to `std::vector(begin(r), end(r), a)`, where end(r) is not needed if r.size() exists
 	*
-	* To move instead of copy, pass view::move(r).
+	* To move instead of copy, wrap r with view::move (the same applies for all functions taking a range template)
 	* Example, construct from a standard istream with formatting (using Boost):
 	* @code
 	#include <boost/range/istream_range.hpp>
@@ -134,8 +134,8 @@ public:
 	/**
 	* @brief Replace the contents with source range
 	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
-	* @pre `begin(source)` shall not point to any elements in this dynarray except the front.
-	* @return iterator `begin(source)` incremented by number of elements in source
+	* @pre `begin(source)` shall not point to any element in this dynarray except the front.
+	* @return iterator `begin(source)` incremented by the number of elements in source
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template<typename InputRange>
@@ -146,13 +146,13 @@ public:
 	/**
 	* @brief Add at end the elements from range (return past-the-last of source)
 	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
-	* @pre source shall not be this dynarray or refer to any elements in it unless:
-	*	T is trivially relocatable, and either source.size() exists or source models Forward Range (Boost concept).
+	* @pre Behavior is undefined if all of the following apply: source refers to any elements in this dynarray,
+	*	source.size() does not exist and source does not model Forward Range (Boost concept)
 	* @return `begin(source)` incremented by source size. The iterator is already invalidated (do not dereference) if
 	*	`begin(source)` pointed into this dynarray and there was insufficient capacity to avoid reallocation.
 	*
 	* Strong exception guarantee if T is noexcept move constructible or trivially relocatable. Otherwise equivalent to
-	* `std::vector::insert(end(), begin(source), end(source))`, where end(source) is not needed if source.size() exists  */
+	* `std::vector::insert(end(), begin(source), end(source))`, where end(source) is not needed if source.size() exists. */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
 	//! @brief Equivalent to `std::vector::insert(end(), il)`, but
