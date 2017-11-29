@@ -54,7 +54,7 @@ struct copy_unsafe_return
 };
 /**
 * @brief Copies the elements in source into the range beginning at dest
-* @return begin(source) incremented by source size
+* @return `begin(source)` incremented by source size
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
 * Requires that source has size() member or is an array, and that dest is a Random Access Iterator.
@@ -71,7 +71,7 @@ struct last_iterators
 };
 /**
 * @brief Copies the elements in source range into dest range, throws std::out_of_range if dest is smaller than source
-* @return struct containing begin(source) and begin(dest), both incremented by the number of elements in source
+* @return struct containing `begin(source)` and `begin(dest)`, both incremented by the number of elements in source
 * @pre The ranges shall not overlap, except if `begin(source)` equals `begin(dest)` (then elements are self assigned)
 *
 * Requires that dest is a Random Access Range (Boost concept) to compile.
