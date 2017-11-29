@@ -833,7 +833,7 @@ typename dynarray<T, Alloc>::iterator
 #undef OEL_DYNARR_INSERT_STEP0
 
 template<typename T, typename Alloc> template<typename... Args>
-T & dynarray<T, Alloc>::emplace_back(Args &&... args)
+inline T & dynarray<T, Alloc>::emplace_back(Args &&... args)
 {
 	if (_m.end < _m.reservEnd)
 		_allocTrait::construct(_m, _m.end, std::forward<Args>(args)...);
