@@ -535,7 +535,7 @@ private:
 
 	void _allocUnequalMove(dynarray & src, false_type)
 	{
-		_assignImpl(std::make_move_iterator(src.begin()), src.size(), false_type{});
+		_assignImpl(std::make_move_iterator(src._m.data), src.size(), false_type{});
 	}
 
 	void _allocUnequalMove(dynarray & src, true_type /*trivialRelocate*/)
@@ -1067,9 +1067,6 @@ namespace _detail
 		{
 			return static_cast<size_t>(pos - data) < static_cast<size_t>(end - data);
 		}
-
-		Pointer Begin() const { return data; }
-		Pointer End() const   { return end; }
 	};
 }
 
