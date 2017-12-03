@@ -12,16 +12,6 @@
 namespace oel
 {
 
-template<typename, typename> class contiguous_ctnr_iterator;
-
-//! To raw pointer (unchecked)
-template<typename Ptr, typename C> inline
-typename std::pointer_traits<Ptr>::element_type *
-	to_pointer_contiguous(const contiguous_ctnr_iterator<Ptr, C> & it)
-{
-	return _detail::ToAddress(it._pElem);
-}
-
 /** @brief Debug iterator for container with contiguous memory
 *
 * Wraps a pointer with error checks. Note: a pair of value-initialized iterators count as an empty range  */
@@ -47,8 +37,6 @@ public:
 	using difference_type = typename _ptrTrait::difference_type;
 
 	using const_iterator = contiguous_ctnr_iterator<typename _ptrTrait::template rebind<value_type const>, Container>;
-
-	friend typename _ptrTrait::element_type * to_pointer_contiguous<>(const contiguous_ctnr_iterator &);
 
 	operator const_iterator() const noexcept
 	{
@@ -196,6 +184,14 @@ public:
 
 #undef OEL_ARRITER_CHECK_COMPAT
 };
+
+//! To raw pointer (unchecked)
+template<typename Ptr, typename C> inline
+typename std::pointer_traits<Ptr>::element_type *
+	to_pointer_contiguous(const contiguous_ctnr_iterator<Ptr, C> & it)
+{
+	return _detail::ToAddress(it._pElem);
+}
 
 
 namespace _detail

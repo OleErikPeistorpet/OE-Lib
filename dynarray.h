@@ -567,7 +567,7 @@ private:
 	template<typename InputIter>
 	InputIter _assignImpl(InputIter src, size_type const count, false_type)
 	{
-		auto copy = [](InputIter src_, iterator dest, iterator dLast)
+		auto copy = [](InputIter src_, pointer dest, pointer dLast)
 		{
 			while (dest != dLast)
 			{
@@ -592,12 +592,11 @@ private:
 			newEnd = _m.data + count;
 			if (newEnd < _m.end)
 			{	// downsizing, assign new and destroy rest
-				iterator const it = _iterator{newEnd, &_m};
-				src = copy(src, begin(), it);
-				erase_to_end(it);
+				src = copy(src, _m.data, newEnd);
+				erase_to_end(_iterator{newEnd, &_m});
 			}
 			else // assign to old elements as far as we can
-			{	src = copy(src, begin(), end());
+			{	src = copy(src, _m.data, _m.end);
 			}
 		}
 		while (_m.end < newEnd)
