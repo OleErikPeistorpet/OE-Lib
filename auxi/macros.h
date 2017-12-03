@@ -42,7 +42,7 @@
 
 
 #ifdef _MSC_VER
-	#define OEL_CONST_COND __pragma(warning(suppress : 4127))
+	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
 
 	#define OEL_NORETURN __declspec(noreturn)
 #else

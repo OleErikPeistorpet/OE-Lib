@@ -322,6 +322,7 @@ private:
 			end = data = _allocate(*this, capacity);
 			reservEnd = data + capacity;
 		}
+
 		_memOwner(_memOwner && other)
 		 :	_internBase(other), Alloc(std::move(other))
 		{
@@ -355,6 +356,12 @@ private:
 			_detail::Throw::LengthError("Going over dynarray max_size");
 	}
 
+
+	void _moveInternBase(_internBase & src)
+	{
+		static_cast<_internBase &>(_m) = src;
+		src.reservEnd = src.end = src.data = nullptr;
+	}
 
 	void _moveAssignAlloc(std::true_type, Alloc & src)
 	{
@@ -851,14 +858,9 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
 	if (a != other._m && !is_always_equal<Alloc>::value)
-	{
 		_allocUnequalMove(other, is_trivially_relocatable<T>());
-	}
 	else
-	{
-		static_cast<_internBase &>(_m) = other._m;
-		other._m.reservEnd = other._m.end = other._m.data = nullptr;
-	}
+		_moveInternBase(other._m);
 }
 
 template<typename T, typename Alloc>
@@ -877,9 +879,8 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other)
 			_detail::Destroy(_m.data, _m.end);
 			_m.deallocate(_m.data, capacity());
 		}
-		static_cast<_internBase &>(_m) = other._m;
+		_moveInternBase(other._m);
 		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment(), other._m);
-		other._m.reservEnd = other._m.end = other._m.data = nullptr;
 	}
 	return *this;
 }
