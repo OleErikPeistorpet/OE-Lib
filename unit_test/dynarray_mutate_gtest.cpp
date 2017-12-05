@@ -661,6 +661,7 @@ TEST_F(dynarrayTest, greaterThanMax)
 	dynarray<Size2> d;
 	size_t const n = std::numeric_limits<size_t>::max() / 2 + 1;
 
+	EXPECT_THROW(d.reserve((size_t) -1), std::length_error);
 	EXPECT_THROW(d.reserve(n), std::length_error);
 	EXPECT_THROW(d.resize(n), std::length_error);
 	EXPECT_THROW(d.resize(n, oel::default_init), std::length_error);

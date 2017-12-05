@@ -51,6 +51,56 @@ namespace _detail
 		std::uintptr_t    id;
 	};
 
+	template<typename HeaderCtnr, typename Alloc, typename Ptr>
+	struct DebugAllocateWrapper
+	{
+		using HeaderPtr = typename std::pointer_traits<Ptr>::template rebind<DebugAllocationHeader<HeaderCtnr> >;
+
+		static HeaderPtr Header(Ptr p)
+		{
+			return reinterpret_cast<HeaderPtr>(p) - 1;
+		}
+
+		enum {
+		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+			_tmp = sizeof(DebugAllocationHeader<HeaderCtnr>) / sizeof(typename Alloc::value_type),
+			sizeAddForHeader = _tmp > 1 ? _tmp : 1
+		#else
+			sizeAddForHeader = 0
+		#endif
+		};
+
+		template<typename Owner>
+		static Ptr Allocate(Owner & a, size_t n)
+		{
+		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+		// TODO FIXME: May break stack allocators. Use by default only with oel::allocator and pmr?
+			n += sizeAddForHeader;
+			Ptr p = a.allocate(n);
+			p += sizeAddForHeader;
+			auto const h = Header(p);
+			h->container = &a;
+			h->id = reinterpret_cast<std::uintptr_t>(&a);
+			return p;
+		#else
+			return a.allocate(n);
+		#endif
+		}
+
+		static void Deallocate(Alloc & a, Ptr p, size_t n)
+		{
+			if (p)
+			{
+			#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+				Header(p)->id = 0;
+				p -= sizeAddForHeader;
+				n += sizeAddForHeader;
+			#endif
+				a.deallocate(p, n);
+			}
+		}
+	};
+
 
 	template< typename Alloc,
 		bool = std::is_empty<Alloc>::value && std::is_default_constructible<Alloc>::value >

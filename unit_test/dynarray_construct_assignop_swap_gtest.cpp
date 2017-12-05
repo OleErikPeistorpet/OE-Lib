@@ -89,7 +89,7 @@ TEST_F(dynarrayConstructTest, greaterThanMax)
 	EXPECT_THROW(Test d(reserve, n), std::length_error);
 	EXPECT_THROW(Test d(n, default_init), std::length_error);
 	EXPECT_THROW(Test d(n), std::length_error);
-	EXPECT_THROW(Test d(n, Size2{}), std::length_error);
+	EXPECT_THROW(Test d(n, {{}}), std::length_error);
 }
 #endif
 

@@ -66,6 +66,7 @@ class dynarray
 {
 	using _allocTrait = std::allocator_traits<Alloc>;
 	using _internBase = _detail::DynarrBase<T, typename _allocTrait::pointer>;
+	using _allocateWrap = _detail::DebugAllocateWrapper<_internBase, Alloc, typename _allocTrait::pointer>;
 
 public:
 	using value_type      = T;
@@ -219,16 +220,16 @@ public:
 
 	size_type capacity() const noexcept  { return _m.reservEnd - _m.data; }
 
-	size_type max_size() const noexcept  { return _allocTrait::max_size(_m) - _const::forHeader; }
+	size_type max_size() const noexcept  { return _allocTrait::max_size(_m) - _allocateWrap::sizeAddForHeader; }
 
 	allocator_type get_allocator() const noexcept  { return _m; }
 
-	iterator       begin() noexcept         { return OEL_DYNARR_ITERATOR(_m.data); }
-	const_iterator begin() const noexcept   { return OEL_DYNARR_ITERATOR(_m.data); }
+	iterator       begin() noexcept         { return OEL_DYNARR_ITER(iterator, _m.data); }
+	const_iterator begin() const noexcept   { return OEL_DYNARR_ITER(const_iterator, _m.data); }
 	const_iterator cbegin() const noexcept  { return begin(); }
 
-	iterator       end() noexcept           { return OEL_DYNARR_ITERATOR(_m.end); }
-	const_iterator end() const noexcept     { return OEL_DYNARR_ITERATOR(_m.end); }
+	iterator       end() noexcept           { return OEL_DYNARR_ITER(iterator, _m.end); }
+	const_iterator end() const noexcept     { return OEL_DYNARR_ITER(const_iterator, _m.end); }
 	const_iterator cend() const noexcept    { return end(); }
 
 	reverse_iterator       rbegin() noexcept        { return reverse_iterator{end()}; }
@@ -243,8 +244,8 @@ public:
 	reference       front() OEL_NOEXCEPT_NDEBUG        { return *begin(); }
 	const_reference front() const OEL_NOEXCEPT_NDEBUG  { return *begin(); }
 
-	reference       back() OEL_NOEXCEPT_NDEBUG         { return *iterator OEL_DYNARR_ITERATOR(_m.end - 1); }
-	const_reference back() const OEL_NOEXCEPT_NDEBUG   { return *const_iterator OEL_DYNARR_ITERATOR(_m.end - 1); }
+	reference       back() OEL_NOEXCEPT_NDEBUG         { return *OEL_DYNARR_ITER(iterator, _m.end - 1); }
+	const_reference back() const OEL_NOEXCEPT_NDEBUG   { return *OEL_DYNARR_ITER(const_iterator, _m.end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -293,18 +294,14 @@ private:
 		 :	_internBase(other), Alloc(std::move(other))
 		{
 			other.reservEnd = other.end = other.data = nullptr;
-		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-			if (data)
-				_debugHeader(data)->container = this;
-		#endif
+			_updateHeader(*this);
 		}
 		_memOwner(const _memOwner &) = delete;
 		void operator =(const _memOwner &) = delete;
 
 		~_memOwner()
 		{
-			if (data)
-				_deallocate(*this, data, reservEnd - data);
+			_allocateWrap::Deallocate(*this, data, reservEnd - data);
 		}
 
 	} _m; // Only data member of dynarray
@@ -328,11 +325,8 @@ private:
 
 		~_scopedPtr()
 		{
-			if (data)
-			{
-				auto && a = this->Get();
-				_deallocate(a, data, allocEnd - data);
-			}
+			auto && a = this->Get();
+			_allocateWrap::Deallocate(a, data, allocEnd - data);
 		}
 
 		void Swap(_internBase & other)
@@ -345,58 +339,39 @@ private:
 
 	void _resetData(pointer const newData)
 	{
-		if (_m.data)
-			_deallocate(_m, _m.data, capacity());
-
+		_allocateWrap::Deallocate(_m, _m.data, capacity());
 		_m.data = newData;
 	}
 
-	struct _const
-	{
-		enum {
-		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-			tmp = sizeof(_detail::DebugAllocationHeader<_internBase>) / sizeof(T),
-			forHeader = tmp > 0 ? tmp : 1
-		#else
-			forHeader = 0
-		#endif
-		};
-	};
-
 	static pointer _allocate(_memOwner & a, size_type n)
 	{
+		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeAddForHeader) // subtraction could underflow
+			return _allocateWrap::Allocate(a, n);
+		else
+			_detail::Throw::LengthError("Going over dynarray max_size");
+	}
+
+	static void _updateHeader(_internBase & i)
+	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		n += _const::forHeader;
+		if (i.data)
+			_allocateWrap::Header(i.data)->container = &i;
+	#else
+		(void) i;
 	#endif
-		if (n <= _allocTrait::max_size(a))
+	}
+
+	template<typename Iterator>
+	Iterator _makeDebugIter(pointer p) const
+	{
+		if (_m.data)
 		{
-			pointer p = a.allocate(n);
-		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-			p += _const::forHeader;
-			auto const h = _debugHeader(p);
-			h->container = &a;
-			h->id = reinterpret_cast<std::uintptr_t>(&a);
-		#endif
-			return p;
+			auto const h = reinterpret_cast<typename _allocateWrap::HeaderPtr>(_m.data) - 1;
+			return {p, h, h->id};
 		}
 		else
-		{	_detail::Throw::LengthError("Going over dynarray max_size");
+		{	return {p, nullptr, reinterpret_cast<std::uintptr_t>(this)};
 		}
-	}
-
-	static void _deallocate(Alloc & a, pointer p, size_type n)
-	{
-	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		_debugHeader(p)->id = 0;
-		p -= _const::forHeader;
-		n += _const::forHeader;
-	#endif
-		a.deallocate(p, n);
-	}
-
-	static _detail::DebugAllocationHeader<_internBase> * _debugHeader(T * buf)
-	{
-		return reinterpret_cast<_detail::DebugAllocationHeader<_internBase> *>(buf) - 1;
 	}
 
 
@@ -404,10 +379,7 @@ private:
 	{
 		static_cast<_internBase &>(_m) = src;
 		src.reservEnd = src.end = src.data = nullptr;
-	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		if (_m.data)
-			_debugHeader(_m.data)->container = &_m;
-	#endif
+		_updateHeader(_m);
 	}
 
 	void _moveAssignAlloc(std::true_type, Alloc & src)
@@ -647,7 +619,7 @@ private:
 			if (newEnd < _m.end)
 			{	// downsizing, assign new and destroy rest
 				src = copy(src, _m.data, newEnd);
-				erase_to_end(OEL_DYNARR_ITERATOR(newEnd));
+				erase_to_end(OEL_DYNARR_ITER(iterator, newEnd));
 			}
 			else // assign to old elements as far as we can
 			{	src = copy(src, _m.data, _m.end);
@@ -825,7 +797,7 @@ typename dynarray<T, Alloc>::iterator
 	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
 							  _emplaceMakeElem{}, std::forward<Args>(args)...);
 	}
-	return OEL_DYNARR_ITERATOR(pPos);
+	return OEL_DYNARR_ITER(iterator, pPos);
 }
 
 template<typename T, typename Alloc> template<typename ForwardRange>
@@ -881,7 +853,7 @@ typename dynarray<T, Alloc>::iterator
 				return dLast;
 			} );
 	}
-	return OEL_DYNARR_ITERATOR(pPos);
+	return OEL_DYNARR_ITER(iterator, pPos);
 }
 #undef OEL_DYNARR_INSERT_STEP0
 
@@ -924,7 +896,7 @@ dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other)
 		if (_m.data)
 		{
 			_detail::Destroy(_m.data, _m.end);
-			_deallocate(_m, _m.data, capacity());
+			_allocateWrap::Deallocate(_m, _m.data, capacity());
 		}
 		_moveInternBase(other._m);
 		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment(), other._m);
@@ -973,12 +945,8 @@ void dynarray<T, Alloc>::swap(dynarray & other) OEL_NOEXCEPT_NDEBUG
 	_internBase & a = _m;
 	_internBase & b = other._m;
 	std::swap(a, b);
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	if (a.data)
-		_debugHeader(a.data)->container = &a;
-	if (b.data)
-		_debugHeader(b.data)->container = &b;
-#endif
+	_updateHeader(a);
+	_updateHeader(b);
 	_swapAlloc(typename _allocTrait::propagate_on_container_swap(), other._m);
 }
 
@@ -996,6 +964,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	{
 		OEL_TRY_
 		{
+			// TODO: test code gen. Could bypass max_size check here
 			newData = _allocate(_m, used);
 		}
 		OEL_CATCH_ALL
@@ -1105,7 +1074,7 @@ inline const T & dynarray<T, Alloc>::operator[](size_type i) const OEL_NOEXCEPT_
 	return _m.data[i];
 }
 
-#undef OEL_DYNARR_ITERATOR
+#undef OEL_DYNARR_ITER
 
 namespace _detail
 {

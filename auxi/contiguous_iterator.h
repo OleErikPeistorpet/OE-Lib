@@ -20,7 +20,7 @@ class contiguous_ctnr_iterator
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	#define OEL_ARRITER_CHECK_DEREFABLE  \
-		OEL_ASSERT_MEM_BOUND(_header->id == _allocationId && _header->container->DerefValid(_pElem))
+		OEL_ASSERT_MEM_BOUND(_memInfo->id == _allocationId && _memInfo->container->DerefValid(_pElem))
 
 	// Test for iterator pair pointing to same container
 	#define OEL_ARRITER_CHECK_COMPAT(right)  \
@@ -33,6 +33,7 @@ class contiguous_ctnr_iterator
 #endif
 
 	using _ptrTrait = std::pointer_traits<Ptr>;
+	using _headerPtr = typename _ptrTrait::template rebind<_detail::DebugAllocationHeader<Container> const>;
 
 public:
 	using iterator_category = std::random_access_iterator_tag;
@@ -47,7 +48,7 @@ public:
 	operator const_iterator() const noexcept
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		return {_pElem, _header, _allocationId};
+		return {_pElem, _memInfo, _allocationId};
 	#else
 		return {_pElem, _container};
 	#endif
@@ -177,7 +178,7 @@ public:
 	//! Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
 	pointer _pElem;
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	const _detail::DebugAllocationHeader<Container> * _header; //!< Info of the array
+	_headerPtr     _memInfo;  //!< Pointer to parent container and allocation ID
 	std::uintptr_t _allocationId; //!< Used to check if this iterator has been invalidated by deallocation
 #else
 	const Container * _container; //!< Parent container
@@ -206,11 +207,10 @@ typename std::pointer_traits<Ptr>::element_type *
 
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	#define OEL_DYNARR_ITERATOR(ptr)  \
-		{ptr, _m.data ? _debugHeader(_m.data) : nullptr,  \
-		 _m.data ? _debugHeader(_m.data)->id : reinterpret_cast<std::uintptr_t>(this)}
+	#define OEL_DYNARR_ITER(iterT, ptr)  \
+		_makeDebugIter<iterT>(ptr)
 #elif OEL_MEM_BOUND_DEBUG_LVL
-	#define OEL_DYNARR_ITERATOR(ptr)  {ptr, &_m}
+	#define OEL_DYNARR_ITER(iterT, ptr)  iterT{ptr, &_m}
 #else
-	#define OEL_DYNARR_ITERATOR(ptr)  (ptr)
+	#define OEL_DYNARR_ITER(iterT, ptr)  (ptr)
 #endif
