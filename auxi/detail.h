@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "util.h"
+#include "../util.h"
 
 #include <string.h> // for memset
 
@@ -41,6 +41,14 @@ namespace _detail
 	{
 		static_assert(is_trivially_relocatable<T>::value,
 			"The function requires trivially relocatable T, see declaration of is_trivially_relocatable");
+	};
+
+
+	template<typename Container>
+	struct DebugAllocationHeader
+	{
+		const Container * container;
+		std::uintptr_t    id;
 	};
 
 

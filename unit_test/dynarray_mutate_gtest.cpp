@@ -514,7 +514,7 @@ OEL_WHEN_EXCEPTIONS_ON(
 
 struct StatefulAlwaysEqualAlloc
 {
-	using value_type = int;
+	using value_type = long long;
 	using is_always_equal = std::true_type;
 
 	value_type * buf = nullptr;
@@ -526,6 +526,8 @@ struct StatefulAlwaysEqualAlloc
 	StatefulAlwaysEqualAlloc(value_type (&array)[N])
 	 :	buf(array), size(N) {
 	}
+
+	size_t max_size() const { return size; }
 
 	value_type * allocate(size_t n)
 	{
@@ -541,11 +543,15 @@ struct StatefulAlwaysEqualAlloc
 
 TEST_F(dynarrayTest, statefulAlwaysEqualDefaultConstructibleAlloc)
 {
-	int mem[5];
+	long long mem[5];
 	StatefulAlwaysEqualAlloc a{mem};
-	dynarray<int, StatefulAlwaysEqualAlloc> d(a);
+	dynarray<long long, StatefulAlwaysEqualAlloc> d(a);
 
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	d.resize(d.max_size());
+#else
 	d.resize(5);
+#endif
 }
 
 template<typename T>

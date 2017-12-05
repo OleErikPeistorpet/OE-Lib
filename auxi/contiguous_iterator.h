@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h"
+#include "detail.h"
 
 
 namespace oel
@@ -19,10 +19,16 @@ template<typename Ptr, typename Container>
 class contiguous_ctnr_iterator
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	#define OEL_ARRITER_CHECK_DEREFABLE  \
+		OEL_ASSERT_MEM_BOUND(_header->id == _allocationId && _header->container->DerefValid(_pElem))
+
 	// Test for iterator pair pointing to same container
 	#define OEL_ARRITER_CHECK_COMPAT(right)  \
-		OEL_ASSERT_MEM_BOUND(_container == right._container)
+		OEL_ASSERT_MEM_BOUND(_allocationId == right._allocationId)
 #else
+	#define OEL_ARRITER_CHECK_DEREFABLE  \
+		OEL_ASSERT_MEM_BOUND(_container->DerefValid(_pElem))
+
 	#define OEL_ARRITER_CHECK_COMPAT(right)
 #endif
 
@@ -40,26 +46,27 @@ public:
 
 	operator const_iterator() const noexcept
 	{
-		return const_iterator{_pElem, _container};
+	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+		return {_pElem, _header, _allocationId};
+	#else
+		return {_pElem, _container};
+	#endif
 	}
 
 	reference operator*() const
 	{
-		OEL_ASSERT_MEM_BOUND(_container->DerefValid(_pElem));
+		OEL_ARRITER_CHECK_DEREFABLE;
 		return *_pElem;
 	}
 
 	pointer operator->() const
 	{
-		OEL_ASSERT_MEM_BOUND(_container->DerefValid(_pElem));
+		OEL_ARRITER_CHECK_DEREFABLE;
 		return _pElem;
 	}
 
 	contiguous_ctnr_iterator & operator++()
 	{	// preincrement
-	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		OEL_ASSERT_MEM_BOUND(_pElem < _container->end);
-	#endif
 		++_pElem;
 		return *this;
 	}
@@ -67,15 +74,12 @@ public:
 	contiguous_ctnr_iterator operator++(int)
 	{	// postincrement
 		auto tmp = *this;
-		++(*this);
+		++_pElem;
 		return tmp;
 	}
 
 	contiguous_ctnr_iterator & operator--()
 	{	// predecrement
-	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		OEL_ASSERT_MEM_BOUND(_container->data < _pElem);
-	#endif
 		--_pElem;
 		return *this;
 	}
@@ -83,28 +87,18 @@ public:
 	contiguous_ctnr_iterator operator--(int)
 	{	// postdecrement
 		auto tmp = *this;
-		--(*this);
+		--_pElem;
 		return tmp;
 	}
 
 	contiguous_ctnr_iterator & operator+=(difference_type offset)
 	{
-	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		// Check that adding offset keeps this in range [begin, end]
-		OEL_ASSERT_MEM_BOUND( offset >= _container->data - _pElem
-		                   && offset <= _container->end - _pElem );
-	#endif
 		_pElem += offset;
 		return *this;
 	}
 
 	contiguous_ctnr_iterator & operator-=(difference_type offset)
 	{
-	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		// Check that subtracting offset keeps this in range [begin, end]
-		OEL_ASSERT_MEM_BOUND( offset <= _pElem - _container->data
-		                   && offset >= _pElem - _container->end );
-	#endif
 		_pElem -= offset;
 		return *this;
 	}
@@ -134,7 +128,9 @@ public:
 
 	reference operator[](difference_type offset) const
 	{
-		return *contiguous_ctnr_iterator{_pElem + offset, _container};
+		auto tmp = *this;
+		tmp._pElem += offset;
+		return *tmp;
 	}
 
 	template<typename Ptr1>
@@ -179,10 +175,16 @@ public:
 
 
 	//! Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
-	pointer           _pElem;
+	pointer _pElem;
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	const _detail::DebugAllocationHeader<Container> * _header; //!< Info of the array
+	std::uintptr_t _allocationId; //!< Used to check if this iterator has been invalidated by deallocation
+#else
 	const Container * _container; //!< Parent container
+#endif
 
 #undef OEL_ARRITER_CHECK_COMPAT
+#undef OEL_ARRITER_CHECK_DEREFABLE
 };
 
 //! To raw pointer (unchecked)
@@ -193,24 +195,6 @@ typename std::pointer_traits<Ptr>::element_type *
 	return _detail::ToAddress(it._pElem);
 }
 
-
-namespace _detail
-{
-	template<typename Iterator>
-#if OEL_MEM_BOUND_DEBUG_LVL
-	using CtnrIteratorMaker = Iterator;
-#else
-	struct CtnrIteratorMaker
-	{
-		Iterator _pos;
-
-		CtnrIteratorMaker(Iterator pos, const void *) : _pos(pos) {}
-
-		operator Iterator() const { return _pos; }
-	};
-#endif
-}
-
 } // namespace oel
 
 #ifdef _MSC_VER
@@ -218,4 +202,15 @@ namespace _detail
 	template<typename P, typename C>
 	struct std::_Is_checked_helper< oel::contiguous_ctnr_iterator<P, C> >
 	 :	public std::true_type {};
+#endif
+
+
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	#define OEL_DYNARR_ITERATOR(ptr)  \
+		{ptr, _m.data ? _debugHeader(_m.data) : nullptr,  \
+		 _m.data ? _debugHeader(_m.data)->id : reinterpret_cast<std::uintptr_t>(this)}
+#elif OEL_MEM_BOUND_DEBUG_LVL
+	#define OEL_DYNARR_ITERATOR(ptr)  {ptr, &_m}
+#else
+	#define OEL_DYNARR_ITERATOR(ptr)  (ptr)
 #endif
