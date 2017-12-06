@@ -15,13 +15,13 @@ using oel::dynarray;
 namespace view = oel::view;
 
 template< typename T = int >
-struct noDefaultConstructAlloc : public oel::allocator<T>
+struct noDefaultConstructAlloc : public DefaultAllocator<T>
 {
 	noDefaultConstructAlloc(int) {}
 };
 
 template<typename T>
-struct throwingAlloc : public oel::allocator<T>
+struct throwingAlloc : public DefaultAllocator<T>
 {
 	unsigned int throwIfGreater = 999;
 
