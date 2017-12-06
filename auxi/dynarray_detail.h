@@ -8,6 +8,7 @@
 
 #include "../util.h" // for from_range
 
+#include <algorithm> // for max
 #include <cstdint>  // for uintptr_t
 #include <stdexcept>
 
@@ -34,6 +35,15 @@ namespace oel::_detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
+	template< typename Alloc >
+	constexpr auto AllocAlignValue()
+	->	decltype( Alloc::align_value() )
+	{	return    Alloc::align_value(); }
+
+	template< typename, typename... None >
+	constexpr size_t AllocAlignValue(None...) { return 0; }
+
+
 	struct DebugAllocationHeader
 	{
 		std::uintptr_t id;
@@ -53,8 +63,8 @@ namespace oel::_detail
 	#if OEL_MEM_BOUND_DEBUG_LVL == 0
 		static constexpr size_t sizeForHeader{};
 	#else
-		static constexpr auto _valNBytes    = sizeof(typename Alloc::value_type);
-		static constexpr auto sizeForHeader = (sizeof(DebugAllocationHeader) + _valNBytes - 1) / _valNBytes;
+		static constexpr auto _headerBytes  = std::max(sizeof(DebugAllocationHeader), AllocAlignValue<Alloc>());
+		static constexpr auto sizeForHeader = (_headerBytes - 1) / sizeof(typename Alloc::value_type) + 1;
 
 		static Ptr _addHeader(const Alloc & a, Ptr p)
 		{

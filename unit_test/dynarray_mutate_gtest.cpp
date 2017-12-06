@@ -14,14 +14,17 @@
 using oel::dynarray;
 namespace view = oel::view;
 
-template< typename T = int >
-struct noDefaultConstructAlloc : public oel::allocator<T>
+struct NoDefaultConstructAlloc : public DefaultAllocator<int>
 {
-	noDefaultConstructAlloc(int) {}
+	NoDefaultConstructAlloc(int) {}
+
+	template< typename > struct rebind
+	{	using other = NoDefaultConstructAlloc;
+	};
 };
 
 template<typename T>
-struct throwingAlloc : public oel::allocator<T>
+struct ThrowingAlloc : public DefaultAllocator<T>
 {
 	unsigned int throwIfGreater = 999;
 
@@ -30,8 +33,13 @@ struct throwingAlloc : public oel::allocator<T>
 		if (nObjs > throwIfGreater)
 			OEL_THROW(std::bad_alloc{}, "");
 
-		return oel::allocator<T>::allocate(nObjs);
+		return DefaultAllocator<T>::allocate(nObjs);
 	}
+
+	template< typename U >
+	struct rebind
+	{	using other = ThrowingAlloc<U>;
+	};
 };
 
 // The fixture for testing dynarray.
@@ -634,7 +642,7 @@ TEST_F(dynarrayTest, moveOnlyIterator)
 
 TEST_F(dynarrayTest, resize)
 {
-	dynarray< int, throwingAlloc<int> > d;
+	dynarray< int, ThrowingAlloc<int> > d;
 
 	size_t const S1 = 4;
 
@@ -876,12 +884,12 @@ TEST_F(dynarrayTest, shrinkToFit)
 	EXPECT_EQ(1u, d.size());
 }
 
-TEST_F(dynarrayTest, overAligned)
+TEST_F(dynarrayTest, overAlignedType)
 {
-	constexpr auto testAlignment = OEL_MALLOC_ALIGNMENT * 2;
+	constexpr auto testAlignment = 4 * sizeof(double);
 	struct alignas(testAlignment) Type
 	{
-		double v[2];
+		double v[4];
 	};
 	dynarray<Type> special(oel::reserve, 1);
 
@@ -915,6 +923,26 @@ TEST_F(dynarrayTest, overAligned)
 #endif
 }
 
+TEST_F(dynarrayTest, allocatorOverAligned)
+{
+	constexpr auto testAlignment = OEL_MALLOC_ALIGNMENT * 2;
+	dynarray< double, oel::allocator<testAlignment> > special(oel::reserve, 1);
+
+	special.emplace_back();
+	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(special.data()) % testAlignment);
+
+	special.emplace(special.begin());
+	special.emplace(special.begin() + 1);
+	EXPECT_EQ(3U, special.size());
+	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
+
+	special.erase(special.end() - 1);
+	special.erase(special.begin());
+	special.shrink_to_fit();
+	EXPECT_TRUE(special.capacity() < 3U);
+	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
+}
+
 #if OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, greaterThanMax)
 {
@@ -941,9 +969,9 @@ TEST_F(dynarrayTest, greaterThanMax)
 }
 #endif
 
-TEST_F(dynarrayTest, noDefaultConstructAlloc)
+TEST_F(dynarrayTest, NoDefaultConstructAlloc)
 {
-	dynarray< int, noDefaultConstructAlloc<> > test(noDefaultConstructAlloc<>(0));
+	dynarray< int, NoDefaultConstructAlloc > test(NoDefaultConstructAlloc(0));
 	test.push_back(1);
 	EXPECT_EQ(1u, test.size());
 }
