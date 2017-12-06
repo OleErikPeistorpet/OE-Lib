@@ -267,6 +267,12 @@ struct TrackingAllocatorBase : oel::allocator<T>
 template<typename T>
 struct TrackingAllocator : TrackingAllocatorBase<T>
 {
+	template< typename U >
+	struct rebind
+	{
+		using other = TrackingAllocator<U>;
+	};
+
 	template<typename U, typename... Args>
 	void construct(U * raw, Args &&... args)
 	{

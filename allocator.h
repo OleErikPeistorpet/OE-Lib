@@ -34,10 +34,6 @@
 	#endif
 #endif
 
-#ifndef OEL_MALLOC_ALIGNMENT
-#define OEL_MALLOC_ALIGNMENT  __STDCPP_DEFAULT_NEW_ALIGNMENT__
-#endif
-
 #ifndef OEL_NEW_HANDLER
 #define OEL_NEW_HANDLER  !OEL_HAS_EXCEPTIONS
 #endif
@@ -48,23 +44,23 @@
 namespace oel
 {
 
-//! Has `reallocate` function in addition to standard functionality
+//! Aligns memory to the greater of alignof(T) and MinAlign, and has `reallocate` function
 /**
-* Either throws std::bad_alloc or calls standard new_handler on failure, depending on value of OEL_NEW_HANDLER.
-* (Automatically handles over-aligned T, like std::allocator does from C++17) */
-template< typename T >
-class allocator
+* Either throws std::bad_alloc or calls standard new_handler on failure, depending on value of OEL_NEW_HANDLER. */
+template< typename T, size_t MinAlign >
+struct allocator
 {
-public:
 	using value_type = T;
 
 	using propagate_on_container_move_assignment = std::true_type;
 
 	static constexpr bool   can_reallocate() noexcept { return is_trivially_relocatable<T>::value; }
 
+	static constexpr size_t alignment_value() noexcept   { return std::max(alignof(T), MinAlign); }
+
 	static constexpr size_t max_size() noexcept
 		{
-			constexpr auto n = SIZE_MAX - (alignof(T) > OEL_MALLOC_ALIGNMENT ? alignof(T) : 0);
+			constexpr auto n = SIZE_MAX - (alignment_value() > OEL_MALLOC_ALIGNMENT ? alignment_value() : 0);
 			return n / sizeof(T);
 		}
 
@@ -80,10 +76,17 @@ public:
 	allocator() = default;
 
 	template< typename U >  OEL_ALWAYS_INLINE
-	constexpr allocator(allocator<U>) noexcept {}
+	constexpr allocator(allocator<U, MinAlign>) noexcept {}
+
+	template< typename U >
+	struct rebind
+	{
+		using other = allocator<U, MinAlign>;
+	};
 
 	friend constexpr bool operator==(allocator, allocator) noexcept  { return true; }
 	friend constexpr bool operator!=(allocator, allocator) noexcept  { return false; }
+};
 
 
 
@@ -91,13 +94,6 @@ public:
 //
 // Implementation only in rest of the file
 
-
-private:
-	static constexpr size_t _alignment()
-	{
-		return std::max(alignof(T), size_t(OEL_MALLOC_ALIGNMENT));
-	}
-};
 
 namespace _detail
 {
@@ -131,6 +127,9 @@ namespace _detail
 	template< size_t Align >
 	struct Malloc
 	{
+	#ifdef __GNUC__
+		__attribute__(( assume_aligned(Align) ))
+	#endif
 		static void * call(size_t const nBytes)
 		{
 			if constexpr (Align > OEL_MALLOC_ALIGNMENT)
@@ -147,6 +146,9 @@ namespace _detail
 	template< size_t Align >
 	struct Realloc
 	{
+	#ifdef __GNUC__
+		__attribute__(( assume_aligned(Align) ))
+	#endif
 		static void * call(size_t const nBytes, void * old)
 		{
 			if constexpr (Align > OEL_MALLOC_ALIGNMENT)
@@ -205,46 +207,46 @@ namespace _detail
 					OEL_ABORT(allocFailMsg);
 
 				(*handler)();
-			}
+	}
 		#else
 			auto p = AllocFunc::call(nBytes, old...);
 			if (p)
 				return p;
 			else
 				BadAlloc::raise();
-		#endif
-		}
+#endif
+}
 		else
 		{	return nullptr;
 		}
 	}
 }
 
-template< typename T >
-T * allocator<T>::allocate(size_t count)
+template< typename T, size_t MinAlign >
+T * allocator<T, MinAlign>::allocate(size_t count)
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	OEL_ASSERT(count <= max_size());
 #endif
-	using F = _detail::Malloc<_alignment()>; // just alignof(T) would increase template instantiations
+	using F = _detail::Malloc<alignment_value()>;
 	return static_cast<T *>( _detail::AllocAndHandleFail<F>(sizeof(T) * count) );
 }
 
-template< typename T >
-T * allocator<T>::reallocate(T * ptr, size_t count)
+template< typename T, size_t MinAlign >
+T * allocator<T, MinAlign>::reallocate(T * ptr, size_t count)
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	OEL_ASSERT(count <= max_size());
 #endif
-	using F = _detail::Realloc<_alignment()>;
+	using F = _detail::Realloc<alignment_value()>;
 	void * vp{ptr};
 	return static_cast<T *>( _detail::AllocAndHandleFail<F>(sizeof(T) * count, vp) );
 }
 
-template< typename T >
-inline void allocator<T>::deallocate(T * ptr, size_t count) noexcept
+template< typename T, size_t MinAlign >
+inline void allocator<T, MinAlign>::deallocate(T * ptr, size_t count) noexcept
 {
-	_detail::Free<_alignment()>(ptr, sizeof(T) * count);
+	_detail::Free<alignment_value()>(ptr, sizeof(T) * count);
 }
 
 } // namespace oel
