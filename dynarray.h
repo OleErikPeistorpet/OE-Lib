@@ -189,10 +189,10 @@ public:
 
 	void     clear() noexcept   { erase_to_end(begin()); }
 
-	void     reserve(size_type minCap)
+	void     reserve(size_type min_cap)
 		{
-			if( capacity() < minCap )
-				_realloc(_calcCapChecked(minCap), size());
+			if( capacity() < min_cap )
+				_realloc(_calcCapChecked(min_cap), size());
 		}
 	//! It's probably a good idea to check that size < capacity before calling, maybe add some treshold to size
 	void      shrink_to_fit();
