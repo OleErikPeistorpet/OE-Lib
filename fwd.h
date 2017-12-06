@@ -1,5 +1,7 @@
 #pragma once
 
+// Copyright 2015 Ole Erik Peistorpet
+//
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -50,12 +52,17 @@
 #endif
 
 
+#ifndef OEL_MALLOC_ALIGNMENT
+#define OEL_MALLOC_ALIGNMENT  __STDCPP_DEFAULT_NEW_ALIGNMENT__
+#endif
+
+
 //! Obscure Efficient Library
 namespace oel
 {
 
-template< typename T = unsigned char >
-class allocator;
+template< typename T = unsigned char, unsigned int MinAlign = OEL_MALLOC_ALIGNMENT >
+struct allocator;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug
