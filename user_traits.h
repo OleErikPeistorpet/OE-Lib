@@ -57,7 +57,7 @@
 namespace oel
 {
 
-template< typename T > struct allocator;  // forward declare
+template< typename T, std::size_t MinAlign = 0 > struct allocator;
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
 inline namespace debug

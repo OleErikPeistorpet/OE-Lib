@@ -28,10 +28,10 @@
 namespace oel
 {
 
-/** @brief An allocator which aligns the memory to alignof(T)
+/** @brief Allocator which aligns memory to the greater of alignof(T) and MinAlign
 *
 * Wraps operator new without overhead when possible. */
-template< typename T >
+template< typename T, size_t MinAlign >
 struct allocator
 {
 	using value_type = T;
@@ -43,9 +43,16 @@ struct allocator
 
 	static constexpr size_t max_size() noexcept   { return (size_t)-1 / sizeof(T); }
 
+	static constexpr size_t alignment_value() noexcept  { return std::max(alignof(T), MinAlign); }
+
 	allocator() = default;
 	template< typename U >  OEL_ALWAYS_INLINE
-	constexpr allocator(const allocator<U> &) noexcept {}
+	constexpr allocator(const allocator<U, MinAlign> &) noexcept {}
+
+	template< typename U > struct rebind
+	{
+		using other = allocator<U, MinAlign>;
+	};
 
 	friend constexpr bool operator==(allocator, allocator) noexcept  { return true; }
 	friend constexpr bool operator!=(allocator, allocator) noexcept  { return false; }
@@ -147,25 +154,25 @@ namespace _detail
 #endif
 }
 
-template< typename T >
-T * allocator<T>::allocate(size_t nElems)
+template< typename T, size_t MinAlign >
+T * allocator<T, MinAlign>::allocate(size_t nElems)
 {
 	size_t const size = sizeof(T) * nElems;
 	void * p;
-	if (_detail::CanDefaultNew<alignof(T)>::value)
+	if (_detail::CanDefaultNew<alignment_value()>::value)
 		p = ::operator new(size);
 	else
-		p = _detail::OpNewAlign<alignof(T)>(size);
+		p = _detail::OpNewAlign<alignment_value()>(size);
 
 	return static_cast<T *>(p);
 }
 
-template< typename T >
-inline void allocator<T>::deallocate(T * ptr, size_t nElems) noexcept
+template< typename T, size_t MinAlign >
+inline void allocator<T, MinAlign>::deallocate(T * ptr, size_t nElems) noexcept
 {
 	_detail::OpDelete(
-		ptr, sizeof(T) * nElems, alignof(T),
-		_detail::CanDefaultNew<alignof(T)>() );
+		ptr, sizeof(T) * nElems, alignment_value(),
+		_detail::CanDefaultNew<alignment_value()>() );
 }
 
 } // namespace oel
