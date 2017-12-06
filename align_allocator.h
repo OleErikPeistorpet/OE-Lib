@@ -20,10 +20,10 @@
 namespace oel
 {
 
-/** @brief An allocator which aligns the memory to alignof(T)
+/** @brief Allocator which aligns memory to the greater of alignof(T) and MinAlign
 *
 * Wraps operator new without overhead when possible. */
-template< typename T >
+template< typename T, size_t MinAlign >
 struct allocator
 {
 	using value_type = T;
@@ -35,14 +35,19 @@ struct allocator
 
 	static constexpr size_t max_size()   { return (size_t)-1 / sizeof(T); }
 
+	static constexpr size_t alignment_value()  { return oel_max(alignof(T), MinAlign); }
+
 	allocator() = default;
 	template< typename U >  OEL_ALWAYS_INLINE
-	constexpr allocator(const allocator<U> &) noexcept {}
+	constexpr allocator(const allocator<U, MinAlign> &) noexcept {}
 
-	template< typename U >
-	friend bool operator==(allocator, allocator<U>) noexcept { return true; }
-	template< typename U >
-	friend bool operator!=(allocator, allocator<U>) noexcept { return false; }
+	template< typename U > struct rebind
+	{
+		using other = allocator<U, MinAlign>;
+	};
+
+	friend constexpr bool operator==(allocator, allocator) noexcept  { return true; }
+	friend constexpr bool operator!=(allocator, allocator) noexcept  { return false; }
 };
 
 
@@ -138,18 +143,19 @@ namespace _detail
 #endif
 }
 
-template< typename T >
-T * allocator<T>::allocate(size_t nElems)
+template< typename T, size_t MinAlign >
+T * allocator<T, MinAlign>::allocate(size_t nElems)
 {
-	void * p = _detail::OpNew<alignof(T)>
-		(sizeof(T) * nElems, _detail::CanDefaultNew<alignof(T)>());
+	void * p = _detail::OpNew<alignment_value()>
+		(sizeof(T) * nElems, _detail::CanDefaultNew<alignment_value()>());
 	return static_cast<T *>(p);
 }
 
-template< typename T >
-inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
+template< typename T, size_t MinAlign >
+OEL_ALWAYS_INLINE inline void
+	allocator<T, MinAlign>::deallocate(T * ptr, size_t) noexcept
 {
-	_detail::OpDelete(ptr, alignof(T), _detail::CanDefaultNew<alignof(T)>());
+	_detail::OpDelete(ptr, alignment_value(), _detail::CanDefaultNew<alignment_value()>());
 }
 
 } // namespace oel
