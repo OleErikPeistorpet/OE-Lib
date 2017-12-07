@@ -7,7 +7,6 @@
 
 
 #include "auxi/contiguous_iterator.h"
-#include "auxi/detail.h"
 #include "compat/default.h"
 #include "align_allocator.h"
 #include "make_unique.h" // not needed, just convenient
@@ -294,7 +293,7 @@ private:
 		 :	_internBase(other), Alloc(std::move(other))
 		{
 			other.reservEnd = other.end = other.data = nullptr;
-			_updateHeader(*this);
+			_allocateWrap::UpdateAfterMove(*this);
 		}
 		_memOwner(const _memOwner &) = delete;
 		void operator =(const _memOwner &) = delete;
@@ -351,21 +350,11 @@ private:
 			_detail::Throw::LengthError("Going over dynarray max_size");
 	}
 
-	static void _updateHeader(_internBase & i)
-	{
-	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		if (i.data)
-			_allocateWrap::Header(i.data)->container = &i;
-	#else
-		(void) i;
-	#endif
-	}
-
 	template<typename Iterator>
 	Iterator _makeDebugIter(pointer p) const
 	{
 		if (_m.data)
-		{
+		{	// same as _allocateWrap::Header, but want to avoid the function call when inlining off
 			auto const h = reinterpret_cast<typename _allocateWrap::HeaderPtr>(_m.data) - 1;
 			return {p, h, h->id};
 		}
@@ -379,7 +368,7 @@ private:
 	{
 		static_cast<_internBase &>(_m) = src;
 		src.reservEnd = src.end = src.data = nullptr;
-		_updateHeader(_m);
+		_allocateWrap::UpdateAfterMove(_m);
 	}
 
 	void _moveAssignAlloc(std::true_type, Alloc & src)
@@ -604,7 +593,7 @@ private:
 		};
 		pointer newEnd;
 		if (capacity() < count)
-		{	// not enough room, allocate
+		{
 			pointer const newData = _allocate(_m, count);
 			// Old elements might hold some limited resource, destroying them before constructing new is probably good
 			_detail::Destroy(_m.data, _m.end);
@@ -782,7 +771,7 @@ typename dynarray<T, Alloc>::iterator
 	size_type const nAfterPos = _m.end - pPos;
 
 	OEL_DYNARR_INSERT_STEP0
-	if (_m.end < _m.reservEnd) // then new element fits
+	if (_m.end < _m.reservEnd)
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
@@ -816,7 +805,7 @@ typename dynarray<T, Alloc>::iterator
 	if (_unusedCapacity() >= count)
 	{
 		T *const dLast = pPos + count;
-		// Relocate elements to make space, conceptually destroying [pos, pos + n)
+		// Relocate elements to make space, conceptually destroying [pos, pos + count)
 		::memmove(dLast, pPos, sizeof(T) * nAfterPos);
 		_m.end += count;
 		// Construct new
@@ -945,8 +934,8 @@ void dynarray<T, Alloc>::swap(dynarray & other) OEL_NOEXCEPT_NDEBUG
 	_internBase & a = _m;
 	_internBase & b = other._m;
 	std::swap(a, b);
-	_updateHeader(a);
-	_updateHeader(b);
+	_allocateWrap::UpdateAfterMove(a);
+	_allocateWrap::UpdateAfterMove(b);
 	_swapAlloc(typename _allocTrait::propagate_on_container_swap(), other._m);
 }
 
@@ -963,9 +952,8 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	if (0 < used)
 	{
 		OEL_TRY_
-		{
-			// TODO: test code gen. Could bypass max_size check here
-			newData = _allocate(_m, used);
+		{	// TODO: test code gen
+			newData = _allocateWrap::Allocate(_m, used);
 		}
 		OEL_CATCH_ALL
 		{

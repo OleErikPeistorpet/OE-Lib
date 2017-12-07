@@ -8,6 +8,7 @@
 
 #include "../util.h"
 
+#include <cstdint> // for uintptr_t
 #include <string.h> // for memset
 
 namespace oel
@@ -63,24 +64,35 @@ namespace _detail
 
 		enum {
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-			_tmp = sizeof(DebugAllocationHeader<HeaderCtnr>) / sizeof(typename Alloc::value_type),
-			sizeAddForHeader = _tmp > 1 ? _tmp : 1
+			_q = sizeof(DebugAllocationHeader<HeaderCtnr>) / sizeof(typename Alloc::value_type),
+			sizeAddForHeader = _q > 1 ? _q : 1
 		#else
 			sizeAddForHeader = 0
 		#endif
 		};
 
+		static void UpdateAfterMove(const HeaderCtnr & c)
+		{
+		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+			if (c.data)
+				Header(c.data)->container = &c;
+		#else
+			(void) c;
+		#endif
+		}
+
 		template<typename Owner>
 		static Ptr Allocate(Owner & a, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-		// TODO FIXME: May break stack allocators. Use by default only with oel::allocator and pmr?
 			n += sizeAddForHeader;
 			Ptr p = a.allocate(n);
 			p += sizeAddForHeader;
-			auto const h = Header(p);
+
+			HeaderPtr const h = Header(p);
 			h->container = &a;
 			h->id = reinterpret_cast<std::uintptr_t>(&a);
+
 			return p;
 		#else
 			return a.allocate(n);

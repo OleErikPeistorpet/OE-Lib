@@ -666,7 +666,7 @@ TEST_F(dynarrayTest, greaterThanMax)
 	EXPECT_THROW(d.resize(n), std::length_error);
 	EXPECT_THROW(d.resize(n, oel::default_init), std::length_error);
 	ASSERT_TRUE(d.empty());
-	EXPECT_THROW(d.append(n, Size2{}), std::length_error);
+	EXPECT_THROW(d.append(n, Size2{{}}), std::length_error);
 }
 #endif
 
