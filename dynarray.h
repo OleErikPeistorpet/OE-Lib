@@ -344,8 +344,8 @@ private:
 
 	static pointer _allocate(_memOwner & a, size_type n)
 	{
-		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeAddForHeader) // subtraction could underflow
-			return _allocateWrap::Allocate(a, n);
+		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeAddForHeader)
+			return _allocateWrap::Allocate(a, n); // allocate should throw if subtraction wrapped around
 		else
 			_detail::Throw::LengthError("Going over dynarray max_size");
 	}

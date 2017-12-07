@@ -68,6 +68,7 @@ oel::true_type specify_trivial_relocate(MoveOnly);
 class NontrivialReloc : public MyCounter
 {
 	double val;
+	short unused;
 
 public:
 	explicit NontrivialReloc(double v)

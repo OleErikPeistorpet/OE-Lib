@@ -45,17 +45,18 @@ namespace _detail
 	};
 
 
-	template<typename Container>
+	template<typename ContainerPtr>
 	struct DebugAllocationHeader
 	{
-		const Container * container;
-		std::uintptr_t    id;
+		ContainerPtr container;
+		std::uintptr_t id;
 	};
 
-	template<typename HeaderCtnr, typename Alloc, typename Ptr>
+	template<typename ContainerBase, typename Alloc, typename Ptr>
 	struct DebugAllocateWrapper
 	{
-		using HeaderPtr = typename std::pointer_traits<Ptr>::template rebind<DebugAllocationHeader<HeaderCtnr> >;
+		using CtnrConstPtr = typename std::pointer_traits<Ptr>::template rebind<ContainerBase const>;
+		using HeaderPtr = typename std::pointer_traits<Ptr>::template rebind<DebugAllocationHeader<CtnrConstPtr> >;
 
 		static HeaderPtr Header(Ptr p)
 		{
@@ -64,14 +65,14 @@ namespace _detail
 
 		enum {
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-			_q = sizeof(DebugAllocationHeader<HeaderCtnr>) / sizeof(typename Alloc::value_type),
-			sizeAddForHeader = _q > 1 ? _q : 1
+			_valSz = sizeof(typename Alloc::value_type),
+			sizeAddForHeader = (sizeof(DebugAllocationHeader<CtnrConstPtr>) + (_valSz - 1)) / _valSz
 		#else
 			sizeAddForHeader = 0
 		#endif
 		};
 
-		static void UpdateAfterMove(const HeaderCtnr & c)
+		static void UpdateAfterMove(const ContainerBase & c)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 			if (c.data)

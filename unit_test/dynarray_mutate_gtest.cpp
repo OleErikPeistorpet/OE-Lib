@@ -512,18 +512,23 @@ OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_TRUE(nested.back().empty());
 }
 
-struct StatefulAlwaysEqualAlloc
+struct NonPowerOfTwo
 {
-	using value_type = long long;
+	char data[(sizeof(void *) * 3) / 2];
+};
+
+struct StaticBufAlloc
+{
+	using value_type = NonPowerOfTwo;
 	using is_always_equal = std::true_type;
 
 	value_type * buf = nullptr;
 	size_t size = 0;
 
-	StatefulAlwaysEqualAlloc() = default;
+	StaticBufAlloc() = default;
 
 	template<size_t N>
-	StatefulAlwaysEqualAlloc(value_type (&array)[N])
+	StaticBufAlloc(value_type (&array)[N])
 	 :	buf(array), size(N) {
 	}
 
@@ -532,7 +537,7 @@ struct StatefulAlwaysEqualAlloc
 	value_type * allocate(size_t n)
 	{
 		if (n > size)
-			OEL_THROW(std::length_error("StatefulAlwaysEqualAlloc::allocate n > size"));
+			OEL_THROW(std::length_error("StaticBufAlloc::allocate n > size"));
 
 		size = 0;
 		return buf;
@@ -543,15 +548,38 @@ struct StatefulAlwaysEqualAlloc
 
 TEST_F(dynarrayTest, statefulAlwaysEqualDefaultConstructibleAlloc)
 {
-	long long mem[5];
-	StatefulAlwaysEqualAlloc a{mem};
-	dynarray<long long, StatefulAlwaysEqualAlloc> d(a);
+	struct Mem
+	{
+		NonPowerOfTwo prefix;
+		NonPowerOfTwo use[3];
+		NonPowerOfTwo postfix;
 
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+		enum : char { testValue = 91 };
+
+		Mem()
+		{
+			std::fill(std::begin(prefix.data), std::end(prefix.data), testValue);
+			std::fill(std::begin(postfix.data), std::end(postfix.data), testValue);
+		}
+
+		static bool IsValid(const NonPowerOfTwo & padding)
+		{
+			for (auto e : padding.data)
+			{
+				if (e != testValue)
+					return false;
+			}
+			return true;
+		}
+	}
+	mem;
+	StaticBufAlloc a{mem.use};
+
+	dynarray<NonPowerOfTwo, StaticBufAlloc> d(a);
 	d.resize(d.max_size());
-#else
-	d.resize(5);
-#endif
+
+	EXPECT_TRUE(Mem::IsValid(mem.prefix));
+	EXPECT_TRUE(Mem::IsValid(mem.postfix));
 }
 
 template<typename T>

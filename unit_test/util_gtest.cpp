@@ -148,7 +148,11 @@ TEST(utilTest, toPointerContiguous)
 
 	auto addr = &a[0];
 	using Iter = contiguous_ctnr_iterator<PointerLike<int>, dynarray<int>>;
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	Iter it{{addr}, nullptr, 0};
+#else
 	Iter it{{addr}, nullptr};
+#endif
 	static_assert(std::is_same<PointerLike<int>, Iter::pointer>::value, "?");
 	auto result = to_pointer_contiguous(it);
 	EXPECT_EQ(addr, result);
