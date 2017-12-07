@@ -52,23 +52,21 @@ namespace _detail
 		std::uintptr_t id;
 	};
 
+	// Extra dereference and address-of in case of fancy pointer
+	#define OEL_ALLOCATION_HEADER(headerT, ptr)  (&reinterpret_cast<headerT &>(*ptr) - 1)
+
 	template<typename ContainerBase, typename Alloc, typename Ptr>
 	struct DebugAllocateWrapper
 	{
 		using CtnrConstPtr = typename std::pointer_traits<Ptr>::template rebind<ContainerBase const>;
-		using HeaderPtr = typename std::pointer_traits<Ptr>::template rebind<DebugAllocationHeader<CtnrConstPtr> >;
-
-		static HeaderPtr Header(Ptr p)
-		{
-			return reinterpret_cast<HeaderPtr>(p) - 1;
-		}
+		using Header = DebugAllocationHeader<CtnrConstPtr>;
 
 		enum {
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 			_valSz = sizeof(typename Alloc::value_type),
-			sizeAddForHeader = (sizeof(DebugAllocationHeader<CtnrConstPtr>) + (_valSz - 1)) / _valSz
+			sizeForHeader = (sizeof(Header) + (_valSz - 1)) / _valSz
 		#else
-			sizeAddForHeader = 0
+			sizeForHeader = 0
 		#endif
 		};
 
@@ -76,7 +74,7 @@ namespace _detail
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 			if (c.data)
-				Header(c.data)->container = &c;
+				OEL_ALLOCATION_HEADER(Header, c.data)->container = &c;
 		#else
 			(void) c;
 		#endif
@@ -86,11 +84,11 @@ namespace _detail
 		static Ptr Allocate(Owner & a, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-			n += sizeAddForHeader;
+			n += sizeForHeader;
 			Ptr p = a.allocate(n);
-			p += sizeAddForHeader;
+			p += sizeForHeader;
 
-			HeaderPtr const h = Header(p);
+			Header *const h = OEL_ALLOCATION_HEADER(Header, p);
 			h->container = &a;
 			h->id = reinterpret_cast<std::uintptr_t>(&a);
 
@@ -105,9 +103,9 @@ namespace _detail
 			if (p)
 			{
 			#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-				Header(p)->id = 0;
-				p -= sizeAddForHeader;
-				n += sizeAddForHeader;
+				OEL_ALLOCATION_HEADER(Header, p)->id = 0;
+				p -= sizeForHeader;
+				n += sizeForHeader;
 			#endif
 				a.deallocate(p, n);
 			}

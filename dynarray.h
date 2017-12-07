@@ -124,7 +124,7 @@ public:
 
 	dynarray & operator =(dynarray && other) OEL_NOEXCEPT(_allocTrait::propagate_on_container_move_assignment::value
 	                                                      || is_always_equal<Alloc>::value);
-	//! Treats Alloc as if it does not have propagate_on_container_copy_assignment
+	//! Treats allocator_type as if it does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other)    { assign(other);  return *this; }
 
 	dynarray & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
@@ -219,7 +219,10 @@ public:
 
 	size_type capacity() const noexcept  { return _m.reservEnd - _m.data; }
 
-	size_type max_size() const noexcept  { return _allocTrait::max_size(_m) - _allocateWrap::sizeAddForHeader; }
+	size_type max_size() const noexcept  { return _allocTrait::max_size(_m) - _allocateWrap::sizeForHeader; }
+
+	//! How much smaller capacity is than the number passed to allocator_type::allocate
+	static constexpr size_type allocate_size_overhead()  { return _allocateWrap::sizeForHeader; }
 
 	allocator_type get_allocator() const noexcept  { return _m; }
 
@@ -344,7 +347,7 @@ private:
 
 	static pointer _allocate(_memOwner & a, size_type n)
 	{
-		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeAddForHeader)
+		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeForHeader)
 			return _allocateWrap::Allocate(a, n); // allocate should throw if subtraction wrapped around
 		else
 			_detail::Throw::LengthError("Going over dynarray max_size");
@@ -354,8 +357,8 @@ private:
 	Iterator _makeDebugIter(pointer p) const
 	{
 		if (_m.data)
-		{	// same as _allocateWrap::Header, but want to avoid the function call when inlining off
-			auto const h = reinterpret_cast<typename _allocateWrap::HeaderPtr>(_m.data) - 1;
+		{
+			auto const h = OEL_ALLOCATION_HEADER(typename _allocateWrap::Header, _m.data);
 			return {p, h, h->id};
 		}
 		else
@@ -1063,6 +1066,7 @@ inline const T & dynarray<T, Alloc>::operator[](size_type i) const OEL_NOEXCEPT_
 }
 
 #undef OEL_DYNARR_ITER
+#undef OEL_ALLOCATION_HEADER
 
 namespace _detail
 {
