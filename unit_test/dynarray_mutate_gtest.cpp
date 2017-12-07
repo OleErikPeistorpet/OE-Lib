@@ -1,3 +1,5 @@
+#define OEL_HALT(failedCond) throw std::logic_error(failedCond)
+
 #include "test_classes.h"
 #include "range_view.h"
 
@@ -638,6 +640,16 @@ TEST_F(dynarrayTest, eraseToEnd)
 TEST_F(dynarrayTest, eraseUnstable)
 {
 	dynarray<int> di{1, -2};
+
+#if OEL_MEM_BOUND_DEBUG_LVL
+	OEL_WHEN_EXCEPTIONS_ON(
+		EXPECT_THROW(di.erase_unstable(di.end()), std::logic_error);
+	)
+	OEL_WHEN_EXCEPTIONS_ON(
+		auto copy = di;
+		EXPECT_THROW(copy.erase_unstable(di.begin()), std::logic_error);
+	)
+#endif
 
 	auto it = begin(di);
 	auto & val = end(di)[-1];

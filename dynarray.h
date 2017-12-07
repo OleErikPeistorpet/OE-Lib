@@ -486,7 +486,7 @@ private:
 
 	void _eraseUnorder(iterator const pos, true_type /*trivialRelocate*/)
 	{
-		OEL_ASSERT_MEM_BOUND(begin() <= pos && pos < end());
+		OEL_ASSERT_MEM_BOUND(_m._internBase::DerefValid(pos._pElem));
 
 		T & elem = *pos;
 		elem.~T();
