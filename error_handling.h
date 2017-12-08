@@ -6,8 +6,6 @@
 
 #include "auxi/macros.h"
 
-#include <stdexcept>
-
 
 /** @file
 */
@@ -19,12 +17,21 @@
 	#define OEL_MEM_BOUND_DEBUG_LVL 2
 #endif
 
+
+//! Functions marked with OEL_NOEXCEPT_NDEBUG will only throw exceptions from OEL_ALWAYS_ASSERT (none by default)
+#if defined(NDEBUG) && OEL_MEM_BOUND_DEBUG_LVL == 0
+	#define OEL_NOEXCEPT_NDEBUG noexcept
+#else
+	#define OEL_NOEXCEPT_NDEBUG
+#endif
+
+
 #ifndef OEL_ALWAYS_ASSERT
 	#ifndef OEL_HALT
-	/** Could throw an exception instead, or do whatever. If it contains assembly, compilation will likely fail.
+	/** @brief Could throw an exception instead, or do whatever. If it contains assembly, compilation will likely fail.
 	*
 	* Example: @code
-	#define OEL_HALT(failedCond) throw std::logic_error(failedCond ", assertion failed in " __FILE__)
+	#define OEL_HALT(failedCond)  throw std::logic_error(failedCond ", assertion failed in " __FILE__)
 	@endcode  */
 		#if defined(_MSC_VER)
 		#define OEL_HALT(failedCond) __debugbreak()
@@ -61,26 +68,3 @@
 #else
 	#define OEL_ASSERT(expr) ((void) 0)
 #endif
-
-
-namespace oel
-{
-namespace _detail
-{
-	struct Throw
-	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
-		OEL_NORETURN static void OutOfRange(const char * what)
-		{
-			OEL_THROW(std::out_of_range(what));
-			(void) what; // avoid warning when exceptions disabled
-		}
-
-		OEL_NORETURN static void LengthError(const char * what)
-		{
-			OEL_THROW(std::length_error(what));
-			(void) what;
-		}
-	};
-}
-
-}

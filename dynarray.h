@@ -16,6 +16,12 @@
 
 namespace oel
 {
+#ifdef OEL_DEBUG_ABI
+inline namespace debug
+{
+
+using oel::to_pointer_contiguous;
+#endif
 
 //! dynarray<dynarray<T>> is efficient
 template<typename T, typename Alloc>
@@ -1064,6 +1070,10 @@ inline const T & dynarray<T, Alloc>::operator[](size_type i) const OEL_NOEXCEPT_
 	OEL_ASSERT_MEM_BOUND(i < size());
 	return _m.data[i];
 }
+
+#ifdef OEL_DEBUG_ABI
+} // namespace debug
+#endif
 
 #undef OEL_DYNARR_ITER
 #undef OEL_ALLOCATION_HEADER

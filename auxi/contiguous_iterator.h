@@ -9,8 +9,21 @@
 #include "detail.h"
 
 
+#ifdef _MSC_VER
+	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	#pragma detect_mismatch("OEL_MEM_BOUND_DEBUG_LVL", "2")
+	#else
+	#pragma detect_mismatch("OEL_MEM_BOUND_DEBUG_LVL", "0or1")
+	#endif
+#endif
+
+
 namespace oel
 {
+#ifdef OEL_DEBUG_ABI
+inline namespace debug
+{
+#endif
 
 /** @brief Debug iterator for container with contiguous memory
 *
@@ -196,6 +209,9 @@ typename std::pointer_traits<Ptr>::element_type *
 	return _detail::ToAddress(it._pElem);
 }
 
+#ifdef OEL_DEBUG_ABI
+}
+#endif
 } // namespace oel
 
 #ifdef _MSC_VER

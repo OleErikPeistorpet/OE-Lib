@@ -7,12 +7,12 @@
 
 
 #include "user_traits.h"
-#include "error_handling.h"
 
 #ifndef OEL_NO_BOOST
 	#include <boost/iterator/iterator_categories.hpp>
 #endif
 #include <iterator>
+#include <stdexcept>
 #include <memory>  // for pointer_traits
 #include <string.h> // for memcpy
 
@@ -22,14 +22,6 @@
 *
 * Contains as_signed/as_unsigned, index_valid, ssize, adl_begin, adl_end, deref_args and more.
 */
-
-//! Functions marked with OEL_NOEXCEPT_NDEBUG will only throw exceptions from OEL_ALWAYS_ASSERT (none by default)
-#if defined(NDEBUG) && OEL_MEM_BOUND_DEBUG_LVL == 0
-	#define OEL_NOEXCEPT_NDEBUG noexcept
-#else
-	#define OEL_NOEXCEPT_NDEBUG
-#endif
-
 
 namespace oel
 {
@@ -245,6 +237,22 @@ namespace _detail
 
 namespace _detail
 {
+	struct Throw
+	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
+		OEL_NORETURN static void OutOfRange(const char * what)
+		{
+			OEL_THROW(std::out_of_range(what));
+			(void) what; // avoid warning when exceptions disabled
+		}
+
+		OEL_NORETURN static void LengthError(const char * what)
+		{
+			OEL_THROW(std::length_error(what));
+			(void) what;
+		}
+	};
+
+
 	inline void MemcpyMaybeNull(void * dest, const void * src, size_t nBytes)
 	{	// memcpy(nullptr, nullptr, 0) is UB. The trouble is that checking can have significant performance hit.
 		// GCC 4.9 and up known to need the check in some cases

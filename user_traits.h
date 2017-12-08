@@ -6,6 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "error_handling.h"
+
 #include <type_traits>
 
 
@@ -22,14 +24,27 @@
 #endif
 
 
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2 && !defined _MSC_VER
+	#define OEL_DEBUG_ABI 1
+#endif
+
+
 //! Obscure Efficient Library
 namespace oel
 {
 
 template<typename T> struct allocator;  // forward declare
 
+#ifdef OEL_DEBUG_ABI
+inline namespace debug {
+#endif
+
 template<typename T, typename Alloc = allocator<T> >
 class dynarray;
+
+#ifdef OEL_DEBUG_ABI
+}
+#endif
 
 
 
