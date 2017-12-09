@@ -456,19 +456,14 @@ private:
 	size_type _calcCapAddOne(size_type = 0) const
 	{
 		constexpr auto startBytesGood = oel_max(3 * sizeof(void *), 4 * sizeof(int));
-		constexpr auto minGrow = oel_max<size_t>( startBytesGood / sizeof(T),
-				sizeof(T) <= 8 * sizeof(int) ? 2 : 1 );
+		constexpr auto minGrow = (startBytesGood + sizeof(T) - 1) / sizeof(T);
 		size_type const c = capacity();
-		OEL_CONST_COND if (minGrow > 1)
-			return c + oel_max(c / 2, minGrow);
-		else
-			return c + c / 2 + 1;
+		return c + oel_max(c, minGrow); // growth factor is 2
 	}
 
 	size_type _calcCap(size_type const newSize) const
-	{	// growth factor is 1.5
-		size_type c = capacity();
-		return oel_max(c + c / 2, newSize);
+	{
+		return oel_max(2 * capacity(), newSize);
 	}
 
 #ifdef __GNUC__
