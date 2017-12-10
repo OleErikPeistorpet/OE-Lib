@@ -19,8 +19,6 @@ namespace oel
 #ifdef OEL_DEBUG_ABI
 inline namespace debug
 {
-
-using oel::to_pointer_contiguous;
 #endif
 
 //! dynarray<dynarray<T>> is efficient
@@ -492,7 +490,7 @@ private:
 
 	void _eraseUnorder(iterator const pos, true_type /*trivialRelocate*/)
 	{
-		OEL_ASSERT_MEM_BOUND(_m._internBase::DerefValid(pos._pElem));
+		OEL_ASSERT(_m._internBase::DerefValid(pos._pElem));
 
 		T & elem = *pos;
 		elem.~T();
@@ -514,7 +512,7 @@ private:
 	void _erase(iterator pos, true_type /*trivialRelocate*/)
 	{
 		T *const ptr = to_pointer_contiguous(pos);
-		OEL_ASSERT_MEM_BOUND(_m.data <= ptr && ptr < _m.end);
+		OEL_ASSERT(_m.data <= ptr && ptr < _m.end);
 
 		ptr-> ~T();
 		const T * next = ptr + 1;
@@ -776,7 +774,7 @@ typename dynarray<T, Alloc>::iterator
 	_detail::AssertTrivialRelocate<T>();  \
 	\
 	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
-	OEL_ASSERT_MEM_BOUND(_m.data <= pPos && pPos <= _m.end);  \
+	OEL_ASSERT(_m.data <= pPos && pPos <= _m.end);  \
 	size_type const nAfterPos = _m.end - pPos;
 
 	OEL_DYNARR_INSERT_STEP0
@@ -1009,7 +1007,7 @@ inline auto dynarray<T, Alloc>::append(const InputRange & src) -> decltype(::adl
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::pop_back() OEL_NOEXCEPT_NDEBUG
 {
-	OEL_ASSERT_MEM_BOUND(_m.data < _m.end);
+	OEL_ASSERT(_m.data < _m.end);
 	--_m.end;
 	(*_m.end).~T();
 }
@@ -1018,7 +1016,7 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_to_end(iterator first) OEL_NOEXCEPT_NDEBUG
 {
 	T *const newEnd = to_pointer_contiguous(first);
-	OEL_ASSERT_MEM_BOUND(_m.data <= newEnd && newEnd <= _m.end);
+	OEL_ASSERT(_m.data <= newEnd && newEnd <= _m.end);
 	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
 }
@@ -1030,7 +1028,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 
 	T *const pFirst = to_pointer_contiguous(first);
 	T *const pLast = to_pointer_contiguous(last);
-	OEL_ASSERT_MEM_BOUND(_m.data <= pFirst && pFirst <= pLast && pLast <= _m.end);
+	OEL_ASSERT(_m.data <= pFirst && pFirst <= pLast && pLast <= _m.end);
 	if (pFirst < pLast)
 	{
 		_detail::Destroy(pFirst, pLast);
@@ -1061,13 +1059,13 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 template<typename T, typename Alloc>
 inline T & dynarray<T, Alloc>::operator[](size_type i) OEL_NOEXCEPT_NDEBUG
 {
-	OEL_ASSERT_MEM_BOUND(i < size());
+	OEL_ASSERT(i < size());
 	return _m.data[i];
 }
 template<typename T, typename Alloc>
 inline const T & dynarray<T, Alloc>::operator[](size_type i) const OEL_NOEXCEPT_NDEBUG
 {
-	OEL_ASSERT_MEM_BOUND(i < size());
+	OEL_ASSERT(i < size());
 	return _m.data[i];
 }
 

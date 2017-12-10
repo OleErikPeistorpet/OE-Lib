@@ -195,7 +195,7 @@ namespace _detail
 {
 	// Part of pointer_traits for C++17
 	template<typename Ptr> inline
-	typename std::pointer_traits<Ptr>::element_type * ToAddress(Ptr p) noexcept
+	typename std::pointer_traits<Ptr>::element_type * ToAddress(Ptr p)
 	{
 		return p.operator->();
 	}
@@ -241,14 +241,12 @@ namespace _detail
 	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
 		OEL_NORETURN static void OutOfRange(const char * what)
 		{
-			OEL_THROW(std::out_of_range(what));
-			(void) what; // avoid warning when exceptions disabled
+			OEL_THROW(std::out_of_range(what), what);
 		}
 
 		OEL_NORETURN static void LengthError(const char * what)
 		{
-			OEL_THROW(std::length_error(what));
-			(void) what;
+			OEL_THROW(std::length_error(what), what);
 		}
 	};
 

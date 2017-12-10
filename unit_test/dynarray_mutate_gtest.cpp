@@ -1,4 +1,6 @@
-#define OEL_HALT(failedCond) throw std::logic_error(failedCond)
+#if defined _CPPUNWIND || defined __EXCEPTIONS
+	#define OEL_ABORT(errorMsg) throw std::logic_error(errorMsg)
+#endif
 
 #include "test_classes.h"
 #include "range_view.h"
@@ -37,7 +39,7 @@ struct throwingAlloc : public oel::allocator<T>
 	T * allocate(size_t nObjs)
 	{
 		if (nObjs > throwIfGreater)
-			OEL_THROW(std::bad_alloc{});
+			OEL_THROW(std::bad_alloc{}, "");
 
 		return oel::allocator<T>::allocate(nObjs);
 	}
@@ -539,7 +541,7 @@ struct StaticBufAlloc
 	value_type * allocate(size_t n)
 	{
 		if (n > size)
-			OEL_THROW(std::length_error("StaticBufAlloc::allocate n > size"));
+			oel::_detail::Throw::LengthError("StaticBufAlloc::allocate n > size");
 
 		size = 0;
 		return buf;

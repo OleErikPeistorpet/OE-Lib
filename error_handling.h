@@ -13,58 +13,62 @@
 #if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
 /** @brief Undefined/0: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
 *
-* 0 (or undefined by NDEBUG defined) is not binary compatible with levels 1 and 2. */
+* Level 1 gives failed assertions if you try to use dynarray iterators after swap or move construction.
+* The different levels are not binary compatible, although mixing 0 and 1 typically works. */
 	#define OEL_MEM_BOUND_DEBUG_LVL 2
 #endif
 
 
-//! Functions marked with OEL_NOEXCEPT_NDEBUG will only throw exceptions from OEL_ALWAYS_ASSERT (none by default)
-#if defined(NDEBUG) && OEL_MEM_BOUND_DEBUG_LVL == 0
+//! Functions marked with OEL_NOEXCEPT_NDEBUG will only throw exceptions from OEL_ASSERT (none by default)
+#if OEL_MEM_BOUND_DEBUG_LVL == 0
 	#define OEL_NOEXCEPT_NDEBUG noexcept
 #else
 	#define OEL_NOEXCEPT_NDEBUG
 #endif
 
 
-#ifndef OEL_ALWAYS_ASSERT
-	#ifndef OEL_HALT
-	/** @brief Could throw an exception instead, or do whatever. If it contains assembly, compilation will likely fail.
+#ifndef OEL_ABORT
+	/** @brief Used by OEL_ASSERT, and anywhere that would normally throw if exceptions are disabled
 	*
+	* Users may define this to call a function that does not return or to throw an exception.
 	* Example: @code
-	#define OEL_HALT(failedCond)  throw std::logic_error(failedCond ", assertion failed in " __FILE__)
+	#define OEL_ABORT(errorMessage)  throw std::logic_error(errorMessage "; in " __FILE__)
 	@endcode  */
-		#if defined(_MSC_VER)
-		#define OEL_HALT(failedCond) __debugbreak()
-		#elif OEL_HAS_BUILTIN_TRAP
-		#define OEL_HALT(failedCond) __builtin_trap()
-		#else
-		#define OEL_HALT(failedCond) std::abort()
-		#endif
-	#endif
+	#define OEL_ABORT(msg) (std::abort(), (void) msg)
 
-	//! Executes OEL_HALT on failure. Can be defined to standard assert or your own
-	#define OEL_ALWAYS_ASSERT(expr)  \
-		OEL_CONST_COND  \
-		do {  \
-			if (!(expr)) OEL_HALT(#expr);  \
-		} while (false)
+	#if !defined OEL_ASSERT && !defined NDEBUG
+	#include <cassert>
+
+	//! Can be defined to your own
+	#define OEL_ASSERT  assert
+	#endif
 #endif
 
 
 
 ////////////////////////////////////////////////////////////////////////////////
+//
+// The rest of the file is not for users (implementation)
 
 
-
-#undef OEL_HAS_BUILTIN_TRAP
-
-#if OEL_MEM_BOUND_DEBUG_LVL
-	#define OEL_ASSERT_MEM_BOUND  OEL_ALWAYS_ASSERT
-#else
-	#define OEL_ASSERT_MEM_BOUND(expr) ((void) 0)
-#endif
-#if !defined(NDEBUG)
-	#define OEL_ASSERT  OEL_ALWAYS_ASSERT
-#else
+#if OEL_MEM_BOUND_DEBUG_LVL == 0
+	#undef OEL_ASSERT
 	#define OEL_ASSERT(expr) ((void) 0)
+#elif !defined OEL_ASSERT
+	#define OEL_ASSERT(expr)  \
+		((expr) || (OEL_ABORT("Failed assert " #expr), false))
+#endif
+
+
+
+#if defined _CPPUNWIND || defined __EXCEPTIONS
+	#define OEL_THROW(exception, msg) throw exception
+	#define OEL_TRY_                  try
+	#define OEL_CATCH_ALL             catch (...)
+	#define OEL_WHEN_EXCEPTIONS_ON(x) x
+#else
+	#define OEL_THROW(exc, message)   OEL_ABORT(message)
+	#define OEL_TRY_
+	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
+	#define OEL_WHEN_EXCEPTIONS_ON(x)
 #endif

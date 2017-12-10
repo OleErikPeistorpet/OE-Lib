@@ -160,7 +160,7 @@ namespace _detail
 				std::set_new_handler(handler);
 			#endif
 				if (!handler)
-					OEL_THROW(std::bad_alloc{});
+					OEL_THROW(std::bad_alloc{}, "Failed allocator::allocate");
 
 				(*handler)();
 			}

@@ -32,14 +32,6 @@
 	#define OEL_GCC_VERSION 0
 #endif
 
-#ifdef __has_builtin
-	#define OEL_HAS_BUILTIN_TRAP __has_builtin(__builtin_trap)
-#elif __GNUC__
-	#define OEL_HAS_BUILTIN_TRAP 1
-#else
-	#define OEL_HAS_BUILTIN_TRAP 0
-#endif
-
 
 #ifdef _MSC_VER
 	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
@@ -49,18 +41,4 @@
 	#define OEL_CONST_COND
 
 	#define OEL_NORETURN __attribute__((noreturn))
-#endif
-
-////////////////////////////////////////////////////////////////////////////////
-
-#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
-	#define OEL_THROW(exception)      throw exception
-	#define OEL_TRY_                  try
-	#define OEL_CATCH_ALL             catch (...)
-	#define OEL_WHEN_EXCEPTIONS_ON(x) x
-#else
-	#define OEL_THROW(exception)      std::terminate()
-	#define OEL_TRY_
-	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
-	#define OEL_WHEN_EXCEPTIONS_ON(x)
 #endif

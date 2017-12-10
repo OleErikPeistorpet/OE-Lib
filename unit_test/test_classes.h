@@ -29,7 +29,7 @@ struct MyCounter
 		if (0 <= countToThrowOn)
 		{
 			if (0 == countToThrowOn--)
-				OEL_THROW(TestException{});
+				OEL_THROW(TestException{}, "");
 		}
 	}
 };
@@ -44,7 +44,7 @@ public:
 	{	++nConstructions;
 	}
 
-	explicit MoveOnly(ThrowOnConstructT) { OEL_THROW(TestException{}); }
+	explicit MoveOnly(ThrowOnConstructT) { OEL_THROW(TestException{}, ""); }
 
 	MoveOnly(MoveOnly && other) noexcept
 	 :	val(std::move(other.val))
@@ -76,7 +76,7 @@ public:
 	{	++nConstructions;
 	}
 
-	explicit NontrivialReloc(ThrowOnConstructT) { OEL_THROW(TestException{}); }
+	explicit NontrivialReloc(ThrowOnConstructT) { OEL_THROW(TestException{}, ""); }
 
 	NontrivialReloc(const NontrivialReloc & other)
 	{

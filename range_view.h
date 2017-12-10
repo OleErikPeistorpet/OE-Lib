@@ -168,7 +168,7 @@ constexpr counted_view<Iterator, B>::counted_view(Iterator f, difference_type n)
  :	_begin(f), _size(n)
 {
 #if __cplusplus >= 201402L
-	OEL_ASSERT_MEM_BOUND(n >= 0);
+	OEL_ASSERT(n >= 0);
 #endif
 }
 
@@ -176,7 +176,7 @@ template<typename Iterator, bool B>
 void counted_view<Iterator, B>::drop_front()
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	OEL_ASSERT_MEM_BOUND(_size > 0);
+	OEL_ASSERT(_size > 0);
 #endif
 	++_begin; --_size;
 }
@@ -185,7 +185,7 @@ template<typename Iterator, bool B>
 void counted_view<Iterator, B>::drop_back()
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	OEL_ASSERT_MEM_BOUND(_size > 0);
+	OEL_ASSERT(_size > 0);
 #endif
 	--_size;
 }

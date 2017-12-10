@@ -33,14 +33,14 @@ class contiguous_ctnr_iterator
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	#define OEL_ARRITER_CHECK_DEREFABLE  \
-		OEL_ASSERT_MEM_BOUND(_memInfo->id == _allocationId && _memInfo->container->DerefValid(_pElem))
+		OEL_ASSERT(_memInfo->id == _allocationId && _memInfo->container->DerefValid(_pElem))
 
 	// Test for iterator pair pointing to same container
 	#define OEL_ARRITER_CHECK_COMPAT(right)  \
-		OEL_ASSERT_MEM_BOUND(_allocationId == right._allocationId)
+		OEL_ASSERT(_allocationId == right._allocationId)
 #else
 	#define OEL_ARRITER_CHECK_DEREFABLE  \
-		OEL_ASSERT_MEM_BOUND(_container->DerefValid(_pElem))
+		OEL_ASSERT(_container->DerefValid(_pElem))
 
 	#define OEL_ARRITER_CHECK_COMPAT(right)
 #endif
@@ -204,15 +204,17 @@ public:
 //! To raw pointer (unchecked)
 template<typename Ptr, typename C> inline
 typename std::pointer_traits<Ptr>::element_type *
-	to_pointer_contiguous(const contiguous_ctnr_iterator<Ptr, C> & it)
+	to_pointer_contiguous(const contiguous_ctnr_iterator<Ptr, C> & it) noexcept
 {
 	return _detail::ToAddress(it._pElem);
 }
 
 #ifdef OEL_DEBUG_ABI
+	using oel::to_pointer_contiguous;
 }
 #endif
 } // namespace oel
+
 
 #ifdef _MSC_VER
 	//! Mark contiguous_ctnr_iterator as checked
