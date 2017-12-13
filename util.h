@@ -113,16 +113,13 @@ oel::dynarray< std::unique_ptr<double> > d;
 std::sort(d.begin(), d.end(), deref_args<std::less<>>{}); // std::less<double> before C++14
 @endcode  */
 template<typename Func>
-class deref_args
+struct deref_args
 {
-	Func _f;
-
-public:
-	deref_args(Func f = Func{})  : _f(std::move(f)) {}
+	Func wrapped = Func{};
 
 	template<typename... Ts>
-	auto operator()(Ts &&... args) const -> decltype( _f(*std::forward<Ts>(args)...) )
-	                                         { return _f(*std::forward<Ts>(args)...); }
+	auto operator()(Ts &&... args) const -> decltype( wrapped(*std::forward<Ts>(args)...) )
+	                                         { return wrapped(*std::forward<Ts>(args)...); }
 
 	using is_transparent = void;
 };
