@@ -115,7 +115,7 @@ std::sort(d.begin(), d.end(), deref_args<std::less<>>{}); // std::less<double> b
 template<typename Func>
 struct deref_args
 {
-	Func wrapped = Func{};
+	Func wrapped;
 
 	template<typename... Ts>
 	auto operator()(Ts &&... args) const -> decltype( wrapped(*std::forward<Ts>(args)...) )
@@ -274,7 +274,7 @@ namespace _detail
 //! @cond FALSE
 template<typename IteratorDest, typename IteratorSource>
 struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
-																 std::declval<IteratorSource>()) ) {};
+                                                                 std::declval<IteratorSource>()) ) {};
 //! @endcond
 
 template<typename T>
@@ -285,14 +285,14 @@ namespace oel
 {
 namespace _detail
 {
-	template<typename UnsignedInt, typename T> inline
-	constexpr bool IndexValid(UnsignedInt size, T i, false_type)
+	template<typename Unsigned, typename T> inline
+	constexpr bool IndexValid(Unsigned size, T i, false_type)
 	{	// assumes that r.size() never is greater than numeric_limits<long long>::max
 		return static_cast<unsigned long long>(i) < size;
 	}
 
-	template<typename UnsignedInt, typename T> inline
-	constexpr bool IndexValid(UnsignedInt size, T i, true_type)
+	template<typename Unsigned, typename T> inline
+	constexpr bool IndexValid(Unsigned size, T i, true_type)
 	{	// 32-bit optimized
 		return (0 <= i) & (as_unsigned(i) < size);
 	}

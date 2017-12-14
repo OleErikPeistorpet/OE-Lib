@@ -736,7 +736,7 @@ private:
 
 	template<typename CalcCapFunc, typename MakeFuncInsert, typename... Args>
 	T * _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
-					   CalcCapFunc calcNewCap, MakeFuncInsert makeNew, Args &&... args)
+	                   CalcCapFunc calcNewCap, MakeFuncInsert makeNew, Args &&... args)
 	{
 		_scopedPtr newBuf{_m, calcNewCap(capacity(), size() + nToAdd)};
 
@@ -791,7 +791,7 @@ typename dynarray<T, Alloc>::iterator
 	}
 	else
 	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
-							  _emplaceMakeElem{}, std::forward<Args>(args)...);
+		                      _emplaceMakeElem{}, std::forward<Args>(args)...);
 	}
 	return OEL_DYNARR_ITER(iterator, pPos);
 }
@@ -983,7 +983,7 @@ inline auto dynarray<T, Alloc>::assign(const InputRange & src) -> decltype(::adl
 {
 	using IterSrc = decltype(::adl_begin(src));
 	return _assignImpl(::adl_begin(src), _sizeOrEnd<IterSrc>(src),
-					   can_memmove_with<T *, IterSrc>());
+	                   can_memmove_with<T *, IterSrc>());
 }
 
 template<typename T, typename Alloc>
