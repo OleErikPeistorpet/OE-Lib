@@ -230,12 +230,12 @@ public:
 
 	allocator_type get_allocator() const noexcept  { return _m; }
 
-	iterator       begin() noexcept         { return OEL_DYNARR_ITER(iterator, _m.data); }
-	const_iterator begin() const noexcept   { return OEL_DYNARR_ITER(const_iterator, _m.data); }
+	iterator       begin() noexcept         { return _makeIter<iterator>(_m.data); }
+	const_iterator begin() const noexcept   { return _makeIter<const_iterator>(_m.data); }
 	const_iterator cbegin() const noexcept  { return begin(); }
 
-	iterator       end() noexcept           { return OEL_DYNARR_ITER(iterator, _m.end); }
-	const_iterator end() const noexcept     { return OEL_DYNARR_ITER(const_iterator, _m.end); }
+	iterator       end() noexcept           { return _makeIter<iterator>(_m.end); }
+	const_iterator end() const noexcept     { return _makeIter<const_iterator>(_m.end); }
 	const_iterator cend() const noexcept    { return end(); }
 
 	reverse_iterator       rbegin() noexcept        { return reverse_iterator{end()}; }
@@ -250,8 +250,8 @@ public:
 	reference       front() OEL_NOEXCEPT_NDEBUG        { return *begin(); }
 	const_reference front() const OEL_NOEXCEPT_NDEBUG  { return *begin(); }
 
-	reference       back() OEL_NOEXCEPT_NDEBUG         { return *OEL_DYNARR_ITER(iterator, _m.end - 1); }
-	const_reference back() const OEL_NOEXCEPT_NDEBUG   { return *OEL_DYNARR_ITER(const_iterator, _m.end - 1); }
+	reference       back() OEL_NOEXCEPT_NDEBUG         { return *_makeIter<iterator>(_m.end - 1); }
+	const_reference back() const OEL_NOEXCEPT_NDEBUG   { return *_makeIter<const_iterator>(_m.end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -358,8 +358,9 @@ private:
 	}
 
 	template<typename Iterator>
-	Iterator _makeDebugIter(pointer p) const
+	Iterator _makeIter(pointer p) const
 	{
+	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 		if (_m.data)
 		{
 			auto const h = OEL_ALLOCATION_HEADER(typename _allocateWrap::Header, _m.data);
@@ -368,6 +369,11 @@ private:
 		else
 		{	return {p, nullptr, reinterpret_cast<std::uintptr_t>(this)};
 		}
+	#elif OEL_MEM_BOUND_DEBUG_LVL
+		return {p, &_m};
+	#else
+		return p;
+	#endif
 	}
 
 
@@ -615,7 +621,7 @@ private:
 			if (newEnd < _m.end)
 			{	// downsizing, assign new and destroy rest
 				src = copy(src, _m.data, newEnd);
-				erase_to_end(OEL_DYNARR_ITER(iterator, newEnd));
+				erase_to_end(_makeIter<iterator>(newEnd));
 			}
 			else // assign to old elements as far as we can
 			{	src = copy(src, _m.data, _m.end);
@@ -793,7 +799,7 @@ typename dynarray<T, Alloc>::iterator
 	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
 		                      _emplaceMakeElem{}, std::forward<Args>(args)...);
 	}
-	return OEL_DYNARR_ITER(iterator, pPos);
+	return _makeIter<iterator>(pPos);
 }
 
 template<typename T, typename Alloc> template<typename ForwardRange>
@@ -849,7 +855,7 @@ typename dynarray<T, Alloc>::iterator
 				return dLast;
 			} );
 	}
-	return OEL_DYNARR_ITER(iterator, pPos);
+	return _makeIter<iterator>(pPos);
 }
 #undef OEL_DYNARR_INSERT_STEP0
 
@@ -1073,7 +1079,6 @@ inline const T & dynarray<T, Alloc>::operator[](size_type i) const OEL_NOEXCEPT_
 } // namespace debug
 #endif
 
-#undef OEL_DYNARR_ITER
 #undef OEL_ALLOCATION_HEADER
 
 namespace _detail

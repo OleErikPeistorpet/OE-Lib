@@ -222,13 +222,3 @@ typename std::pointer_traits<Ptr>::element_type *
 	struct std::_Is_checked_helper< oel::contiguous_ctnr_iterator<P, C> >
 	 :	public std::true_type {};
 #endif
-
-
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	#define OEL_DYNARR_ITER(iterT, ptr)  \
-		_makeDebugIter<iterT>(ptr)
-#elif OEL_MEM_BOUND_DEBUG_LVL
-	#define OEL_DYNARR_ITER(iterT, ptr)  iterT{ptr, &_m}
-#else
-	#define OEL_DYNARR_ITER(iterT, ptr)  (ptr)
-#endif
