@@ -9,7 +9,6 @@
 #include "../util.h"
 
 #include <cstdint> // for uintptr_t
-#include <string.h> // for memset
 
 namespace oel
 {
@@ -191,7 +190,7 @@ namespace _detail
 	template<typename Alloc, typename T> inline
 	void UninitFillImpl(true_type, T * first, T * last, Alloc &, int val = 0)
 	{
-		::memset(first, val, last - first);
+		std::memset(first, val, last - first);
 	}
 
 	template<typename Alloc, typename T, typename... Arg> inline
@@ -199,7 +198,7 @@ namespace _detail
 	{
 		// TODO: investigate libstdc++ std::fill
 		_detail::UninitFillImpl(bool_constant<std::is_integral<T>::value && sizeof(T) == 1>(),
-								first, last, alloc, arg...);
+		                        first, last, alloc, arg...);
 	}
 
 	template<typename Alloc, typename T> inline

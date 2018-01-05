@@ -310,7 +310,7 @@ private:
 			_allocateWrap::Deallocate(*this, data, reservEnd - data);
 		}
 
-	} _m; // Only data member of dynarray
+	} _m; // the only data member
 
 
 	using _allocRef = _detail::AllocRefOptimized<Alloc>;
@@ -522,7 +522,7 @@ private:
 
 		ptr-> ~T();
 		const T * next = ptr + 1;
-		::memmove(ptr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
+		std::memmove(ptr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
 		--_m.end;
 	}
 
@@ -752,8 +752,8 @@ private:
 		// Exception free from here
 		if (_m.data)
 		{
-			::memcpy(newBuf.data, data(), sizeof(T) * nBefore); // relocate prefix
-			::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);  // relocate suffix
+			std::memcpy(newBuf.data, data(), sizeof(T) * nBefore); // relocate prefix
+			std::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);  // relocate suffix
 		}
 		_m.end = afterAdded + nAfterPos;
 		newBuf.Swap(_m);
@@ -790,10 +790,10 @@ typename dynarray<T, Alloc>::iterator
 		aligned_union_t<T> tmp;
 		_allocTrait::construct(_m, reinterpret_cast<T *>(&tmp), std::forward<Args>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
-		::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
+		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_m.end;
 
-		::memcpy(pPos, &tmp, sizeof(T)); // relocate the new element to pos
+		std::memcpy(pPos, &tmp, sizeof(T)); // relocate the new element to pos
 	}
 	else
 	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
@@ -819,7 +819,7 @@ typename dynarray<T, Alloc>::iterator
 	{
 		T *const dLast = pPos + count;
 		// Relocate elements to make space, conceptually destroying [pos, pos + count)
-		::memmove(dLast, pPos, sizeof(T) * nAfterPos);
+		std::memmove(dLast, pPos, sizeof(T) * nAfterPos);
 		_m.end += count;
 		// Construct new
 		OEL_CONST_COND if (CanMemmove::value)
@@ -839,7 +839,7 @@ typename dynarray<T, Alloc>::iterator
 			}
 			OEL_CATCH_ALL
 			{	// relocate back to fill hole
-				::memmove(dest, dLast, sizeof(T) * nAfterPos);
+				std::memmove(dest, dLast, sizeof(T) * nAfterPos);
 				_m.end -= (dLast - dest);
 				OEL_WHEN_EXCEPTIONS_ON(throw);
 			}
@@ -1040,7 +1040,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 		_detail::Destroy(pFirst, pLast);
 		size_type const nAfterLast = _m.end - pLast;
 		// Relocate [last, end) to [first, first + nAfterLast)
-		::memmove(pFirst, pLast, sizeof(T) * nAfterLast);
+		std::memmove(pFirst, pLast, sizeof(T) * nAfterLast);
 		_m.end = pFirst + nAfterLast;
 	}
 	return first;

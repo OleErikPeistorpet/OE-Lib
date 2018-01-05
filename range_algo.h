@@ -147,8 +147,8 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename CntigusIter, typename IntT, typename CntigusIter2> inline
-	CntigusIter CopyUnsf(CntigusIter const src, IntT const n, CntigusIter2 const dest, true_type)
+	template<typename CntigusIter, typename Integral, typename CntigusIter2> inline
+	CntigusIter CopyUnsf(CntigusIter const src, Integral const n, CntigusIter2 const dest, true_type)
 	{	// can use memcpy
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != n)
@@ -161,10 +161,10 @@ namespace _detail
 		return src + n;
 	}
 
-	template<typename InputIter, typename IntT, typename RanAccessIter>
-	InputIter CopyUnsf(InputIter src, IntT const n, RanAccessIter const dest, false_type)
+	template<typename InputIter, typename Integral, typename RanAccessIter>
+	InputIter CopyUnsf(InputIter src, Integral const n, RanAccessIter const dest, false_type)
 	{
-		for (IntT i = 0; i < n; ++i)
+		for (Integral i = 0; i < n; ++i)
 		{
 			dest[i] = *src;
 			++src;
@@ -252,7 +252,7 @@ inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
 {
 	using InIter = decltype(begin(src));
 	return{ _detail::CopyUnsf(begin(src), oel::ssize(src), dest,
-							  can_memmove_with<RandomAccessIter, InIter>()) };
+	                          can_memmove_with<RandomAccessIter, InIter>()) };
 }
 
 template<typename InputRange, typename RandomAccessRange>

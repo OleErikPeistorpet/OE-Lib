@@ -14,7 +14,7 @@
 #include <iterator>
 #include <stdexcept>
 #include <memory>  // for pointer_traits
-#include <string.h> // for memcpy
+#include <cstring> // for memcpy
 
 
 /** @file
@@ -254,7 +254,7 @@ namespace _detail
 	#if (!defined __GNUC__ && !defined _MSC_VER) || OEL_GCC_VERSION >= 409 || _MSC_VER >= 2000
 		if (nBytes > 0)
 	#endif
-			::memcpy(dest, src, nBytes);
+			std::memcpy(dest, src, nBytes);
 	}
 
 
