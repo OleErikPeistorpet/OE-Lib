@@ -6,6 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "auxi/algo_detail.h"
 #include "auxi/contiguous_iterator.h"
 #include "compat/default.h"
 #include "align_allocator.h"
@@ -25,7 +26,7 @@ inline namespace debug
 template<typename T, typename Alloc>
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
-template<typename T, typename A> OEL_ALWAYS_INLINE inline
+template<typename T, typename A>  OEL_ALWAYS_INLINE inline
 void swap(dynarray<T, A> & a, dynarray<T, A> & b) OEL_NOEXCEPT_NDEBUG  { a.swap(b); }
 
 //! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
@@ -230,22 +231,22 @@ public:
 
 	allocator_type get_allocator() const noexcept  { return _m; }
 
-	iterator       begin() noexcept         OEL_ALWAYS_INLINE { return _makeIter<iterator>(_m.data); }
-	const_iterator begin() const noexcept   OEL_ALWAYS_INLINE { return _makeIter<const_iterator>(_m.data); }
-	const_iterator cbegin() const noexcept  OEL_ALWAYS_INLINE { return begin(); }
+	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIter<iterator>(_m.data); }
+	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_iterator>(_m.data); }
+	const_iterator cbegin() const noexcept   OEL_ALWAYS_INLINE { return begin(); }
 
-	iterator       end() noexcept           OEL_ALWAYS_INLINE { return _makeIter<iterator>(_m.end); }
-	const_iterator end() const noexcept     OEL_ALWAYS_INLINE { return _makeIter<const_iterator>(_m.end); }
-	const_iterator cend() const noexcept    OEL_ALWAYS_INLINE { return end(); }
+	iterator       end() noexcept          OEL_ALWAYS_INLINE { return _makeIter<iterator>(_m.end); }
+	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_iterator>(_m.end); }
+	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
 
-	reverse_iterator       rbegin() noexcept        OEL_ALWAYS_INLINE { return reverse_iterator{end()}; }
-	const_reverse_iterator rbegin() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
+	reverse_iterator       rbegin() noexcept         OEL_ALWAYS_INLINE { return reverse_iterator{end()}; }
+	const_reverse_iterator rbegin() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
 
-	reverse_iterator       rend() noexcept        OEL_ALWAYS_INLINE { return reverse_iterator{begin()}; }
-	const_reverse_iterator rend() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
+	reverse_iterator       rend() noexcept         OEL_ALWAYS_INLINE { return reverse_iterator{begin()}; }
+	const_reverse_iterator rend() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
 
-	T *             data() noexcept        OEL_ALWAYS_INLINE { return _m.data; }
-	const T *       data() const noexcept  OEL_ALWAYS_INLINE { return _m.data; }
+	T *             data() noexcept         OEL_ALWAYS_INLINE { return _m.data; }
+	const T *       data() const noexcept   OEL_ALWAYS_INLINE { return _m.data; }
 
 	reference       front() OEL_NOEXCEPT_NDEBUG        { return *begin(); }
 	const_reference front() const OEL_NOEXCEPT_NDEBUG  { return *begin(); }

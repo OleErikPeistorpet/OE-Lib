@@ -14,13 +14,13 @@
 #include <iterator>
 #include <stdexcept>
 #include <memory>  // for pointer_traits
-#include <cstring> // for memcpy
+#include <cstdint> // for uintmax_t
 
 
 /** @file
 * @brief Utilities, included throughout the library
 *
-* Contains as_signed/as_unsigned, index_valid, ssize, adl_begin, adl_end, deref_args and more.
+* Contains as_signed/as_unsigned, index_valid, ssize, adl_begin/adl_end, deref_args and more.
 */
 
 namespace oel
@@ -33,11 +33,11 @@ using enable_if = typename std::enable_if<Condition, int>::type;
 
 
 //! Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
-template<typename T> OEL_ALWAYS_INLINE inline
+template<typename T>  OEL_ALWAYS_INLINE inline
 constexpr typename std::make_signed<T>::type
 	as_signed(T val) noexcept                  { return (typename std::make_signed<T>::type) val; }
 //! Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
-template<typename T> OEL_ALWAYS_INLINE inline
+template<typename T>  OEL_ALWAYS_INLINE inline
 constexpr typename std::make_unsigned<T>::type
 	as_unsigned(T val) noexcept                { return (typename std::make_unsigned<T>::type) val; }
 
@@ -49,16 +49,19 @@ using range_difference_t  = decltype( _detail::DiffT<Range>(0) );
 
 
 //! Returns r.size() as signed type
-template<typename SizedRange> OEL_ALWAYS_INLINE inline
+template<typename SizedRange>  OEL_ALWAYS_INLINE inline
 constexpr auto ssize(const SizedRange & r)
  -> decltype( static_cast< range_difference_t<SizedRange> >(r.size()) )
      { return static_cast< range_difference_t<SizedRange> >(r.size()); }
 //! Returns number of elements in array as signed type
-template<typename T, std::ptrdiff_t Size> OEL_ALWAYS_INLINE inline
+template<typename T, std::ptrdiff_t Size>  OEL_ALWAYS_INLINE inline
 constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
-//! Check if index is valid (can be used with operator[]) for array or other range.
+/** @brief Check if index is valid (can be used with operator[]) for array or other container-like object
+*
+* Negative index gives false result, even if the value is within range after conversion to an unsigned type,
+* which happens implicitly when passed to operator[] of dynarray and std containers. */
 template<typename Integral, typename SizedRange>
 constexpr bool index_valid(const SizedRange & r, Integral index);
 
@@ -81,17 +84,17 @@ using std::end;
 	using std::begin; auto it = begin(container);
 	auto it = adl_begin(container);  // Equivalent to line above
 @endcode  */
-template<typename Range> OEL_ALWAYS_INLINE inline
+template<typename Range>  OEL_ALWAYS_INLINE inline
 constexpr auto adl_begin(Range & r) -> decltype(begin(r))         { return begin(r); }
 //! Const version of adl_begin(), analogous to std::cbegin
-template<typename Range> OEL_ALWAYS_INLINE inline
+template<typename Range>  OEL_ALWAYS_INLINE inline
 constexpr auto adl_cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
 
 //! Argument-dependent lookup non-member end, defaults to std::end
-template<typename Range> OEL_ALWAYS_INLINE inline
+template<typename Range>  OEL_ALWAYS_INLINE inline
 constexpr auto adl_end(Range & r) -> decltype(end(r))         { return end(r); }
 //! Const version of adl_end()
-template<typename Range> OEL_ALWAYS_INLINE inline
+template<typename Range>  OEL_ALWAYS_INLINE inline
 constexpr auto adl_cend(const Range & r) -> decltype(end(r))  { return end(r); }
 
 } // namespace oel
@@ -248,16 +251,6 @@ namespace _detail
 	};
 
 
-	inline void MemcpyMaybeNull(void * dest, const void * src, size_t nBytes)
-	{	// memcpy(nullptr, nullptr, 0) is UB. The trouble is that checking can have significant performance hit.
-		// GCC 4.9 and up known to need the check in some cases
-	#if (!defined __GNUC__ && !defined _MSC_VER) || OEL_GCC_VERSION >= 409 || _MSC_VER >= 2000
-		if (nBytes > 0)
-	#endif
-			std::memcpy(dest, src, nBytes);
-	}
-
-
 	template<typename T>   // (target, source)
 	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *);
 
@@ -285,15 +278,15 @@ namespace oel
 {
 namespace _detail
 {
-	template<typename Unsigned, typename T> inline
-	constexpr bool IndexValid(Unsigned size, T i, false_type)
-	{	// assumes that r.size() never is greater than numeric_limits<long long>::max
-		return static_cast<unsigned long long>(i) < size;
+	template<typename Unsigned, typename Integral> inline
+	constexpr bool IndexValid(Unsigned size, Integral i, false_type)
+	{	// assumes that size never is greater than INTMAX_MAX, and INTMAX_MAX is half UINTMAX_MAX
+		return static_cast<std::uintmax_t>(i) < size;
 	}
 
-	template<typename Unsigned, typename T> inline
-	constexpr bool IndexValid(Unsigned size, T i, true_type)
-	{	// 32-bit optimized
+	template<typename Unsigned, typename Integral> inline
+	constexpr bool IndexValid(Unsigned size, Integral i, true_type)
+	{	// found to be faster when both types are smaller than intmax_t
 		return (0 <= i) & (as_unsigned(i) < size);
 	}
 }
@@ -301,9 +294,9 @@ namespace _detail
 }
 
 template<typename Integral, typename SizedRange>
-inline constexpr bool oel::index_valid(const SizedRange & r, Integral i)
+constexpr bool oel::index_valid(const SizedRange & r, Integral i)
 {
 	using T = decltype(oel::ssize(r));
-	using NotBigInts = bool_constant<sizeof(T) < sizeof(long long) && sizeof i < sizeof(long long)>;
+	using NotBigInts = bool_constant<sizeof(T) < sizeof(std::uintmax_t) && sizeof i < sizeof(std::uintmax_t)>;
 	return _detail::IndexValid(as_unsigned(oel::ssize(r)), i, NotBigInts{});
 }

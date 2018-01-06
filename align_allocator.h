@@ -55,7 +55,7 @@ struct allocator
 	constexpr size_t max_size() const  { return std::numeric_limits<size_t>::max() / sizeof(T); }
 
 	allocator() = default;
-	template<typename U> OEL_ALWAYS_INLINE
+	template<typename U>  OEL_ALWAYS_INLINE
 	allocator(const allocator<U> &) noexcept {}
 
 	template<typename U>

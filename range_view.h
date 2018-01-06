@@ -26,8 +26,8 @@ class iterator_range
 public:
 	iterator_range(Iterator f, Iterator l)  : _begin(f), _end(l) {}
 
-	Iterator begin() const  OEL_ALWAYS_INLINE { return _begin; }
-	Iterator end() const    OEL_ALWAYS_INLINE { return _end; }
+	Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
+	Iterator end() const     OEL_ALWAYS_INLINE { return _end; }
 
 protected:
 	Iterator _begin;
@@ -61,13 +61,13 @@ public:
 	constexpr counted_view(Iterator f, difference_type n);
 	//! Construct from array or container with matching iterator type
 	template<typename SizedRange, enable_if<!std::is_same<SizedRange, counted_view>::value> = 0>
-	constexpr counted_view(SizedRange & r)  : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
+	constexpr counted_view(SizedRange & r)   : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
 
-	constexpr iterator  begin() const  OEL_ALWAYS_INLINE { return _begin; }
+	constexpr iterator  begin() const   OEL_ALWAYS_INLINE { return _begin; }
 
-	constexpr size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
+	constexpr size_type size() const noexcept    OEL_ALWAYS_INLINE { return _size; }
 
-	constexpr bool      empty() const noexcept  OEL_ALWAYS_INLINE { return 0 == _size; }
+	constexpr bool      empty() const noexcept   OEL_ALWAYS_INLINE { return 0 == _size; }
 
 	//! Increment begin, decrementing size
 	void      drop_front();
@@ -96,14 +96,14 @@ public:
 	constexpr counted_view() noexcept                      {}
 	OEL_ALWAYS_INLINE
 	constexpr counted_view(Iterator f, difference_type n)  : _base(f, n) {}
-	template<typename SizedRange, enable_if<!std::is_same<SizedRange, counted_view>::value> = 0> OEL_ALWAYS_INLINE
+	template<typename SizedRange, enable_if<!std::is_same<SizedRange, counted_view>::value> = 0>  OEL_ALWAYS_INLINE
 	constexpr counted_view(SizedRange & r)                 : _base(r) {}
 
 	constexpr iterator  end() const   { return this->_begin + this->_size; }
 
-	constexpr reference back() const  OEL_ALWAYS_INLINE { return end()[-1]; }
+	constexpr reference back() const   OEL_ALWAYS_INLINE { return end()[-1]; }
 
-	constexpr reference operator[](difference_type index) const  OEL_ALWAYS_INLINE { return this->_begin[index]; }
+	constexpr reference operator[](difference_type index) const   OEL_ALWAYS_INLINE { return this->_begin[index]; }
 
 	//! Return raw pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous(T *))
 	template<typename It = Iterator>
