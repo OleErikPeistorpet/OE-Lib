@@ -51,9 +51,6 @@ namespace _detail
 		std::uintptr_t id;
 	};
 
-	// Extra dereference and address-of in case of fancy pointer
-	#define OEL_ALLOCATION_HEADER(headerT, ptr)  (&reinterpret_cast<headerT &>(*ptr) - 1)
-
 	template<typename ContainerBase, typename Alloc, typename Ptr>
 	struct DebugAllocateWrapper
 	{
@@ -69,11 +66,16 @@ namespace _detail
 		#endif
 		};
 
+		OEL_ALWAYS_INLINE static Header * HeaderOf(Ptr data)
+		{	// Extra dereference and address-of in case of fancy pointer
+			return &reinterpret_cast<Header &>(*data) - 1;
+		}
+
 		static void UpdateAfterMove(const ContainerBase & c)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 			if (c.data)
-				OEL_ALLOCATION_HEADER(Header, c.data)->container = &c;
+				HeaderOf(c.data)->container = &c;
 		#else
 			(void) c;
 		#endif
@@ -87,7 +89,7 @@ namespace _detail
 			Ptr p = a.allocate(n);
 			p += sizeForHeader;
 
-			Header *const h = OEL_ALLOCATION_HEADER(Header, p);
+			Header *const h = HeaderOf(p);
 			h->container = &a;
 			h->id = reinterpret_cast<std::uintptr_t>(&a);
 
@@ -102,7 +104,7 @@ namespace _detail
 			if (p)
 			{
 			#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-				OEL_ALLOCATION_HEADER(Header, p)->id = 0;
+				HeaderOf(p)->id = 0;
 				p -= sizeForHeader;
 				n += sizeForHeader;
 			#endif
@@ -128,7 +130,7 @@ namespace _detail
 	template<typename Alloc>
 	struct AllocRefOptimized<Alloc, true>
 	{
-		AllocRefOptimized(Alloc &) {}
+		OEL_ALWAYS_INLINE AllocRefOptimized(Alloc &) {}
 
 		Alloc Get() { return Alloc{}; }
 	};
@@ -146,7 +148,7 @@ namespace _detail
 
 
 	struct NoOp
-	{	void operator()(...) const {}
+	{	OEL_ALWAYS_INLINE void operator()(...) const {}
 	};
 
 	template<typename Alloc, typename InputIter, typename T, typename FuncTakingLast = NoOp>

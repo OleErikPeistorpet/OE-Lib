@@ -55,7 +55,7 @@ struct allocator
 	constexpr size_t max_size() const  { return std::numeric_limits<size_t>::max() / sizeof(T); }
 
 	allocator() = default;
-	template<typename U>
+	template<typename U> OEL_ALWAYS_INLINE
 	allocator(const allocator<U> &) noexcept {}
 
 	template<typename U>
@@ -180,7 +180,7 @@ namespace _detail
 	void * OpNew(size_t, false_type)
 	{
 		static_assert(Align == 0,
-			"The requested alignment requires Boost (1.56) or compiler supporting over-aligned dynamic allocation (C++17)");
+			"The requested alignment requires Boost or a compiler supporting over-aligned dynamic allocation (C++17)");
 		return {};
 	}
 
@@ -198,7 +198,7 @@ inline T * allocator<T>::allocate(size_t nObjects)
 }
 
 template<typename T>
-inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
+OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 {
 	_detail::OpDelete<OEL_ALIGNOF(T)>(ptr, _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>());
 }

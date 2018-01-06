@@ -79,7 +79,7 @@ public:
 		return _pElem;
 	}
 
-	contiguous_ctnr_iterator & operator++()
+	contiguous_ctnr_iterator & operator++() OEL_ALWAYS_INLINE
 	{	// preincrement
 		++_pElem;
 		return *this;
@@ -92,7 +92,7 @@ public:
 		return tmp;
 	}
 
-	contiguous_ctnr_iterator & operator--()
+	contiguous_ctnr_iterator & operator--() OEL_ALWAYS_INLINE
 	{	// predecrement
 		--_pElem;
 		return *this;
@@ -117,18 +117,18 @@ public:
 		return *this;
 	}
 
-	friend contiguous_ctnr_iterator operator +(difference_type offset, contiguous_ctnr_iterator it)
+	friend contiguous_ctnr_iterator operator +(difference_type offset, contiguous_ctnr_iterator it) OEL_ALWAYS_INLINE
 	{
 		return it += offset;
 	}
 
-	contiguous_ctnr_iterator operator +(difference_type offset) const
+	contiguous_ctnr_iterator operator +(difference_type offset) const OEL_ALWAYS_INLINE
 	{
 		auto tmp = *this;
 		return tmp += offset;
 	}
 
-	contiguous_ctnr_iterator operator -(difference_type offset) const
+	contiguous_ctnr_iterator operator -(difference_type offset) const OEL_ALWAYS_INLINE
 	{	// return this - integer
 		auto tmp = *this;
 		return tmp -= offset;
@@ -202,7 +202,7 @@ public:
 };
 
 //! To raw pointer (unchecked)
-template<typename Ptr, typename C> inline
+template<typename Ptr, typename C> OEL_ALWAYS_INLINE inline
 typename std::pointer_traits<Ptr>::element_type *
 	to_pointer_contiguous(const contiguous_ctnr_iterator<Ptr, C> & it) noexcept
 {
