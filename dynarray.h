@@ -116,7 +116,7 @@ public:
 	auto result = dynarray<int>(boost::range::istream_range<int>(someStream));
 	@endcode  */
 	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_cbegin(std::declval<InputRange>()) )>
-	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})  : _m(a) { assign(r); }
+	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})   : _m(a) { assign(r); }
 
 	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})  : _m(a, il.size())
 	                                                                  { _initPostAllocate(il.begin(), il.size()); }
@@ -712,9 +712,9 @@ private:
 #endif
 	void _appendRealloc(size_type const count, MakeFuncAppend makeNew)
 	{
-		_scopedPtr newBuf{_m, _calcCap(capacity(), size() + count)};
-
 		size_type const oldSize = size();
+		_scopedPtr newBuf{_m, _calcCap(capacity(), oldSize + count)};
+
 		pointer const pos = newBuf.data + oldSize;
 		makeNew(pos, count, _m);
 		_relocateData(newBuf.data, pos, oldSize,
@@ -812,10 +812,11 @@ typename dynarray<T, Alloc>::iterator
 	static_assert(std::is_base_of< forward_traversal_tag, iterator_traversal_t<decltype(first)> >::value,
 				  "insert_r requires that source models Forward Range (Boost concept)");
 
-	OEL_DYNARR_INSERT_STEP0
-
 	using CanMemmove = can_memmove_with<T *, decltype(first)>;
 	size_type const count = _sizeOrEnd<decltype(first)>(src);
+
+	OEL_DYNARR_INSERT_STEP0
+#undef OEL_DYNARR_INSERT_STEP0
 	if (_unusedCapacity() >= count)
 	{
 		T *const dLast = pPos + count;
@@ -858,7 +859,6 @@ typename dynarray<T, Alloc>::iterator
 	}
 	return _makeIter<iterator>(pPos);
 }
-#undef OEL_DYNARR_INSERT_STEP0
 
 template<typename T, typename Alloc> template<typename... Args>
 inline T & dynarray<T, Alloc>::emplace_back(Args &&... args)
@@ -965,14 +965,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	pointer newData;
 	if (0 < used)
 	{
-		OEL_TRY_
-		{	// TODO: test code gen
-			newData = _allocateWrap::Allocate(_m, used);
-		}
-		OEL_CATCH_ALL
-		{
-			return;
-		}
+		newData = _allocateWrap::Allocate(_m, used);
 		pointer const newEnd = newData + used;
 		_relocateData(newData, newEnd, used);
 		_m.end = newEnd;
