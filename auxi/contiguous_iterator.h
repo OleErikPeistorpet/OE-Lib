@@ -58,7 +58,7 @@ public:
 
 	using const_iterator = contiguous_ctnr_iterator<typename _ptrTrait::template rebind<value_type const>, Container>;
 
-	operator const_iterator() const noexcept
+	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 		return {_pElem, _memInfo, _allocationId};
@@ -105,37 +105,37 @@ public:
 		return tmp;
 	}
 
-	contiguous_ctnr_iterator & operator+=(difference_type offset)
+	contiguous_ctnr_iterator & operator+=(difference_type offset)  OEL_ALWAYS_INLINE
 	{
 		_pElem += offset;
 		return *this;
 	}
 
-	contiguous_ctnr_iterator & operator-=(difference_type offset)
+	contiguous_ctnr_iterator & operator-=(difference_type offset)  OEL_ALWAYS_INLINE
 	{
 		_pElem -= offset;
 		return *this;
 	}
 
-	friend contiguous_ctnr_iterator operator +(difference_type offset, contiguous_ctnr_iterator it)  OEL_ALWAYS_INLINE
+	friend contiguous_ctnr_iterator operator +(difference_type offset, contiguous_ctnr_iterator it)
 	{
 		return it += offset;
 	}
 
-	contiguous_ctnr_iterator operator +(difference_type offset) const  OEL_ALWAYS_INLINE
+	contiguous_ctnr_iterator operator +(difference_type offset) const
 	{
 		auto tmp = *this;
 		return tmp += offset;
 	}
 
-	contiguous_ctnr_iterator operator -(difference_type offset) const  OEL_ALWAYS_INLINE
-	{	// return this - integer
+	contiguous_ctnr_iterator operator -(difference_type offset) const
+	{	// this - integer
 		auto tmp = *this;
 		return tmp -= offset;
 	}
 
 	difference_type operator -(const const_iterator & right) const
-	{	// return difference of iterators
+	{	// difference of iterators
 		OEL_ARRITER_CHECK_COMPAT(right);
 		return _pElem - right._pElem;
 	}
@@ -143,7 +143,7 @@ public:
 	reference operator[](difference_type offset) const
 	{
 		auto tmp = *this;
-		tmp._pElem += offset;
+		tmp += offset; // not operator + to save a call in non-optimized builds
 		return *tmp;
 	}
 

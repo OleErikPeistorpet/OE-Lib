@@ -99,7 +99,7 @@ public:
 	template<typename SizedRange, enable_if<!std::is_same<SizedRange, counted_view>::value> = 0>  OEL_ALWAYS_INLINE
 	constexpr counted_view(SizedRange & r)                 : _base(r) {}
 
-	constexpr iterator  end() const   { return this->_begin + this->_size; }
+	constexpr iterator  end() const   OEL_ALWAYS_INLINE { return this->_begin + this->_size; }
 
 	constexpr reference back() const   OEL_ALWAYS_INLINE { return end()[-1]; }
 

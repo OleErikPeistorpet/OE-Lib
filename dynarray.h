@@ -777,14 +777,14 @@ template<typename T, typename Alloc> template<typename... Args>
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
 {
-#define OEL_DYNARR_INSERT_STEP0  \
+#define OEL_DYNARR_INSERT_STEP1  \
 	_detail::AssertTrivialRelocate<T>();  \
 	\
 	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
 	OEL_ASSERT(_m.data <= pPos && pPos <= _m.end);  \
 	size_type const nAfterPos = _m.end - pPos;
 
-	OEL_DYNARR_INSERT_STEP0
+	OEL_DYNARR_INSERT_STEP1
 	if (_m.end < _m.reservEnd)
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
@@ -815,8 +815,8 @@ typename dynarray<T, Alloc>::iterator
 	using CanMemmove = can_memmove_with<T *, decltype(first)>;
 	size_type const count = _sizeOrEnd<decltype(first)>(src);
 
-	OEL_DYNARR_INSERT_STEP0
-#undef OEL_DYNARR_INSERT_STEP0
+	OEL_DYNARR_INSERT_STEP1
+#undef OEL_DYNARR_INSERT_STEP1
 	if (_unusedCapacity() >= count)
 	{
 		T *const dLast = pPos + count;
