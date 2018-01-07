@@ -10,7 +10,7 @@
 
 
 #ifdef _MSC_VER
-	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
 	#pragma detect_mismatch("OEL_MEM_BOUND_DEBUG_LVL", "2")
 	#else
 	#pragma detect_mismatch("OEL_MEM_BOUND_DEBUG_LVL", "0or1")
@@ -31,17 +31,19 @@ inline namespace debug
 template<typename Ptr, typename Container>
 class contiguous_ctnr_iterator
 {
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
 	#define OEL_ARRITER_CHECK_DEREFABLE  \
 		OEL_ASSERT(_memInfo->id == _allocationId && _memInfo->container->DerefValid(_pElem))
+#else
+	#define OEL_ARRITER_CHECK_DEREFABLE  \
+		OEL_ASSERT(_container->DerefValid(_pElem))
+#endif
 
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	// Test for iterator pair pointing to same container
 	#define OEL_ARRITER_CHECK_COMPAT(right)  \
 		OEL_ASSERT(_allocationId == right._allocationId)
 #else
-	#define OEL_ARRITER_CHECK_DEREFABLE  \
-		OEL_ASSERT(_container->DerefValid(_pElem))
-
 	#define OEL_ARRITER_CHECK_COMPAT(right)
 #endif
 
@@ -60,7 +62,7 @@ public:
 
 	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
 	{
-	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
 		return {_pElem, _memInfo, _allocationId};
 	#else
 		return {_pElem, _container};
@@ -190,7 +192,7 @@ public:
 
 	//! Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
 	pointer _pElem;
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
 	const _detail::DebugAllocationHeader<_ctnrConstPtr> * _memInfo; //!< Pointer to parent container and allocation ID
 	std::uintptr_t _allocationId;  //!< Used to check if this iterator has been invalidated by deallocation
 #else

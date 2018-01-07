@@ -361,7 +361,7 @@ private:
 	template<typename Iterator>
 	Iterator _makeIter(pointer p) const
 	{
-	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	#if defined OEL_USE_DEBUG_ITER_AFTER_SWAP
 		if (_m.data)
 		{
 			auto const h = _allocateWrap::HeaderOf(_m.data);

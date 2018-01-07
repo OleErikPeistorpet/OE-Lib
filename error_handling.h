@@ -10,12 +10,16 @@
 /** @file
 */
 
-#if !defined(NDEBUG) && !defined(OEL_MEM_BOUND_DEBUG_LVL)
+#ifndef OEL_MEM_BOUND_DEBUG_LVL
 /** @brief Undefined/0: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
 *
 * Level 1 gives failed assertions if you try to use dynarray iterators after swap or move construction.
 * The different levels are not binary compatible, although mixing 0 and 1 typically works. */
+	#ifdef NDEBUG
+	#define OEL_MEM_BOUND_DEBUG_LVL 0
+	#else
 	#define OEL_MEM_BOUND_DEBUG_LVL 2
+	#endif
 #endif
 
 
@@ -57,6 +61,14 @@
 #elif !defined OEL_ASSERT
 	#define OEL_ASSERT(expr)  \
 		((expr) || (OEL_ABORT("Failed assert " #expr), false))
+#endif
+
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	#define OEL_USE_DEBUG_ITER_AFTER_SWAP 1
+
+	#ifndef _MSC_VER
+	#define OEL_DEBUG_ABI 1
+	#endif
 #endif
 
 

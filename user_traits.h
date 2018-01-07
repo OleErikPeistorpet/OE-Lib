@@ -24,11 +24,6 @@
 #endif
 
 
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2 && !defined _MSC_VER
-	#define OEL_DEBUG_ABI 1
-#endif
-
-
 //! Obscure Efficient Library
 namespace oel
 {

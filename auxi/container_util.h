@@ -36,7 +36,7 @@ namespace _detail
 		using Header = DebugAllocationHeader<CtnrConstPtr>;
 
 		enum {
-		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+		#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
 			_valSz = sizeof(typename Alloc::value_type),
 			sizeForHeader = (sizeof(Header) + (_valSz - 1)) / _valSz
 		#else
@@ -51,7 +51,7 @@ namespace _detail
 
 		static void UpdateAfterMove(const ContainerBase & c)
 		{
-		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+		#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
 			if (c.data)
 				HeaderOf(c.data)->container = &c;
 		#else
@@ -62,7 +62,7 @@ namespace _detail
 		template<typename Owner>
 		static Ptr Allocate(Owner & a, size_t n)
 		{
-		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+		#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
 			n += sizeForHeader;
 			Ptr p = a.allocate(n);
 			p += sizeForHeader;
@@ -81,7 +81,7 @@ namespace _detail
 		{
 			if (p)
 			{
-			#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+			#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
 				HeaderOf(p)->id = 0;
 				p -= sizeForHeader;
 				n += sizeForHeader;
