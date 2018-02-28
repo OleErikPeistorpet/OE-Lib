@@ -10,7 +10,7 @@
 	#endif
 
 	#undef constexpr
-	#define constexpr
+	#define constexpr inline
 
 	#ifndef noexcept
 	#define noexcept throw()

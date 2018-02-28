@@ -116,7 +116,7 @@ namespace view
 {
 
 //! Create a counted_view from iterator and count, with type deduced from first
-template<typename Iterator> inline
+template<typename Iterator>
 constexpr counted_view<Iterator> counted(Iterator first, iterator_difference_t<Iterator> count)  { return {first, count}; }
 
 

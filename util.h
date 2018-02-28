@@ -33,11 +33,11 @@ using enable_if = typename std::enable_if<Condition, int>::type;
 
 
 //! Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
-template<typename T>  OEL_ALWAYS_INLINE inline
+template<typename T>  OEL_ALWAYS_INLINE
 constexpr typename std::make_signed<T>::type
 	as_signed(T val) noexcept                  { return (typename std::make_signed<T>::type) val; }
 //! Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
-template<typename T>  OEL_ALWAYS_INLINE inline
+template<typename T>  OEL_ALWAYS_INLINE
 constexpr typename std::make_unsigned<T>::type
 	as_unsigned(T val) noexcept                { return (typename std::make_unsigned<T>::type) val; }
 
@@ -49,12 +49,12 @@ using range_difference_t  = decltype( _detail::DiffT<Range>(0) );
 
 
 //! Returns r.size() as signed type
-template<typename SizedRange>  OEL_ALWAYS_INLINE inline
+template<typename SizedRange>  OEL_ALWAYS_INLINE
 constexpr auto ssize(const SizedRange & r)
  -> decltype( static_cast< range_difference_t<SizedRange> >(r.size()) )
      { return static_cast< range_difference_t<SizedRange> >(r.size()); }
 //! Returns number of elements in array as signed type
-template<typename T, std::ptrdiff_t Size>  OEL_ALWAYS_INLINE inline
+template<typename T, std::ptrdiff_t Size>  OEL_ALWAYS_INLINE
 constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
@@ -84,17 +84,17 @@ using std::end;
 	using std::begin; auto it = begin(container);
 	auto it = adl_begin(container);  // Equivalent to line above
 @endcode  */
-template<typename Range>  OEL_ALWAYS_INLINE inline
+template<typename Range>  OEL_ALWAYS_INLINE
 constexpr auto adl_begin(Range & r) -> decltype(begin(r))         { return begin(r); }
 //! Const version of adl_begin(), analogous to std::cbegin
-template<typename Range>  OEL_ALWAYS_INLINE inline
+template<typename Range>  OEL_ALWAYS_INLINE
 constexpr auto adl_cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
 
 //! Argument-dependent lookup non-member end, defaults to std::end
-template<typename Range>  OEL_ALWAYS_INLINE inline
+template<typename Range>  OEL_ALWAYS_INLINE
 constexpr auto adl_end(Range & r) -> decltype(end(r))         { return end(r); }
 //! Const version of adl_end()
-template<typename Range>  OEL_ALWAYS_INLINE inline
+template<typename Range>  OEL_ALWAYS_INLINE
 constexpr auto adl_cend(const Range & r) -> decltype(end(r))  { return end(r); }
 
 } // namespace oel
@@ -278,13 +278,13 @@ namespace oel
 {
 namespace _detail
 {
-	template<typename Unsigned, typename Integral> inline
+	template<typename Unsigned, typename Integral>
 	constexpr bool IndexValid(Unsigned size, Integral i, false_type)
 	{	// assumes that size never is greater than INTMAX_MAX, and INTMAX_MAX is half UINTMAX_MAX
 		return static_cast<std::uintmax_t>(i) < size;
 	}
 
-	template<typename Unsigned, typename Integral> inline
+	template<typename Unsigned, typename Integral>
 	constexpr bool IndexValid(Unsigned size, Integral i, true_type)
 	{	// found to be faster when both types are smaller than intmax_t
 		return (0 <= i) & (as_unsigned(i) < size);
