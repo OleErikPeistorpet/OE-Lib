@@ -6,7 +6,7 @@ Unlike the containers in most standard library implementations, over-aligned typ
 
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
-Visual Studio 2013 or GCC 4.7 is required. Clang has been tested briefly, minimum version is unknown.
+Visual Studio 2013 or GCC 4.8 is required. Clang has been tested briefly, minimum version is unknown.
 
 Features relocation optimizations similar to Folly fbvector and UnrealEngine TArray. Furthermore, OE-Lib has been optimized not only for release builds but also for execution speed in debug.
 

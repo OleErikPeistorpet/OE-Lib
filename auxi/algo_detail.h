@@ -21,23 +21,15 @@ namespace _detail
 			|| __is_pod(T)
 		#endif
 		>;
-
-	template<typename T>
-	using is_trivially_destructible = bool_constant< __has_trivial_destructor(T)
-		#ifdef __INTEL_COMPILER
-			|| __is_pod(T)
-		#endif
-		>;
 #else
 	using std::is_trivially_default_constructible;
-	using std::is_trivially_destructible;
 #endif
 
 
 	template<typename T>
 	void Destroy(T * first, T *const last) noexcept
 	{	// first > last is OK, does nothing
-		OEL_CONST_COND if (!is_trivially_destructible<T>::value) // for speed with optimizations off (debug build)
+		OEL_CONST_COND if (!std::is_trivially_destructible<T>::value) // for speed with non-optimized builds
 		{
 			for (; first < last; ++first)
 				first-> ~T();
