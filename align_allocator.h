@@ -113,7 +113,11 @@ namespace _detail
 		#elif _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16
 		#else
-			Align <= OEL_ALIGNOF(std::max_align_t)
+			Align <= OEL_ALIGNOF(
+				#if OEL_GCC_VERSION != 408
+					std
+				#endif
+					::max_align_t)
 		#endif
 		>;
 
