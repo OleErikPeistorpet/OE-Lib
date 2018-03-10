@@ -13,6 +13,14 @@
 
 #include <memory>
 
+#if defined __has_include
+#if __has_include(<memory_resource>)
+	#include <memory_resource>
+
+	#define OEL_HAS_STD_PMR 1
+#endif
+#endif
+
 #ifndef OEL_NO_BOOST
 	#include <boost/circular_buffer_fwd.hpp>
 
@@ -21,6 +29,7 @@
 	template<typename T> class intrusive_ptr;
 	}
 #endif
+
 
 // std::string in GCC 5 with _GLIBCXX_USE_CXX11_ABI is not trivially relocatable (uses pointer to internal buffer)
 #if (_MSC_VER || _LIBCPP_VERSION || __GLIBCXX__) && !_GLIBCXX_USE_CXX11_ABI
@@ -36,6 +45,11 @@
 
 namespace oel
 {
+#ifdef OEL_HAS_STD_PMR
+	//! Should work with any reasonable implementation, but can't be sure without testing
+	template<typename T>
+	struct is_trivially_relocatable< std::pmr::polymorphic_allocator<T> > : true_type {};
+#endif
 
 //! std::unique_ptr assumed trivially relocatable if the deleter is
 template<typename T, typename Del>

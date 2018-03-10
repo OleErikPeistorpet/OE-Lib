@@ -17,6 +17,16 @@
 
 namespace oel
 {
+#ifdef OEL_HAS_STD_PMR
+	namespace pmr
+	{
+	using std::pmr::polymorphic_allocator;
+
+	template<typename T>
+	using dynarray = oel::dynarray< T, polymorphic_allocator<T> >;
+	}
+#endif
+
 #ifdef OEL_DEBUG_ABI
 inline namespace debug
 {
