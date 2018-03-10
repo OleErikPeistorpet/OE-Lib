@@ -151,7 +151,7 @@ auto move(InputRange & r)
 	* Note that passing an rvalue range should result in a compile error. Use a named variable.  */
 	template<typename UnaryFunc, typename SizedRange> inline
 	auto transform(SizedRange & r, UnaryFunc f)
-	 -> counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
+	 ->	counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
 		{
 			return {boost::make_transform_iterator(begin(r), std::move(f)), oel::ssize(r)};
 		}

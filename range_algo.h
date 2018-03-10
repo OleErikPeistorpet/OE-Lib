@@ -249,7 +249,7 @@ namespace _detail
 
 template<typename SizedInputRange, typename RandomAccessIter>
 inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
- -> copy_unsafe_return<decltype(begin(src))>
+ ->	copy_unsafe_return<decltype(begin(src))>
 {
 	using InIter = decltype(begin(src));
 	return{ _detail::CopyUnsf(begin(src), oel::ssize(src), dest,
@@ -258,7 +258,7 @@ inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
 
 template<typename InputRange, typename RandomAccessRange>
 inline auto oel::copy(const InputRange & src, RandomAccessRange & dest)
- -> last_iterators<decltype(begin(src)), decltype(begin(dest))>
+ ->	last_iterators<decltype(begin(src)), decltype(begin(dest))>
 {
 	using IterSrc  = decltype(begin(src));
 	using IterDest = decltype(begin(dest));
