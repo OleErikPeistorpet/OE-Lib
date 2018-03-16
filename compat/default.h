@@ -23,6 +23,7 @@
 
 #ifndef OEL_NO_BOOST
 	#include <boost/circular_buffer_fwd.hpp>
+	#include <boost/container/container_fwd.hpp>
 
 	namespace boost
 	{
@@ -45,11 +46,6 @@
 
 namespace oel
 {
-#ifdef OEL_HAS_STD_PMR
-	//! Should work with any reasonable implementation, but can't be sure without testing
-	template<typename T>
-	struct is_trivially_relocatable< std::pmr::polymorphic_allocator<T> > : true_type {};
-#endif
 
 //! std::unique_ptr assumed trivially relocatable if the deleter is
 template<typename T, typename Del>
@@ -66,7 +62,18 @@ template<typename T, typename U>
 struct is_trivially_copyable< std::pair<T, U> >
  :	all_< is_trivially_copyable<T>, is_trivially_copyable<U> > {};
 
+#ifdef OEL_HAS_STD_PMR
+	//! Should work with any reasonable implementation, but can't be sure without testing
+	template<typename T>
+	struct is_trivially_relocatable< std::pmr::polymorphic_allocator<T> > : true_type {};
+#endif
+
 #ifndef OEL_NO_BOOST
+	#if BOOST_VERSION >= 106000
+	template<typename T>
+	struct is_trivially_relocatable< boost::container::pmr::polymorphic_allocator<T> > : true_type {};
+	#endif
+
 	template<typename T>
 	struct is_trivially_relocatable< boost::intrusive_ptr<T> > : true_type {};
 

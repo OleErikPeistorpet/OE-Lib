@@ -17,15 +17,21 @@
 
 namespace oel
 {
-#ifdef OEL_HAS_STD_PMR
-	namespace pmr
-	{
+
+//! Mirroring std::pmr and boost::container::pmr
+namespace pmr
+{
+#if defined OEL_HAS_STD_PMR || (!defined OEL_NO_BOOST && BOOST_VERSION >= 106000)
+	#ifdef OEL_HAS_STD_PMR
 	using std::pmr::polymorphic_allocator;
+	#else
+	using boost::container::pmr::polymorphic_allocator;
+	#endif
 
 	template<typename T>
 	using dynarray = oel::dynarray< T, polymorphic_allocator<T> >;
-	}
 #endif
+}
 
 #ifdef OEL_DEBUG_ABI
 inline namespace debug
