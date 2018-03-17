@@ -18,12 +18,12 @@
 namespace oel
 {
 
-//! Same as std::aligned_storage<Size, Align>::type, with support for alignment above that of std::max_align_t (up to 128)
+//! Same as std::aligned_storage_t (C++14), with support for alignment above that of std::max_align_t
 template<size_t Size, size_t Align>
 struct aligned_storage_t;
 //! A trivial type of same size and alignment as type T, suitable for use as uninitialized storage for an object
 template<typename T>
-using aligned_union_t = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
+using aligned_union_t = aligned_storage_t<sizeof(T), alignof(T)>;
 
 
 
@@ -79,31 +79,6 @@ struct is_always_equal;
 
 //! @cond INTERNAL
 
-#ifdef _MSC_VER
-	#define OEL_ALIGNAS(amount) __declspec(align(amount))
-#else
-	#define OEL_ALIGNAS(amount) __attribute__(( aligned(amount) ))
-#endif
-
-#define OEL_STORAGE_ALIGNED_TO(alignment)  \
-	template<size_t Size>  \
-	struct OEL_ALIGNAS(alignment) aligned_storage_t<Size, alignment>  \
-	{  \
-		unsigned char data[Size];  \
-	}
-
-OEL_STORAGE_ALIGNED_TO(1);
-OEL_STORAGE_ALIGNED_TO(2);
-OEL_STORAGE_ALIGNED_TO(4);
-OEL_STORAGE_ALIGNED_TO(8);
-OEL_STORAGE_ALIGNED_TO(16);
-OEL_STORAGE_ALIGNED_TO(32);
-OEL_STORAGE_ALIGNED_TO(64);
-OEL_STORAGE_ALIGNED_TO(128);
-
-#undef OEL_STORAGE_ALIGNED_TO
-
-
 namespace _detail
 {
 	template<size_t Align>
@@ -113,7 +88,7 @@ namespace _detail
 		#elif _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16
 		#else
-			Align <= OEL_ALIGNOF(
+			Align <= alignof(
 				#if OEL_GCC_VERSION != 408
 					std
 				#endif
@@ -191,20 +166,19 @@ namespace _detail
 	template<size_t> void OpDelete(void *, false_type);
 #endif
 }
-//! @endcond
 
 template<typename T>
 inline T * allocator<T>::allocate(size_t nObjects)
 {
-	void * p = _detail::OpNew<OEL_ALIGNOF(T)>
-		(sizeof(T) * nObjects, _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>());
+	void * p = _detail::OpNew<alignof(T)>
+		(sizeof(T) * nObjects, _detail::CanDefaultAlloc<alignof(T)>());
 	return static_cast<T *>(p);
 }
 
 template<typename T>
 OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 {
-	_detail::OpDelete<OEL_ALIGNOF(T)>(ptr, _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>());
+	_detail::OpDelete<alignof(T)>(ptr, _detail::CanDefaultAlloc<alignof(T)>());
 }
 
 
@@ -221,3 +195,18 @@ namespace _detail
 
 template<typename T>
 struct oel::is_always_equal : decltype( _detail::IsAlwaysEqual<T>(0) ) {};
+
+
+#ifdef _MSC_VER
+	#define OEL_ALIGNAS(amount) __declspec(align(amount))
+#else
+	#define OEL_ALIGNAS(amount) __attribute__(( aligned(amount) ))
+#endif
+
+template<std::size_t Size, std::size_t Align>
+struct OEL_ALIGNAS(Align) oel::aligned_storage_t
+{
+	unsigned char data[Size];
+};
+
+//! @endcond

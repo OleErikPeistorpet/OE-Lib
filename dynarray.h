@@ -143,8 +143,8 @@ public:
 	                                                   { _initPostAllocate(other.data(), other.size()); }
 	~dynarray() noexcept;
 
-	dynarray & operator =(dynarray && other) OEL_NOEXCEPT(_allocTrait::propagate_on_container_move_assignment::value
-	                                                      || is_always_equal<Alloc>::value);
+	dynarray & operator =(dynarray && other) noexcept(_allocTrait::propagate_on_container_move_assignment::value
+	                                                  || is_always_equal<Alloc>::value);
 	//! Treats allocator_type as if it does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other)    { assign(other);  return *this; }
 
@@ -338,7 +338,7 @@ private:
 		pointer allocEnd;
 
 		_scopedPtr(_memOwner & a, size_type const allocSize)
-		 :	_allocRef(a)
+		 :	_allocRef{a}
 		{
 			data = _allocate(a, allocSize);
 			allocEnd = data + allocSize;
@@ -903,7 +903,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
 
 template<typename T, typename Alloc>
 dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other)
-	OEL_NOEXCEPT(_allocTrait::propagate_on_container_move_assignment::value || is_always_equal<Alloc>::value)
+	noexcept(_allocTrait::propagate_on_container_move_assignment::value || is_always_equal<Alloc>::value)
 {
 	if (static_cast<Alloc &>(_m) != other._m &&
 		!_allocTrait::propagate_on_container_move_assignment::value)

@@ -4,9 +4,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/macros.h"
-
-
 /** @file
 */
 
@@ -71,6 +68,28 @@
 	#endif
 #endif
 
+
+
+#ifdef __GNUC__
+	#define OEL_GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
+#else
+	#define OEL_GCC_VERSION 0
+#endif
+
+
+#ifdef _MSC_VER
+	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
+
+	#define OEL_NORETURN __declspec(noreturn)
+
+	#define OEL_ALWAYS_INLINE
+#else
+	#define OEL_CONST_COND
+
+	#define OEL_NORETURN __attribute__((noreturn))
+
+	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
+#endif
 
 
 #if defined _CPPUNWIND || defined __EXCEPTIONS

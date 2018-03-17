@@ -97,10 +97,6 @@ namespace _detail
 	struct AllocRefOptimized
 	{
 		Alloc & alloc;
-	#ifdef _MSC_VER
-		void operator =(AllocRefOptimized) = delete;
-	#endif
-		AllocRefOptimized(Alloc & a) : alloc(a) {}
 
 		Alloc & Get() { return alloc; }
 	};

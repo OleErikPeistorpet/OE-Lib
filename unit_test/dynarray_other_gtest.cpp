@@ -31,8 +31,8 @@ namespace
 	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
 	static_assert( !oel::is_trivially_copyable< std::tuple<int, NontrivialReloc, int> >::value, "?" );
 
-	static_assert(OEL_ALIGNOF(oel::aligned_storage_t<32, 16>) == 16, "?");
-	static_assert(OEL_ALIGNOF(oel::aligned_storage_t<64, 64>) == 64, "?");
+	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
+	static_assert(alignof(oel::aligned_storage_t<64, 64>) == 64, "?");
 
 	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::string> >::value,
 				  "Not critical, this assert can be removed");
