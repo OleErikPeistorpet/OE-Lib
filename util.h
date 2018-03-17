@@ -148,15 +148,15 @@ struct can_memmove_with;
 struct reserve_tag
 {
 	explicit constexpr reserve_tag() {}
-}
-const reserve; //!< An instance of reserve_tag to pass
+};
+constexpr reserve_tag reserve; //!< An instance of reserve_tag for convenience
 
 //! Tag to specify default initialization
 struct default_init_tag
 {
 	explicit constexpr default_init_tag() {}
-}
-const default_init; //!< An instance of default_init_tag to pass
+};
+constexpr default_init_tag default_init; //!< An instance of default_init_tag for convenience
 
 
 

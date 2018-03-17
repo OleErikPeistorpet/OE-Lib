@@ -35,14 +35,12 @@ namespace _detail
 		using CtnrConstPtr = typename std::pointer_traits<Ptr>::template rebind<ContainerBase const>;
 		using Header = DebugAllocationHeader<CtnrConstPtr>;
 
-		enum {
-		#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
-			_valSz = sizeof(typename Alloc::value_type),
-			sizeForHeader = (sizeof(Header) + (_valSz - 1)) / _valSz
-		#else
-			sizeForHeader = 0
-		#endif
-		};
+	#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
+		static constexpr size_t _valSz = sizeof(typename Alloc::value_type);
+		static constexpr size_t sizeForHeader = (sizeof(Header) + (_valSz - 1)) / _valSz;
+	#else
+		static constexpr size_t sizeForHeader = 0;
+	#endif
 
 		OEL_ALWAYS_INLINE static Header * HeaderOf(Ptr data)
 		{	// Extra dereference and address-of in case of fancy pointer

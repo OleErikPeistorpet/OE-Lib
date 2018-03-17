@@ -139,9 +139,7 @@ counted_view< std::move_iterator<InputIterator> >
 /** @brief Wrap a range such that the elements can be moved from when passed to a container or algorithm
 * @return counted_view<std::move_iterator> if r.size() exists or r is an array, else iterator_range<std::move_iterator>  */
 template<typename InputRange> inline
-auto move(InputRange & r)
- -> decltype( _detail::Move(r, int{}) )
-     { return _detail::Move(r, int{}); }
+auto move(InputRange & r)   { return _detail::Move(r, int{}); }
 
 
 #ifndef OEL_NO_BOOST

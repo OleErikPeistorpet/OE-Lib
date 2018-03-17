@@ -11,6 +11,7 @@ namespace _detail
 
 	template<typename InputRange> OEL_ALWAYS_INLINE inline
 	auto Move(InputRange & r, long)
-	 -> decltype( view::move(begin(r), end(r)) )
-	     { return view::move(begin(r), end(r)); }
+	{
+		return view::move(begin(r), end(r));
+	}
 }

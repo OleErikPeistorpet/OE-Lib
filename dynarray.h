@@ -43,7 +43,7 @@ template<typename T, typename Alloc>
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
 template<typename T, typename A>  OEL_ALWAYS_INLINE inline
-void swap(dynarray<T, A> & a, dynarray<T, A> & b) OEL_NOEXCEPT_NDEBUG  { a.swap(b); }
+void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept(nodebug)  { a.swap(b); }
 
 //! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
 template<typename T, typename A> inline
@@ -150,7 +150,7 @@ public:
 
 	dynarray & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
 
-	void      swap(dynarray & other) OEL_NOEXCEPT_NDEBUG;
+	void      swap(dynarray & other) noexcept(nodebug);
 
 	/**
 	* @brief Replace the contents with source range
@@ -212,7 +212,7 @@ public:
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
 	void      push_back(const T & val)  { emplace_back(val); }
 
-	void      pop_back() OEL_NOEXCEPT_NDEBUG;
+	void      pop_back() noexcept(nodebug);
 
 	/**
 	* @brief Erase the element at pos without maintaining order of elements after pos.
@@ -225,7 +225,7 @@ public:
 
 	iterator  erase(iterator first, iterator last);
 	//! Equivalent to `erase(first, end())` (but potentially faster), making first the new end
-	void      erase_to_end(iterator first) OEL_NOEXCEPT_NDEBUG;
+	void      erase_to_end(iterator first) noexcept(nodebug);
 
 	void      clear() noexcept        { erase_to_end(begin()); }
 
@@ -264,17 +264,17 @@ public:
 	T *             data() noexcept         OEL_ALWAYS_INLINE { return _m.data; }
 	const T *       data() const noexcept   OEL_ALWAYS_INLINE { return _m.data; }
 
-	reference       front() OEL_NOEXCEPT_NDEBUG        { return *begin(); }
-	const_reference front() const OEL_NOEXCEPT_NDEBUG  { return *begin(); }
+	reference       front() noexcept(nodebug)        { return *begin(); }
+	const_reference front() const noexcept(nodebug)  { return *begin(); }
 
-	reference       back() OEL_NOEXCEPT_NDEBUG         { return *_makeIter<iterator>(_m.end - 1); }
-	const_reference back() const OEL_NOEXCEPT_NDEBUG   { return *_makeIter<const_iterator>(_m.end - 1); }
+	reference       back() noexcept(nodebug)         { return *_makeIter<iterator>(_m.end - 1); }
+	const_reference back() const noexcept(nodebug)   { return *_makeIter<const_iterator>(_m.end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
 
-	reference       operator[](size_type index) OEL_NOEXCEPT_NDEBUG;
-	const_reference operator[](size_type index) const OEL_NOEXCEPT_NDEBUG;
+	reference       operator[](size_type index) noexcept(nodebug);
+	const_reference operator[](size_type index) const noexcept(nodebug);
 
 	friend bool operator==(const dynarray & left, const dynarray & right)
 		{
@@ -563,12 +563,15 @@ private:
 
 	template<typename Range>
 	static auto _sizeOrEnd(const Range & r, single_pass_traversal_tag, long)
-	 -> decltype(::adl_end(r)) { return ::adl_end(r); }
-
+	{
+		return ::adl_end(r);
+	}
 	// Returns element count as size_type if possible, else adl_end(r)
 	template<typename Iter, typename Range>
-	static auto _sizeOrEnd(const Range & r) -> decltype(_sizeOrEnd(r, iterator_traversal_t<Iter>(), 0))
-	                                           { return _sizeOrEnd(r, iterator_traversal_t<Iter>(), 0); }
+	static auto _sizeOrEnd(const Range & r)
+	{
+		return _sizeOrEnd(r, iterator_traversal_t<Iter>(), 0);
+	}
 
 
 	void _allocUnequalMove(dynarray & src, false_type)
@@ -959,7 +962,7 @@ dynarray<T, Alloc>::~dynarray() noexcept
 }
 
 template<typename T, typename Alloc>
-void dynarray<T, Alloc>::swap(dynarray & other) OEL_NOEXCEPT_NDEBUG
+void dynarray<T, Alloc>::swap(dynarray & other) noexcept(nodebug)
 {
 	_internBase & a = _m;
 	_internBase & b = other._m;
@@ -1021,7 +1024,7 @@ inline auto dynarray<T, Alloc>::append(const InputRange & src) -> decltype(::adl
 
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::pop_back() OEL_NOEXCEPT_NDEBUG
+inline void dynarray<T, Alloc>::pop_back() noexcept(nodebug)
 {
 	OEL_ASSERT(_m.data < _m.end);
 	--_m.end;
@@ -1029,7 +1032,7 @@ inline void dynarray<T, Alloc>::pop_back() OEL_NOEXCEPT_NDEBUG
 }
 
 template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::erase_to_end(iterator first) OEL_NOEXCEPT_NDEBUG
+inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 {
 	T *const newEnd = to_pointer_contiguous(first);
 	OEL_ASSERT(_m.data <= newEnd && newEnd <= _m.end);
@@ -1073,13 +1076,13 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 }
 
 template<typename T, typename Alloc>
-inline T & dynarray<T, Alloc>::operator[](size_type i) OEL_NOEXCEPT_NDEBUG
+inline T & dynarray<T, Alloc>::operator[](size_type i) noexcept(nodebug)
 {
 	OEL_ASSERT(i < size());
 	return _m.data[i];
 }
 template<typename T, typename Alloc>
-inline const T & dynarray<T, Alloc>::operator[](size_type i) const OEL_NOEXCEPT_NDEBUG
+inline const T & dynarray<T, Alloc>::operator[](size_type i) const noexcept(nodebug)
 {
 	OEL_ASSERT(i < size());
 	return _m.data[i];
