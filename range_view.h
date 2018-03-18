@@ -107,7 +107,7 @@ public:
 
 	//! Return raw pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous(T *))
 	template<typename It = Iterator>
-	constexpr auto data() const noexcept
+	auto data() const noexcept
 	 -> decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
 };
 
@@ -121,13 +121,13 @@ constexpr counted_view<Iterator> counted(Iterator first, iterator_difference_t<I
 
 
 //! Create an iterator_range of std::move_iterator from two iterators
-template<typename InputIterator> inline
+template<typename InputIterator>
 iterator_range< std::move_iterator<InputIterator> >
 	move(InputIterator first, InputIterator last)  { using MovIt = std::move_iterator<InputIterator>;
 	                                                 return {MovIt{first}, MovIt{last}}; }
 
 //! Create a counted_view with move_iterator from iterator and count
-template<typename InputIterator> inline
+template<typename InputIterator>
 counted_view< std::move_iterator<InputIterator> >
 	move_n(InputIterator first, iterator_difference_t<InputIterator> count)
 	{
@@ -149,7 +149,7 @@ auto move(InputRange & r)
 	*
 	* Similar to boost::adaptors::transform, but more efficient with typical use.
 	* Note that passing an rvalue range should result in a compile error. Use a named variable.  */
-	template<typename UnaryFunc, typename SizedRange> inline
+	template<typename UnaryFunc, typename SizedRange>
 	auto transform(SizedRange & r, UnaryFunc f)
 	 ->	counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
 		{

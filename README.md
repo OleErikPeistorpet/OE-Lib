@@ -17,6 +17,6 @@ For better display of dynarray and the iterators in the Visual Studio debugger, 
 
 To use dense matrixes, quaternions, etc. from the Eigen library efficiently in dynarray: include `compat/eigen_dense.h`
 
-You can customize what happens when an assert fails. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `error_handling.h`
+You can customize what happens when a precondition violation is detected. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `error_handling.h`
 
 Setting inline function expansion to `Only __inline (/Ob1)` is recommended for Visual C++ debug builds if performance is an issue.

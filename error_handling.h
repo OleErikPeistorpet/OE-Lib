@@ -11,9 +11,9 @@
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
-/** @brief Undefined/0: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
+/** @brief 0: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
 *
-* Level 1 gives failed assertions if you try to use dynarray iterators after swap or move construction.
+* Level 1 gives failed assertions if you try to reuse dynarray iterators after swap or move construction.
 * The different levels are not binary compatible, although mixing 0 and 1 typically works. */
 	#ifdef NDEBUG
 	#define OEL_MEM_BOUND_DEBUG_LVL 0

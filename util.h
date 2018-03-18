@@ -147,14 +147,14 @@ struct can_memmove_with;
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {
-	explicit reserve_tag() {}
+	explicit constexpr reserve_tag() {}
 }
 const reserve; //!< An instance of reserve_tag to pass
 
 //! Tag to specify default initialization
 struct default_init_tag
 {
-	explicit default_init_tag() {}
+	explicit constexpr default_init_tag() {}
 }
 const default_init; //!< An instance of default_init_tag to pass
 
@@ -194,14 +194,14 @@ using iterator_is_random_access = std::is_base_of< random_access_traversal_tag, 
 namespace _detail
 {
 	// Part of pointer_traits for C++17
-	template<typename Ptr> inline
-	typename std::pointer_traits<Ptr>::element_type * ToAddress(Ptr p)
+	template<typename Ptr>
+	constexpr typename std::pointer_traits<Ptr>::element_type * ToAddress(Ptr p)
 	{
 		return p.operator->();
 	}
 
-	template<typename T> inline
-	T * ToAddress(T * p) { return p; }
+	template<typename T>
+	constexpr T * ToAddress(T * p) { return p; }
 }
 
 #ifdef __GLIBCXX__
