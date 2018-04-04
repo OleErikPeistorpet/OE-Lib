@@ -8,10 +8,9 @@
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
-/** @brief 0: no array index and iterator checks. 1: most debug checks. 2: all checks, often slow.
+/** @brief 0: no iterator and precondition checks. 1: most checks. 2: all checks.
 *
-* Level 1 gives failed assertions if you try to reuse dynarray iterators after swap or move construction.
-* The different levels are not binary compatible, although mixing 0 and 1 typically works. */
+* Level 0 is not binary compatible with any other. Mixing 1 and 2 should work, but no guarantees. */
 	#ifdef NDEBUG
 	#define OEL_MEM_BOUND_DEBUG_LVL 0
 	#else
@@ -56,12 +55,8 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 		((expr) || (OEL_ABORT("Failed assert " #expr), false))
 #endif
 
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	#define OEL_USE_DEBUG_ITER_AFTER_SWAP 1
-
-	#ifndef _MSC_VER
+#if OEL_MEM_BOUND_DEBUG_LVL && !defined _MSC_VER
 	#define OEL_DEBUG_ABI 1
-	#endif
 #endif
 
 

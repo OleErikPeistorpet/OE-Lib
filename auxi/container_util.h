@@ -35,7 +35,7 @@ namespace _detail
 		using CtnrConstPtr = typename std::pointer_traits<Ptr>::template rebind<ContainerBase const>;
 		using Header = DebugAllocationHeader<CtnrConstPtr>;
 
-	#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
+	#if OEL_MEM_BOUND_DEBUG_LVL
 		static constexpr size_t _valSz = sizeof(typename Alloc::value_type);
 		static constexpr size_t sizeForHeader = (sizeof(Header) + (_valSz - 1)) / _valSz;
 	#else
@@ -49,7 +49,7 @@ namespace _detail
 
 		static void UpdateAfterMove(const ContainerBase & c)
 		{
-		#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
+		#if OEL_MEM_BOUND_DEBUG_LVL
 			if (c.data)
 				HeaderOf(c.data)->container = &c;
 		#else
@@ -60,7 +60,7 @@ namespace _detail
 		template<typename Owner>
 		static Ptr Allocate(Owner & a, size_t n)
 		{
-		#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
+		#if OEL_MEM_BOUND_DEBUG_LVL
 			n += sizeForHeader;
 			Ptr p = a.allocate(n);
 			p += sizeForHeader;
@@ -79,7 +79,7 @@ namespace _detail
 		{
 			if (p)
 			{
-			#ifdef OEL_USE_DEBUG_ITER_AFTER_SWAP
+			#if OEL_MEM_BOUND_DEBUG_LVL
 				HeaderOf(p)->id = 0;
 				p -= sizeForHeader;
 				n += sizeForHeader;

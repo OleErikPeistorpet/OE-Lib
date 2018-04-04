@@ -99,8 +99,8 @@ public:
 	using size_type       = size_t;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
-	using iterator       = contiguous_ctnr_iterator<pointer, _internBase>;
-	using const_iterator = contiguous_ctnr_iterator<const_pointer, _internBase>;
+	using iterator       = dynarray_debug_iterator<pointer, _internBase>;
+	using const_iterator = dynarray_debug_iterator<const_pointer, _internBase>;
 #else
 	using iterator       = pointer;
 	using const_iterator = const_pointer;
@@ -377,7 +377,7 @@ private:
 	template<typename Iterator>
 	Iterator _makeIter(pointer p) const
 	{
-	#if defined OEL_USE_DEBUG_ITER_AFTER_SWAP
+	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (_m.data)
 		{
 			auto const h = _allocateWrap::HeaderOf(_m.data);
@@ -386,8 +386,6 @@ private:
 		else
 		{	return {p, nullptr, reinterpret_cast<std::uintptr_t>(this)};
 		}
-	#elif OEL_MEM_BOUND_DEBUG_LVL
-		return {p, &_m};
 	#else
 		return p;
 	#endif
