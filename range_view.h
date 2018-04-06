@@ -163,7 +163,7 @@ template<typename Iterator, bool B>
 constexpr counted_view<Iterator, B>::counted_view(Iterator f, difference_type n)
  :	_begin(f), _size(n)
 {
-#if __cplusplus >= 201402L || (defined _MSC_VER && _MSC_VER >= 1910)
+#if __cplusplus >= 201402L || defined _MSC_VER
 	OEL_ASSERT(n >= 0);
 #endif
 }
