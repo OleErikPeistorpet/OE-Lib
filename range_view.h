@@ -50,7 +50,7 @@ public:
 	using iterator        = Iterator;
 	using value_type      = typename std::iterator_traits<Iterator>::value_type;
 	using difference_type = iterator_difference_t<Iterator>;
-#ifndef OEL_VIEW_SIGNED_SIZE
+#ifndef OEL_VIEW_SIGNED_SIZE // defined by user if they want
 	using size_type       = size_t;
 #else
 	using size_type       = difference_type;
@@ -60,7 +60,8 @@ public:
 	constexpr counted_view() noexcept                      : _size() {}
 	constexpr counted_view(Iterator f, difference_type n);
 	//! Construct from array or container with matching iterator type
-	template<typename SizedRange, enable_if<!std::is_same<SizedRange, counted_view>::value> = 0>
+	template<typename SizedRange,
+	         enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0> // avoid being selected for copy
 	constexpr counted_view(SizedRange & r)   : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
 
 	constexpr iterator  begin() const   OEL_ALWAYS_INLINE { return _begin; }
@@ -92,12 +93,7 @@ public:
 	using typename _base::size_type;
 	using reference = typename std::iterator_traits<Iterator>::reference;
 
-	OEL_ALWAYS_INLINE
-	constexpr counted_view() noexcept                      {}
-	OEL_ALWAYS_INLINE
-	constexpr counted_view(Iterator f, difference_type n)  : _base(f, n) {}
-	template<typename SizedRange, enable_if<!std::is_same<SizedRange, counted_view>::value> = 0>  OEL_ALWAYS_INLINE
-	constexpr counted_view(SizedRange & r)                 : _base(r) {}
+	using _base::_base;
 
 	constexpr iterator  end() const   OEL_ALWAYS_INLINE { return this->_begin + this->_size; }
 

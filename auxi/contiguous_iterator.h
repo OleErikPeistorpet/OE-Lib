@@ -68,39 +68,39 @@ public:
 		return _pElem;
 	}
 
-	dynarray_debug_iterator & operator++()  OEL_ALWAYS_INLINE
+	dynarray_debug_iterator & operator++() &  OEL_ALWAYS_INLINE
 	{	// preincrement
 		++_pElem;
 		return *this;
 	}
 
-	dynarray_debug_iterator operator++(int)
+	dynarray_debug_iterator operator++(int) &
 	{	// postincrement
 		auto tmp = *this;
 		++_pElem;
 		return tmp;
 	}
 
-	dynarray_debug_iterator & operator--()  OEL_ALWAYS_INLINE
+	dynarray_debug_iterator & operator--() &  OEL_ALWAYS_INLINE
 	{	// predecrement
 		--_pElem;
 		return *this;
 	}
 
-	dynarray_debug_iterator operator--(int)
+	dynarray_debug_iterator operator--(int) &
 	{	// postdecrement
 		auto tmp = *this;
 		--_pElem;
 		return tmp;
 	}
 
-	dynarray_debug_iterator & operator+=(difference_type offset)  OEL_ALWAYS_INLINE
+	dynarray_debug_iterator & operator+=(difference_type offset) &  OEL_ALWAYS_INLINE
 	{
 		_pElem += offset;
 		return *this;
 	}
 
-	dynarray_debug_iterator & operator-=(difference_type offset)  OEL_ALWAYS_INLINE
+	dynarray_debug_iterator & operator-=(difference_type offset) &  OEL_ALWAYS_INLINE
 	{
 		_pElem -= offset;
 		return *this;
