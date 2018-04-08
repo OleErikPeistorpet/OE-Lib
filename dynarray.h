@@ -131,7 +131,8 @@ public:
 	// ...
 	auto result = dynarray<int>(boost::range::istream_range<int>(someStream));
 	@endcode  */
-	template<typename InputRange, typename /*EnableIfRange*/ = decltype( ::adl_cbegin(std::declval<InputRange>()) )>
+	template< typename InputRange,
+		typename /*EnableIfRange*/ = decltype( ::adl_cbegin(std::declval<InputRange>()) ) >
 	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})   : _m(a) { assign(r); }
 
 	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})  : _m(a, il.size())
@@ -273,9 +274,10 @@ public:
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
 
-	reference       operator[](size_type index) noexcept(nodebug);
-	const_reference operator[](size_type index) const noexcept(nodebug);
-
+	reference       operator[](size_type index) noexcept(nodebug)        { OEL_ASSERT(index < size());
+	                                                                       return _m.data[index]; }
+	const_reference operator[](size_type index) const noexcept(nodebug)  { OEL_ASSERT(index < size());
+	                                                                       return _m.data[index]; }
 	friend bool operator==(const dynarray & left, const dynarray & right)
 		{
 			return left.size() == right.size() &&
@@ -748,10 +750,8 @@ private:
 
 		pointer const pos = newBuf.data + size();
 		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
-#ifdef _MSC_VER
-	#pragma warning(suppress : 4100) // unreferenced formal parameter
-#endif
 		_relocateData( newBuf.data, pos, size(),
+			OEL_SUPPRESS_WARN_UNUSED
 				[](T * pos_) { pos_-> ~T(); } );
 		_m.end = pos;
 		newBuf.Swap(_m);
@@ -1071,19 +1071,6 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 		return _m.data[i];
 	else
 		_detail::Throw::OutOfRange("Bad index dynarray::at");
-}
-
-template<typename T, typename Alloc>
-inline T & dynarray<T, Alloc>::operator[](size_type i) noexcept(nodebug)
-{
-	OEL_ASSERT(i < size());
-	return _m.data[i];
-}
-template<typename T, typename Alloc>
-inline const T & dynarray<T, Alloc>::operator[](size_type i) const noexcept(nodebug)
-{
-	OEL_ASSERT(i < size());
-	return _m.data[i];
 }
 
 #ifdef OEL_DEBUG_ABI
