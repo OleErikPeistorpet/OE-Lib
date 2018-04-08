@@ -12,16 +12,7 @@
 		</Expand>
 	</Type>
 
-	<Type Name="oel::contiguous_ctnr_iterator&lt; *, oel::_detail::DynarrBase&lt;*&gt; &gt;">
-		<DisplayString Condition="_pElem == _container-&gt;end">end</DisplayString>
-		<DisplayString>[{_pElem - _container-&gt;data}] {*_pElem}</DisplayString>
-		<Expand>
-			<Item Name="[ctnr size]">_container-&gt;end - _container-&gt;data</Item>
-			<Item Name="[ctnr back]" ExcludeView="simple" Condition="_container-&gt;end != _container-&gt;data">_container-&gt;end[-1]</Item>
-			<Item Name="[pointer]" ExcludeView="simple">_pElem</Item>
-		</Expand>
-	</Type>
-	<Type Name="oel::contiguous_ctnr_iterator&lt; *, oel::_detail::DynarrBase&lt;*&gt; &gt;">
+	<Type Name="oel::dynarray_debug_iterator&lt; *, oel::_detail::DynarrBase&lt;*&gt; &gt;">
 		<DisplayString Condition="_pElem == _memInfo-&gt;container-&gt;end">end</DisplayString>
 		<DisplayString>[{_pElem - _memInfo-&gt;container-&gt;data}] {*_pElem}</DisplayString>
 		<Expand>
