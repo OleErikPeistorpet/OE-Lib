@@ -72,6 +72,14 @@ struct is_always_equal;
 
 
 
+#ifdef _MSC_VER
+	#define OEL_ALIGNAS(amount) __declspec(align(amount))
+#else
+	#define OEL_ALIGNAS(amount) __attribute__(( aligned(amount) ))
+#endif
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is not for users (implementation)
@@ -196,12 +204,6 @@ namespace _detail
 template<typename T>
 struct oel::is_always_equal : decltype( _detail::IsAlwaysEqual<T>(0) ) {};
 
-
-#ifdef _MSC_VER
-	#define OEL_ALIGNAS(amount) __declspec(align(amount))
-#else
-	#define OEL_ALIGNAS(amount) __attribute__(( aligned(amount) ))
-#endif
 
 template<std::size_t Size, std::size_t Align>
 struct OEL_ALIGNAS(Align) oel::aligned_storage_t

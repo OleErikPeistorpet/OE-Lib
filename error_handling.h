@@ -71,13 +71,9 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 #ifdef _MSC_VER
 	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
 
-	#define OEL_NORETURN __declspec(noreturn)
-
 	#define OEL_ALWAYS_INLINE
 #else
 	#define OEL_CONST_COND
-
-	#define OEL_NORETURN __attribute__((noreturn))
 
 	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
 #endif

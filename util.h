@@ -239,12 +239,12 @@ namespace _detail
 {
 	struct Throw
 	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
-		OEL_NORETURN static void OutOfRange(const char * what)
+		[[noreturn]] static void OutOfRange(const char * what)
 		{
 			OEL_THROW(std::out_of_range(what), what);
 		}
 
-		OEL_NORETURN static void LengthError(const char * what)
+		[[noreturn]] static void LengthError(const char * what)
 		{
 			OEL_THROW(std::length_error(what), what);
 		}
