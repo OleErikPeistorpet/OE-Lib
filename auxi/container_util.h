@@ -47,32 +47,59 @@ namespace _detail
 			return &reinterpret_cast<Header &>(*data) - 1;
 		}
 
-		static void UpdateAfterMove(const ContainerBase & c)
+		template<typename Iterator>
+		static Iterator MakeIterator(Ptr const pos, OEL_MAYBE_UNUSED const ContainerBase & container)
+		{
+		#if OEL_MEM_BOUND_DEBUG_LVL
+			const Header * h = nullptr;
+			OEL_MAYBE_UNUSED std::uintptr_t id;
+			if (container.data)
+			{
+				h = HeaderOf(container.data);
+				id = h->id;
+			}
+			else
+			{	id = reinterpret_cast<std::uintptr_t>(&container);
+			}
+			return {pos, h
+				#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+					, id
+				#endif
+				};
+		#else
+			return pos;
+		#endif
+		}
+
+		static void UpdateAfterMove(OEL_MAYBE_UNUSED const ContainerBase & c)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			if (c.data)
 				HeaderOf(c.data)->container = &c;
-		#else
-			(void) c;
 		#endif
 		}
 
 		template<typename Owner>
 		static Ptr Allocate(Owner & a, size_t n)
 		{
-		#if OEL_MEM_BOUND_DEBUG_LVL
+	#if OEL_MEM_BOUND_DEBUG_LVL
 			n += sizeForHeader;
 			Ptr p = a.allocate(n);
 			p += sizeForHeader;
 
 			Header *const h = HeaderOf(p);
 			h->container = &a;
-			h->id = reinterpret_cast<std::uintptr_t>(&a);
+		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+			constexpr auto maxMinBits = ~((std::uintptr_t)-1 >> 1) | 1U;
+			h->id = reinterpret_cast<std::uintptr_t>(&a) | maxMinBits;
+		#else
+			h->id = reinterpret_cast<std::uintptr_t>(h);
+		#endif
 
 			return p;
-		#else
+	#else
 			return a.allocate(n);
-		#endif
+	#endif
 		}
 
 		static void Deallocate(Alloc & a, Ptr p, size_t n)

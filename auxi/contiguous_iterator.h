@@ -21,21 +21,30 @@
 namespace oel
 {
 
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+inline namespace dl2 OEL_ABI_TAG_NAMESPACE
+{
+#endif
+
 /** @brief Checked iterator, for container with contiguous memory that can be reallocated
 *
 * Wraps a pointer with error checks. Note: a pair of value-initialized iterators count as an empty range  */
 template<typename Ptr, typename Container>
 class dynarray_debug_iterator
 {
-#define OEL_ARRITER_CHECK_DEREFABLE  \
-	OEL_ASSERT(_memInfo->id == _allocationId and _memInfo->container->DerefValid(_pElem))
-
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	#define OEL_ITER_VALIDATE_DEREF  \
+		OEL_ASSERT(_memInfo->id == _allocationId and _memInfo->container->DerefValid(_pElem))
+
 	// Test for iterator pair pointing to same container
-	#define OEL_ARRITER_CHECK_COMPAT(right)  \
-		OEL_ASSERT(_allocationId == right._allocationId)
+	#define OEL_ITER_CHECK_COMPATIBLE(other)  \
+		OEL_ASSERT(_allocationId == other._allocationId)
 #else
-	#define OEL_ARRITER_CHECK_COMPAT(right)
+	#define OEL_ITER_VALIDATE_DEREF  \
+		OEL_ASSERT( _memInfo->id == reinterpret_cast<std::uintptr_t>(_memInfo)  \
+		        and _memInfo->container->DerefValid(_pElem) )
+
+	#define OEL_ITER_CHECK_COMPATIBLE(other)
 #endif
 
 	using _ptrTrait = std::pointer_traits<Ptr>;
@@ -53,18 +62,22 @@ public:
 
 	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
 	{
-		return {_pElem, _memInfo, _allocationId};
+		return {_pElem, _memInfo
+			#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+				, _allocationId
+			#endif
+			};
 	}
 
 	reference operator*() const
 	{
-		OEL_ARRITER_CHECK_DEREFABLE;
+		OEL_ITER_VALIDATE_DEREF;
 		return *_pElem;
 	}
 
 	pointer operator->() const
 	{
-		OEL_ARRITER_CHECK_DEREFABLE;
+		OEL_ITER_VALIDATE_DEREF;
 		return _pElem;
 	}
 
@@ -125,7 +138,7 @@ public:
 
 	difference_type operator -(const const_iterator & right) const
 	{	// difference of iterators
-		OEL_ARRITER_CHECK_COMPAT(right);
+		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem - right._pElem;
 	}
 
@@ -139,28 +152,28 @@ public:
 	template<typename Ptr1>
 	bool operator==(const dynarray_debug_iterator<Ptr1, Container> & right) const
 	{
-		OEL_ARRITER_CHECK_COMPAT(right);
+		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem == right._pElem;
 	}
 
 	template<typename Ptr1>
 	bool operator!=(const dynarray_debug_iterator<Ptr1, Container> & right) const
 	{
-		OEL_ARRITER_CHECK_COMPAT(right);
+		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem != right._pElem;
 	}
 
 	template<typename Ptr1>
 	bool operator <(const dynarray_debug_iterator<Ptr1, Container> & right) const
 	{
-		OEL_ARRITER_CHECK_COMPAT(right);
+		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem < right._pElem;
 	}
 
 	template<typename Ptr1>
 	bool operator >(const dynarray_debug_iterator<Ptr1, Container> & right) const
 	{
-		OEL_ARRITER_CHECK_COMPAT(right);
+		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem > right._pElem;
 	}
 
@@ -177,14 +190,20 @@ public:
 	}
 
 
-	//! Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
-	pointer _pElem;
-	const _detail::DebugAllocationHeader<_ctnrConstPtr> * _memInfo; //!< Pointer to parent container and allocation ID
-	std::uintptr_t _allocationId;  //!< Used to check if this iterator has been invalidated by deallocation
+	pointer _pElem; //!< Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
+	//! Pointer to struct with pointer to parent container and allocation ID
+	const _detail::DebugAllocationHeader<_ctnrConstPtr> * _memInfo;
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	std::uintptr_t _allocationId; //!< Used to check if this iterator has been invalidated by deallocation
+#endif
 
-#undef OEL_ARRITER_CHECK_COMPAT
-#undef OEL_ARRITER_CHECK_DEREFABLE
+#undef OEL_ITER_CHECK_COMPATIBLE
+#undef OEL_ITER_VALIDATE_DEREF
 };
+
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+} // namespace dl2
+#endif
 
 //! To raw pointer (unchecked)
 template<typename Ptr, typename C>  OEL_ALWAYS_INLINE inline

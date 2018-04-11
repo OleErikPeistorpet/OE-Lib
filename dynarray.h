@@ -88,6 +88,8 @@ class dynarray
 	using _internBase = _detail::DynarrBase<T, typename _allocTrait::pointer>;
 	using _allocateWrap = _detail::DebugAllocateWrapper<_internBase, Alloc, typename _allocTrait::pointer>;
 
+#define OEL_ARRAY_ITER(iteratorT, ptr) _allocateWrap::template MakeIterator<iteratorT>(ptr, _m)
+
 public:
 	using value_type      = T;
 	using allocator_type  = Alloc;
@@ -248,12 +250,12 @@ public:
 
 	allocator_type get_allocator() const noexcept  { return _m; }
 
-	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIter<iterator>(_m.data); }
-	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_iterator>(_m.data); }
+	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return OEL_ARRAY_ITER(iterator, _m.data); }
+	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return OEL_ARRAY_ITER(const_iterator, _m.data); }
 	const_iterator cbegin() const noexcept   OEL_ALWAYS_INLINE { return begin(); }
 
-	iterator       end() noexcept          OEL_ALWAYS_INLINE { return _makeIter<iterator>(_m.end); }
-	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_iterator>(_m.end); }
+	iterator       end() noexcept          OEL_ALWAYS_INLINE { return OEL_ARRAY_ITER(iterator, _m.end); }
+	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return OEL_ARRAY_ITER(const_iterator, _m.end); }
 	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
 
 	reverse_iterator       rbegin() noexcept         OEL_ALWAYS_INLINE { return reverse_iterator{end()}; }
@@ -268,8 +270,8 @@ public:
 	reference       front() noexcept(nodebug)        { return *begin(); }
 	const_reference front() const noexcept(nodebug)  { return *begin(); }
 
-	reference       back() noexcept(nodebug)         { return *_makeIter<iterator>(_m.end - 1); }
-	const_reference back() const noexcept(nodebug)   { return *_makeIter<const_iterator>(_m.end - 1); }
+	reference       back() noexcept(nodebug)         { return *OEL_ARRAY_ITER(iterator, _m.end - 1); }
+	const_reference back() const noexcept(nodebug)   { return *OEL_ARRAY_ITER(const_iterator, _m.end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -376,23 +378,6 @@ private:
 			_detail::Throw::LengthError("Going over dynarray max_size");
 	}
 
-	template<typename Iterator>
-	Iterator _makeIter(pointer p) const
-	{
-	#if OEL_MEM_BOUND_DEBUG_LVL
-		if (_m.data)
-		{
-			auto const h = _allocateWrap::HeaderOf(_m.data);
-			return {p, h, h->id};
-		}
-		else
-		{	return {p, nullptr, reinterpret_cast<std::uintptr_t>(this)};
-		}
-	#else
-		return p;
-	#endif
-	}
-
 
 	void _moveInternBase(_internBase & src)
 	{
@@ -415,10 +400,9 @@ private:
 		swap(static_cast<Alloc &>(_m), a);
 	}
 
-	void _swapAlloc(std::false_type, Alloc & a)
+	void _swapAlloc(std::false_type, OEL_MAYBE_UNUSED Alloc & a)
 	{	// propagate_on_container_swap false, standard says this is undefined if allocators compare unequal
 		OEL_ASSERT(static_cast<Alloc &>(_m) == a);
-		(void) a;
 	}
 
 
@@ -641,7 +625,7 @@ private:
 			if (newEnd < _m.end)
 			{	// downsizing, assign new and destroy rest
 				src = copy(src, _m.data, newEnd);
-				erase_to_end(_makeIter<iterator>(newEnd));
+				erase_to_end(OEL_ARRAY_ITER(iterator, newEnd));
 			}
 			else // assign to old elements as far as we can
 			{	src = copy(src, _m.data, _m.end);
@@ -751,8 +735,8 @@ private:
 		pointer const pos = newBuf.data + size();
 		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
 		_relocateData( newBuf.data, pos, size(),
-			OEL_SUPPRESS_WARN_UNUSED
-				[](T * pos_) { pos_-> ~T(); } );
+			[](OEL_MAYBE_UNUSED T * pos_) { pos_-> ~T(); } );
+
 		_m.end = pos;
 		newBuf.Swap(_m);
 	}
@@ -817,7 +801,7 @@ typename dynarray<T, Alloc>::iterator
 	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
 		                      _emplaceMakeElem{}, std::forward<Args>(args)...);
 	}
-	return _makeIter<iterator>(pPos);
+	return OEL_ARRAY_ITER(iterator, pPos);
 }
 
 template<typename T, typename Alloc> template<typename ForwardRange>
@@ -874,7 +858,7 @@ typename dynarray<T, Alloc>::iterator
 				return dLast;
 			} );
 	}
-	return _makeIter<iterator>(pPos);
+	return OEL_ARRAY_ITER(iterator, pPos);
 }
 
 template<typename T, typename Alloc> template<typename... Args>
@@ -1073,8 +1057,10 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 		_detail::Throw::OutOfRange("Bad index dynarray::at");
 }
 
+#undef OEL_ARRAY_ITER
+
 #ifdef OEL_DEBUG_NAMESPACE
-} // namespace debug
+}
 #endif
 
 namespace _detail
