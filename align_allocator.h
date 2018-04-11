@@ -8,7 +8,7 @@
 
 #include "util.h"
 
-#if !defined(OEL_NO_BOOST) && __cpp_aligned_new < 201606
+#if !defined(OEL_NO_BOOST) and __cpp_aligned_new < 201606
 	#include <boost/align/aligned_alloc.hpp>
 #endif
 #include <cstddef> // for max_align_t
@@ -91,9 +91,9 @@ namespace _detail
 {
 	template<size_t Align>
 	using CanDefaultAlloc = bool_constant<
-		#if defined(__STDCPP_DEFAULT_NEW_ALIGNMENT__)
+		#if defined __STDCPP_DEFAULT_NEW_ALIGNMENT__
 			Align <= __STDCPP_DEFAULT_NEW_ALIGNMENT__
-		#elif _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
+		#elif _WIN64 or defined __x86_64__  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16
 		#else
 			Align <= alignof(
@@ -140,7 +140,7 @@ namespace _detail
 				if (p)
 					return p;
 
-			#if !defined(__GLIBCXX__) || OEL_GCC_VERSION >= 409
+			#if !defined(__GLIBCXX__) or OEL_GCC_VERSION >= 409
 				auto handler = std::get_new_handler();
 			#else
 				auto handler = std::set_new_handler(nullptr);

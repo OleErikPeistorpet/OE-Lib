@@ -61,7 +61,7 @@ protected:
 using MyAllocStr = oel::allocator<std::string>;
 static_assert(oel::is_trivially_copyable<MyAllocStr>::value, "?");
 
-#if _MSC_VER || __GNUC__ >= 5
+#if _MSC_VER or __GNUC__ >= 5
 
 TEST_F(dynarrayTest, stdDequeWithOelAlloc)
 {
@@ -247,7 +247,7 @@ TEST_F(dynarrayTest, assign)
 			EXPECT_THROW(
 				dest.assign(make_iterator_range(&obj, &obj + 1)),
 				TestException );
-			EXPECT_TRUE(dest.empty() || *dest.at(1) == 2.0);
+			EXPECT_TRUE(dest.empty() or *dest.at(1) == 2.0);
 		} )
 		{
 			dest.clear();
@@ -268,7 +268,7 @@ TEST_F(dynarrayTest, assign)
 }
 
 // std::stringstream doesn't seem to work using libstdc++ with -fno-exceptions
-#if !defined __GLIBCXX__ || defined __EXCEPTIONS
+#if !defined __GLIBCXX__ or defined __EXCEPTIONS
 TEST_F(dynarrayTest, assignStringStream)
 {
 	{
@@ -366,7 +366,7 @@ TEST_F(dynarrayTest, append)
 	EXPECT_DOUBLE_EQ(3, double_dynarr[6]);
 	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
 
-#if !defined __GLIBCXX__ || defined __EXCEPTIONS
+#if !defined __GLIBCXX__ or defined __EXCEPTIONS
 	{
 		std::stringstream ss("1 2 3 4 5");
 
@@ -669,7 +669,7 @@ TEST_F(dynarrayTest, eraseUnstable)
 	EXPECT_TRUE(di.empty());
 }
 
-#if __cpp_aligned_new >= 201606 || !defined(OEL_NO_BOOST)
+#if __cpp_aligned_new >= 201606 or !defined(OEL_NO_BOOST)
 TEST_F(dynarrayTest, overAligned)
 {
 	unsigned int const testAlignment = 32;
@@ -692,7 +692,7 @@ OEL_WHEN_EXCEPTIONS_ON(
 }
 #endif
 
-#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
+#if defined _CPPUNWIND or defined __EXCEPTIONS
 TEST_F(dynarrayTest, greaterThanMax)
 {
 	struct Size2

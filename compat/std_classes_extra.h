@@ -20,7 +20,7 @@ template<typename T, std::size_t S>
 struct is_trivially_relocatable< std::array<T, S> >
  :	is_trivially_relocatable<T> {};
 
-#if defined __GLIBCXX__ && __GNUC__ == 4  // VC++, GCC 5, libc++ all good
+#if defined __GLIBCXX__ and __GNUC__ == 4  // VC++, GCC 5, libc++ all good
 	template<typename T>
 	struct is_trivially_copyable< std::reference_wrapper<T> > : true_type{};
 #endif

@@ -72,7 +72,7 @@ TEST_F(dynarrayConstructTest, constructEmpty)
 	ASSERT_EQ(0, AllocCounter::nDeallocations);
 }
 
-#if defined(_CPPUNWIND) || defined(__EXCEPTIONS)
+#if defined _CPPUNWIND or defined __EXCEPTIONS
 TEST_F(dynarrayConstructTest, greaterThanMax)
 {
 	struct Size2
@@ -318,7 +318,7 @@ void testConstructMoveElements()
 		EXPECT_EQ(capBefore, a.capacity());
 		ASSERT_EQ(na, ssize(b));
 		for (int i = 0; i < na; ++i)
-			EXPECT_TRUE(b[i].get() && *b[i] == i + 0.5);
+			EXPECT_TRUE(b[i].get() and *b[i] == i + 0.5);
 	}
 	EXPECT_EQ(AllocCounter::nConstructCalls, T::nDestruct);
 	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
@@ -420,7 +420,7 @@ void testAssignMoveElements()
 			EXPECT_EQ(capBefore, a.capacity());
 			ASSERT_EQ(na, ssize(b));
 			for (int i = 0; i < na; ++i)
-				EXPECT_TRUE(b[i].get() && *b[i] == i + 0.5);
+				EXPECT_TRUE(b[i].get() and *b[i] == i + 0.5);
 		}
 		EXPECT_EQ(AllocCounter::nConstructCalls, T::nDestruct);
 		EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);

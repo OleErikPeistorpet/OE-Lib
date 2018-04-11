@@ -21,7 +21,7 @@ namespace oel
 //! Mirroring std::pmr and boost::container::pmr
 namespace pmr
 {
-#if defined OEL_HAS_STD_PMR || (!defined OEL_NO_BOOST && BOOST_VERSION >= 106000)
+#if defined OEL_HAS_STD_PMR or (!defined OEL_NO_BOOST and BOOST_VERSION >= 106000)
 	#ifdef OEL_HAS_STD_PMR
 	using std::pmr::polymorphic_allocator;
 	#else
@@ -145,7 +145,7 @@ public:
 	~dynarray() noexcept;
 
 	dynarray & operator =(dynarray && other) noexcept(_allocTrait::propagate_on_container_move_assignment::value
-	                                                  || is_always_equal<Alloc>::value);
+	                                                  or is_always_equal<Alloc>::value);
 	//! Treats allocator_type as if it does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other)    { assign(other);  return *this; }
 
@@ -280,7 +280,7 @@ public:
 	                                                                       return _m.data[index]; }
 	friend bool operator==(const dynarray & left, const dynarray & right)
 		{
-			return left.size() == right.size() &&
+			return left.size() == right.size() and
 			       std::equal(left.begin(), left.end(), right.begin());
 		}
 	friend bool operator!=(const dynarray & left, const dynarray & right)  { return !(left == right); }
@@ -535,7 +535,7 @@ private:
 	void _erase(iterator pos, true_type /*trivialRelocate*/)
 	{
 		T *const ptr = to_pointer_contiguous(pos);
-		OEL_ASSERT(_m.data <= ptr && ptr < _m.end);
+		OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
 
 		ptr-> ~T();
 		const T * next = ptr + 1;
@@ -798,7 +798,7 @@ typename dynarray<T, Alloc>::iterator
 	_detail::AssertTrivialRelocate<T>();  \
 	\
 	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
-	OEL_ASSERT(_m.data <= pPos && pPos <= _m.end);  \
+	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);  \
 	size_type const nAfterPos = _m.end - pPos;
 
 	OEL_DYNARR_INSERT_STEP1
@@ -896,7 +896,7 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
-	if (a != other._m && !is_always_equal<Alloc>::value)
+	if (a != other._m and !is_always_equal<Alloc>::value)
 		_allocUnequalMove(other, is_trivially_relocatable<T>());
 	else
 		_moveInternBase(other._m);
@@ -904,9 +904,9 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
 
 template<typename T, typename Alloc>
 dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other)
-	noexcept(_allocTrait::propagate_on_container_move_assignment::value || is_always_equal<Alloc>::value)
+	noexcept(_allocTrait::propagate_on_container_move_assignment::value or is_always_equal<Alloc>::value)
 {
-	if (static_cast<Alloc &>(_m) != other._m &&
+	if (static_cast<Alloc &>(_m) != other._m and
 		!_allocTrait::propagate_on_container_move_assignment::value)
 	{
 		_allocUnequalMove(other, is_trivially_relocatable<T>());
@@ -975,7 +975,7 @@ template<typename T, typename Alloc>
 void dynarray<T, Alloc>::shrink_to_fit()
 {
 	OEL_WHEN_EXCEPTIONS_ON(
-		static_assert(std::is_nothrow_move_constructible<T>::value || is_trivially_relocatable<T>::value,
+		static_assert(std::is_nothrow_move_constructible<T>::value or is_trivially_relocatable<T>::value,
 			"This function requires that T is noexcept move constructible or trivially relocatable"); )
 
 	size_type const used = size();
@@ -1033,7 +1033,7 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 {
 	T *const newEnd = to_pointer_contiguous(first);
-	OEL_ASSERT(_m.data <= newEnd && newEnd <= _m.end);
+	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
 	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
 }
@@ -1045,7 +1045,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 
 	T *const pFirst = to_pointer_contiguous(first);
 	T *const pLast = to_pointer_contiguous(last);
-	OEL_ASSERT(_m.data <= pFirst && pFirst <= pLast && pLast <= _m.end);
+	OEL_ASSERT(_m.data <= pFirst and pFirst <= pLast and pLast <= _m.end);
 	if (pFirst < pLast)
 	{
 		_detail::Destroy(pFirst, pLast);

@@ -14,11 +14,11 @@ namespace oel
 {
 namespace _detail
 {
-#if defined __GLIBCXX__ && __GNUC__ == 4
+#if defined __GLIBCXX__ and __GNUC__ == 4
 	template<typename T>
 	using is_trivially_default_constructible = bool_constant< __has_trivial_constructor(T)
 		#ifdef __INTEL_COMPILER
-			|| __is_pod(T)
+			or __is_pod(T)
 		#endif
 		>;
 #else
@@ -89,7 +89,7 @@ namespace _detail
 	void UninitFill(T *const first, T *const last, Alloc & alloc, const Arg &... arg)
 	{
 		// TODO: investigate libstdc++ std::fill
-		_detail::UninitFillImpl(bool_constant<std::is_integral<T>::value && sizeof(T) == 1>(),
+		_detail::UninitFillImpl(bool_constant<std::is_integral<T>::value and sizeof(T) == 1>(),
 		                        first, last, alloc, arg...);
 	}
 
@@ -104,7 +104,7 @@ namespace _detail
 	inline void MemcpyMaybeNull(void * dest, const void * src, size_t nBytes)
 	{	// memcpy(nullptr, nullptr, 0) is UB. The trouble is that checking can have significant performance hit.
 		// GCC 4.9 and up known to need the check in some cases
-	#if (!defined __GNUC__ && !defined _MSC_VER) || OEL_GCC_VERSION >= 409 || _MSC_VER >= 2000
+	#if (!defined __GNUC__ and !defined _MSC_VER) or OEL_GCC_VERSION >= 409 or _MSC_VER >= 2000
 		if (nBytes > 0)
 	#endif
 			std::memcpy(dest, src, nBytes);

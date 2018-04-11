@@ -70,7 +70,7 @@ constexpr bool index_valid(const SizedRange & r, Integral index);
 using std::begin;
 using std::end;
 
-#if __cplusplus >= 201402L || defined _MSC_VER
+#if __cplusplus >= 201402L or defined _MSC_VER
 	using std::cbegin;   using std::cend;
 	using std::crbegin;  using std::crend;
 #endif
@@ -297,6 +297,6 @@ template<typename Integral, typename SizedRange>
 constexpr bool oel::index_valid(const SizedRange & r, Integral i)
 {
 	using T = decltype(oel::ssize(r));
-	using NotBigInts = bool_constant<sizeof(T) < sizeof(std::uintmax_t) && sizeof i < sizeof(std::uintmax_t)>;
+	using NotBigInts = bool_constant<sizeof(T) < sizeof(std::uintmax_t) and sizeof i < sizeof(std::uintmax_t)>;
 	return _detail::IndexValid(as_unsigned(oel::ssize(r)), i, NotBigInts{});
 }

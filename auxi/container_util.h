@@ -91,7 +91,7 @@ namespace _detail
 
 
 	template< typename Alloc,
-		bool = std::is_empty<Alloc>::value && std::is_default_constructible<Alloc>::value >
+		bool = std::is_empty<Alloc>::value and std::is_default_constructible<Alloc>::value >
 	struct AllocRefOptimized
 	{
 		Alloc & alloc;

@@ -28,7 +28,7 @@ template<typename Ptr, typename Container>
 class dynarray_debug_iterator
 {
 #define OEL_ARRITER_CHECK_DEREFABLE  \
-	OEL_ASSERT(_memInfo->id == _allocationId && _memInfo->container->DerefValid(_pElem))
+	OEL_ASSERT(_memInfo->id == _allocationId and _memInfo->container->DerefValid(_pElem))
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	// Test for iterator pair pointing to same container

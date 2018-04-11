@@ -4,7 +4,10 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-/** @file
+#include <ciso646>
+
+
+/** @file Mostly error handling macros
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
@@ -32,7 +35,7 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 	@endcode  */
 	#define OEL_ABORT(msg) (std::abort(), (void) msg)
 
-	#if !defined OEL_ASSERT && !defined NDEBUG
+	#if !defined OEL_ASSERT and !defined NDEBUG
 	#include <cassert>
 
 	//! Can be defined to your own
@@ -52,11 +55,11 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 	#define OEL_ASSERT(expr) ((void) 0)
 #elif !defined OEL_ASSERT
 	#define OEL_ASSERT(expr)  \
-		((expr) || (OEL_ABORT("Failed assert " #expr), false))
+		((expr) or (OEL_ABORT("Failed assert " #expr), false))
 #endif
 
 
-#if OEL_MEM_BOUND_DEBUG_LVL && !defined _MSC_VER
+#if OEL_MEM_BOUND_DEBUG_LVL and !defined _MSC_VER
 	#define OEL_DEBUG_NAMESPACE  1
 #endif
 
@@ -83,7 +86,7 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 #endif
 
 
-#if defined _CPPUNWIND || defined __EXCEPTIONS
+#if defined _CPPUNWIND or defined __EXCEPTIONS
 	#define OEL_THROW(exception, msg) throw exception
 	#define OEL_TRY_                  try
 	#define OEL_CATCH_ALL             catch (...)

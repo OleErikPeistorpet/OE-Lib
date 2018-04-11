@@ -17,7 +17,7 @@
 #if __has_include(<memory_resource>)
 	#include <memory_resource>
 
-	#define OEL_HAS_STD_PMR 1
+	#define OEL_HAS_STD_PMR  1
 #endif
 #endif
 
@@ -33,7 +33,7 @@
 
 
 // std::string in GCC 5 with _GLIBCXX_USE_CXX11_ABI is not trivially relocatable (uses pointer to internal buffer)
-#if (_MSC_VER || _LIBCPP_VERSION || __GLIBCXX__) && !_GLIBCXX_USE_CXX11_ABI
+#if (_MSC_VER or _LIBCPP_VERSION or __GLIBCXX__) and !_GLIBCXX_USE_CXX11_ABI
 	#include <string>
 
 	namespace oel

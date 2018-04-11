@@ -100,7 +100,7 @@ TEST(utilTest, derefArgs)
 	d.push_back(make_unique<double>(2.0));
 	d.push_back(make_unique<double>(2.0));
 	{
-	#if __cplusplus < 201402L && _MSC_VER < 1900
+	#if __cplusplus < 201402L and _MSC_VER < 1900
 		using Less = std::less<double>;
 	#else
 		using Less = std::less<>;
