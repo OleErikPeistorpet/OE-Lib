@@ -17,9 +17,9 @@
 * Also provides all_ and a forward declaration of dynarray.
 */
 
-#if defined(__has_include)
+#if defined __has_include
 	#if !__has_include(<boost/config.hpp>)
-	#define OEL_NO_BOOST 1
+	#define OEL_NO_BOOST  1
 	#endif
 #endif
 
@@ -30,14 +30,18 @@ namespace oel
 
 template<typename T> struct allocator;  // forward declare
 
-#ifdef OEL_DEBUG_ABI
-inline namespace debug {
+#ifdef OEL_DEBUG_NAMESPACE
+inline namespace debug
+	#if __GNUC__ >= 5
+		__attribute__((abi_tag))
+	#endif
+{
 #endif
 
 template<typename T, typename Alloc = allocator<T> >
 class dynarray;
 
-#ifdef OEL_DEBUG_ABI
+#ifdef OEL_DEBUG_NAMESPACE
 }
 #endif
 

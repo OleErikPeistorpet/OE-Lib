@@ -26,7 +26,7 @@ namespace oel
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template<typename RandomAccessContainer> inline
+template<typename RandomAccessContainer>
 void erase_unstable(RandomAccessContainer & c, typename RandomAccessContainer::size_type index)
 {
 	c[index] = std::move(c.back());
@@ -44,7 +44,7 @@ void erase_if(Container & c, UnaryPredicate p);
 *
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
 template< typename Container, typename BinaryPredicate = std::equal_to<typename Container::value_type> >
-void erase_successive_dup(Container & c, BinaryPredicate isDup = BinaryPredicate{});
+void erase_successive_dup(Container & c, BinaryPredicate isDuplicate = BinaryPredicate{});
 
 
 

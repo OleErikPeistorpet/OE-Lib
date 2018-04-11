@@ -12,9 +12,9 @@
 *
 * Level 0 is not binary compatible with any other. Mixing 1 and 2 should work, but no guarantees. */
 	#ifdef NDEBUG
-	#define OEL_MEM_BOUND_DEBUG_LVL 0
+	#define OEL_MEM_BOUND_DEBUG_LVL  0
 	#else
-	#define OEL_MEM_BOUND_DEBUG_LVL 2
+	#define OEL_MEM_BOUND_DEBUG_LVL  2
 	#endif
 #endif
 
@@ -55,16 +55,20 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 		((expr) || (OEL_ABORT("Failed assert " #expr), false))
 #endif
 
-#if OEL_MEM_BOUND_DEBUG_LVL && !defined _MSC_VER
-	#define OEL_DEBUG_ABI 1
-#endif
 
+#if OEL_MEM_BOUND_DEBUG_LVL && !defined _MSC_VER
+	#define OEL_DEBUG_NAMESPACE  1
+#endif
 
 
 #ifdef __GNUC__
 	#define OEL_GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
+
+	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
 #else
-	#define OEL_GCC_VERSION 0
+	#define OEL_GCC_VERSION  0
+
+	#define OEL_ALWAYS_INLINE
 #endif
 
 
@@ -72,14 +76,10 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
 
 	#define OEL_SUPPRESS_WARN_UNUSED __pragma(warning(suppress : 4100))
-
-	#define OEL_ALWAYS_INLINE
 #else
 	#define OEL_CONST_COND
 
 	#define OEL_SUPPRESS_WARN_UNUSED
-
-	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
 #endif
 
 

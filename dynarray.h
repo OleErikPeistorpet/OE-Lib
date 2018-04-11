@@ -33,7 +33,7 @@ namespace pmr
 #endif
 }
 
-#ifdef OEL_DEBUG_ABI
+#ifdef OEL_DEBUG_NAMESPACE
 inline namespace debug
 {
 #endif
@@ -1073,7 +1073,7 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 		_detail::Throw::OutOfRange("Bad index dynarray::at");
 }
 
-#ifdef OEL_DEBUG_ABI
+#ifdef OEL_DEBUG_NAMESPACE
 } // namespace debug
 #endif
 
