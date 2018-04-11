@@ -31,7 +31,10 @@ namespace oel
 template<typename T> struct allocator;  // forward declare
 
 #ifdef OEL_DEBUG_NAMESPACE
-inline namespace debug OEL_ABI_TAG_NAMESPACE
+inline namespace debug
+	#if __GNUC__ >= 5
+		__attribute__((abi_tag))
+	#endif
 {
 #endif
 

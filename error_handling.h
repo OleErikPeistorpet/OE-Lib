@@ -13,7 +13,7 @@
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
 /** @brief 0: no iterator and precondition checks. 1: most checks. 2: all checks.
 *
-* The different levels are not binary compatible, although mixing 1 and 2 typically works. */
+* Level 0 is not binary compatible with any other. Mixing 1 and 2 should work, but no guarantees. */
 	#ifdef NDEBUG
 	#define OEL_MEM_BOUND_DEBUG_LVL  0
 	#else
@@ -59,6 +59,11 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 #endif
 
 
+#if OEL_MEM_BOUND_DEBUG_LVL and !defined _MSC_VER
+	#define OEL_DEBUG_NAMESPACE  1
+#endif
+
+
 #ifdef __GNUC__
 	#define OEL_GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
 
@@ -70,25 +75,14 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 #endif
 
 
-#if OEL_MEM_BOUND_DEBUG_LVL and !defined _MSC_VER
-	#define OEL_DEBUG_NAMESPACE  1
-#endif
-
-#if OEL_GCC_VERSION >= 500
-	#define OEL_ABI_TAG_NAMESPACE __attribute__((abi_tag))
-#else
-	#define OEL_ABI_TAG_NAMESPACE
-#endif
-
-
 #ifdef _MSC_VER
 	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
 
-	#define OEL_MAYBE_UNUSED __pragma(warning(suppress : 4100))
+	#define OEL_SUPPRESS_WARN_UNUSED __pragma(warning(suppress : 4100))
 #else
 	#define OEL_CONST_COND
 
-	#define OEL_MAYBE_UNUSED __attribute__((unused))
+	#define OEL_SUPPRESS_WARN_UNUSED
 #endif
 
 
