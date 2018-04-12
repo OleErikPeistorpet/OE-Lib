@@ -73,7 +73,7 @@ TEST(rangeTest, countedView)
 	EXPECT_EQ(2, test.end()[-1]);
 }
 
-#if !defined OEL_NO_BOOST and OEL_GCC_VERSION >= 408
+#if !defined OEL_NO_BOOST
 TEST(rangeTest, viewTransform)
 {
 	using namespace oel;
