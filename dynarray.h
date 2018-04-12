@@ -146,12 +146,12 @@ public:
 	                                                   { _initPostAllocate(other.data(), other.size()); }
 	~dynarray() noexcept;
 
-	dynarray & operator =(dynarray && other) noexcept(_allocTrait::propagate_on_container_move_assignment::value
-	                                                  or is_always_equal<Alloc>::value);
+	dynarray & operator =(dynarray && other) &
+		noexcept(_allocTrait::propagate_on_container_move_assignment::value or is_always_equal<Alloc>::value);
 	//! Treats allocator_type as if it does not have propagate_on_container_copy_assignment
-	dynarray & operator =(const dynarray & other)    { assign(other);  return *this; }
+	dynarray & operator =(const dynarray & other) &    { assign(other);  return *this; }
 
-	dynarray & operator =(std::initializer_list<T> il)  { assign(il);  return *this; }
+	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
 	void      swap(dynarray & other) noexcept(nodebug);
 
@@ -887,7 +887,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other)
+dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) &
 	noexcept(_allocTrait::propagate_on_container_move_assignment::value or is_always_equal<Alloc>::value)
 {
 	if (static_cast<Alloc &>(_m) != other._m and
