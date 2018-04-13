@@ -432,23 +432,18 @@ private:
 
 	static size_type _calcCapAddOne(size_type const oldCap, size_type = 0)
 	{
-		enum
-		{	a = 3 * sizeof(void *),
-			b = 4 * sizeof(int),
-			startBytesGood = a > b ? a : b,
-			minGrow = 2 * sizeof(T) <= startBytesGood ?
-				startBytesGood / sizeof(T) :
-				(sizeof(T) <= 8 * sizeof(int) ? 2 : 1)
-		};
+		constexpr auto startBytesGood = max(3 * sizeof(void *), 4 * sizeof(int));
+		constexpr auto minGrow = max<size_t>( startBytesGood / sizeof(T),
+				sizeof(T) <= 8 * sizeof(int) ? 2 : 1 );
 		OEL_CONST_COND if (minGrow > 1)
-			return oldCap + std::max<size_type>(oldCap / 2, minGrow);
+			return oldCap + max(oldCap / 2, minGrow);
 		else
 			return oldCap + oldCap / 2 + 1;
 	}
 
 	static size_type _calcCap(size_type oldCap, size_type newSize)
 	{	// growth factor is 1.5
-		return (std::max)(oldCap + oldCap / 2, newSize);
+		return max(oldCap + oldCap / 2, newSize);
 	}
 
 

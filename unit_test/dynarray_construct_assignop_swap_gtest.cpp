@@ -22,8 +22,8 @@ using dynarrayTrackingAlloc = dynarray< T, TrackingAllocator<T> >;
 
 class dynarrayConstructTest : public ::testing::Test
 {
-	static_assert(_detail::is_trivially_default_constructible<TrivialDefaultConstruct>::value, "?");
-	static_assert( !_detail::is_trivially_default_constructible<NontrivialConstruct>::value, "?" );
+	static_assert(is_trivially_default_constructible<TrivialDefaultConstruct>::value, "?");
+	static_assert( !is_trivially_default_constructible<NontrivialConstruct>::value, "?" );
 
 protected:
 	std::array<unsigned, 3> sizes;

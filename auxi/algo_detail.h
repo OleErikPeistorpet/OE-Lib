@@ -12,8 +12,15 @@
 
 namespace oel
 {
-namespace _detail
+
+// std::max not constexpr for GCC 4
+template<typename T>
+constexpr T max(const T & a, const T & b)
 {
+	return a < b ? b : a;
+}
+
+
 #if defined __GLIBCXX__ and __GNUC__ == 4
 	template<typename T>
 	using is_trivially_default_constructible = bool_constant< __has_trivial_constructor(T)
@@ -26,6 +33,8 @@ namespace _detail
 #endif
 
 
+namespace _detail
+{
 	template<typename T>
 	void Destroy(T * first, T *const last) noexcept
 	{	// first > last is OK, does nothing
