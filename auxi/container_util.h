@@ -34,6 +34,8 @@ namespace _detail
 		}
 	};
 
+	constexpr DebugAllocationHeader headerNoAllocation{0, 0};
+
 	template<typename Alloc, typename Ptr>
 	struct DebugAllocateWrapper
 	{

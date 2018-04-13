@@ -387,7 +387,8 @@ private:
 			return {p, h, h->id};
 		}
 		else
-		{	return {p, nullptr, reinterpret_cast<std::uintptr_t>(this)};
+		{	return { p, &_detail::headerNoAllocation,
+				reinterpret_cast<std::uintptr_t>(this) };
 		}
 	#else
 		return p;
