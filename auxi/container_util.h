@@ -42,6 +42,12 @@ namespace _detail
 		static constexpr size_t sizeForHeader = 0;
 	#endif
 
+		static const Header * NullHeader()
+		{
+			static Header const instance{nullptr, 0};
+			return &instance;
+		}
+
 		OEL_ALWAYS_INLINE static Header * HeaderOf(Ptr data)
 		{	// Extra dereference and address-of in case of fancy pointer
 			return &reinterpret_cast<Header &>(*data) - 1;
@@ -51,7 +57,7 @@ namespace _detail
 		static Iterator MakeIterator(Ptr const pos, OEL_MAYBE_UNUSED const ContainerBase & container)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
-			const Header * h = nullptr;
+			const Header * h;
 			OEL_MAYBE_UNUSED std::uintptr_t id;
 			if (container.data)
 			{
@@ -59,7 +65,8 @@ namespace _detail
 				id = h->id;
 			}
 			else
-			{	id = reinterpret_cast<std::uintptr_t>(&container);
+			{	h = NullHeader();
+				id = reinterpret_cast<std::uintptr_t>(&container);
 			}
 			return {pos, h
 				#if OEL_MEM_BOUND_DEBUG_LVL >= 2

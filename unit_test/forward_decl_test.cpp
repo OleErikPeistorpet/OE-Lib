@@ -30,6 +30,8 @@ class ContainSelf
 
 class ForwDeclared { char a; };
 
+namespace {
 ContainSelf instance{};
+}
 
 /// @endcond
