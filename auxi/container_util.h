@@ -27,6 +27,12 @@ namespace _detail
 	{
 		ContainerPtr container;
 		std::uintptr_t id;
+
+		static const DebugAllocationHeader * NoAllocation()
+		{
+			static DebugAllocationHeader const instance{nullptr, 0};
+			return &instance;
+		}
 	};
 
 	template<typename ContainerBase, typename Alloc, typename Ptr>
@@ -41,12 +47,6 @@ namespace _detail
 	#else
 		static constexpr size_t sizeForHeader = 0;
 	#endif
-
-		static const Header * NullHeader()
-		{
-			static Header const instance{nullptr, 0};
-			return &instance;
-		}
 
 		OEL_ALWAYS_INLINE static Header * HeaderOf(Ptr data)
 		{	// Extra dereference and address-of in case of fancy pointer
@@ -65,7 +65,7 @@ namespace _detail
 				id = h->id;
 			}
 			else
-			{	h = NullHeader();
+			{	h = Header::NoAllocation();
 				id = reinterpret_cast<std::uintptr_t>(&container);
 			}
 			return {pos, h
