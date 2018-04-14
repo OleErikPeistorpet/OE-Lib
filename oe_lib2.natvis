@@ -14,7 +14,8 @@
 
 	<Type Name="oel::dynarray_debug_iterator&lt;*&gt;">
 		<AlternativeType Name="oel::dl2::dynarray_debug_iterator&lt;*&gt;" />
-		<DisplayString Condition="_pElem == _memInfo-&gt;container-&gt;end">end</DisplayString>
+		<DisplayString Condition="!_memInfo">singular</DisplayString>
+		<DisplayString Condition="!_pElem || _pElem == _memInfo-&gt;container-&gt;end">end</DisplayString>
 		<DisplayString>[{_pElem - _memInfo-&gt;container-&gt;data}] {*_pElem}</DisplayString>
 		<Expand>
 			<Item Name="[ctnr size]">_memInfo-&gt;container-&gt;end - _memInfo-&gt;container-&gt;data</Item>
