@@ -190,7 +190,7 @@ public:
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 	void      resize(size_type n, default_init_t)  { _resizeImpl(n, _detail::UninitDefaultConstruct<Alloc, T>); }
 	//! (Value-initializes added elements, same as std::vector::resize)
-	void      resize(size_type n)                  { _resizeImpl(n, _detail::UninitFill<Alloc, T>); }
+	void      resize(size_type n)                  { _resizeImpl(n, _detail::UninitFill<Alloc>{}); }
 
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where end(source) is not needed if source.size() exists
@@ -969,7 +969,7 @@ dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.end = _m.reservEnd;
-	_detail::UninitFill<Alloc>(_m.data, _m.end, _m);
+	_detail::UninitFill<Alloc>{}(_m.data, _m.end, _m);
 }
 
 template<typename T, typename Alloc>
@@ -979,7 +979,7 @@ dynarray<T, Alloc>::dynarray(size_type n, const T & val, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.end = _m.reservEnd;
-	_detail::UninitFill<Alloc>(_m.data, _m.end, _m, val);
+	_detail::UninitFill<Alloc>{}(_m.data, _m.end, _m, val);
 }
 
 template<typename T, typename Alloc>
@@ -1038,7 +1038,7 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 	_appendImpl( n,
 		[&val](T * dest, size_type n_, Alloc & a)
 		{
-			_detail::UninitFill(dest, dest + n_, a, val);
+			_detail::UninitFill<Alloc>{}(dest, dest + n_, a, val);
 		} );
 }
 

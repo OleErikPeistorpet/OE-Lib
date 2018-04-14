@@ -72,41 +72,43 @@ namespace _detail
 	}
 
 
-	template<typename Alloc, typename T, typename... Arg>
-	void UninitFillImpl(false_type, T * first, T *const last, Alloc & alloc, const Arg &... arg)
+	template<typename Alloc>
+	struct UninitFill
 	{
-		T *const init = first;
-		OEL_TRY_
+		template<typename T, typename... Arg>
+		void operator()(T * first, T *const last, Alloc & alloc, const Arg &... arg)
 		{
-			for (; first != last; ++first)
-				std::allocator_traits<Alloc>::construct(alloc, first, arg...);
+			T *const init = first;
+			OEL_TRY_
+			{
+				for (; first != last; ++first)
+					std::allocator_traits<Alloc>::construct(alloc, first, arg...);
+			}
+			OEL_CATCH_ALL
+			{
+				_detail::Destroy(init, first);
+				OEL_WHEN_EXCEPTIONS_ON(throw);
+			}
 		}
-		OEL_CATCH_ALL
+
+		template<typename T, enable_if< sizeof(T) == 1 and std::is_integral<T>::value > = 0>
+		void operator()(T * first, T * last, Alloc &, T val)
 		{
-			_detail::Destroy(init, first);
-			OEL_WHEN_EXCEPTIONS_ON(throw);
+			std::memset(first, val, last - first);
 		}
-	}
 
-	template<typename Alloc, typename T> inline
-	void UninitFillImpl(true_type, T * first, T * last, Alloc &, int val = 0)
-	{
-		std::memset(first, val, last - first);
-	}
+		template<typename T, enable_if< std::is_trivial<T>::value > = 0>
+		void operator()(T * first, T * last, Alloc &)
+		{
+			std::memset(first, 0, sizeof(T) * (last - first));
+		}
+	};
 
-	template<typename Alloc, typename T, typename... Arg> inline
-	void UninitFill(T *const first, T *const last, Alloc & alloc, const Arg &... arg)
-	{
-		// TODO: investigate libstdc++ std::fill
-		_detail::UninitFillImpl(bool_constant<std::is_integral<T>::value and sizeof(T) == 1>(),
-		                        first, last, alloc, arg...);
-	}
-
-	template<typename Alloc, typename T> inline
-	void UninitDefaultConstruct(T *const first, T *const last, Alloc & alloc)
+	template<typename Alloc, typename T>
+	inline void UninitDefaultConstruct(T *const first, T *const last, Alloc & alloc)
 	{
 		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
-			_detail::UninitFillImpl(false_type{}, first, last, alloc);
+			UninitFill<Alloc>{}(first, last, alloc);
 	}
 
 
