@@ -18,7 +18,7 @@
 namespace oel
 {
 
-//! Same as std::aligned_storage_t (C++14), with support for alignment above that of std::max_align_t
+//! Same as std::aligned_storage_t, with support for alignment above that of std::max_align_t
 template<size_t Size, size_t Align>
 struct aligned_storage_t;
 //! A trivial type of same size and alignment as type T, suitable for use as uninitialized storage for an object
@@ -27,7 +27,7 @@ using aligned_union_t = aligned_storage_t<sizeof(T), alignof(T)>;
 
 
 
-//! An automatic alignment allocator. Does not compile if the alignment of T is not supported.
+//! An automatic alignment allocator. If the alignment of T is not supported, allocate does not compile.
 template<typename T>
 struct allocator
 {

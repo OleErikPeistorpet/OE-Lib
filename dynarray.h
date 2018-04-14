@@ -204,11 +204,11 @@ public:
 	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
 	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
 
-	//! The default allocator performs list-initialization of element if there is no matching constructor
+	//! The default allocator does direct-list-initialization of element if no constructor matches Args
 	template<typename... Args>
 	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
 
-	//! The default allocator performs list-initialization of element if there is no matching constructor
+	//! The default allocator does direct-list-initialization of element if no constructor matches Args
 	template<typename... Args>
 	reference emplace_back(Args &&... args);
 
