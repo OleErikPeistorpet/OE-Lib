@@ -119,8 +119,8 @@ public:
 
 	/** @brief Uses default initialization for elements, can be significantly faster for non-class T
 	*
-	* @copydetails resize(size_type, default_init_tag)  */
-	dynarray(size_type size, default_init_tag, const Alloc & a = Alloc{});
+	* @copydetails resize(size_type, default_init_t)  */
+	dynarray(size_type size, default_init_t, const Alloc & a = Alloc{});
 	explicit dynarray(size_type size, const Alloc & a = Alloc{});  //!< (Value-initializes elements, same as std::vector)
 	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
 
@@ -190,9 +190,9 @@ public:
 	* @brief Uses default initialization for added elements, can be significantly faster for non-class T
 	*
 	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void      resize(size_type n, default_init_tag)  { _resizeImpl(n, _detail::UninitDefaultConstruct<Alloc, T>); }
+	void      resize(size_type n, default_init_t)  { _resizeImpl(n, _detail::UninitDefaultConstruct<Alloc, T>); }
 	//! (Value-initializes added elements, same as std::vector::resize)
-	void      resize(size_type n)                    { _resizeImpl(n, _detail::UninitFill<Alloc, T>); }
+	void      resize(size_type n)                  { _resizeImpl(n, _detail::UninitFill<Alloc, T>); }
 
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where end(source) is not needed if source.size() exists
@@ -909,7 +909,7 @@ inline dynarray<T, Alloc>::dynarray(const dynarray & other)
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type n, default_init_tag, const Alloc & a)
+dynarray<T, Alloc>::dynarray(size_type n, default_init_t, const Alloc & a)
  :	_m(a, n)
 {
 	_m.end = _m.reservEnd;

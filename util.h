@@ -152,11 +152,11 @@ struct reserve_tag
 constexpr reserve_tag reserve; //!< An instance of reserve_tag for convenience
 
 //! Tag to specify default initialization
-struct default_init_tag
+struct default_init_t
 {
-	explicit constexpr default_init_tag() {}
+	explicit constexpr default_init_t() {}
 };
-constexpr default_init_tag default_init; //!< An instance of default_init_tag for convenience
+constexpr default_init_t default_init; //!< An instance of default_init_t for convenience
 
 
 
