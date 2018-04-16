@@ -213,7 +213,7 @@ namespace _detail
 	}
 #elif _LIBCPP_VERSION
 	template<typename T> inline
-	T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return __unwrap_iter(it); }
+	T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return it.base(); }
 
 #elif _MSC_VER
 	template<typename ContiguousIterator,
