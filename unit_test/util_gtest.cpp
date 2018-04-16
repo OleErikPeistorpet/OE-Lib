@@ -1,5 +1,6 @@
-//#include "make_unique.h"
 #include "dynarray.h"
+#include "compat/std_classes_extra.h"
+#include "test_classes.h"
 
 #include "gtest/gtest.h"
 #include <list>
@@ -7,6 +8,25 @@
 #include <array>
 
 /// @cond INTERNAL
+
+namespace
+{
+	static_assert(oel::is_trivially_relocatable< std::array<std::unique_ptr<double>, 4> >::value, "?");
+
+	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >::value, "?");
+	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
+	static_assert( !oel::is_trivially_copyable< std::tuple<int, NontrivialReloc, int> >::value, "?" );
+
+	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
+	static_assert(alignof(oel::aligned_storage_t<64, 64>) == 64, "?");
+
+	static_assert(!oel::can_memmove_with< int *, float * >::value, "?");
+	static_assert(!oel::can_memmove_with< int *, std::list<int>::iterator >::value, "?");
+	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >::value, "?");
+
+	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::string> >::value,
+				  "Not critical, this assert can be removed");
+}
 
 template<typename SizeT>
 struct DummyRange
@@ -137,19 +157,25 @@ struct PointerLike
 TEST(utilTest, toPointerContiguous)
 {
 	using namespace oel;
+	{
+		std::basic_string<wchar_t> s;
+		using P  = decltype( to_pointer_contiguous(s.begin()) );
+		using CP = decltype( to_pointer_contiguous(s.cbegin()) );
+		static_assert(std::is_same<P, wchar_t *>::value, "?");
+		static_assert(std::is_same<CP, const wchar_t *>::value, "?");
 
+	#if _HAS_CXX17
+		std::string_view v;
+		using Q = decltype( to_pointer_contiguous(v.begin()) );
+		static_assert(std::is_same<Q, const char *>::value, "?");
+	#endif
+	}
 	std::array<int, 3> a;
 
 	using P  = decltype( to_pointer_contiguous(a.begin()) );
 	using CP = decltype( to_pointer_contiguous(a.cbegin()) );
 	static_assert(std::is_same<P, int *>::value, "?");
 	static_assert(std::is_same<CP, const int *>::value, "?");
-
-	std::basic_string<wchar_t> s;
-	using Q  = decltype( to_pointer_contiguous(s.begin()) );
-	using CQ = decltype( to_pointer_contiguous(s.cbegin()) );
-	static_assert(std::is_same<Q, wchar_t *>::value, "?");
-	static_assert(std::is_same<CQ, const wchar_t *>::value, "?");
 
 	auto addr = &a[0];
 	using Iter = dynarray_debug_iterator<PointerLike<int>, dynarray<int>>;

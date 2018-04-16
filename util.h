@@ -216,21 +216,22 @@ namespace _detail
 	T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return __unwrap_iter(it); }
 
 #elif _MSC_VER
-	template<typename T, size_t S> inline
-	T *       to_pointer_contiguous(std::_Array_iterator<T, S> it) noexcept       { return _Unchecked(it); }
-
-	template<typename T, size_t S> inline
-	const T * to_pointer_contiguous(std::_Array_const_iterator<T, S> it) noexcept { return _Unchecked(it); }
-
-	template<typename S> inline
-	typename std::_String_iterator<S>::pointer  to_pointer_contiguous(std::_String_iterator<S> it) noexcept
+	template<typename ContiguousIterator,
+	         enable_if< std::is_pointer<typename ContiguousIterator::_Unchecked_type>::value > = 0> inline
+	auto to_pointer_contiguous(ContiguousIterator it) noexcept
 	{
 		return _Unchecked(it);
 	}
+
 	template<typename S> inline
-	typename std::_String_const_iterator<S>::pointer  to_pointer_contiguous(std::_String_const_iterator<S> it) noexcept
+	auto to_pointer_contiguous(std::_String_iterator<S> it) noexcept
 	{
-		return _Unchecked(it);
+		return _detail::ToAddress(_Unchecked(it));
+	}
+	template<typename S> inline
+	auto to_pointer_contiguous(std::_String_const_iterator<S> it) noexcept
+	{
+		return _detail::ToAddress(_Unchecked(it));
 	}
 #endif
 

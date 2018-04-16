@@ -18,24 +18,12 @@ namespace
 	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
 	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
 	static_assert(oel::can_memmove_with<float *, ConstIter>::value, "?");
-	static_assert( !oel::can_memmove_with<int *, float *>::value, "?" );
+	static_assert( !oel::can_memmove_with<int *, Iter>::value, "?" );
 
 	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
 	static_assert(oel::is_trivially_copyable<ConstIter>::value, "?");
 	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
 	static_assert( !std::is_convertible<ConstIter, Iter>::value, "?" );
-
-	static_assert(oel::is_trivially_relocatable< std::array<std::unique_ptr<double>, 4> >::value, "?");
-
-	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >::value, "?");
-	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
-	static_assert( !oel::is_trivially_copyable< std::tuple<int, NontrivialReloc, int> >::value, "?" );
-
-	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
-	static_assert(alignof(oel::aligned_storage_t<64, 64>) == 64, "?");
-
-	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::string> >::value,
-				  "Not critical, this assert can be removed");
 
 	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
 				  "Not critical, this assert can be removed");
