@@ -195,7 +195,7 @@ namespace _detail
 {
 	// Part of pointer_traits for C++17
 	template<typename Ptr>
-	constexpr typename std::pointer_traits<Ptr>::element_type * ToAddress(Ptr p)
+	constexpr typename std::pointer_traits<Ptr>::element_type * ToAddress(const Ptr & p)
 	{
 		return p.operator->();
 	}
@@ -216,20 +216,12 @@ namespace _detail
 	T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return it.base(); }
 
 #elif _MSC_VER
-	template<typename ContiguousIterator,
-	         enable_if< std::is_pointer<typename ContiguousIterator::_Unchecked_type>::value > = 0> inline
+	template
+	<	typename ContiguousIterator,
+		enable_if< std::is_same<decltype( _Unchecked(ContiguousIterator{}) ),
+		                        typename ContiguousIterator::pointer> ::value > = 0
+	> inline
 	auto to_pointer_contiguous(ContiguousIterator it) noexcept
-	{
-		return _Unchecked(it);
-	}
-
-	template<typename S> inline
-	auto to_pointer_contiguous(std::_String_iterator<S> it) noexcept
-	{
-		return _detail::ToAddress(_Unchecked(it));
-	}
-	template<typename S> inline
-	auto to_pointer_contiguous(std::_String_const_iterator<S> it) noexcept
 	{
 		return _detail::ToAddress(_Unchecked(it));
 	}
@@ -267,8 +259,9 @@ namespace _detail
 
 //! @cond FALSE
 template<typename IteratorDest, typename IteratorSource>
-struct oel::can_memmove_with : decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
-                                                                 std::declval<IteratorSource>()) ) {};
+struct oel::can_memmove_with :
+	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
+	                                  std::declval<IteratorSource>()) ) {};
 //! @endcond
 
 template<typename T>
