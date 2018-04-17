@@ -12,7 +12,7 @@
 		</Expand>
 	</Type>
 
-	<Type Name="oel::dynarray_debug_iterator&lt;*&gt;">
+	<Type Name="oel::debug::dynarray_iterator&lt;*&gt;">
 		<DisplayString Condition="!_header">singular</DisplayString>
 		<DisplayString Condition="!_pElem || _pElem - ($T1)(_header + 1) == _header-&gt;nObjects">end</DisplayString>
 		<DisplayString>[{_pElem - ($T1)(_header + 1)}] {*_pElem}</DisplayString>

@@ -60,7 +60,7 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 
 
 #if OEL_MEM_BOUND_DEBUG_LVL and !defined _MSC_VER
-	#define OEL_DEBUG_NAMESPACE  1
+	#define OEL_DYNARRAY_IN_DEBUG  1
 #endif
 
 

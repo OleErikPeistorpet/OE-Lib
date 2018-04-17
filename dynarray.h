@@ -34,11 +34,6 @@ namespace pmr
 #endif
 }
 
-#ifdef OEL_DEBUG_NAMESPACE
-inline namespace debug
-{
-#endif
-
 //! dynarray<dynarray<T>> is efficient
 template<typename T, typename Alloc>
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
@@ -64,6 +59,11 @@ template<typename T, typename A, typename ForwardRange> inline
 typename dynarray<T, A>::iterator
 	insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, const ForwardRange & source)
 	{ return dest.insert_r(pos, source); }
+
+#ifdef OEL_DYNARRAY_IN_DEBUG
+inline namespace debug
+{
+#endif
 
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
@@ -100,8 +100,8 @@ public:
 	using size_type       = size_t;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
-	using iterator       = dynarray_debug_iterator<pointer, _internBase>;
-	using const_iterator = dynarray_debug_iterator<const_pointer, _internBase>;
+	using iterator       = debug::dynarray_iterator<pointer, _internBase>;
+	using const_iterator = debug::dynarray_iterator<const_pointer, _internBase>;
 #else
 	using iterator       = pointer;
 	using const_iterator = const_pointer;
@@ -1108,7 +1108,7 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 		_detail::Throw::OutOfRange("Bad index dynarray::at");
 }
 
-#ifdef OEL_DEBUG_NAMESPACE
+#ifdef OEL_DYNARRAY_IN_DEBUG
 }
 #endif
 

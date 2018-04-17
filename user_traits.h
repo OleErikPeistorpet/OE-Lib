@@ -30,7 +30,7 @@ namespace oel
 
 template<typename T> struct allocator;  // forward declare
 
-#ifdef OEL_DEBUG_NAMESPACE
+#ifdef OEL_DYNARRAY_IN_DEBUG
 inline namespace debug
 	#if __GNUC__ >= 5
 		__attribute__((abi_tag))
@@ -41,7 +41,7 @@ inline namespace debug
 template<typename T, typename Alloc = allocator<T> >
 class dynarray;
 
-#ifdef OEL_DEBUG_NAMESPACE
+#ifdef OEL_DYNARRAY_IN_DEBUG
 }
 #endif
 
@@ -103,7 +103,7 @@ template<bool...> struct bool_pack_t;
 
 //! If all of Vs are equal to true, this is-a true_type, else false_type
 template<bool... Vs>
-using all_true  = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
+using all_true   = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
 
 /** @brief Similar to std::conjunction, but is not short-circuiting
 *
