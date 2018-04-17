@@ -7,6 +7,7 @@
 
 
 #include "auxi/algo_detail.h"
+#include "auxi/container_util.h"
 #include "auxi/contiguous_iterator.h"
 #include "compat/default.h"
 #include "align_allocator.h"
