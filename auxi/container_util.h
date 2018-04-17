@@ -22,46 +22,29 @@ namespace _detail
 	};
 
 
-	template<typename ContainerPtr>
 	struct DebugAllocationHeader
 	{
-		ContainerPtr container;
 		std::uintptr_t id;
+		size_t nObjects;
 
-		static const DebugAllocationHeader * NoAllocation()
-		{
-			static DebugAllocationHeader const instance{nullptr, 0};
-			return &instance;
+		template<typename Ptr>
+		OEL_ALWAYS_INLINE static DebugAllocationHeader * FromBody(Ptr p)
+		{	// Extra dereference and address-of in case of fancy pointer
+			return &reinterpret_cast<DebugAllocationHeader &>(*p) - 1;
 		}
 	};
 
-	template<typename ContainerBase, typename Alloc, typename Ptr>
+	constexpr DebugAllocationHeader headerNoAllocation{0, 0};
+
+	template<typename Alloc, typename Ptr>
 	struct DebugAllocateWrapper
 	{
-		using CtnrConstPtr = typename std::pointer_traits<Ptr>::template rebind<ContainerBase const>;
-		using Header = DebugAllocationHeader<CtnrConstPtr>;
-
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		static constexpr size_t _valSz = sizeof(typename Alloc::value_type);
-		static constexpr size_t sizeForHeader = (sizeof(Header) + (_valSz - 1)) / _valSz;
+		static constexpr size_t sizeForHeader = (sizeof(DebugAllocationHeader) + (_valSz - 1)) / _valSz;
 	#else
 		static constexpr size_t sizeForHeader = 0;
 	#endif
-
-		OEL_ALWAYS_INLINE static Header * HeaderOf(Ptr data)
-		{	// Extra dereference and address-of in case of fancy pointer
-			return &reinterpret_cast<Header &>(*data) - 1;
-		}
-
-		static void UpdateAfterMove(const ContainerBase & c)
-		{
-		#if OEL_MEM_BOUND_DEBUG_LVL
-			if (c.data)
-				HeaderOf(c.data)->container = &c;
-		#else
-			(void) c;
-		#endif
-		}
 
 		template<typename Owner>
 		static Ptr Allocate(Owner & a, size_t n)
@@ -71,9 +54,10 @@ namespace _detail
 			Ptr p = a.allocate(n);
 			p += sizeForHeader;
 
-			Header *const h = HeaderOf(p);
-			h->container = &a;
-			h->id = reinterpret_cast<std::uintptr_t>(&a);
+			auto const h = DebugAllocationHeader::FromBody(p);
+			constexpr auto maxMinBits = ~((std::uintptr_t)-1 >> 1) | 1U;
+			h->id = reinterpret_cast<std::uintptr_t>(&a) | maxMinBits;
+			h->nObjects = 0;
 
 			return p;
 		#else
@@ -86,13 +70,32 @@ namespace _detail
 			if (p)
 			{
 			#if OEL_MEM_BOUND_DEBUG_LVL
-				HeaderOf(p)->id = 0;
+				DebugAllocationHeader::FromBody(p)->id = 0;
 				p -= sizeForHeader;
 				n += sizeForHeader;
 			#endif
 				a.deallocate(p, n);
 			}
 		}
+	};
+
+	template<typename ContainerBase>
+	struct DebugSizeInHeaderUpdater
+	{
+	#if OEL_MEM_BOUND_DEBUG_LVL == 0
+		DebugSizeInHeaderUpdater(ContainerBase &) {}
+	#else
+		ContainerBase & container;
+
+		~DebugSizeInHeaderUpdater()
+		{
+			if (container.data)
+			{
+				auto h = DebugAllocationHeader::FromBody(container.data);
+				h->nObjects = container.end - container.data;
+			}
+		}
+	#endif
 	};
 
 
