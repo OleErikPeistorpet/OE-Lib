@@ -341,7 +341,7 @@ private:
 		pointer data;  // owner
 		pointer allocEnd;
 
-		_scopedPtr(_memOwner & a, size_type const allocSize)
+		_scopedPtr(Alloc & a, size_type const allocSize)
 		 :	_allocRef{a}
 		{
 			data = _allocate(a, allocSize);
@@ -370,7 +370,7 @@ private:
 		_m.data = newData;
 	}
 
-	static pointer _allocate(_memOwner & a, size_type n)
+	static pointer _allocate(Alloc & a, size_type n)
 	{
 		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeForHeader)
 			return _allocateWrap::Allocate(a, n); // allocate should throw if subtraction wrapped around

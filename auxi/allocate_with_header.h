@@ -15,7 +15,7 @@ namespace _detail
 	struct DebugAllocationHeader
 	{
 		std::uintptr_t id;
-		size_t nObjects;
+		size_t   nObjects;
 
 		template<typename Ptr>
 		OEL_ALWAYS_INLINE static DebugAllocationHeader * FromBody(Ptr p)
@@ -36,8 +36,7 @@ namespace _detail
 		static constexpr size_t sizeForHeader = 0;
 	#endif
 
-		template<typename Owner>
-		static Ptr Allocate(Owner & a, size_t n)
+		static Ptr Allocate(Alloc & a, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			n += sizeForHeader;

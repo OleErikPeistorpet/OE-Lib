@@ -138,7 +138,7 @@ TEST(utilTest, derefArgs)
 		for (double * v : s)
 			EXPECT_DOUBLE_EQ(++cmp, *v);
 	}
-	auto last = std::unique(d.begin(), d.end(), deref_args<std::equal_to<double>>{});
+	auto last = std::unique(d.begin(), d.end(), deref_args<std::equal_to<double>>());
 	EXPECT_EQ(3, last - d.begin());
 }
 
