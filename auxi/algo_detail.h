@@ -81,11 +81,12 @@ namespace _detail
 		::new(p) T{static_cast<Args &&>(args)...};
 	}
 
-	template<typename Alloc, typename T, typename... Args>
-	OEL_ALWAYS_INLINE inline void Construct(Alloc & a, T *__restrict p, Args &&... args)
+	template<typename Alloc, typename Ptr, typename... Args>
+	OEL_ALWAYS_INLINE inline void Construct(Alloc & a, Ptr raw, Args &&... args)
 	{
+		using T = typename std::pointer_traits<Ptr>::element_type;
 		ConstructImpl<T>(std::is_constructible<T, Args...>(),
-		                 a, p, static_cast<Args &&>(args)...);
+		                 a, _detail::ToAddress(raw), static_cast<Args &&>(args)...);
 	}
 
 
@@ -97,6 +98,12 @@ namespace _detail
 			for (; first < last; ++first)
 				first-> ~T();
 		}
+	}
+
+	template<typename PtrLike, enable_if< !std::is_pointer<PtrLike>::value > = 0>
+	inline void Destroy(PtrLike first, PtrLike last) noexcept
+	{
+		_detail::Destroy(_detail::ToAddress(first), _detail::ToAddress(last));
 	}
 
 

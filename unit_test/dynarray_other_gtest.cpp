@@ -46,6 +46,42 @@ namespace
 	static_assert( !oel::_detail::AllocHasConstruct< oel::allocator<double>, int >::value, "?" );
 }
 
+#ifndef OEL_NO_BOOST
+
+#include <boost/interprocess/offset_ptr.hpp>
+
+template<typename T>
+struct OffsetPtrAlloc : public oel::allocator<T>
+{
+	using pointer       = boost::interprocess::offset_ptr<T>;
+	using const_pointer = boost::interprocess::offset_ptr<T const>;
+
+	pointer allocate(size_t n)
+	{
+		return oel::allocator<T>::allocate(n);
+	}
+	void deallocate(pointer p, size_t n)
+	{
+		return oel::allocator<T>::deallocate(oel::_detail::ToAddress(p), n);
+	}
+};
+
+TEST(dynarrayOtherTest, fancyPointer)
+{
+	dynarray<int, OffsetPtrAlloc<int>> d(1);
+	d.push_back(1);
+	d.erase(d.begin());
+	d.erase_unstable(d.begin());
+	d.erase(d.begin(), d.end());
+	d.clear();
+	d.resize(1);
+	d = {0, 1};
+	d.append(d);
+	decltype(d) d2(1, oel::default_init);
+	decltype(d) copy(d);
+}
+#endif
+
 TEST(dynarrayOtherTest, zeroBitRepresentation)
 {
 	{
