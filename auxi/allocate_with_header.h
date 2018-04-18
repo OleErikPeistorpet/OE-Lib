@@ -23,10 +23,10 @@ namespace _detail
 	#define OEL_DEBUG_HEADER_OF(ptr)  \
 		(reinterpret_cast<_detail::DebugAllocationHeader *>(_detail::ToAddress(ptr)) - 1)
 
-	template<typename T, typename Ptr>
-	inline bool HasValidIndex(Ptr arrayElem, const DebugAllocationHeader & h)
+	template<typename ConstPtr>
+	inline bool HasValidIndex(ConstPtr arrayElem, const DebugAllocationHeader & h)
 	{
-		size_t index = _detail::ToAddress(arrayElem) - reinterpret_cast<const T *>(&h + 1);
+		size_t index = arrayElem - static_cast<ConstPtr>(static_cast<const void *>(&h + 1));
 		return index < h.nObjects;
 	}
 
@@ -35,7 +35,7 @@ namespace _detail
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		static constexpr size_t _valSz = sizeof(typename Alloc::value_type);
-		static constexpr size_t sizeForHeader = (sizeof(DebugAllocationHeader) + (_valSz - 1)) / _valSz;
+		static constexpr size_t sizeForHeader = ( sizeof(DebugAllocationHeader) + (_valSz - 1) ) / _valSz;
 	#else
 		static constexpr size_t sizeForHeader = 0;
 	#endif
@@ -49,8 +49,7 @@ namespace _detail
 
 			auto const h = OEL_DEBUG_HEADER_OF(p);
 			constexpr auto maxMinBits = ~((std::uintptr_t)-1 >> 1) | 1U;
-			h->id = reinterpret_cast<std::uintptr_t>(&a) | maxMinBits;
-			h->nObjects = 0;
+			new(h) DebugAllocationHeader{reinterpret_cast<std::uintptr_t>(&a) | maxMinBits, 0};
 
 			return p;
 		#else

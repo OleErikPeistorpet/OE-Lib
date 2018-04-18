@@ -13,7 +13,7 @@
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
 /** @brief 0: no iterator and precondition checks. 1: most checks. 2: all checks.
 *
-* Level 0 is not binary compatible with any other. Mixing 1 and 2 should work, but no guarantees. */
+* Level 0 is not binary compatible with any other. Mixing 1 and 2 should work. */
 	#ifdef NDEBUG
 	#define OEL_MEM_BOUND_DEBUG_LVL  0
 	#else
