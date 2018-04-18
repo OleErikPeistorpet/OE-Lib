@@ -12,7 +12,7 @@ namespace oel
 {
 namespace _detail
 {
-	template<typename, typename> struct DynarrBase;
+	template<typename> struct DynarrBase;
 
 
 	template<typename T> struct AssertTrivialRelocate

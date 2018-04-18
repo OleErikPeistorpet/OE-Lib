@@ -86,7 +86,6 @@ template<typename T, typename Alloc/* = oel::allocator */>
 class dynarray
 {
 	using _allocTrait = std::allocator_traits<Alloc>;
-	using _internBase = _detail::DynarrBase<T, typename _allocTrait::pointer>;
 	using _allocateWrap = _detail::DebugAllocateWrapper<Alloc, typename _allocTrait::pointer>;
 
 public:
@@ -100,8 +99,8 @@ public:
 	using size_type       = size_t;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
-	using iterator       = debug::dynarray_iterator<pointer, _internBase>;
-	using const_iterator = debug::dynarray_iterator<const_pointer, _internBase>;
+	using iterator       = debug::dynarray_iterator<pointer, T>;
+	using const_iterator = debug::dynarray_iterator<const_pointer, T>;
 #else
 	using iterator       = pointer;
 	using const_iterator = const_pointer;
@@ -300,6 +299,7 @@ public:
 
 
 private:
+	using _internBase = _detail::DynarrBase<pointer>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 
 	struct _memOwner : public _internBase, public Alloc
@@ -1114,11 +1114,9 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 
 namespace _detail
 {
-	template<typename T, typename Pointer>
+	template<typename Pointer>
 	struct DynarrBase
 	{
-		using value_type = T;
-
 		Pointer data;      // Pointer to beginning of data buffer
 		Pointer end;       // Pointer to one past the back object
 		Pointer reservEnd; // Pointer to end of allocated memory

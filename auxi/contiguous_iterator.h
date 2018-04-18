@@ -26,7 +26,7 @@ inline namespace debug
 /** @brief Checked iterator, for container with contiguous memory that can be reallocated
 *
 * Wraps a pointer with error checks. Note: a pair of value-initialized iterators count as an empty range  */
-template<typename Ptr, typename Container>
+template<typename Ptr, typename ValT>
 class dynarray_iterator
 {
 #define OEL_ITER_ARRAY_BEGIN  reinterpret_cast<const value_type *>(&_header[1])
@@ -47,12 +47,12 @@ class dynarray_iterator
 public:
 	using iterator_category = std::random_access_iterator_tag;
 
-	using value_type      = typename Container::value_type;
+	using value_type      = ValT;
 	using pointer         = Ptr;
 	using reference       = decltype(*std::declval<Ptr>());
 	using difference_type = typename _ptrTrait::difference_type;
 
-	using const_iterator = dynarray_iterator<typename _ptrTrait::template rebind<value_type const>, Container>;
+	using const_iterator = dynarray_iterator<typename _ptrTrait::template rebind<ValT const>, ValT>;
 
 	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
 	{
@@ -140,41 +140,41 @@ public:
 	}
 
 	template<typename Ptr1>
-	bool operator==(const dynarray_iterator<Ptr1, Container> & right) const
+	bool operator==(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem == right._pElem;
 	}
 
 	template<typename Ptr1>
-	bool operator!=(const dynarray_iterator<Ptr1, Container> & right) const
+	bool operator!=(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem != right._pElem;
 	}
 
 	template<typename Ptr1>
-	bool operator <(const dynarray_iterator<Ptr1, Container> & right) const
+	bool operator <(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem < right._pElem;
 	}
 
 	template<typename Ptr1>
-	bool operator >(const dynarray_iterator<Ptr1, Container> & right) const
+	bool operator >(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem > right._pElem;
 	}
 
 	template<typename Ptr1>
-	bool operator<=(const dynarray_iterator<Ptr1, Container> & right) const
+	bool operator<=(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		return !(*this > right);
 	}
 
 	template<typename Ptr1>
-	bool operator>=(const dynarray_iterator<Ptr1, Container> & right) const
+	bool operator>=(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		return !(*this < right);
 	}
@@ -193,9 +193,9 @@ public:
 } // namespace debug
 
 //! To raw pointer (unchecked)
-template<typename Ptr, typename C>  OEL_ALWAYS_INLINE inline
+template<typename Ptr, typename T>  OEL_ALWAYS_INLINE inline
 typename std::pointer_traits<Ptr>::element_type *
-	to_pointer_contiguous(const dynarray_iterator<Ptr, C> & it) noexcept
+	to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 {
 	return _detail::ToAddress(it._pElem);
 }
@@ -205,7 +205,7 @@ typename std::pointer_traits<Ptr>::element_type *
 
 #ifdef _MSC_VER
 	//! Mark dynarray_iterator as checked
-	template<typename P, typename C>
-	struct std::_Is_checked_helper< oel::dynarray_iterator<P, C> >
+	template<typename P, typename T>
+	struct std::_Is_checked_helper< oel::dynarray_iterator<P, T> >
 	 :	public std::true_type {};
 #endif
