@@ -195,17 +195,17 @@ namespace _detail
 {
 	// Part of pointer_traits for C++17
 	template<typename Ptr>
-	constexpr typename std::pointer_traits<Ptr>::element_type * ToAddress(const Ptr & p)
+	OEL_ALWAYS_INLINE constexpr typename std::pointer_traits<Ptr>::element_type * ToAddress(const Ptr & p)
 	{
 		return p.operator->();
 	}
 
 	template<typename T>
-	constexpr T * ToAddress(T * p) { return p; }
+	OEL_ALWAYS_INLINE constexpr T * ToAddress(T * p) { return p; }
 }
 
 #ifdef __GLIBCXX__
-	template<typename Ptr, typename C> OEL_ALWAYS_INLINE inline
+	template<typename Ptr, typename C> inline
 	typename std::pointer_traits<Ptr>::element_type *
 		to_pointer_contiguous(__gnu_cxx::__normal_iterator<Ptr, C> it) noexcept
 	{

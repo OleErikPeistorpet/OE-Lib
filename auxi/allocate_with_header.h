@@ -16,15 +16,19 @@ namespace _detail
 	{
 		std::uintptr_t id;
 		size_t   nObjects;
-
-		template<typename Ptr>
-		OEL_ALWAYS_INLINE static DebugAllocationHeader * FromBody(Ptr p)
-		{	// Extra dereference and address-of in case of fancy pointer
-			return &reinterpret_cast<DebugAllocationHeader &>(*p) - 1;
-		}
 	};
 
 	constexpr DebugAllocationHeader headerNoAllocation{0, 0};
+
+	#define OEL_DEBUG_HEADER_OF(ptr)  \
+		(reinterpret_cast<_detail::DebugAllocationHeader *>(_detail::ToAddress(ptr)) - 1)
+
+	template<typename T, typename Ptr>
+	inline bool HasValidIndex(Ptr arrayElem, const DebugAllocationHeader & h)
+	{
+		size_t index = _detail::ToAddress(arrayElem) - reinterpret_cast<const T *>(&h + 1);
+		return index < h.nObjects;
+	}
 
 	template<typename Alloc, typename Ptr>
 	struct DebugAllocateWrapper
@@ -43,7 +47,7 @@ namespace _detail
 			Ptr p = a.allocate(n);
 			p += sizeForHeader;
 
-			auto const h = DebugAllocationHeader::FromBody(p);
+			auto const h = OEL_DEBUG_HEADER_OF(p);
 			constexpr auto maxMinBits = ~((std::uintptr_t)-1 >> 1) | 1U;
 			h->id = reinterpret_cast<std::uintptr_t>(&a) | maxMinBits;
 			h->nObjects = 0;
@@ -59,7 +63,7 @@ namespace _detail
 			if (p)
 			{
 			#if OEL_MEM_BOUND_DEBUG_LVL
-				DebugAllocationHeader::FromBody(p)->id = 0;
+				OEL_DEBUG_HEADER_OF(p)->id = 0;
 				p -= sizeForHeader;
 				n += sizeForHeader;
 			#endif
@@ -80,7 +84,7 @@ namespace _detail
 		{
 			if (container.data)
 			{
-				auto h = DebugAllocationHeader::FromBody(container.data);
+				auto h = OEL_DEBUG_HEADER_OF(container.data);
 				h->nObjects = container.end - container.data;
 			}
 		}

@@ -384,7 +384,7 @@ private:
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (_m.data)
 		{
-			const auto *const h = _detail::DebugAllocationHeader::FromBody(_m.data);
+			const auto *const h = OEL_DEBUG_HEADER_OF(_m.data);
 			return {p, h, h->id};
 		}
 		else

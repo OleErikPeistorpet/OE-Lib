@@ -29,10 +29,8 @@ inline namespace debug
 template<typename Ptr, typename ValT>
 class dynarray_iterator
 {
-#define OEL_ITER_ARRAY_BEGIN  reinterpret_cast<const value_type *>(&_header[1])
 #define OEL_ITER_VALIDATE_DEREF  \
-	OEL_ASSERT( _header->id == _allocationId and  \
-		static_cast<size_t>(_detail::ToAddress(_pElem) - OEL_ITER_ARRAY_BEGIN) < _header->nObjects )
+	OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex<value_type>(_pElem, *_header) )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	// Test for iterator pair pointing to same container
@@ -187,13 +185,12 @@ public:
 
 #undef OEL_ITER_CHECK_COMPATIBLE
 #undef OEL_ITER_VALIDATE_DEREF
-#undef OEL_ITER_ARRAY_BEGIN
 };
 
 } // namespace debug
 
 //! To raw pointer (unchecked)
-template<typename Ptr, typename T>  OEL_ALWAYS_INLINE inline
+template<typename Ptr, typename T> inline
 typename std::pointer_traits<Ptr>::element_type *
 	to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 {
