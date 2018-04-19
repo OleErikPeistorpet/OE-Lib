@@ -105,8 +105,7 @@ oel::false_type specify_trivial_relocate(NontrivialReloc);
 struct TrivialDefaultConstruct
 {
 	TrivialDefaultConstruct() = default;
-	TrivialDefaultConstruct(TrivialDefaultConstruct &&) = delete;
-	TrivialDefaultConstruct(const TrivialDefaultConstruct &) = delete;
+	TrivialDefaultConstruct(const TrivialDefaultConstruct &) {} // not trivially copyable
 };
 
 struct NontrivialConstruct : MyCounter

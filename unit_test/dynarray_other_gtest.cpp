@@ -29,6 +29,18 @@ namespace
 				  "Not critical, this assert can be removed");
 }
 
+TEST(dynarrayOtherTest, zeroBitRepresentation)
+{
+	{
+		void * ptr = nullptr;
+		void * ptrToPtr = &ptr;
+		ASSERT_TRUE(0U == *static_cast<const std::uintptr_t *>(ptrToPtr));
+	}
+	float f = 0.f;
+	for (unsigned i = 0; i < sizeof f; ++i)
+		ASSERT_TRUE(0U == reinterpret_cast<const unsigned char *>(&f)[i]);
+}
+
 TEST(dynarrayOtherTest, compare)
 {
 	dynarray<int> arr[3];
