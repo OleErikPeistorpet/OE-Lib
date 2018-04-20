@@ -1,5 +1,3 @@
-/// @cond INTERNAL
-
 #include "user_traits.h"
 
 struct Outer
@@ -33,5 +31,3 @@ class ForwDeclared { char a; };
 namespace {
 ContainSelf instance{};
 }
-
-/// @endcond

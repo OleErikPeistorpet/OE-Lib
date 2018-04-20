@@ -4,7 +4,6 @@
 
 #include "gtest/gtest.h"
 
-/// @cond INTERNAL
 
 using oel::dynarray;
 
@@ -72,5 +71,3 @@ TEST(dynarrayOtherTest, withReferenceWrapper)
 	EXPECT_TRUE(refs.at(0) == refs.at(1));
 	EXPECT_TRUE(refs.at(1) != refs.at(2));
 }
-
-/// @endcond

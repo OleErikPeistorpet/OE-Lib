@@ -20,7 +20,6 @@
 #include <cstdint>
 #include <deque>
 
-/// @cond INTERNAL
 
 using oel::dynarray;
 using oel::make_iterator_range;
@@ -753,5 +752,3 @@ OEL_WHEN_EXCEPTIONS_ON(
 		test.push_back(1);
 	}
 }
-
-/// @endcond

@@ -8,7 +8,6 @@
 #include <array>
 #include <valarray>
 
-/// @cond INTERNAL
 
 TEST(rangeTest, eraseUnstable)
 {
@@ -175,5 +174,3 @@ TEST(rangeTest, append)
 	testAppend< std::list<int> >();
 	testAppend< oel::dynarray<int> >();
 }
-
-/// @endcond

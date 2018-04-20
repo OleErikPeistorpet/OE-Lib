@@ -7,7 +7,6 @@
 #include <set>
 #include <array>
 
-/// @cond INTERNAL
 
 namespace
 {
@@ -184,5 +183,3 @@ TEST(utilTest, toPointerContiguous)
 	auto result = to_pointer_contiguous(it);
 	EXPECT_EQ(addr, result);
 }
-
-/// @endcond

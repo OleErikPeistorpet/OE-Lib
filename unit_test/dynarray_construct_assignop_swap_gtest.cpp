@@ -4,7 +4,6 @@
 #include <array>
 #include <string>
 
-/// @cond INTERNAL
 
 int MyCounter::nConstructions;
 int MyCounter::nDestruct;
@@ -532,5 +531,3 @@ TEST_F(dynarrayConstructTest, swap)
 	EXPECT_EQ(2, r);
 	EXPECT_EQ(&b.back(), &r);
 }
-
-/// @endcond
