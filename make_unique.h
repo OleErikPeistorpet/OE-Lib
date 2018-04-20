@@ -19,7 +19,8 @@ namespace oel
 * @brief Same as std::make_unique, but performs direct-list-initialization if there is no matching constructor
 *
 * (Works for aggregates.) http://open-std.org/JTC1/SC22/WG21/docs/papers/2015/n4462.html  */
-template< typename T, typename... Args, typename = enable_if<!std::is_array<T>::value> >
+template< typename T, typename... Args,
+          typename = enable_if<!std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(Args &&... args);
 
 //! Equivalent to std::make_unique (array version).
@@ -41,14 +42,14 @@ std::unique_ptr<T> make_unique_default(size_t arraySize);
 
 namespace _detail
 {
-	template<typename T, typename... Args> inline
-	T * New(std::true_type, Args &&... args)
+	template<typename T, typename... Args>
+	inline T * New(std::true_type, Args &&... args)
 	{
 		return new T(std::forward<Args>(args)...);
 	}
 
-	template<typename T, typename... Args> inline
-	T * New(std::false_type, Args &&... args)
+	template<typename T, typename... Args>
+	inline T * New(std::false_type, Args &&... args)
 	{
 		return new T{std::forward<Args>(args)...};
 	}

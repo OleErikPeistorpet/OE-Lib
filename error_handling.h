@@ -7,7 +7,8 @@
 #include <ciso646>
 
 
-/** @file Mostly error handling macros
+/** @file
+* @brief Mostly error handling macros
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL

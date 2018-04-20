@@ -22,7 +22,7 @@
 namespace oel
 {
 
-/** @brief Erase the element at index from container without maintaining order of elements after.
+/** @brief Erase the element at index from container without maintaining order of elements after index.
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */

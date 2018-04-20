@@ -59,13 +59,14 @@ template<typename T>
 struct is_trivially_copyable;
 
 /**
-* @brief Function declaration to specify that T does not have a pointer member to any of its data members
+* @brief Function declaration to specify that T does not have a pointer to any of its non-static members
 *	(including inherited), and does not notify any observers in its copy/move constructor.
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
 * http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
 *
-* Declare a function in the namespace of the type like this:
+* specify_trivial_relocate is redundant for trivially copyable types.
+* To get the optimization otherwise, declare a function in the namespace of the type like this:
 @code
 oel::true_type specify_trivial_relocate(MyClass &&);
 
