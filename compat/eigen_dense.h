@@ -24,7 +24,4 @@ struct is_trivially_relocatable< Eigen::Transform<S, D, M, O> > : true_type {};
 template<typename S>
 struct is_trivially_relocatable< Eigen::AngleAxis<S> > : true_type {};
 
-template<typename S>
-struct is_trivially_relocatable< Eigen::Rotation2D<S> > : true_type {};
-
 }

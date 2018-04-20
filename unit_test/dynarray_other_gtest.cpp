@@ -1,9 +1,18 @@
 #include "dynarray.h"
 #include "compat/std_classes_extra.h"
 #include "test_classes.h"
+#include "range_view.h"
 
 #include "gtest/gtest.h"
+#include <deque>
 
+#if defined __has_include
+#if __has_include(<Eigen/Dense>)
+	#include "compat/eigen_dense.h"
+
+	static_assert(oel::is_trivially_relocatable<Eigen::Rotation2Df>::value, "?");
+#endif
+#endif
 
 using oel::dynarray;
 
@@ -61,6 +70,47 @@ TEST(dynarrayOtherTest, compare)
 	EXPECT_TRUE(arr[1] > arr[0]);
 	EXPECT_FALSE(arr[0] > arr[2]);
 }
+
+using MyAllocStr = oel::allocator<std::string>;
+static_assert(oel::is_trivially_copyable<MyAllocStr>::value, "?");
+
+#if _MSC_VER or __GNUC__ >= 5
+
+TEST(dynarrayOtherTest, stdDequeWithOelAlloc)
+{
+	std::deque<std::string, MyAllocStr> v{"Test"};
+	v.emplace_front();
+	EXPECT_EQ("Test", v.at(1));
+	EXPECT_TRUE(v.front().empty());
+}
+
+TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
+{
+	MoveOnly::ClearCount();
+	{
+		dynarray< MoveOnly, std::allocator<MoveOnly> > v;
+
+		v.emplace_back(-1.0);
+
+	OEL_WHEN_EXCEPTIONS_ON(
+		EXPECT_THROW( v.emplace_back(throwOnConstruct), TestException );
+	)
+		EXPECT_EQ(1, MoveOnly::nConstructions);
+		EXPECT_EQ(0, MoveOnly::nDestruct);
+
+		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
+		v.assign(oel::view::move(arr));
+
+	OEL_WHEN_EXCEPTIONS_ON(
+		EXPECT_THROW( v.emplace_back(throwOnConstruct), TestException );
+	)
+		EXPECT_EQ(2, ssize(v));
+		EXPECT_TRUE(1.0 == *v[0]);
+		EXPECT_TRUE(2.0 == *v[1]);
+	}
+	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
+}
+#endif
 
 TEST(dynarrayOtherTest, withReferenceWrapper)
 {

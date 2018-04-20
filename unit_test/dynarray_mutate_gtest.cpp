@@ -17,7 +17,6 @@
 #pragma warning(pop)
 #endif
 
-#include <cstdint>
 #include <deque>
 
 
@@ -56,47 +55,6 @@ protected:
 
 	// Objects declared here can be used by all tests.
 };
-
-using MyAllocStr = oel::allocator<std::string>;
-static_assert(oel::is_trivially_copyable<MyAllocStr>::value, "?");
-
-#if _MSC_VER or __GNUC__ >= 5
-
-TEST_F(dynarrayTest, stdDequeWithOelAlloc)
-{
-	std::deque<std::string, MyAllocStr> v{"Test"};
-	v.emplace_front();
-	EXPECT_EQ("Test", v.at(1));
-	EXPECT_TRUE(v.front().empty());
-}
-
-TEST_F(dynarrayTest, oelDynarrWithStdAlloc)
-{
-	MoveOnly::ClearCount();
-	{
-		dynarray< MoveOnly, std::allocator<MoveOnly> > v;
-
-		v.emplace_back(-1.0);
-
-	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW( v.emplace_back(throwOnConstruct), TestException );
-	)
-		EXPECT_EQ(1, MoveOnly::nConstructions);
-		EXPECT_EQ(0, MoveOnly::nDestruct);
-
-		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
-		v.assign(oel::view::move(arr));
-
-	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW( v.emplace_back(throwOnConstruct), TestException );
-	)
-		EXPECT_EQ(2, ssize(v));
-		EXPECT_TRUE(1.0 == *v[0]);
-		EXPECT_TRUE(2.0 == *v[1]);
-	}
-	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
-}
-#endif
 
 TEST_F(dynarrayTest, pushBack)
 {
