@@ -51,6 +51,8 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 // The rest of the file is not for users (implementation)
 
 
+//! @cond INTERNAL
+
 #if OEL_MEM_BOUND_DEBUG_LVL == 0
 	#undef OEL_ASSERT
 	#define OEL_ASSERT(expr) ((void) 0)
@@ -98,3 +100,5 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
 	#define OEL_WHEN_EXCEPTIONS_ON(x)
 #endif
+
+//! @endcond

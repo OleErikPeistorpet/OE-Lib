@@ -16,6 +16,9 @@
 #include <algorithm>
 
 
+/** @file
+*/
+
 namespace oel
 {
 
@@ -45,20 +48,23 @@ void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept(nodebug)  { a.swap(b)
 template<typename T, typename A> inline
 void erase_unstable(dynarray<T, A> & d, typename dynarray<T, A>::size_type index)  { d.erase_unstable(d.begin() + index); }
 
-//! Overloads generic assign(Container &, const InputRange &) (in range_algo.h)
+//! @name GenericContainerInsert
+//!@{
+// Overloads of generic functions for inserting into container (in range_algo.h)
 template<typename T, typename A, typename InputRange> inline
 void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(source); }
-//! Overloads generic append(Container &, const InputRange &) (in range_algo.h)
+
 template<typename T, typename A, typename InputRange> inline
 void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
-//! Overloads generic append(Container &, Container::size_type, const T &) (in range_algo.h)
+
 template<typename T, typename A> inline
 void append(dynarray<T, A> & dest, typename dynarray<T, A>::size_type n, const T & val)  { dest.append(n, val); }
-//! Overloads generic oel::insert (in range_algo.h)
+
 template<typename T, typename A, typename ForwardRange> inline
 typename dynarray<T, A>::iterator
 	insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, const ForwardRange & source)
 	{ return dest.insert_r(pos, source); }
+//!@}
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
 inline namespace debug
@@ -68,20 +74,19 @@ inline namespace debug
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
 *
+* In general, only that which differs from std::vector is documented.
+*
 * Efficiency is better if template argument T is trivially relocatable, which is true for most types, but needs
 * to be declared manually for each type that is not trivially copyable. See specify_trivial_relocate(T &&).
-* Also, if T is trivially relocatable, it does not need to be move or copy constructible/assignable
-* except when an instance to be moved/copied is passed as an argument by the user.
-* There are a few notable functions for which trivially relocatable T is required (checked when compiling):
-* emplace, insert, insert_r and erase(iterator, iterator)
+* Also, if T is trivially relocatable, it does not need to be copyable or even move constructible (you can use
+* emplace_back, pop_back, erase). There are a few notable functions for which trivially relocatable T is required
+* (checked when compiling): emplace, insert, insert_r and erase(iterator, iterator)
 *
-* For any operation which may reallocate and is specified to have strong exception guarantee for std::vector:
-* If T's move constructor is not noexcept and T is not trivially relocatable, dynarray will use the throwing
-* move constructor, and the exception guarantee is lowered to basic.
+* About strong exception guarantee: For all functions which for std::vector are specified to have no effect
+* if an exception is thrown: If T's move constructor is not noexcept and T is not trivially relocatable,
+* dynarray will use the throwing move constructor, and the exception guarantee is lowered to basic.
 *
-* The default allocator supports over-aligned types (e.g. __m256).
-*
-* In general, only that which differs from std::vector is documented. */
+* The default allocator supports over-aligned types (e.g. __m256)  */
 template<typename T, typename Alloc/* = oel::allocator */>
 class dynarray
 {
@@ -124,7 +129,7 @@ public:
 
 	/** @brief Equivalent to `std::vector(begin(r), end(r), a)`, where end(r) is not needed if r.size() exists
 	*
-	* To move instead of copy, wrap r with view::move (the same applies for all functions taking a range template)
+	* To move instead of copy, wrap r with view::move (the same applies for all functions taking a range template) <br>
 	* Example, construct from a standard istream with formatting (using Boost):
 	* @code
 	#include <boost/range/istream_range.hpp>
@@ -926,7 +931,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc> & dynarray<T, Alloc>::operator =(dynarray && other) &
+dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	noexcept(_allocTrait::propagate_on_container_move_assignment::value or is_always_equal<Alloc>::value)
 {
 	if (static_cast<Alloc &>(_m) != other._m and

@@ -89,8 +89,10 @@ template<typename InputRange, typename RandomAccessRange>
 bool copy_fit(const InputRange & source, RandomAccessRange & dest);
 
 
-///@{
-//! For generic code that may use either dynarray or std library container
+
+/** @name GenericContainerInsert
+* @brief For generic code that may use either dynarray or std library container (overloaded in dynarray.h)  */
+//!@{
 template<typename Container, typename InputRange> inline
 void assign(Container & dest, const InputRange & source)  { dest.assign(begin(source), end(source)); }
 
@@ -108,7 +110,7 @@ typename Container::iterator insert(Container & dest, typename Container::const_
 {
 	return dest.insert(pos, begin(source), end(source));
 }
-///@}
+//!@}
 
 
 

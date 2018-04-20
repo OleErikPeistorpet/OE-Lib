@@ -15,6 +15,15 @@
 #include <limits>
 
 
+/** @file
+*/
+
+#ifdef _MSC_VER
+	#define OEL_ALIGNAS(amount) __declspec(align(amount))
+#else
+	#define OEL_ALIGNAS(amount) __attribute__(( aligned(amount) ))
+#endif
+
 namespace oel
 {
 
@@ -34,7 +43,7 @@ struct allocator
 	using value_type = T;
 	using propagate_on_container_move_assignment = std::true_type;
 
-	T * allocate(size_t nObjects);
+	T * allocate(size_t nElems);
 	void deallocate(T * ptr, size_t) noexcept;
 
 	//! U constructible from Args, direct-initialization
@@ -72,20 +81,10 @@ struct is_always_equal;
 
 
 
-#ifdef _MSC_VER
-	#define OEL_ALIGNAS(amount) __declspec(align(amount))
-#else
-	#define OEL_ALIGNAS(amount) __attribute__(( aligned(amount) ))
-#endif
-
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is not for users (implementation)
 
-
-//! @cond INTERNAL
 
 namespace _detail
 {
@@ -176,10 +175,10 @@ namespace _detail
 }
 
 template<typename T>
-inline T * allocator<T>::allocate(size_t nObjects)
+inline T * allocator<T>::allocate(size_t nElems)
 {
 	void * p = _detail::OpNew<alignof(T)>
-		(sizeof(T) * nObjects, _detail::CanDefaultAlloc<alignof(T)>());
+		(sizeof(T) * nElems, _detail::CanDefaultAlloc<alignof(T)>());
 	return static_cast<T *>(p);
 }
 
@@ -210,5 +209,3 @@ struct OEL_ALIGNAS(Align) oel::aligned_storage_t
 {
 	unsigned char data[Size];
 };
-
-//! @endcond
