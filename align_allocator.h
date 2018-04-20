@@ -65,7 +65,7 @@ struct allocator
 
 	allocator() = default;
 	template<typename U>  OEL_ALWAYS_INLINE
-	allocator(const allocator<U> &) noexcept {}
+	constexpr allocator(const allocator<U> &) noexcept {}
 
 	template<typename U>
 	friend bool operator==(allocator<T>, allocator<U>) noexcept { return true; }

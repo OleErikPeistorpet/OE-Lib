@@ -114,7 +114,7 @@ public:
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 
-	dynarray() noexcept                          : _m(Alloc{}) {}
+	constexpr dynarray() noexcept                : _m(Alloc{}) {}
 	explicit dynarray(const Alloc & a) noexcept  : _m(a) {}
 
 	//! Construct empty dynarray with space reserved for at least minCap elements
@@ -313,7 +313,7 @@ private:
 		using _internBase::end;
 		using _internBase::reservEnd;
 
-		_memOwner(const Alloc & a)
+		constexpr _memOwner(const Alloc & a)
 		 :	_internBase(), Alloc(a) {
 		}
 		_memOwner(const Alloc & a, size_type const capacity)
