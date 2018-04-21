@@ -147,11 +147,11 @@ struct TrackingAllocator : oel::allocator<T>
 
 	using size_type = typename std::allocator_traits<_base>::size_type;
 
-	T * allocate(size_type nObjects)
+	T * allocate(size_type nElems)
 	{
-		auto const p = _base::allocate(nObjects);
+		auto const p = _base::allocate(nElems);
 		++AllocCounter::nAllocations;
-		AllocCounter::sizeFromPtr[p] = nObjects;
+		AllocCounter::sizeFromPtr[p] = nElems;
 		return p;
 	}
 
@@ -171,7 +171,7 @@ struct TrackingAllocator : oel::allocator<T>
 	void construct(U * raw, Args &&... args)
 	{
 		++AllocCounter::nConstructCalls;
-		_base::construct(raw, std::forward<Args>(args)...);
+		new(raw) T(std::forward<Args>(args)...);;
 	}
 };
 

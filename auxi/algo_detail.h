@@ -35,6 +35,31 @@ constexpr T max(const T & a, const T & b)
 
 namespace _detail
 {
+	template<typename T, typename Alloc, bool B, typename... Args>
+	inline auto ConstructImpl(bool_constant<B>, Alloc & a, T * p, Args &&... args)
+	 -> decltype( a.construct(p, std::forward<Args>(args)...) )
+	            { a.construct(p, std::forward<Args>(args)...); }
+	// void * worse match than T *
+	template<typename T, typename Alloc, typename... Args>
+	inline void ConstructImpl(std::true_type, Alloc &, void * p, Args &&... args)
+	{	// T constructible from Args
+		::new(p) T(std::forward<Args>(args)...);
+	}
+	// list-initialization
+	template<typename T, typename Alloc, typename... Args>
+	inline void ConstructImpl(std::false_type, Alloc &, void * p, Args &&... args)
+	{
+		::new(p) T{std::forward<Args>(args)...};
+	}
+
+	template<typename Alloc, typename T, typename... Args>
+	OEL_ALWAYS_INLINE inline void Construct(Alloc & a, T * p, Args &&... args)
+	{
+		ConstructImpl<T>(std::is_constructible<T, Args...>(),
+		                 a, p, std::forward<Args>(args)...);
+	}
+
+
 	template<typename T>
 	void Destroy(T * first, T *const last) noexcept
 	{	// first > last is OK, does nothing
@@ -58,7 +83,7 @@ namespace _detail
 		{
 			while (dest != dLast)
 			{
-				std::allocator_traits<Alloc>::construct(alloc, dest, *src);
+				_detail::Construct(alloc, dest, *src);
 				++src; ++dest;
 			}
 		}
@@ -82,7 +107,7 @@ namespace _detail
 			OEL_TRY_
 			{
 				for (; first != last; ++first)
-					std::allocator_traits<Alloc>::construct(alloc, first, arg...);
+					_detail::Construct(alloc, first, arg...);
 			}
 			OEL_CATCH_ALL
 			{

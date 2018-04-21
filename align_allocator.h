@@ -46,21 +46,6 @@ struct allocator
 	T * allocate(size_t nElems);
 	void deallocate(T * ptr, size_t) noexcept;
 
-	//! U constructible from Args, direct-initialization
-	template<typename U, typename... Args,
-	         enable_if< std::is_constructible<U, Args...>::value > = 0>
-	void construct(U * raw, Args &&... args)
-		{
-			::new(static_cast<void *>(raw)) U(std::forward<Args>(args)...);
-		}
-	//! U not constructible from Args, list-initialization
-	template<typename U, typename... Args,
-	         enable_if< !std::is_constructible<U, Args...>::value > = 0>
-	void construct(U * raw, Args &&... args)
-		{
-			::new(static_cast<void *>(raw)) U{std::forward<Args>(args)...};
-		}
-
 	constexpr size_t max_size() const  { return std::numeric_limits<size_t>::max() / sizeof(T); }
 
 	allocator() = default;

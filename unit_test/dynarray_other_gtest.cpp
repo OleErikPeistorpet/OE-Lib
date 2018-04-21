@@ -71,6 +71,22 @@ TEST(dynarrayOtherTest, compare)
 	EXPECT_FALSE(arr[0] > arr[2]);
 }
 
+TEST(dynarrayOtherTest, aggregate)
+{
+	struct Bar
+	{
+		int a, b;
+	};
+
+	dynarray<Bar> d;
+	d.emplace_back(1, 2);
+	d.emplace(begin(d), -1, -2);
+	EXPECT_EQ(-1, d.front().a);
+	EXPECT_EQ(-2, d.front().b);
+	EXPECT_EQ(1, d.back().a);
+	EXPECT_EQ(2, d.back().b);
+}
+
 using MyAllocStr = oel::allocator<std::string>;
 static_assert(oel::is_trivially_copyable<MyAllocStr>::value, "?");
 

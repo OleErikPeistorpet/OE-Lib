@@ -207,11 +207,11 @@ public:
 	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
 	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
 
-	//! The default allocator does direct-list-initialization of element if no constructor matches Args
+	//! Does direct-list-initialization of element if no constructor matches Args (using default allocator)
 	template<typename... Args>
 	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
 
-	//! The default allocator does direct-list-initialization of element if no constructor matches Args
+	//! Does direct-list-initialization of element if no constructor matches Args (using default allocator)
 	template<typename... Args>
 	reference emplace_back(Args &&... args);
 
@@ -672,7 +672,7 @@ private:
 		}
 		while (_m.end < newEnd)
 		{	// put rest of new in uninitialized part
-			_allocTrait::construct(_m, _m.end, *src);
+			_detail::Construct<Alloc>(_m, _m.end, *src);
 			++src; ++_m.end;
 		}
 		return src;
@@ -774,7 +774,7 @@ private:
 		_scopedPtr newBuf{_m, _calcCapAddOne(capacity())};
 
 		pointer const pos = newBuf.data + size();
-		_allocTrait::construct(_m, pos, std::forward<Args>(args)...);
+		_detail::Construct<Alloc>(_m, pos, std::forward<Args>(args)...);
 		_relocateData( newBuf.data, pos, size(),
 			OEL_SUPPRESS_WARN_UNUSED
 				[](T * pos_) { pos_-> ~T(); } );
@@ -809,7 +809,7 @@ private:
 		template<typename... Args>
 		T * operator()(dynarray & d, T *const newPos, size_type, Args &&... args) const
 		{
-			_allocTrait::construct(d._m, newPos, std::forward<Args>(args)...);
+			_detail::Construct<Alloc>(d._m, newPos, std::forward<Args>(args)...);
 			return newPos + 1;
 		}
 	};
@@ -833,7 +833,7 @@ typename dynarray<T, Alloc>::iterator
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
-		_allocTrait::construct(_m, reinterpret_cast<T *>(&tmp), std::forward<Args>(args)...);
+		_detail::Construct<Alloc>(_m, reinterpret_cast<T *>(&tmp), std::forward<Args>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
 		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_m.end;
@@ -881,7 +881,7 @@ typename dynarray<T, Alloc>::iterator
 			{
 				while (dest != dLast)
 				{
-					_allocTrait::construct(_m, dest, *first);
+					_detail::Construct<Alloc>(_m, dest, *first);
 					++first; ++dest;
 				}
 			}
@@ -912,7 +912,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args)
 	_debugSizeUpdater guard{_m};
 
 	if (_m.end < _m.reservEnd)
-		_allocTrait::construct(_m, _m.end, std::forward<Args>(args)...);
+		_detail::Construct<Alloc>(_m, _m.end, std::forward<Args>(args)...);
 	else
 		_emplaceBackRealloc(std::forward<Args>(args)...);
 
@@ -927,7 +927,7 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
-	if (a != other._m and !is_always_equal<Alloc>::value)
+	OEL_CONST_COND if (!is_always_equal<Alloc>::value and a != other._m)
 		_allocUnequalMove(other, is_trivially_relocatable<T>());
 	else
 		_moveInternBase(other._m);
@@ -937,8 +937,8 @@ template<typename T, typename Alloc>
 dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	noexcept(_allocTrait::propagate_on_container_move_assignment::value or is_always_equal<Alloc>::value)
 {
-	if (static_cast<Alloc &>(_m) != other._m and
-		!_allocTrait::propagate_on_container_move_assignment::value)
+	OEL_CONST_COND if (!_allocTrait::propagate_on_container_move_assignment::value
+	               and static_cast<Alloc &>(_m) != other._m)
 	{
 		_allocUnequalMove(other, is_trivially_relocatable<T>());
 	}
