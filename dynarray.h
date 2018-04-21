@@ -313,7 +313,10 @@ private:
 		using _internBase::end;
 		using _internBase::reservEnd;
 
-		constexpr _memOwner(const Alloc & a)
+	#if !defined _MSC_VER or _MSC_VER >= 1910
+		constexpr
+	#endif
+		_memOwner(const Alloc & a)
 		 :	_internBase(), Alloc(a) {
 		}
 		_memOwner(const Alloc & a, size_type const capacity)
