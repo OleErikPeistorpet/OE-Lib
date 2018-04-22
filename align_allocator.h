@@ -41,12 +41,13 @@ template<typename T>
 struct allocator
 {
 	using value_type = T;
+
 	using propagate_on_container_move_assignment = std::true_type;
 
-	T * allocate(size_t nElems);
+	T *  allocate(size_t nElems);
 	void deallocate(T * ptr, size_t) noexcept;
 
-	constexpr size_t max_size() const  { return std::numeric_limits<size_t>::max() / sizeof(T); }
+	static constexpr size_t max_size()  { return std::numeric_limits<size_t>::max() / sizeof(T); }
 
 	allocator() = default;
 	template<typename U>  OEL_ALWAYS_INLINE
