@@ -141,12 +141,12 @@ public:
 	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})   : _m(a) { assign(r); }
 
 	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})  : _m(a, il.size())
-	                                                                  { _initPostAllocate(il.begin(), il.size()); }
+	                                                                  { _initPostAllocate(il.begin()); }
 	dynarray(dynarray && other) noexcept               : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, const Alloc & a);
 	dynarray(const dynarray & other);
 	dynarray(const dynarray & other, const Alloc & a)  : _m(a, other.size())
-	                                                   { _initPostAllocate(other.data(), other.size()); }
+	                                                   { _initPostAllocate(other.data()); }
 	~dynarray() noexcept;
 
 	dynarray & operator =(dynarray && other) &
@@ -432,24 +432,12 @@ private:
 	}
 
 
-	template<typename InputIter>
-	void _uninitCopy(false_type, InputIter first, size_type, T * dest, T * destEnd)
-	{	// cannot use memcpy
-		_detail::UninitCopy<Alloc>(first, dest, destEnd, _m);
-	}
-
-	template<typename CntigusIter>
-	void _uninitCopy(true_type, CntigusIter first, size_type n, T * dest, T *)
-	{
-		_detail::MemcpyMaybeNull(dest, to_pointer_contiguous(first), sizeof(T) * n);
-	}
-
-	void _initPostAllocate(const T *const first, size_type const n)
+	void _initPostAllocate(const T *const src)
 	{
 		_debugSizeUpdater guard{_m};
 
 		_m.end = _m.reservEnd;
-		_uninitCopy(is_trivially_copyable<T>(), first, n, _m.data, _m.end);
+		_detail::UninitCopy<Alloc>(src, _m.data, _m.end, _m);
 	}
 
 
@@ -475,19 +463,23 @@ private:
 	}
 
 
-	template< typename... FuncTakingLast, typename T_ = T,
-		enable_if<!is_trivially_relocatable<T_>::value> = 0 >
-	void _relocateData(T * dFirst, T * dLast, size_type, FuncTakingLast... extraCleanupIfException)
-	{
+	template<typename... FuncTakingLast>
+	void _relocateImpl(std::false_type, T * dFirst, T * dLast, size_type, FuncTakingLast... extraCleanupIfException)
+	{	// could combine to single loop in special case when Construct is noexcept
 		_detail::UninitCopy<Alloc>(std::make_move_iterator(_m.data), dFirst, dLast, _m, extraCleanupIfException...);
 		_detail::Destroy(_m.data, _m.end);
 	}
 
-	template< typename... Unused, typename T_ = T,
-		enable_if<is_trivially_relocatable<T_>::value> = 0 >
-	void _relocateData(T * dest, T *, size_type n, Unused...)
+	template<typename... Unused>
+	void _relocateImpl(std::true_type, T * dest, T *, size_type n, Unused...)
 	{
 		_detail::MemcpyMaybeNull(dest, data(), sizeof(T) * n);
+	}
+
+	template<typename... FuncTakingLast>
+	OEL_ALWAYS_INLINE void _relocateData(T * dest, T * dLast, size_type n, FuncTakingLast... extraCleanupIfException)
+	{
+		_relocateImpl(is_trivially_relocatable<T>(), dest, dLast, n, extraCleanupIfException...);
 	}
 
 
@@ -604,6 +596,7 @@ private:
 		_assignImpl(src.begin(), src.size(), true_type{});
 		src._m.end = src._m.data; // elements in src conceptually destroyed
 	}
+
 
 	template<typename CntigusIter>
 	CntigusIter _assignImpl(CntigusIter const first, size_type const count, true_type /*trivialCopy*/)
@@ -761,7 +754,7 @@ private:
 
 		pointer const pos = newBuf.data + oldSize;
 		makeNew(pos, count, _m);
-		_relocateData(newBuf.data, pos, oldSize,
+		_relocateData( newBuf.data, pos, oldSize,
 			[count](T * pos_) { _detail::Destroy(pos_, pos_ + count); } );
 
 		_m.end = pos;
@@ -791,7 +784,7 @@ private:
 
 		size_type const nBefore = pos - data();
 		T *const newPos = newBuf.data + nBefore;
-		T *const afterAdded = makeNew(*this, newPos, nToAdd, std::forward<Args>(args)...);
+		T *const afterAdded = makeNew(newPos, nToAdd, _m, std::forward<Args>(args)...);
 		// Exception free from here
 		if (_m.data)
 		{
@@ -807,9 +800,9 @@ private:
 	struct _emplaceMakeElem
 	{
 		template<typename... Args>
-		T * operator()(dynarray & d, T *const newPos, size_type, Args &&... args) const
+		T * operator()(T *const newPos, size_type, Alloc & a, Args &&... args) const
 		{
-			_detail::Construct<Alloc>(d._m, newPos, std::forward<Args>(args)...);
+			_detail::Construct(a, newPos, std::forward<Args>(args)...);
 			return newPos + 1;
 		}
 	};
@@ -858,7 +851,6 @@ typename dynarray<T, Alloc>::iterator
 	static_assert(std::is_base_of< forward_traversal_tag, iterator_traversal_t<decltype(first)> >::value,
 				  "insert_r requires that source models Forward Range (Boost concept)");
 
-	using CanMemmove = can_memmove_with<T *, decltype(first)>;
 	size_type const count = _sizeOrEnd<decltype(first)>(src);
 
 	OEL_DYNARR_INSERT_STEP1
@@ -870,9 +862,9 @@ typename dynarray<T, Alloc>::iterator
 		std::memmove(dLast, pPos, sizeof(T) * nAfterPos);
 		_m.end += count;
 		// Construct new
-		OEL_CONST_COND if (CanMemmove::value)
+		OEL_CONST_COND if (can_memmove_with<T *, decltype(first)>::value)
 		{
-			_uninitCopy(CanMemmove(), first, count, pPos, dLast);
+			_detail::UninitCopy<Alloc>(first, pPos, dLast, _m);
 		}
 		else
 		{
@@ -896,10 +888,10 @@ typename dynarray<T, Alloc>::iterator
 	else // not enough room, reallocate
 	{
 		pPos = _insertRealloc( pPos, nAfterPos, count, _calcCap,
-			[first](dynarray & self, T * newPos, size_type count_)
+			[first](T * newPos, size_type count_, Alloc & a)
 			{
 				T *const dLast = newPos + count_;
-				self._uninitCopy(CanMemmove(), first, count_, newPos, dLast);
+				_detail::UninitCopy(first, newPos, dLast, a);
 				return dLast;
 			} );
 	}

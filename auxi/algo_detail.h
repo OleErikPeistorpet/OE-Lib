@@ -35,6 +35,16 @@ constexpr T max(const T & a, const T & b)
 
 namespace _detail
 {
+	inline void MemcpyMaybeNull(void * dest, const void * src, size_t nBytes)
+	{	// memcpy(nullptr, nullptr, 0) is UB. The trouble is that checking can have significant performance hit.
+		// GCC 4.9 and up known to need the check in some cases
+	#if (!defined __GNUC__ and !defined _MSC_VER) or OEL_GCC_VERSION >= 409 or _MSC_VER >= 2000
+		if (nBytes > 0)
+	#endif
+			std::memcpy(dest, src, nBytes);
+	}
+
+
 	template<typename T, typename Alloc, bool B, typename... Args>
 	inline auto ConstructImpl(bool_constant<B>, Alloc & a, T * p, Args &&... args)
 	 -> decltype( a.construct(p, std::forward<Args>(args)...) )
@@ -75,10 +85,18 @@ namespace _detail
 	{	OEL_ALWAYS_INLINE void operator()(...) const {}
 	};
 
-	template<typename Alloc, typename InputIter, typename T, typename FuncTakingLast = NoOp>
+	template<typename Alloc, typename CntigusIter, typename T,
+	         enable_if< can_memmove_with<T *, CntigusIter>::value > = 0>
+	void UninitCopy(CntigusIter src, T * dFirst, T * dLast, Alloc &)
+	{
+		_detail::MemcpyMaybeNull(dFirst, to_pointer_contiguous(src), sizeof(T) * (dLast - dFirst));
+	}
+
+	template<typename Alloc, typename InputIter, typename T, typename FuncTakingLast = NoOp,
+	         enable_if< !can_memmove_with<T *, InputIter>::value > = 0>
 	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc, FuncTakingLast extraCleanup = {})
 	{
-		T *const destBegin = dest;
+		T *const dFirst = dest;
 		OEL_TRY_
 		{
 			while (dest != dLast)
@@ -89,7 +107,7 @@ namespace _detail
 		}
 		OEL_CATCH_ALL
 		{
-			_detail::Destroy(destBegin, dest);
+			_detail::Destroy(dFirst, dest);
 			extraCleanup(dLast);
 			OEL_WHEN_EXCEPTIONS_ON(throw);
 		}
@@ -130,20 +148,10 @@ namespace _detail
 	};
 
 	template<typename Alloc, typename T>
-	inline void UninitDefaultConstruct(T *const first, T *const last, Alloc & alloc)
+	inline void UninitDefaultConstruct(T *const first, T *const last, Alloc & a)
 	{
 		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
-			UninitFill<Alloc>{}(first, last, alloc);
-	}
-
-
-	inline void MemcpyMaybeNull(void * dest, const void * src, size_t nBytes)
-	{	// memcpy(nullptr, nullptr, 0) is UB. The trouble is that checking can have significant performance hit.
-		// GCC 4.9 and up known to need the check in some cases
-	#if (!defined __GNUC__ and !defined _MSC_VER) or OEL_GCC_VERSION >= 409 or _MSC_VER >= 2000
-		if (nBytes > 0)
-	#endif
-			std::memcpy(dest, src, nBytes);
+			UninitFill<Alloc>{}(first, last, a);
 	}
 }
 
