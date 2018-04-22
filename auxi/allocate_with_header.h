@@ -59,15 +59,12 @@ namespace _detail
 
 		static void Deallocate(Alloc & a, Ptr p, size_t n)
 		{
-			if (p)
-			{
-			#if OEL_MEM_BOUND_DEBUG_LVL
-				OEL_DEBUG_HEADER_OF(p)->id = 0;
-				p -= sizeForHeader;
-				n += sizeForHeader;
-			#endif
-				a.deallocate(p, n);
-			}
+		#if OEL_MEM_BOUND_DEBUG_LVL
+			OEL_DEBUG_HEADER_OF(p)->id = 0;
+			p -= sizeForHeader;
+			n += sizeForHeader;
+		#endif
+			a.deallocate(p, n);
 		}
 	};
 

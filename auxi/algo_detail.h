@@ -87,7 +87,7 @@ namespace _detail
 
 	template<typename Alloc, typename CntigusIter, typename T,
 	         enable_if< can_memmove_with<T *, CntigusIter>::value > = 0>
-	void UninitCopy(CntigusIter src, T * dFirst, T * dLast, Alloc &)
+	inline void UninitCopy(CntigusIter src, T * dFirst, T * dLast, Alloc &)
 	{
 		_detail::MemcpyMaybeNull(dFirst, to_pointer_contiguous(src), sizeof(T) * (dLast - dFirst));
 	}

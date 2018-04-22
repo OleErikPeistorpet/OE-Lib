@@ -336,7 +336,8 @@ private:
 
 		~_memOwner()
 		{
-			_allocateWrap::Deallocate(*this, data, reservEnd - data);
+			if (data)
+				_allocateWrap::Deallocate(*this, data, reservEnd - data);
 		}
 
 	} _m; // the only data member
@@ -361,7 +362,8 @@ private:
 		~_scopedPtr()
 		{
 			auto && a = this->Get();
-			_allocateWrap::Deallocate(a, data, allocEnd - data);
+			if (data)
+				_allocateWrap::Deallocate(a, data, allocEnd - data);
 		}
 
 		void Swap(_internBase & other)
@@ -374,7 +376,9 @@ private:
 
 	void _resetData(pointer const newData)
 	{
-		_allocateWrap::Deallocate(_m, _m.data, capacity());
+		if (_m.data)
+			_allocateWrap::Deallocate(_m, _m.data, capacity());
+
 		_m.data = newData;
 	}
 
@@ -614,8 +618,7 @@ private:
 		{
 			// Deallocating first might be better, but then the _m pointers would have to be nulled in case allocate throws
 			_resetData(_allocate(_m, count));
-			_m.end = _m.data + count;
-			_m.reservEnd = _m.end;
+			_m.end = _m.reservEnd = _m.data + count;
 		}
 		else
 		{	_m.end = _m.data + count;
