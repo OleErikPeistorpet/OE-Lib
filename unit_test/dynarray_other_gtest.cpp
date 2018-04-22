@@ -52,7 +52,6 @@ TEST(dynarrayOtherTest, zeroBitRepresentation)
 TEST(dynarrayOtherTest, compare)
 {
 	dynarray<int> arr[3];
-
 	arr[0] = {2, 1};
 	arr[1] = {2};
 	arr[2] = {1, 3};
@@ -109,7 +108,8 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 		v.emplace_back(-1.0);
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW( v.emplace_back(throwOnConstruct), TestException );
+		MoveOnly::countToThrowOn = 0;
+		EXPECT_THROW( v.emplace_back(), TestException );
 	)
 		EXPECT_EQ(1, MoveOnly::nConstructions);
 		EXPECT_EQ(0, MoveOnly::nDestruct);
@@ -118,7 +118,8 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 		v.assign(oel::view::move(arr));
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW( v.emplace_back(throwOnConstruct), TestException );
+		MoveOnly::countToThrowOn = 0;
+		EXPECT_THROW( v.emplace_back(), TestException );
 	)
 		EXPECT_EQ(2, ssize(v));
 		EXPECT_TRUE(1.0 == *v[0]);

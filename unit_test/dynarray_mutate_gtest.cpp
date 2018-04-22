@@ -4,18 +4,7 @@
 
 #include "test_classes.h"
 #include "range_view.h"
-
-#ifdef _MSC_VER
-// unreachable code warnings from EXPECT_THROW containing throwOnConstruct
-#pragma warning(push)
-#pragma warning(disable : 4702)
-#endif
-
 #include "dynarray.h"
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 #include <deque>
 
@@ -68,14 +57,16 @@ TEST_F(dynarrayTest, pushBack)
 		ASSERT_EQ(1U, up.size());
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW( up.emplace_back(throwOnConstruct), TestException );
+		MoveOnly::countToThrowOn = 0;
+		EXPECT_THROW( up.emplace_back(), TestException );
 		ASSERT_EQ(1U, up.size());
 	)
 		up.push_back(MoveOnly{VALUES[1]});
 		ASSERT_EQ(2U, up.size());
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW( up.emplace_back(throwOnConstruct), TestException );
+		MoveOnly::countToThrowOn = 0;
+		EXPECT_THROW( up.emplace_back(), TestException );
 		ASSERT_EQ(2U, up.size());
 	)
 		up.push_back( std::move(up.back()) );
@@ -98,20 +89,20 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 {
 	NontrivialReloc::ClearCount();
 	{
-		dynarray<NontrivialReloc> mo;
+		dynarray<NontrivialReloc> da;
 
 		double const VALUES[] = {-1.1, 2.0, -0.7, 9.6};
 		std::deque<double> expected;
 
-		mo.push_back(NontrivialReloc{VALUES[0]});
+		da.push_back(NontrivialReloc{VALUES[0]});
 		expected.push_back(VALUES[0]);
-		ASSERT_EQ(1U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(mo), NontrivialReloc::nDestruct);
+		ASSERT_EQ(1U, da.size());
+		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
 
-		mo.emplace_back(VALUES[1]);
+		da.emplace_back(VALUES[1]);
 		expected.emplace_back(VALUES[1]);
-		ASSERT_EQ(2U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(mo), NontrivialReloc::nDestruct);
+		ASSERT_EQ(2U, da.size());
+		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
 
 	OEL_WHEN_EXCEPTIONS_ON(
 		NontrivialReloc::countToThrowOn = 1;
@@ -119,24 +110,25 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		{
 			for(;;)
 			{
-				mo.push_back(NontrivialReloc{VALUES[2]});
+				da.push_back(NontrivialReloc{VALUES[2]});
 				expected.push_back(VALUES[2]);
 			}
 		}
 		catch (TestException &) {
 		}
-		ASSERT_EQ(expected.size(), mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(mo), NontrivialReloc::nDestruct);
+		ASSERT_EQ(expected.size(), da.size());
+		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
 	)
-		mo.emplace_back(VALUES[3]);
+		da.emplace_back(VALUES[3]);
 		expected.emplace_back(VALUES[3]);
-		ASSERT_EQ(expected.size(), mo.size());
+		ASSERT_EQ(expected.size(), da.size());
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW( mo.emplace_back(throwOnConstruct), TestException );
-		ASSERT_EQ(expected.size(), mo.size());
+		NontrivialReloc::countToThrowOn = 0;
+		EXPECT_THROW( da.push_back(NontrivialReloc{0}), TestException );
+		ASSERT_EQ(expected.size(), da.size());
 	)
-		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(mo), NontrivialReloc::nDestruct);
+		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
 
 	OEL_WHEN_EXCEPTIONS_ON(
 		NontrivialReloc::countToThrowOn = 3;
@@ -144,15 +136,15 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		{
 			for(;;)
 			{
-				mo.push_back(mo.front());
+				da.push_back(da.front());
 				expected.push_back(expected.front());
 			}
 		}
 		catch (TestException &) {
 		}
-		ASSERT_EQ(expected.size(), mo.size());
+		ASSERT_EQ(expected.size(), da.size());
 	)
-		EXPECT_TRUE( std::equal(begin(mo), end(mo), begin(expected)) );
+		EXPECT_TRUE( std::equal(begin(da), end(da), begin(expected)) );
 	}
 	EXPECT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
 }
@@ -395,14 +387,16 @@ TEST_F(dynarrayTest, insert)
 		ASSERT_EQ(1U, up.size());
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW( up.emplace(begin(up), throwOnConstruct), TestException );
+		MoveOnly::countToThrowOn = 0;
+		EXPECT_THROW( up.emplace(begin(up)), TestException );
 		ASSERT_EQ(1U, up.size());
 	)
 		up.insert(begin(up), MoveOnly{VALUES[0]});
 		ASSERT_EQ(2U, up.size());
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW( up.emplace(begin(up) + 1, throwOnConstruct), TestException );
+		MoveOnly::countToThrowOn = 0;
+		EXPECT_THROW( up.emplace(begin(up) + 1), TestException );
 		ASSERT_EQ(2U, up.size());
 	)
 		up.insert(end(up), MoveOnly{VALUES[3]});
