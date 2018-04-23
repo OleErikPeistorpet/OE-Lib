@@ -23,10 +23,6 @@
 #endif
 
 
-//! Functions marked with `noexcept(nodebug)` will only throw exceptions from OEL_ASSERT (none by default)
-constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
-
-
 #ifndef OEL_ABORT
 	/** @brief Used by OEL_ASSERT, and anywhere that would normally throw if exceptions are disabled
 	*
