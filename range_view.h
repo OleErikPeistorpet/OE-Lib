@@ -14,6 +14,10 @@
 
 
 /** @file
+* @brief A view is a lightweight wrapper of a sequence of elements. Views do not mutate or
+*	copy the underlying sequence on construction, and have non-owning reference semantics.
+*
+* Try the Range v3 library for a much more comprehensive suite
 */
 
 namespace oel
@@ -107,7 +111,7 @@ public:
 	 -> decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
 };
 
-//! Make views. View is a concept described in the documentation for the Range v3 library
+//! View creation functions, other than oel::make_iterator_range
 namespace view
 {
 
@@ -133,7 +137,7 @@ counted_view< std::move_iterator<InputIterator> >
 #include "auxi/view_detail_move.inc"
 
 /** @brief Wrap a range such that the elements can be moved from when passed to a container or algorithm
-* @return counted_view<std::move_iterator> if r.size() exists or r is an array, else iterator_range<std::move_iterator>
+* @return `counted_view<std::move_iterator>` if r.size() exists or r is an array, else `iterator_range<std::move_iterator>`
 *
 * Note that passing an rvalue range should result in a compile error. Use a named variable. */
 template<typename InputRange> inline

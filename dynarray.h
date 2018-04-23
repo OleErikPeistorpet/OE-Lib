@@ -80,7 +80,7 @@ inline namespace debug
 * to be declared manually for each type that is not trivially copyable. See specify_trivial_relocate(T &&).
 * Also, if T is trivially relocatable, it does not need to be copyable or even move constructible (you can use
 * emplace_back, pop_back, erase). There are a few notable functions for which trivially relocatable T is required
-* (checked when compiling): emplace, insert, insert_r and erase(iterator, iterator)
+* (checked when compiling): emplace, insert, insert_r and `erase(first, last)`
 *
 * About strong exception guarantee: For all functions which for std::vector are specified to have no effect
 * if an exception is thrown: If T's move constructor is not noexcept and T is not trivially relocatable,
@@ -127,7 +127,7 @@ public:
 	explicit dynarray(size_type size, const Alloc & a = Alloc{});  //!< (Value-initializes elements, same as std::vector)
 	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
 
-	/** @brief Equivalent to `std::vector(begin(r), end(r), a)`, where end(r) is not needed if r.size() exists
+	/** @brief Equivalent to `std::vector(begin(r), end(r), a)`, where `end(r)` is not needed if r.size() exists
 	*
 	* To move instead of copy, wrap r with view::move (the same applies for all functions taking a range template) <br>
 	* Example, construct from a standard istream with formatting (using Boost):
@@ -179,7 +179,7 @@ public:
 	*	`begin(source)` pointed into this dynarray and there was insufficient capacity to avoid reallocation.
 	*
 	* Strong exception guarantee if T is noexcept move constructible or trivially relocatable. Otherwise equivalent to
-	* `std::vector::insert(end(), begin(source), end(source))`, where end(source) is not needed if source.size() exists. */
+	* `std::vector::insert(end(), begin(source), end(source))`, where `end(source)` is not needed if source.size() exists. */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
 	//! @brief Equivalent to `std::vector::insert(end(), il)`, but
@@ -198,7 +198,7 @@ public:
 	void      resize(size_type n)                  { _resizeImpl(n, _detail::UninitFill<Alloc>{}); }
 
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
-	//!	where end(source) is not needed if source.size() exists
+	//!	where `end(source)` is not needed if source.size() exists
 	template<typename ForwardRange>
 	iterator  insert_r(const_iterator pos, const ForwardRange & source);
 
@@ -230,7 +230,7 @@ public:
 	iterator  erase(iterator pos)           { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
 	iterator  erase(iterator first, iterator last);
-	//! Equivalent to `erase(first, end())` (but potentially faster), making first the new end
+	//! Equivalent to `erase(first, end())`, but potentially faster and does not require trivially relocatable T
 	void      erase_to_end(iterator first) noexcept(nodebug);
 
 	void      clear() noexcept        { erase_to_end(begin()); }
