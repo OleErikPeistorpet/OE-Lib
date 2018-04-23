@@ -133,7 +133,9 @@ counted_view< std::move_iterator<InputIterator> >
 #include "auxi/view_detail_move.inc"
 
 /** @brief Wrap a range such that the elements can be moved from when passed to a container or algorithm
-* @return counted_view<std::move_iterator> if r.size() exists or r is an array, else iterator_range<std::move_iterator>  */
+* @return counted_view<std::move_iterator> if r.size() exists or r is an array, else iterator_range<std::move_iterator>
+*
+* Note that passing an rvalue range should result in a compile error. Use a named variable. */
 template<typename InputRange> inline
 auto move(InputRange & r)   { return _detail::Move(r, int{}); }
 
@@ -142,12 +144,19 @@ auto move(InputRange & r)   { return _detail::Move(r, int{}); }
 	/** @brief Create a view with boost::transform_iterator from a range with size() member or an array
 	*
 	* Similar to boost::adaptors::transform, but more efficient with typical use.
-	* Note that passing an rvalue range should result in a compile error. Use a named variable.  */
+	* Note that passing an rvalue range should result in a compile error. Use a named variable. */
 	template<typename UnaryFunc, typename SizedRange>
 	auto transform(SizedRange & r, UnaryFunc f)
 	 ->	counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
 		{
 			return {boost::make_transform_iterator(begin(r), std::move(f)), oel::ssize(r)};
+		}
+	//! Create a view with boost::transform_iterator from iterator and count
+	template<typename UnaryFunc, typename InputIterator>
+	counted_view< boost::transform_iterator<UnaryFunc, InputIterator> >
+		transform_n(InputIterator first, iterator_difference_t<InputIterator> count, UnaryFunc f)
+		{
+			return {boost::make_transform_iterator(first, std::move(f)), count};
 		}
 #endif
 }

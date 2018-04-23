@@ -90,15 +90,15 @@ TEST(rangeTest, viewTransform)
 	EXPECT_EQ(1, test[0]);
 	EXPECT_EQ(4, test[1]);
 	EXPECT_EQ(9, test[2]);
-
-	auto v = view::counted(src, 2);
-	test.append(view::transform( v, std::function<int(int &)>([](int & i) { return i++; }) ));
+	{
+	auto f = std::function<int(int &)>( [](int & i) { return i++; } );
+	test.append(view::transform_n(src, 2, f));
 	EXPECT_EQ(5U, test.size());
 	EXPECT_EQ(1, test[3]);
 	EXPECT_EQ(2, test[4]);
 	EXPECT_EQ(2, src[0]);
 	EXPECT_EQ(3, src[1]);
-
+	}
 	auto r = make_iterator_range(begin(src) + 1, end(src));
 	auto f = [](int i) { return i; };
 	test.assign( view::transform(r, std::ref(f)) );
