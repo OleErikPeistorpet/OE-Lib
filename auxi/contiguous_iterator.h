@@ -201,7 +201,7 @@ typename std::pointer_traits<Ptr>::element_type *
 } // namespace oel
 
 
-#ifdef _MSC_VER
+#ifdef _CPPLIB_VER
 	//! Mark dynarray_iterator as checked
 	template<typename P, typename T>
 	struct std::_Is_checked_helper< oel::dynarray_iterator<P, T> >

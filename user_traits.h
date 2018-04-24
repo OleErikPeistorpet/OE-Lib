@@ -92,29 +92,11 @@ class Outer {
 template<typename T>
 is_trivially_copyable<T> specify_trivial_relocate(T &&);
 
-//! Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
+/** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
+*
+* Many useful classes are declared trivially relocatable, see compat folder. */
 template<typename T>
 struct is_trivially_relocatable;
-
-// Many useful classes are declared trivially relocatable, see compat folder
-
-
-
-template<bool...> struct bool_pack_t;
-
-//! If all of Vs are equal to true, this is-a true_type, else false_type
-template<bool... Vs>
-using all_true   = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
-
-/** @brief Similar to std::conjunction, but is not short-circuiting
-*
-* Example: @code
-template<typename... Ts>
-void ProcessNumbers(Ts... n) {
-	static_assert(oel::all_< std::is_arithmetic<Ts>... >::value, "Only arithmetic types, please");
-@endcode  */
-template<typename... BoolConstants>
-struct all_ : all_true<BoolConstants::value...> {};
 
 
 
@@ -129,6 +111,13 @@ namespace _detail
 	typename Range::difference_type DiffT(int);
 
 	template<typename> std::ptrdiff_t DiffT(long);
+
+
+	template<typename T>
+	typename T::is_always_equal IsAlwaysEqual(int);
+
+	template<typename T>
+	std::is_empty<T> IsAlwaysEqual(long);
 }
 
 } // namespace oel

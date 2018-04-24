@@ -11,7 +11,6 @@
 #include "auxi/contiguous_iterator.h"
 #include "compat/default.h"
 #include "align_allocator.h"
-#include "make_unique.h" // not needed, just convenient
 
 #include <algorithm>
 

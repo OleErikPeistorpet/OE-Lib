@@ -9,7 +9,7 @@
 #include "util.h"
 
 #if !defined(OEL_NO_BOOST) and __cpp_aligned_new < 201606
-	#include <boost/align/aligned_alloc.hpp>
+#include <boost/align/aligned_alloc.hpp>
 #endif
 #include <cstddef> // for max_align_t
 #include <limits>
@@ -61,15 +61,9 @@ struct allocator
 
 
 
-//! Part of std::allocator_traits for C++17
-template<typename T>
-struct is_always_equal;
-
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //
-// The rest of the file is not for users (implementation)
+// Implementation only in rest of the file
 
 
 namespace _detail
@@ -174,20 +168,7 @@ OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 	_detail::OpDelete<alignof(T)>(ptr, _detail::CanDefaultAlloc<alignof(T)>());
 }
 
-
-namespace _detail
-{
-	template<typename T>
-	typename T::is_always_equal IsAlwaysEqual(int);
-
-	template<typename T>
-	std::is_empty<T> IsAlwaysEqual(long);
-}
-
 } // namespace oel
-
-template<typename T>
-struct oel::is_always_equal : decltype( _detail::IsAlwaysEqual<T>(0) ) {};
 
 
 template<std::size_t Size, std::size_t Align>

@@ -1,5 +1,4 @@
 #include "dynarray.h"
-#include "compat/std_classes_extra.h"
 #include "test_classes.h"
 
 #include "gtest/gtest.h"

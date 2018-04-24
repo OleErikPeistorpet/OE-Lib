@@ -6,31 +6,19 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "user_traits.h"
+#include "auxi/type_traits.h"
+#include "make_unique.h"
 
-#ifndef OEL_NO_BOOST
-	#include <boost/iterator/iterator_categories.hpp>
-#endif
-#include <iterator>
 #include <stdexcept>
-#include <memory>  // for pointer_traits
 #include <cstdint> // for uintmax_t
 
 
 /** @file
-* @brief Utilities, included throughout the library
-*
-* Contains as_signed/as_unsigned, index_valid, ssize, adl_begin/adl_end, deref_args and more.
+* @brief Contains as_signed/as_unsigned, index_valid, ssize, adl_begin/adl_end, deref_args and more
 */
 
 namespace oel
 {
-
-//! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
-template<bool Condition>
-using enable_if = typename std::enable_if<Condition, int>::type;
-
-
 
 //! Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T>  OEL_ALWAYS_INLINE
@@ -41,11 +29,6 @@ template<typename T>  OEL_ALWAYS_INLINE
 constexpr typename std::make_unsigned<T>::type
 	as_unsigned(T val) noexcept                { return (typename std::make_unsigned<T>::type) val; }
 
-
-
-//! Range::difference_type if present, else std::ptrdiff_t
-template<typename Range>
-using range_difference_t  = decltype( _detail::DiffT<Range>(0) );
 
 
 //! Returns r.size() as signed type
@@ -138,11 +121,6 @@ auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
  -> decltype( to_pointer_contiguous(it.base()) )  { return to_pointer_contiguous(it.base()); }
 
 
-//! If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a true_type, else false_type
-template<typename IteratorDest, typename IteratorSource>
-struct can_memmove_with;
-
-
 
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
@@ -163,32 +141,6 @@ constexpr default_init_t default_init; //!< An instance of default_init_t for co
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is not for users (implementation)
-
-
-using std::size_t;
-
-
-template<typename Iterator>
-using iterator_difference_t = typename std::iterator_traits<Iterator>::difference_type;
-
-template<typename Iterator>
-using iterator_traversal_t
-#ifndef OEL_NO_BOOST
-	= typename boost::iterator_traversal<Iterator>::type;
-
-	using boost::single_pass_traversal_tag;
-	using boost::forward_traversal_tag;
-	using boost::random_access_traversal_tag;
-#else
-	= typename std::iterator_traits<Iterator>::iterator_category;
-
-	using single_pass_traversal_tag = std::input_iterator_tag;
-	using forward_traversal_tag = std::forward_iterator_tag;
-	using random_access_traversal_tag = std::random_access_iterator_tag;
-#endif
-
-template<typename Iterator>
-using iterator_is_random_access = std::is_base_of< random_access_traversal_tag, iterator_traversal_t<Iterator> >;
 
 
 namespace _detail
@@ -215,7 +167,7 @@ namespace _detail
 	template<typename T> inline
 	T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return it.base(); }
 
-#elif _MSC_VER
+#elif _CPPLIB_VER
 	template
 	<	typename ContiguousIterator,
 		enable_if< std::is_same<decltype( _Unchecked(ContiguousIterator{}) ),
@@ -244,34 +196,6 @@ namespace _detail
 	};
 
 
-	template<typename T>   // (target, source)
-	is_trivially_copyable<T> CanMemmoveArrays(T *, const T *);
-
-	template<typename IterDest, typename IterSrc>
-	auto CanMemmoveWith(IterDest dest, IterSrc src)
-	 -> decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
-
-	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
-	false_type CanMemmoveWith(...);
-}
-
-} // namespace oel
-
-//! @cond FALSE
-template<typename IteratorDest, typename IteratorSource>
-struct oel::can_memmove_with :
-	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
-	                                  std::declval<IteratorSource>()) ) {};
-//! @endcond
-
-template<typename T>
-struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};
-
-
-namespace oel
-{
-namespace _detail
-{
 	template<typename Unsigned, typename Integral>
 	constexpr bool IndexValid(Unsigned size, Integral i, false_type)
 	{	// assumes that size never is greater than INTMAX_MAX, and INTMAX_MAX is half UINTMAX_MAX
@@ -285,7 +209,7 @@ namespace _detail
 	}
 }
 
-}
+} // namespace oel
 
 template<typename Integral, typename SizedRange>
 constexpr bool oel::index_valid(const SizedRange & r, Integral i)
