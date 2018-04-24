@@ -150,17 +150,17 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename CntigusIter, typename Integral, typename CntigusIter2> inline
-	CntigusIter CopyUnsf(CntigusIter const src, Integral const n, CntigusIter2 const dest, true_type)
+	template<typename ContiguousIter, typename Integral, typename CntigusIter2>
+	ContiguousIter CopyUnsf(ContiguousIter const src, Integral const n, CntigusIter2 const dest, true_type)
 	{	// can use memcpy
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != n)
-		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
-			(void) *src; (void) *dest;
+		{	// Dereference to detect out of range errors if the iterator has internal check
+			(void) *dest;
 			(void) *(dest + (n - 1));
 		}
 	#endif
-		_detail::MemcpyMaybeNull(to_pointer_contiguous(dest), to_pointer_contiguous(src), sizeof(*src) * n);
+		_detail::MemcpyCheck(src, n, to_pointer_contiguous(dest));
 		return src + n;
 	}
 

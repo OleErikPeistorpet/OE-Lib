@@ -79,6 +79,19 @@ template<typename T>
 using is_always_equal  = decltype( _detail::IsAlwaysEqual<T>(0) );
 
 
+
+#if defined __GLIBCXX__ and __GNUC__ == 4
+	template<typename T>
+	using is_trivially_default_constructible = bool_constant< __has_trivial_constructor(T)
+		#ifdef __INTEL_COMPILER
+			or __is_pod(T)
+		#endif
+		>;
+#else
+	using std::is_trivially_default_constructible;
+#endif
+
+
 using std::size_t;
 
 

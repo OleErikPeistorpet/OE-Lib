@@ -90,7 +90,6 @@ template<typename T, typename Alloc/* = oel::allocator */>
 class dynarray
 {
 	using _allocTrait = std::allocator_traits<Alloc>;
-	using _allocateWrap = _detail::DebugAllocateWrapper<Alloc, typename _allocTrait::pointer>;
 
 public:
 	using value_type      = T;
@@ -303,6 +302,7 @@ public:
 
 
 private:
+	using _allocateWrap = _detail::DebugAllocateWrapper<Alloc, pointer>;
 	using _internBase = _detail::DynarrBase<pointer>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 
@@ -476,7 +476,7 @@ private:
 	template<typename... Unused>
 	void _relocateImpl(std::true_type, T * dest, T *, size_type n, Unused...)
 	{
-		_detail::MemcpyMaybeNull(dest, data(), sizeof(T) * n);
+		_detail::MemcpyCheck(_m.data, n, dest);
 	}
 
 	template<typename... FuncTakingLast>
@@ -601,16 +601,9 @@ private:
 	}
 
 
-	template<typename CntigusIter>
-	CntigusIter _assignImpl(CntigusIter const first, size_type const count, true_type /*trivialCopy*/)
+	template<typename ContiguousIter>
+	ContiguousIter _assignImpl(ContiguousIter const first, size_type const count, true_type /*trivialCopy*/)
 	{
-	#if OEL_MEM_BOUND_DEBUG_LVL
-		if (count != 0)
-		{	// Dereference to catch out of range errors if the iterators have internal checks
-			(void) *first;
-			(void) *(first + (count - 1));
-		}
-	#endif
 		_debugSizeUpdater guard{_m};
 
 		if (capacity() < count)
@@ -623,7 +616,7 @@ private:
 		{	_m.end = _m.data + count;
 		}
 		// Not portable. Check for self assignment or use memmove?
-		_detail::MemcpyMaybeNull(data(), to_pointer_contiguous(first), sizeof(T) * count);
+		_detail::MemcpyCheck(first, count, _m.data);
 
 		return first + count;
 	}
@@ -711,21 +704,14 @@ private:
 		return src;
 	}
 
-	template<typename CntigusIter>
-	CntigusIter _append(CntigusIter const first, size_type const n, true_type)
+	template<typename ContiguousIter>
+	ContiguousIter _append(ContiguousIter const first, size_type const n, true_type)
 	{
-		CntigusIter last = first + n;
-	#if OEL_MEM_BOUND_DEBUG_LVL
-		if (n != 0)
-		{	// Dereference to catch out of range errors if the iterators have internal checks
-			(void) *first;
-			(void) *(last - 1);
-		}
-	#endif
+		ContiguousIter last = first + n;
 		_appendImpl( n,
 			[first](T * dest, size_type n_, Alloc &)
 			{
-				_detail::MemcpyMaybeNull(dest, to_pointer_contiguous(first), sizeof(T) * n_);
+				_detail::MemcpyCheck(first, n_, dest);
 			} );
 		return last; // has been invalidated in the case of append self and reallocation
 	}
