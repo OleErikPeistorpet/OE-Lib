@@ -11,9 +11,20 @@ namespace
 {
 	static_assert(oel::is_trivially_relocatable< std::array<std::unique_ptr<double>, 4> >::value, "?");
 
+	struct NonTrivialAssign
+	{
+		void operator =(const NonTrivialAssign &) { ; }
+	};
+	struct NonTrivialDestruct
+	{
+		~NonTrivialDestruct() { ; }
+	};
+	static_assert( !oel::is_trivially_copyable<NonTrivialAssign>::value, "?" );
+	static_assert( !oel::is_trivially_copyable<NonTrivialDestruct>::value, "?" );
+
 	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >::value, "?");
 	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
-	static_assert( !oel::is_trivially_copyable< std::tuple<int, NontrivialReloc, int> >::value, "?" );
+	static_assert( !oel::is_trivially_copyable< std::tuple<int, NonTrivialDestruct, int> >::value, "?" );
 
 	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
 	static_assert(alignof(oel::aligned_storage_t<64, 64>) == 64, "?");
@@ -151,6 +162,8 @@ struct PointerLike
 	T * operator->() const { return p; }
 	T & operator *() const { return *p; }
 };
+static_assert(oel::is_trivially_default_constructible< PointerLike<bool> >::value, "?");
+static_assert(oel::is_trivially_copyable< PointerLike<bool> >::value, "?");
 
 TEST(utilTest, toPointerContiguous)
 {

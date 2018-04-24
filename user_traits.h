@@ -125,7 +125,7 @@ namespace _detail
 template<typename T>
 struct oel::is_trivially_copyable :
 	#if defined __GLIBCXX__ and __GNUC__ == 4
-		bool_constant< (__has_trivial_copy(T) and __has_trivial_assign(T))
+		bool_constant< (__has_trivial_copy(T) and __has_trivial_assign(T) and __has_trivial_destructor(T))
 			#ifdef __INTEL_COMPILER
 				or __is_pod(T)
 			#endif
