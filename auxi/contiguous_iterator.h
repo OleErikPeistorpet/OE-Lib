@@ -23,9 +23,9 @@ namespace oel
 inline namespace debug
 {
 
-/** @brief Checked iterator, for container with contiguous memory that can be reallocated
+/** @brief Checked iterator, for container with contiguous, dynamically allocated memory
 *
-* Wraps a pointer with error checks. Note: a pair of value-initialized iterators count as an empty range  */
+* Note: a pair of value-initialized iterators count as an empty range (C++14 requirement)  */
 template<typename Ptr, typename ValT>
 class dynarray_iterator
 {
