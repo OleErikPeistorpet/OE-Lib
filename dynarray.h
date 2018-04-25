@@ -350,11 +350,11 @@ private:
 		pointer allocEnd;
 
 		_scopedPtr(Alloc & a, size_type const allocSize)
-		 :	_allocRef{a}
-		{
-			data = _allocate(a, allocSize);
-			allocEnd = data + allocSize;
+		 :	_allocRef{a},
+			data{_allocate(a, allocSize)},
+			allocEnd{data + allocSize} {
 		}
+
 		_scopedPtr(const _scopedPtr &) = delete;
 		void operator =(const _scopedPtr &) = delete;
 
