@@ -69,6 +69,14 @@ TEST(dynarrayOtherTest, compare)
 	EXPECT_FALSE(arr[0] > arr[2]);
 }
 
+TEST(dynarrayOtherTest, allocAndIterEquality)
+{
+	oel::allocator<int> a;
+	ASSERT_TRUE(oel::allocator<std::string>{} == a);
+
+	EXPECT_TRUE(dynarray<int>::const_iterator() == dynarray<int>::iterator{});
+}
+
 TEST(dynarrayOtherTest, aggregate)
 {
 	struct Bar

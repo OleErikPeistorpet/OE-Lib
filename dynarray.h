@@ -306,16 +306,16 @@ private:
 	using _internBase = _detail::DynarrBase<pointer>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 
+#ifdef _MSC_VER
+	template<int> // workaround for constexpr constructor failing compilation
+#endif
 	struct _memOwner : public _internBase, public Alloc
 	{
 		using _internBase::data; // owning pointer
 		using _internBase::end;
 		using _internBase::reservEnd;
 
-	#if !defined _MSC_VER or _MSC_VER >= 1910
-		constexpr
-	#endif
-		_memOwner(const Alloc & a)
+		constexpr _memOwner(const Alloc & a)
 		 :	_internBase(), Alloc(a) {
 		}
 		_memOwner(const Alloc & a, size_type const capacity)
@@ -330,16 +330,18 @@ private:
 		{
 			other.reservEnd = other.end = other.data = nullptr;
 		}
-		_memOwner(const _memOwner &) = delete;
-		void operator =(const _memOwner &) = delete;
 
 		~_memOwner()
 		{
 			if (data)
 				_allocateWrap::Deallocate(*this, data, reservEnd - data);
 		}
-
-	} _m; // the only data member
+	};
+	_memOwner
+#ifdef _MSC_VER
+		<0>
+#endif
+		_m; // the only data member
 
 
 	using _allocRef = _detail::AllocRefOptimized<Alloc>;
@@ -355,8 +357,7 @@ private:
 			allocEnd{data + allocSize} {
 		}
 
-		_scopedPtr(const _scopedPtr &) = delete;
-		void operator =(const _scopedPtr &) = delete;
+		_scopedPtr(_scopedPtr &&) = delete;
 
 		~_scopedPtr()
 		{

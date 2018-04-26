@@ -48,16 +48,25 @@ protected:
 	}
 };
 
-TEST_F(dynarrayConstructTest, misc)
+namespace
 {
-	{
-		oel::allocator<int> a;
-		ASSERT_TRUE(oel::allocator<std::string>{} == a);
-	}
+dynarray<int> shouldGetStaticInit;
 
-	EXPECT_TRUE(dynarray<int>::const_iterator{} == dynarray<int>::iterator{});
+struct NonConstexprAlloc : oel::allocator<int>
+{
+	NonConstexprAlloc() {}
+	NonConstexprAlloc(const NonConstexprAlloc &) : allocator<int>() {}
+};
+}
 
-	dynarray<int> ints(0, {});
+TEST_F(dynarrayConstructTest, nonConstexprCompileTest)
+{
+	dynarray<int, NonConstexprAlloc> d;
+}
+
+TEST_F(dynarrayConstructTest, emptyBracesArg)
+{
+	dynarray<int> ints({}, 1);
 	EXPECT_TRUE(ints.empty());
 }
 
