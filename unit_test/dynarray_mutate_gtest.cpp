@@ -39,7 +39,8 @@ class dynarrayTest : public ::testing::Test
 protected:
 	dynarrayTest()
 	{
-		// You can do set-up work for each test here.
+		AllocCounter::ClearAll();
+		MyCounter::ClearCount();
 	}
 
 	// Objects declared here can be used by all tests.
@@ -218,7 +219,7 @@ TEST_F(dynarrayTest, assign)
 
 // std::stringstream doesn't seem to work using libstdc++ with -fno-exceptions
 #if !defined __GLIBCXX__ or defined __EXCEPTIONS
-TEST_F(dynarrayTest, assignStringStream)
+TEST_F(dynarrayTest, assignNonForwardRange)
 {
 	{
 		dynarray<std::string> das;
@@ -314,17 +315,17 @@ TEST_F(dynarrayTest, append)
 	EXPECT_DOUBLE_EQ(2, double_dynarr[5]);
 	EXPECT_DOUBLE_EQ(3, double_dynarr[6]);
 	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
+}
 
 #if !defined __GLIBCXX__ or defined __EXCEPTIONS
+TEST_F(dynarrayTest, appendNonForwardRange)
+{
 	{
 		std::stringstream ss("1 2 3 4 5");
 
 		dynarray<int> dest;
 
 		std::istream_iterator<int> it(ss);
-
-		// Should hit static_assert
-		//dest.insert_r(dest.begin(), make_iterator_range(it, std::istream_iterator<int>()));
 
 		it = dest.append(view::counted(it, 2));
 
@@ -333,8 +334,8 @@ TEST_F(dynarrayTest, append)
 		for (int i = 0; i < ssize(dest); ++i)
 			EXPECT_EQ(i + 1, dest[i]);
 	}
-#endif
 }
+#endif
 
 TEST_F(dynarrayTest, insertR)
 {
@@ -346,6 +347,9 @@ TEST_F(dynarrayTest, insertR)
 
 		dest.insert(dest.begin(), std::initializer_list<double>{});
 		EXPECT_EQ(0U, dest.size());
+
+		// Should hit static_assert
+		//dest.insert_r( dest.begin(), oel::iterator_range< std::istream_iterator<double> >({}, {}) );
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
@@ -592,9 +596,9 @@ TEST_F(dynarrayTest, eraseToEnd)
 
 TEST_F(dynarrayTest, eraseUnstable)
 {
-	dynarray<int> di{1, -2};
-
 #if OEL_MEM_BOUND_DEBUG_LVL
+	dynarray<int> di{-2};
+
 	OEL_WHEN_EXCEPTIONS_ON(
 		EXPECT_THROW(di.erase_unstable(di.end()), std::logic_error);
 	)
@@ -603,21 +607,26 @@ TEST_F(dynarrayTest, eraseUnstable)
 		EXPECT_THROW(copy.erase_unstable(di.begin()), std::logic_error);
 	)
 #endif
+	{
+		dynarray<MoveOnly> d;
+		d.emplace_back(1);
+		d.emplace_back(-2);
 
-	auto it = begin(di);
-	auto & val = end(di)[-1];
-	EXPECT_EQ(-2, val);
-	EXPECT_TRUE(&val == &it[1]);
+		auto *const p = d.back().get();
+		auto it = d.erase_unstable(d.begin());
+		EXPECT_EQ(p, it->get());
+		EXPECT_EQ(-2, *(*it));
+		it = d.erase_unstable(it);
+		EXPECT_EQ(end(d), it);
 
-	it = di.erase_unstable(it);
-	EXPECT_EQ(-2, *it);
-	it = di.erase_unstable(it);
-	EXPECT_EQ(end(di), it);
-
-	di.resize(2);
-	erase_unstable(di, 1);
-	erase_unstable(di, 0);
-	EXPECT_TRUE(di.empty());
+		d.emplace_back(-1);
+		d.emplace_back(2);
+		erase_unstable(d, 1);
+		EXPECT_EQ(-1, *d.back());
+		erase_unstable(d, 0);
+		EXPECT_TRUE(d.empty());
+	}
+	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
 #if __cpp_aligned_new >= 201606 or !defined(OEL_NO_BOOST)

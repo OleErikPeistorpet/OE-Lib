@@ -21,9 +21,6 @@ using dynarrayTrackingAlloc = dynarray< T, TrackingAllocator<T> >;
 
 class dynarrayConstructTest : public ::testing::Test
 {
-	static_assert(is_trivially_default_constructible<TrivialDefaultConstruct>::value, "?");
-	static_assert( !is_trivially_default_constructible<NontrivialConstruct>::value, "?" );
-
 protected:
 	std::array<unsigned, 3> sizes;
 
@@ -225,9 +222,10 @@ TEST_F(dynarrayConstructTest, constructNFill)
 TEST_F(dynarrayConstructTest, constructInitList)
 {
 	{
-		dynarrayTrackingAlloc<double> a{1.2, 3.4, 5.6, 7.8};
+		auto il = {1.2, 3.4, 5.6, 7.8};
+		dynarrayTrackingAlloc<double> a(il);
 
-		ASSERT_TRUE(std::equal( a.begin(), a.end(), begin({1.2, 3.4, 5.6, 7.8}) ));
+		ASSERT_TRUE(std::equal( a.begin(), a.end(), begin(il) ));
 		ASSERT_EQ(4U, a.size());
 
 		ASSERT_EQ(1, AllocCounter::nAllocations);
@@ -444,16 +442,41 @@ TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
 	testAssignMoveElements<NontrivialReloc>();
 }
 
+
 TEST_F(dynarrayConstructTest, selfMoveAssign)
 {
-	dynarray<int> d(4, -3);
+	dynarray<int> d(3, -3);
 	{
 		auto tmp = std::move(d);
 		d = std::move(d);
 		d = std::move(tmp);
 	}
-	EXPECT_EQ(4U, d.size());
+	EXPECT_EQ(3U, d.size());
 	EXPECT_EQ(-3, d.back());
+}
+
+TEST_F(dynarrayConstructTest, selfCopyAssign)
+{
+	{
+		dynarrayTrackingAlloc<int> d;
+		d = d;
+		EXPECT_TRUE(d.empty());
+		EXPECT_TRUE(d.capacity() == 0);
+
+		auto il = {1, 2, 3, 4};
+		d = il;
+		d = d;
+		EXPECT_EQ(d.size(), il.size());
+		EXPECT_TRUE(std::equal( d.begin(), d.end(), begin(il) ));
+	}
+	{
+		dynarrayTrackingAlloc<NontrivialReloc> nt;
+		nt = {NontrivialReloc(5)};
+		nt = nt;
+		EXPECT_EQ(5, *nt[0]);
+	}
+	ASSERT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
+	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 
 

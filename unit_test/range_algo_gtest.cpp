@@ -8,6 +8,7 @@
 #include <array>
 #include <valarray>
 
+namespace view = oel::view;
 
 TEST(rangeTest, eraseUnstable)
 {
@@ -75,8 +76,6 @@ TEST(rangeTest, countedView)
 #if !defined OEL_NO_BOOST
 TEST(rangeTest, viewTransform)
 {
-	using namespace oel;
-
 	int src[] { 1, 2, 3 };
 
 	struct Fun
@@ -85,7 +84,7 @@ TEST(rangeTest, viewTransform)
 			return i * i;
 		}
 	};
-	dynarray<int> test( view::transform(src, Fun{}) );
+	oel::dynarray<int> test( view::transform(src, Fun{}) );
 	EXPECT_EQ(3U, test.size());
 	EXPECT_EQ(1, test[0]);
 	EXPECT_EQ(4, test[1]);
@@ -99,7 +98,7 @@ TEST(rangeTest, viewTransform)
 	EXPECT_EQ(2, src[0]);
 	EXPECT_EQ(3, src[1]);
 	}
-	auto r = make_iterator_range(begin(src) + 1, end(src));
+	auto r = oel::make_iterator_range(std::begin(src) + 1, std::end(src));
 	auto f = [](int i) { return i; };
 	test.assign( view::transform(r, std::ref(f)) );
 	EXPECT_EQ(2U, test.size());
@@ -124,7 +123,7 @@ TEST(rangeTest, copy)
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
 	test2[4] = -7;
-	auto fitInto = oel::view::counted(std::begin(test2), 4);
+	auto fitInto = view::counted(std::begin(test2), 4);
 
 OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
@@ -134,14 +133,14 @@ OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_EQ(-7, test2[4]);
 	EXPECT_FALSE(success);
 
-	EXPECT_EQ(4, test[4]);
+	ASSERT_EQ(4, test[4]);
 	auto l = oel::copy(test2, test).dest_last;
 	EXPECT_EQ(-7, test[4]);
 	EXPECT_TRUE(end(test) == l);
 	{
 		std::forward_list<std::string> li{"aa", "bb"};
 		std::array<std::string, 2> strDest;
-		auto sLast = oel::copy(oel::view::move(li), strDest).source_last;
+		auto sLast = oel::copy(view::move(li), strDest).source_last;
 		EXPECT_EQ("aa", strDest[0]);
 		EXPECT_EQ("bb", strDest[1]);
 		EXPECT_TRUE(li.begin()->empty());

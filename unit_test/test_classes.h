@@ -123,6 +123,7 @@ struct NontrivialConstruct : MyCounter
 
 	~NontrivialConstruct() { ++nDestruct; }
 };
+static_assert( !oel::is_trivially_default_constructible<NontrivialConstruct>::value, "?" );
 
 
 struct AllocCounter
