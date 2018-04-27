@@ -306,9 +306,7 @@ private:
 	using _internBase = _detail::DynarrBase<pointer>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 
-#ifdef _MSC_VER
-	template<int> // workaround for constexpr constructor failing compilation
-#endif
+	template<typename> // template to allow constexpr constructor when Alloc copy constructor is not constexpr
 	struct _memOwner : public _internBase, public Alloc
 	{
 		using _internBase::data; // owning pointer
@@ -337,11 +335,7 @@ private:
 				_allocateWrap::Deallocate(*this, data, reservEnd - data);
 		}
 	};
-	_memOwner
-#ifdef _MSC_VER
-		<0>
-#endif
-		_m; // the only data member
+	_memOwner<Alloc> _m; // the only data member
 
 
 	using _allocRef = _detail::AllocRefOptimized<Alloc>;
@@ -527,12 +521,8 @@ private:
 
 		ptr-> ~T();
 		--_m.end;
-		auto &
-	#ifndef _MSC_VER
-			__attribute__((may_alias))
-	#endif
-			raw = *reinterpret_cast<aligned_union_t<T> *>(ptr);
-		raw = *reinterpret_cast<aligned_union_t<T> *>(_m.end); // relocate last element to pos
+		auto mem = reinterpret_cast<aligned_union_t<T> *>(ptr);
+		*mem = *reinterpret_cast<aligned_union_t<T> *>(_m.end); // relocate last element to pos
 	}
 
 	void _eraseUnorder(iterator pos, false_type)

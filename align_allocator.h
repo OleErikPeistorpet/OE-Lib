@@ -27,15 +27,6 @@
 namespace oel
 {
 
-//! Same as std::aligned_storage_t, with support for alignment above that of std::max_align_t
-template<size_t Size, size_t Align>
-struct aligned_storage_t;
-//! A trivial type of same size and alignment as type T, suitable for use as uninitialized storage for an object
-template<typename T>
-using aligned_union_t = aligned_storage_t<sizeof(T), alignof(T)>;
-
-
-
 //! An automatic alignment allocator. If the alignment of T is not supported, allocate does not compile.
 template<typename T>
 struct allocator
@@ -58,6 +49,22 @@ struct allocator
 	template<typename U>
 	friend bool operator!=(allocator<T>, allocator<U>) noexcept { return false; }
 };
+
+
+
+//! Similar to std::aligned_storage_t, but supports any alignment the compiler can provide
+template<size_t Size, size_t Align>
+struct OEL_ALIGNAS(Align)
+#ifndef _MSC_VER
+	__attribute__((may_alias))
+#endif
+	aligned_storage_t
+{
+	unsigned char as_bytes[Size];
+};
+//! A trivial type of same size and alignment as type T, suitable for use as uninitialized storage for an object
+template<typename T>
+using aligned_union_t = aligned_storage_t<sizeof(T), alignof(T)>;
 
 
 
@@ -169,10 +176,3 @@ OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 }
 
 } // namespace oel
-
-
-template<std::size_t Size, std::size_t Align>
-struct OEL_ALIGNAS(Align) oel::aligned_storage_t
-{
-	unsigned char data[Size];
-};
