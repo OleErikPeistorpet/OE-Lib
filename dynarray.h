@@ -531,8 +531,8 @@ private:
 	#ifndef _MSC_VER
 			__attribute__((may_alias))
 	#endif
-			raw = reinterpret_cast<aligned_union_t<T> &>(*ptr);
-		raw = reinterpret_cast<aligned_union_t<T> &>(*_m.end); // relocate last element to pos
+			raw = *reinterpret_cast<aligned_union_t<T> *>(ptr);
+		raw = *reinterpret_cast<aligned_union_t<T> *>(_m.end); // relocate last element to pos
 	}
 
 	void _eraseUnorder(iterator pos, false_type)
