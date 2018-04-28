@@ -23,10 +23,10 @@ namespace _detail
 	#define OEL_DEBUG_HEADER_OF(ptr)  \
 		(reinterpret_cast<_detail::DebugAllocationHeader *>(_detail::ToAddress(ptr)) - 1)
 
-	template<typename ConstPtr>
-	inline bool HasValidIndex(ConstPtr arrayElem, const DebugAllocationHeader & h)
+	template<typename T, typename Ptr>
+	inline bool HasValidIndex(Ptr arrayElem, const DebugAllocationHeader & h)
 	{
-		size_t index = arrayElem - static_cast<ConstPtr>(static_cast<const void *>(&h + 1));
+		size_t index = arrayElem - reinterpret_cast<const T *>(&h + 1);
 		return index < h.nObjects;
 	}
 

@@ -30,7 +30,7 @@ template<typename Ptr, typename ValT>
 class dynarray_iterator
 {
 #define OEL_ITER_VALIDATE_DEREF  \
-	OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex<_constPtr>(_pElem, *_header) )
+	OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex<value_type>(_pElem, *_header) )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	// Test for iterator pair pointing to same container
@@ -41,7 +41,6 @@ class dynarray_iterator
 #endif
 
 	using _ptrTrait = std::pointer_traits<Ptr>;
-	using _constPtr = typename _ptrTrait::template rebind<ValT const>;
 
 public:
 	using iterator_category = std::random_access_iterator_tag;
@@ -51,7 +50,7 @@ public:
 	using reference       = decltype(*std::declval<Ptr>());
 	using difference_type = typename _ptrTrait::difference_type;
 
-	using const_iterator = dynarray_iterator<_constPtr, ValT>;
+	using const_iterator = dynarray_iterator<typename _ptrTrait::template rebind<ValT const>, ValT>;
 
 	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
 	{

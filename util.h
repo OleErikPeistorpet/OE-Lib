@@ -147,7 +147,7 @@ namespace _detail
 {
 	// Part of pointer_traits for C++17
 	template<typename Ptr>
-	OEL_ALWAYS_INLINE constexpr typename std::pointer_traits<Ptr>::element_type * ToAddress(const Ptr & p)
+	OEL_ALWAYS_INLINE constexpr typename std::pointer_traits<Ptr>::element_type * ToAddress(Ptr p)
 	{
 		return p.operator->();
 	}
@@ -173,7 +173,7 @@ namespace _detail
 		enable_if< std::is_same<decltype( _Unchecked(ContiguousIterator{}) ),
 		                        typename ContiguousIterator::pointer> ::value > = 0
 	> inline
-	auto to_pointer_contiguous(ContiguousIterator it) noexcept
+	auto to_pointer_contiguous(const ContiguousIterator & it) noexcept
 	{
 		return _detail::ToAddress(_Unchecked(it));
 	}
