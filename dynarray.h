@@ -708,7 +708,7 @@ private:
 	}
 
 	template<typename MakeFuncAppend>
-	void _appendImpl(size_type const count, MakeFuncAppend makeNew)
+	void _appendImpl(size_type const count, MakeFuncAppend const makeNew)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -726,7 +726,7 @@ private:
 #else
 	__attribute__((noinline))
 #endif
-	void _appendRealloc(size_type const count, MakeFuncAppend makeNew)
+	void _appendRealloc(size_type const count, MakeFuncAppend const makeNew)
 	{
 		size_type const oldSize = size();
 		_scopedPtr newBuf{_m, _calcCap(capacity(), oldSize + count)};
@@ -757,7 +757,7 @@ private:
 
 	template<typename CalcCapFunc, typename MakeFuncInsert, typename... Args>
 	T * _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
-	                   CalcCapFunc calcNewCap, MakeFuncInsert makeNew, Args &&... args)
+	                   CalcCapFunc calcNewCap, MakeFuncInsert const makeNew, Args &&... args)
 	{
 		_scopedPtr newBuf{_m, calcNewCap(capacity(), size() + nToAdd)};
 

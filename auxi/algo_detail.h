@@ -89,7 +89,7 @@ namespace _detail
 
 	template<typename Alloc, typename InputIter, typename T, typename FuncTakingLast = NoOp,
 	         enable_if< !can_memmove_with<T *, InputIter>::value > = 0>
-	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc, FuncTakingLast extraCleanup = {})
+	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc, FuncTakingLast const extraCleanup = {})
 	{
 		T *const dFirst = dest;
 		OEL_TRY_
@@ -114,7 +114,7 @@ namespace _detail
 	struct UninitFill
 	{
 		template<typename T, typename... Arg>
-		void operator()(T * first, T *const last, Alloc & alloc, const Arg &... arg)
+		void operator()(T * first, T *const last, Alloc & alloc, const Arg &... arg) const
 		{
 			T *const init = first;
 			OEL_TRY_
@@ -130,13 +130,13 @@ namespace _detail
 		}
 
 		template<typename T, enable_if< sizeof(T) == 1 and std::is_integral<T>::value > = 0>
-		void operator()(T * first, T * last, Alloc &, T val)
+		void operator()(T * first, T * last, Alloc &, T val) const
 		{
 			std::memset(first, val, last - first);
 		}
 
 		template<typename T, enable_if< std::is_trivial<T>::value > = 0>
-		void operator()(T * first, T * last, Alloc &)
+		void operator()(T * first, T * last, Alloc &) const
 		{
 			std::memset(first, 0, sizeof(T) * (last - first));
 		}
