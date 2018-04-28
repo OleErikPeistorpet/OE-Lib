@@ -24,9 +24,9 @@
 
 
 #ifndef OEL_ABORT
-	/** @brief Used by OEL_ASSERT, and anywhere that would normally throw if exceptions are disabled
+	/** @brief If exceptions are disabled, used anywhere that would normally throw. If predefined, used by OEL_ASSERT
 	*
-	* Users may define this to call a function that does not return or to throw an exception.
+	* Users may define this to call a function that never returns or to throw an exception.
 	* Example: @code
 	#define OEL_ABORT(errorMessage)  throw std::logic_error(errorMessage "; in " __FILE__)
 	@endcode  */
@@ -35,7 +35,7 @@
 	#if !defined OEL_ASSERT and !defined NDEBUG
 	#include <cassert>
 
-	//! Can be defined to your own
+	//! Can be defined to your own or changed right here.
 	#define OEL_ASSERT  assert
 	#endif
 #endif
