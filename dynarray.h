@@ -678,7 +678,7 @@ private:
 		}
 		while (_m.end < newEnd)
 		{	// each iteration updates _m.end for exception safety
-			_detail::Construct<Alloc>(_m, _m.end, *src);
+			_detail::Construct<T>(_m, _detail::ToAddress(_m.end), *src);
 			++src; ++_m.end;
 		}
 		return src;
@@ -772,7 +772,7 @@ private:
 		_scopedPtr newBuf{_m, _calcCapAddOne()};
 
 		pointer const pos = newBuf.data + size();
-		_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
+		_detail::Construct<T>(_m, _detail::ToAddress(pos), static_cast<Args &&>(args)...);
 		_relocateData(newBuf.data, size());
 
 		_m.end = pos;
@@ -806,9 +806,9 @@ private:
 	struct _emplaceMakeElem
 	{
 		template<typename... Args>
-		T * operator()(T *const newPos, size_type, Alloc & a, Args &&... args) const
+		T * operator()(T *const newPos, size_type, decltype(_m) & m, Args &&... args) const
 		{
-			_detail::Construct(a, newPos, static_cast<Args &&>(args)...);
+			_detail::Construct<T>(a, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
 		}
 	};
@@ -832,7 +832,7 @@ typename dynarray<T, Alloc>::iterator
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
-		_detail::Construct<Alloc>(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+		_detail::Construct<T>(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_m.end;
@@ -876,7 +876,7 @@ typename dynarray<T, Alloc>::iterator
 			{
 				while (dest != dLast)
 				{
-					_detail::Construct<Alloc>(_m, dest, *first);
+					_detail::Construct<T>(_m, dest, *first);
 					++first; ++dest;
 				}
 			}
@@ -908,7 +908,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	_debugSizeUpdater guard{_m};
 
 	if (_m.end < _m.reservEnd)
-		_detail::Construct<Alloc>(_m, _m.end, static_cast<Args &&>(args)...);
+		_detail::Construct<T>(_m, _detail::ToAddress(_m.end), static_cast<Args &&>(args)...);
 	else
 		_emplaceBackRealloc(static_cast<Args &&>(args)...);
 
@@ -1100,6 +1100,7 @@ OEL_ALWAYS_INLINE inline T & dynarray<T, Alloc>::at(size_type i)
 	const auto & cSelf = *this;
 	return const_cast<reference>(cSelf.at(i));
 }
+
 template<typename T, typename Alloc>
 const T & dynarray<T, Alloc>::at(size_type i) const
 {
