@@ -118,7 +118,7 @@ public:
 	//! Construct empty dynarray with space reserved for at least minCap elements
 	dynarray(reserve_tag, size_type minCap, const Alloc & a = Alloc{})  : _m(a, minCap) {}
 
-	/** @brief Uses default initialization for elements, can be significantly faster for non-class T
+	/** @brief Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
 	*
 	* @copydetails resize(size_type, default_init_t)  */
 	dynarray(size_type size, default_init_t, const Alloc & a = Alloc{});
@@ -188,9 +188,9 @@ public:
 	void      append(size_type count, const T & val);
 
 	/**
-	* @brief Uses default initialization for added elements, can be significantly faster for non-class T
+	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	*
-	* Non-class T objects get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
+	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 	void      resize(size_type n, default_init_t)  { _resizeImpl(n, _detail::UninitDefaultConstruct<Alloc, T>); }
 	//! (Value-initializes added elements, same as std::vector::resize)
 	void      resize(size_type n)                  { _resizeImpl(n, _detail::UninitFill<Alloc>{}); }
@@ -205,11 +205,11 @@ public:
 	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
 	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
 
-	//! Does direct-list-initialization of element if no constructor matches Args (using default allocator)
+	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
 	template<typename... Args>
 	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
 
-	//! Does direct-list-initialization of element if no constructor matches Args (using default allocator)
+	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
 	template<typename... Args>
 	reference emplace_back(Args &&... args);
 

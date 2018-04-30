@@ -123,10 +123,12 @@ namespace _detail
 {
 	template<typename Container> inline
 	auto EraseEnd(Container & c, typename Container::iterator f)
-	 -> decltype(c.erase_to_end(f)) { return c.erase_to_end(f); }
+	 -> decltype(c.erase_to_end(f))
+	    { return c.erase_to_end(f); }
 
 	template<typename Container, typename... None> inline
 	void EraseEnd(Container & c, typename Container::iterator f, None...) { c.erase(f, c.end()); }
+
 
 	template<typename Container, typename UnaryPred> inline
 	auto RemoveIf(Container & c, UnaryPred p, int)  // pass dummy int to prefer this overload

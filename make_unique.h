@@ -18,7 +18,7 @@ namespace oel
 {
 
 /**
-* @brief Same as std::make_unique, but performs direct-list-initialization if there is no matching constructor
+* @brief Same as std::make_unique, but performs list-initialization `T{...}` if there is no matching constructor
 *
 * (Works for aggregates.) http://open-std.org/JTC1/SC22/WG21/docs/papers/2015/n4462.html  */
 template< typename T, typename... Args,
@@ -29,7 +29,7 @@ std::unique_ptr<T> make_unique(Args &&... args);
 template< typename T, typename = enable_if<std::is_array<T>::value> >
 std::unique_ptr<T> make_unique(size_t arraySize);
 /**
-* @brief Array is default-initialized, can be significantly faster for non-class elements
+* @brief Array is default-initialized, can be significantly faster if T is non-class or has trivial default constructor
 *
 * Non-class elements get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 template< typename T, typename = enable_if<std::is_array<T>::value> >
