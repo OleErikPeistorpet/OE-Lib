@@ -18,12 +18,6 @@
 /** @file
 */
 
-#ifdef _MSC_VER
-	#define OEL_ALIGNAS(amount) __declspec(align(amount))
-#else
-	#define OEL_ALIGNAS(amount) __attribute__(( aligned(amount) ))
-#endif
-
 namespace oel
 {
 
@@ -54,9 +48,11 @@ struct allocator
 
 //! Similar to std::aligned_storage_t, but supports any alignment the compiler can provide
 template<size_t Size, size_t Align>
-struct OEL_ALIGNAS(Align)
-#ifndef _MSC_VER
-	__attribute__((may_alias))
+struct
+#if OEL_GCC_VERSION >= 500
+	__attribute__(( aligned(Align), may_alias ))
+#else
+	alignas(Align)
 #endif
 	aligned_storage_t
 {
