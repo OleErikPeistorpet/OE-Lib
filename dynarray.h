@@ -376,7 +376,7 @@ private:
 		_m.data = newData;
 	}
 
-	static pointer _allocate(Alloc & a, size_type n)
+	static pointer _allocate(Alloc & a, size_type const n)
 	{
 		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeForHeader)
 			return _allocateWrap::Allocate(a, n); // allocate should throw if subtraction wrapped around
@@ -512,7 +512,13 @@ private:
 	}
 
 
-	void _eraseUnorder(iterator const pos, true_type /*trivialRelocate*/)
+	void _eraseUnorder(iterator pos, false_type) // non-trivial relocation
+	{
+		*pos = std::move(back());
+		pop_back();
+	}
+
+	void _eraseUnorder(iterator const pos, true_type)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -525,13 +531,7 @@ private:
 		*mem = *reinterpret_cast<aligned_union_t<T> *>(_m.end); // relocate last element to pos
 	}
 
-	void _eraseUnorder(iterator pos, false_type)
-	{
-		*pos = std::move(back());
-		pop_back();
-	}
-
-	void _erase(iterator pos, true_type /*trivialRelocate*/)
+	void _erase(iterator const pos, true_type /*trivialRelocate*/)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -544,7 +544,7 @@ private:
 		--_m.end;
 	}
 
-	void _erase(iterator pos, false_type)
+	void _erase(iterator const pos, false_type)
 	{
 		_debugSizeUpdater guard{_m};
 
