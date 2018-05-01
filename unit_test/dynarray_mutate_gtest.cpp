@@ -633,18 +633,22 @@ TEST_F(dynarrayTest, eraseUnstable)
 TEST_F(dynarrayTest, overAligned)
 {
 	unsigned int const testAlignment = 32;
+	struct Type
+	{	oel::aligned_storage_t<testAlignment, testAlignment> a;
+	};
+	dynarray<Type> special(oel::reserve, 3);
 
-	dynarray< oel::aligned_storage_t<testAlignment, testAlignment> > special(0);
-	EXPECT_TRUE(special.cbegin() == special.cend());
-
-	special.append(5, {});
-	EXPECT_EQ(5U, special.size());
+	special.insert(special.begin(), Type());
+	special.emplace(special.begin());
+	special.emplace(special.begin() + 1);
+	EXPECT_EQ(3U, special.size());
 	for (const auto & v : special)
 		EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&v) % testAlignment);
 
-	special.resize(1, oel::default_init);
+	special.erase_unstable(special.end() - 1);
+	special.erase_unstable(special.begin());
 	special.shrink_to_fit();
-	EXPECT_GT(5U, special.capacity());
+	EXPECT_TRUE(special.capacity() < 3U);
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 
 OEL_WHEN_EXCEPTIONS_ON(

@@ -49,7 +49,7 @@ struct allocator
 //! Similar to std::aligned_storage_t, but supports any alignment the compiler can provide
 template<size_t Size, size_t Align>
 struct
-#if OEL_GCC_VERSION >= 500
+#ifdef __GNUC__
 	__attribute__(( aligned(Align), may_alias ))
 #else
 	alignas(Align)

@@ -29,6 +29,9 @@ namespace
 	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
 	static_assert(alignof(oel::aligned_storage_t<64, 64>) == 64, "?");
 
+	struct alignas(32) Foo { char a[20]; };
+	static_assert(alignof(oel::aligned_union_t<Foo>) == 32, "?");
+
 	static_assert(!oel::can_memmove_with< int *, float * >::value, "?");
 	static_assert(!oel::can_memmove_with< int *, std::list<int>::iterator >::value, "?");
 	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >::value, "?");
