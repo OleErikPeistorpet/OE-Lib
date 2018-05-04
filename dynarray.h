@@ -41,7 +41,7 @@ template<typename T, typename Alloc>
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
 template<typename T, typename A>  OEL_ALWAYS_INLINE inline
-void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept(nodebug)  { a.swap(b); }
+void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept( noexcept(a.swap(b)) )  { a.swap(b); }
 
 //! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
 template<typename T, typename A> inline
@@ -154,8 +154,8 @@ public:
 
 	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
-	void      swap(dynarray & other) noexcept(nodebug);
-
+	void      swap(dynarray & other) noexcept(_allocTrait::propagate_on_container_swap::value
+	                                          or is_always_equal<Alloc>::value);
 	/**
 	* @brief Replace the contents with source range
 	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
@@ -968,7 +968,8 @@ dynarray<T, Alloc>::~dynarray() noexcept
 }
 
 template<typename T, typename Alloc>
-void dynarray<T, Alloc>::swap(dynarray & other) noexcept(nodebug)
+void dynarray<T, Alloc>::swap(dynarray & other)
+	noexcept(_allocTrait::propagate_on_container_swap::value or is_always_equal<Alloc>::value)
 {
 	_internBase & a = _m;
 	_internBase & b = other._m;

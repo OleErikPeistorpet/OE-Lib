@@ -179,7 +179,7 @@ struct TrackingAllocator : oel::allocator<T>
 	}
 };
 
-template<typename T, bool PropagateOnMoveAssign>
+template<typename T, bool PropagateOnMoveAssign = false>
 struct StatefulAllocator : TrackingAllocator<T>
 {
 	using propagate_on_container_move_assignment = oel::bool_constant<PropagateOnMoveAssign>;

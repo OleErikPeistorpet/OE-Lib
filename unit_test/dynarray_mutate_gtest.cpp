@@ -1,6 +1,4 @@
-#if defined _CPPUNWIND || defined __EXCEPTIONS
-	#define OEL_ABORT(errorMsg) throw std::logic_error(errorMsg)
-#endif
+#include "throw_from_assert.h"
 
 #include "test_classes.h"
 #include "range_view.h"

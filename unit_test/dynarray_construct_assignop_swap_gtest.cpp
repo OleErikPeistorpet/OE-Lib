@@ -1,3 +1,5 @@
+#include "throw_from_assert.h"
+
 #include "dynarray.h"
 #include "test_classes.h"
 
@@ -563,3 +565,18 @@ TEST_F(dynarrayConstructTest, swap)
 	EXPECT_EQ(2, r);
 	EXPECT_EQ(&b.back(), &r);
 }
+
+#if OEL_MEM_BOUND_DEBUG_LVL
+
+TEST_F(dynarrayConstructTest, swapUnequal)
+{
+	using Al = StatefulAllocator<int>;
+	dynarray< int, Al > one(Al(1));
+	dynarray< int, Al > two(Al(2));
+#if defined _CPPUNWIND or defined __EXCEPTIONS
+	EXPECT_THROW( swap(one, two), std::logic_error );
+#else
+	EXPECT_DEATH( swap(one, two), "" );
+#endif
+}
+#endif
