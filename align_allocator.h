@@ -85,7 +85,12 @@ namespace _detail
 		#if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
 			Align <= 16 >;
 		#else
-			Align <= OEL_ALIGNOF(std::max_align_t) >;
+			Align <= OEL_ALIGNOF(
+				#if __GNUC__ != 4 || __GNUC_MINOR__ >= 9
+					std
+				#endif
+					::max_align_t)
+			>;
 		#endif
 
 	template<size_t> inline
