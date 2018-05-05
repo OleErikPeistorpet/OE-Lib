@@ -439,7 +439,7 @@ private:
 	template<typename UninitCopyFunc>
 	OEL_FORCEINLINE iterator _appendImpl(size_type const count, UninitCopyFunc makeNewElems)
 	{
-		_staticAssertRelocate();
+		_staticAssertRelocate{};
 
 		pointer pos;
 		if (_unusedCapacity() >= count)
@@ -559,7 +559,7 @@ private:
 
 	void _growTo(size_type newCapacity)
 	{
-		_staticAssertRelocate();
+		_staticAssertRelocate{};
 
 		pointer const newData = _alloc(newCapacity);
 
@@ -601,7 +601,7 @@ void dynarray<T, Alloc>::emplace_back(Args &&... args)
 template<typename T, typename Alloc> template<typename... Args>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
 {
-	_staticAssertRelocate();
+	_staticAssertRelocate{};
 
 	auto const posPtr = const_cast<pointer>(to_pointer_contiguous(pos));
 	OEL_BOUND_ASSERT_CHEAP(_data.get() <= posPtr && posPtr <= _end);
@@ -757,7 +757,7 @@ void dynarray<T, Alloc>::reserve(size_type minCapacity)
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::shrink_to_fit()
 {
-	_staticAssertRelocate();
+	_staticAssertRelocate{};
 
 	size_type const used = size();
 	pointer newData;
@@ -798,7 +798,7 @@ inline void dynarray<T, Alloc>::pop_back() noexcept
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) noexcept
 {
-	_staticAssertRelocate();
+	_staticAssertRelocate{};
 
 	pointer const posPtr = to_pointer_contiguous(pos);
 	OEL_BOUND_ASSERT_CHEAP(_data.get() <= posPtr && posPtr < _end);
@@ -814,7 +814,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) n
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last) noexcept
 {
-	_staticAssertRelocate();
+	_staticAssertRelocate{};
 
 	pointer const pFirst = to_pointer_contiguous(first);
 	pointer const pLast = to_pointer_contiguous(last);
