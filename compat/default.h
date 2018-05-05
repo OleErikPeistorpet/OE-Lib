@@ -17,7 +17,7 @@
 #include <tuple>
 
 #if defined __has_include
-#if __has_include(<memory_resource>)
+#if __has_include(<memory_resource>) and (!defined _MSC_VER or _HAS_CXX17)
 	#include <memory_resource>
 
 	#define OEL_HAS_STD_PMR  1
