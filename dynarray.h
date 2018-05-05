@@ -794,7 +794,7 @@ typename dynarray<T, Alloc>::iterator
 	_debugSizeUpdater guard{_m};
 
 #define OEL_DYNARR_INSERT_STEP1  \
-	_detail::AssertTrivialRelocate<T>();  \
+	_detail::AssertTrivialRelocate<T>{};  \
 	\
 	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
 	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);  \
@@ -1054,7 +1054,7 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last)
 {
-	_detail::AssertTrivialRelocate<T>();
+	_detail::AssertTrivialRelocate<T>{};
 
 	_debugSizeUpdater guard{_m};
 
