@@ -227,7 +227,7 @@ public:
 
 	iterator  erase(iterator pos)           { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
-	iterator  erase(iterator first, iterator last);
+	iterator  erase(iterator first, const_iterator last);
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require trivially relocatable T
 	void      erase_to_end(iterator first) noexcept(nodebug);
 
@@ -430,7 +430,7 @@ private:
 	}
 
 
-	void _initPostAllocate(const T *const src)
+	void _initPostAllocate(const T * src)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -1052,14 +1052,14 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 }
 
 template<typename T, typename Alloc>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, iterator last)
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last)
 {
 	_detail::AssertTrivialRelocate<T>{};
 
 	_debugSizeUpdater guard{_m};
 
-	T *const pFirst = to_pointer_contiguous(first);
-	T *const pLast = to_pointer_contiguous(last);
+	T *const      pFirst = to_pointer_contiguous(first);
+	const T *const pLast = to_pointer_contiguous(last);
 	OEL_ASSERT(_m.data <= pFirst and pFirst <= pLast and pLast <= _m.end);
 	if (pFirst < pLast)
 	{
