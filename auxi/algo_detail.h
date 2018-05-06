@@ -113,7 +113,11 @@ namespace _detail
 	template<typename Alloc>
 	struct UninitFill
 	{
-		template<typename T, typename... Arg>
+		template<typename T>
+		using IsByte = bool_constant<sizeof(T) == 1 and std::is_integral<T>::value>;
+
+		template<typename T, typename... Arg,
+		         enable_if< !IsByte<T>::value > = 0>
 		void operator()(T * first, T *const last, Alloc & alloc, const Arg &... arg) const
 		{
 			T *const init = first;
@@ -129,8 +133,8 @@ namespace _detail
 			}
 		}
 
-		template<typename T, enable_if< sizeof(T) == 1 and std::is_integral<T>::value > = 0>
-		void operator()(T * first, T * last, Alloc &, T val) const
+		template<typename T, enable_if<IsByte<T>::value> = 0>
+		void operator()(T * first, T * last, Alloc &, int val) const
 		{
 			std::memset(first, val, last - first);
 		}
