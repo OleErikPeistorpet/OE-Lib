@@ -41,24 +41,24 @@ namespace _detail
 
 
 	template<typename T, typename Alloc, bool B, typename... Args>
-	inline auto ConstructImpl(bool_constant<B>, Alloc & a, T * p, Args &&... args)
+	inline auto ConstructImpl(bool_constant<B>, Alloc & a, T *__restrict p, Args &&... args)
 	 -> decltype( a.construct(p, std::forward<Args>(args)...) )
 	            { a.construct(p, std::forward<Args>(args)...); }
 	// void * worse match than T *
 	template<typename T, typename Alloc, typename... Args>
-	inline void ConstructImpl(std::true_type, Alloc &, void * p, Args &&... args)
+	inline void ConstructImpl(std::true_type, Alloc &, void *__restrict p, Args &&... args)
 	{	// T constructible from Args
 		::new(p) T(std::forward<Args>(args)...);
 	}
 	// list-initialization
 	template<typename T, typename Alloc, typename... Args>
-	inline void ConstructImpl(std::false_type, Alloc &, void * p, Args &&... args)
+	inline void ConstructImpl(std::false_type, Alloc &, void *__restrict p, Args &&... args)
 	{
 		::new(p) T{std::forward<Args>(args)...};
 	}
 
 	template<typename Alloc, typename T, typename... Args>
-	OEL_ALWAYS_INLINE inline void Construct(Alloc & a, T * p, Args &&... args)
+	OEL_ALWAYS_INLINE inline void Construct(Alloc & a, T *__restrict p, Args &&... args)
 	{
 		ConstructImpl<T>(std::is_constructible<T, Args...>(),
 		                 a, p, std::forward<Args>(args)...);
