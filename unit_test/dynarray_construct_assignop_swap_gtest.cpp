@@ -221,6 +221,7 @@ TEST_F(dynarrayConstructTest, constructNFill)
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 
+
 TEST_F(dynarrayConstructTest, constructInitList)
 {
 	{
@@ -246,6 +247,13 @@ TEST_F(dynarrayConstructTest, constructContiguousRange)
 	std::string str = "AbCd";
 	dynarray<char> test(str);
 	EXPECT_TRUE( 0 == str.compare(0, 4, test.data(), test.size()) );
+}
+
+TEST_F(dynarrayConstructTest, constructRangeNoCopyAssign)
+{
+	auto il = { 1.2, 3.4 };
+	dynarray<MoveOnly> test(il);
+	EXPECT_TRUE(test.size() == 2);
 }
 
 

@@ -136,7 +136,7 @@ public:
 	@endcode  */
 	template< typename InputRange,
 		typename /*EnableIfRange*/ = decltype( ::adl_cbegin(std::declval<InputRange>()) ) >
-	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})   : _m(a) { assign(r); }
+	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})   : _m(a) { append(r); }
 
 	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})  : _m(a, il.size())
 	                                                                  { _initPostAllocate(il.begin()); }
