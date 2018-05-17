@@ -245,7 +245,12 @@ TEST_F(dynarrayConstructTest, constructInitList)
 TEST_F(dynarrayConstructTest, constructContiguousRange)
 {
 	std::string str = "AbCd";
+#if __cpp_deduction_guides >= 201611 or (_MSC_VER >= 1914 and _HAS_CXX17)
+	dynarray test(str);
+	static_assert(std::is_same<decltype(test)::value_type, char>());
+#else
 	dynarray<char> test(str);
+#endif
 	EXPECT_TRUE( 0 == str.compare(0, 4, test.data(), test.size()) );
 }
 

@@ -54,6 +54,9 @@ template<typename Iterator>
 using iterator_difference_t = typename std::iterator_traits<Iterator>::difference_type;
 
 template<typename Iterator>
+using iterator_value_t = typename std::iterator_traits<Iterator>::value_type;
+
+template<typename Iterator>
 using iterator_traversal_t
 #ifndef OEL_NO_BOOST
 	= typename boost::iterator_traversal<Iterator>::type;

@@ -52,7 +52,7 @@ class counted_view
 {
 public:
 	using iterator        = Iterator;
-	using value_type      = typename std::iterator_traits<Iterator>::value_type;
+	using value_type      = iterator_value_t<Iterator>;
 	using difference_type = iterator_difference_t<Iterator>;
 #ifndef OEL_VIEW_SIGNED_SIZE // defined by user if they want
 	using size_type       = size_t;

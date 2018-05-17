@@ -70,6 +70,13 @@ inline namespace debug
 {
 #endif
 
+#if __cpp_deduction_guides >= 201611 or (_MSC_VER >= 1914 and _HAS_CXX17)
+template<typename InputRange,
+         typename Alloc = allocator< iterator_value_t<decltype( cbegin(std::declval<InputRange>()) )> >>
+explicit dynarray(InputRange, Alloc = Alloc{})
+ -> dynarray<iterator_value_t<decltype( cbegin(std::declval<InputRange>()) )>, Alloc>;
+#endif
+
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
 *
