@@ -223,10 +223,15 @@ public:
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
 	void      push_back(const T & val)  { emplace_back(val); }
 
-	void      pop_back() noexcept(nodebug);
+	void      pop_back() noexcept(nodebug)
+		{
+			OEL_ASSERT(!empty());
+			_debugSizeUpdater guard{_m};
+			--_m.end;
+			(*_m.end).~T();
+		}
 
-	/**
-	* @brief Erase the element at pos without maintaining order of elements after pos.
+	/** @brief Erase the element at pos without maintaining order of elements after pos.
 	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
@@ -236,9 +241,9 @@ public:
 
 	iterator  erase(iterator first, const_iterator last);
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require trivially relocatable T
-	void      erase_to_end(iterator first) noexcept(nodebug);
+	void      erase_to_end(iterator first) noexcept(nodebug)   OEL_ALWAYS_INLINE { _eraseEnd(first); }
 
-	void      clear() noexcept        { erase_to_end(begin()); }
+	void      clear() noexcept        { _eraseEnd(begin()); }
 
 	bool      empty() const noexcept  { return _m.data == _m.end; }
 
@@ -558,6 +563,16 @@ private:
 		iterator last = std::move(pos + 1, end(), pos);
 		_m.end = to_pointer_contiguous(last);
 		(*_m.end).~T();
+	}
+
+	void _eraseEnd(iterator const first)
+	{
+		_debugSizeUpdater guard{_m};
+
+		T *const newEnd = to_pointer_contiguous(first);
+		OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
+		_detail::Destroy(newEnd, _m.end);
+		_m.end = newEnd;
 	}
 
 
@@ -1036,27 +1051,6 @@ inline auto dynarray<T, Alloc>::append(const InputRange & src) -> decltype(::adl
 	return _append( ::adl_begin(src), _sizeOrEnd<IterSrc>(src), can_memmove_with<T *, IterSrc>() );
 }
 
-
-template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::pop_back() noexcept(nodebug)
-{
-	OEL_ASSERT(_m.data < _m.end);
-	_debugSizeUpdater guard{_m};
-
-	--_m.end;
-	(*_m.end).~T();
-}
-
-template<typename T, typename Alloc>
-inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
-{
-	_debugSizeUpdater guard{_m};
-
-	T *const newEnd = to_pointer_contiguous(first);
-	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
-	_detail::Destroy(newEnd, _m.end);
-	_m.end = newEnd;
-}
 
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last)
