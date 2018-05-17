@@ -323,7 +323,7 @@ private:
 			reservEnd = data + capacity;
 		}
 
-		_memOwner(_memOwner && other)
+		_memOwner(_memOwner && other) noexcept
 		 :	_internBase(other), Alloc(std::move(other))
 		{
 			other.reservEnd = other.end = other.data = nullptr;
@@ -385,7 +385,7 @@ private:
 	}
 
 	template<typename Iterator>
-	Iterator _makeIter(pointer p) const
+	Iterator _makeIter(pointer p) const noexcept
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (_m.data)
@@ -417,7 +417,7 @@ private:
 
 	OEL_ALWAYS_INLINE void _moveAssignAlloc(std::false_type, Alloc &) {}
 
-	void _swapAlloc(std::true_type, Alloc & a)
+	void _swapAlloc(std::true_type, Alloc & a) noexcept
 	{
 		using std::swap;
 		swap(static_cast<Alloc &>(_m), a);

@@ -28,7 +28,7 @@ namespace _detail
 	{
 		Alloc & alloc;
 
-		Alloc & Get() { return alloc; }
+		Alloc & Get() noexcept { return alloc; }
 	};
 
 	template<typename Alloc>
@@ -36,7 +36,7 @@ namespace _detail
 	{
 		OEL_ALWAYS_INLINE AllocRefOptimized(Alloc &) {}
 
-		Alloc Get() { return Alloc{}; }
+		Alloc Get() noexcept { return Alloc{}; }
 	};
 }
 
