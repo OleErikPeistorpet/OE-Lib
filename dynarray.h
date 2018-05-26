@@ -446,18 +446,18 @@ private:
 
 	static size_type _calcCapAddOne(size_type const oldCap, size_type = 0)
 	{
-		constexpr auto startBytesGood = max(3 * sizeof(void *), 4 * sizeof(int));
-		constexpr auto minGrow = max<size_t>( startBytesGood / sizeof(T),
+		constexpr auto startBytesGood = oel_max(3 * sizeof(void *), 4 * sizeof(int));
+		constexpr auto minGrow = oel_max<size_t>( startBytesGood / sizeof(T),
 				sizeof(T) <= 8 * sizeof(int) ? 2 : 1 );
 		OEL_CONST_COND if (minGrow > 1)
-			return oldCap + max(oldCap / 2, minGrow);
+			return oldCap + oel_max(oldCap / 2, minGrow);
 		else
 			return oldCap + oldCap / 2 + 1;
 	}
 
 	static size_type _calcCap(size_type oldCap, size_type newSize)
 	{	// growth factor is 1.5
-		return max(oldCap + oldCap / 2, newSize);
+		return oel_max(oldCap + oldCap / 2, newSize);
 	}
 
 
