@@ -61,7 +61,7 @@
 
 
 #if OEL_MEM_BOUND_DEBUG_LVL and !defined _MSC_VER
-	#define OEL_DYNARRAY_IN_DEBUG  1
+	#define OEL_DYNARRAY_IN_DEBUG  1  // would not work with the .natvis
 #endif
 
 
@@ -75,7 +75,6 @@
 	#define OEL_ALWAYS_INLINE
 #endif
 
-
 #ifdef _MSC_VER
 	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
 
@@ -84,6 +83,11 @@
 	#define OEL_CONST_COND
 
 	#define OEL_SUPPRESS_WARN_UNUSED
+#endif
+
+
+#if defined __cpp_deduction_guides or (defined _MSC_VER and _MSC_VER >= 1914 and _HAS_CXX17)
+	#define OEL_HAS_DEDUCTION_GUIDES  1
 #endif
 
 

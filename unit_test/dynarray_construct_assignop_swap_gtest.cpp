@@ -242,10 +242,24 @@ TEST_F(dynarrayConstructTest, constructInitList)
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 
+#if OEL_HAS_DEDUCTION_GUIDES
+TEST_F(dynarrayConstructTest, deductionGuides)
+{
+	std::array<int, 1> ar;
+	auto d = dynarray(ar, StatefulAllocator<int>{});
+	static_assert(std::is_same< decltype(d)::allocator_type, StatefulAllocator<int> >());
+	EXPECT_EQ(d.size(), ar.size());
+
+	dynarray sizeAndVal(2, 1.f);
+	static_assert(std::is_same<decltype(sizeAndVal)::value_type, float>());
+	EXPECT_TRUE(sizeAndVal.at(1) == 1.f);
+}
+#endif
+
 TEST_F(dynarrayConstructTest, constructContiguousRange)
 {
 	std::string str = "AbCd";
-#if __cpp_deduction_guides >= 201611 or (_MSC_VER >= 1914 and _HAS_CXX17)
+#if OEL_HAS_DEDUCTION_GUIDES
 	dynarray test(str);
 	static_assert(std::is_same<decltype(test)::value_type, char>());
 #else

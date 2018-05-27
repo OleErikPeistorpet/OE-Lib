@@ -70,7 +70,7 @@ inline namespace debug
 {
 #endif
 
-#if __cpp_deduction_guides >= 201611 or (_MSC_VER >= 1914 and _HAS_CXX17)
+#ifdef OEL_HAS_DEDUCTION_GUIDES
 template<typename InputRange,
          typename Alloc = allocator< iterator_value_t<decltype( cbegin(std::declval<InputRange>()) )> >>
 explicit dynarray(InputRange, Alloc = Alloc{})
