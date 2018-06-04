@@ -74,6 +74,7 @@ TEST(rangeTest, countedView)
 }
 
 #if !defined OEL_NO_BOOST
+
 TEST(rangeTest, viewTransform)
 {
 	int src[] { 1, 2, 3 };
@@ -84,26 +85,34 @@ TEST(rangeTest, viewTransform)
 			return i * i;
 		}
 	};
-	oel::dynarray<int> test( view::transform(src, Fun{}) );
-	EXPECT_EQ(3U, test.size());
-	EXPECT_EQ(1, test[0]);
-	EXPECT_EQ(4, test[1]);
-	EXPECT_EQ(9, test[2]);
-	{
-	auto f = std::function<int(int &)>( [](int & i) { return i++; } );
-	test.append(view::transform_n(src, 2, f));
-	EXPECT_EQ(5U, test.size());
-	EXPECT_EQ(1, test[3]);
-	EXPECT_EQ(2, test[4]);
+	auto r = oel::make_iterator_range(std::begin(src) + 1, std::end(src));
+	oel::dynarray<int> test( view::transform(r, Fun{}) );
+	EXPECT_EQ(2U, test.size());
+	EXPECT_EQ(4, test[0]);
+	EXPECT_EQ(9, test[1]);
+
+	auto f = [](int & i) { return i++; };
+	test.append( view::transform_n(src, 2, std::ref(f)) );
+	EXPECT_EQ(4U, test.size());
+	EXPECT_EQ(1, test[2]);
+	EXPECT_EQ(2, test[3]);
 	EXPECT_EQ(2, src[0]);
 	EXPECT_EQ(3, src[1]);
-	}
-	auto r = oel::make_iterator_range(std::begin(src) + 1, std::end(src));
-	auto f = [](int i) { return i; };
-	test.assign( view::transform(r, std::ref(f)) );
-	EXPECT_EQ(2U, test.size());
-	EXPECT_EQ(src[1], test[0]);
-	EXPECT_EQ(src[2], test[1]);
+}
+
+TEST(rangeTest, viewTransformAsOutput)
+{
+	using Pair = std::pair<int, int>;
+	Pair test[]{ {1, 2}, {3, 4} };
+
+	auto f = [](Pair & p) -> int & { return p.second; };
+	auto v = view::transform(test, std::function<int & (Pair &)>{f});
+	v[0] = -1;
+	v[1] = -2;
+	EXPECT_EQ(1, test[0].first);
+	EXPECT_EQ(3, test[1].first);
+	EXPECT_EQ(-1, test[0].second);
+	EXPECT_EQ(-2, test[1].second);
 }
 #endif
 
