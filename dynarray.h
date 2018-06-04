@@ -797,10 +797,10 @@ template<typename T, typename Alloc> template<typename... Args>
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
 {
-	_debugSizeUpdater guard{_m};
-
 #define OEL_DYNARR_INSERT_STEP1  \
 	_detail::AssertTrivialRelocate<T>{};  \
+	\
+	_debugSizeUpdater guard{_m};  \
 	\
 	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
 	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);  \
@@ -812,7 +812,7 @@ typename dynarray<T, Alloc>::iterator
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
 		_detail::Construct<Alloc>(_m, reinterpret_cast<T *>(&tmp), std::forward<Args>(args)...);
-		// Relocate [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
+		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_m.end;
 
@@ -829,21 +829,19 @@ template<typename T, typename Alloc> template<typename ForwardRange>
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src)
 {
-	_debugSizeUpdater guard{_m};
-
 	auto first = ::adl_begin(src);
+	size_type const count = _sizeOrEnd<decltype(first)>(src);
 
 	static_assert(std::is_base_of< forward_traversal_tag, iterator_traversal_t<decltype(first)> >::value,
 				  "insert_r requires that source models Forward Range (Boost concept)");
 
-	size_type const count = _sizeOrEnd<decltype(first)>(src);
-
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1
+
 	if (_unusedCapacity() >= count)
 	{
 		T *const dLast = pPos + count;
-		// Relocate elements to make space, conceptually destroying [pos, pos + count)
+		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
 		std::memmove(dLast, pPos, sizeof(T) * nAfterPos);
 		_m.end += count;
 		// Construct new
