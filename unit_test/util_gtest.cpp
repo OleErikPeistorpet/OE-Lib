@@ -9,7 +9,7 @@
 
 namespace
 {
-	static_assert(oel::is_trivially_relocatable< std::array<std::unique_ptr<double>, 4> >::value, "?");
+	static_assert(oel::is_trivially_relocatable< std::array<std::unique_ptr<double>, 4> >(), "?");
 
 	struct NonTrivialAssign
 	{
@@ -22,9 +22,9 @@ namespace
 	static_assert( !oel::is_trivially_copyable<NonTrivialAssign>::value, "?" );
 	static_assert( !oel::is_trivially_copyable<NonTrivialDestruct>::value, "?" );
 
-	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >::value, "?");
+	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >(), "?");
 	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
-	static_assert( !oel::is_trivially_copyable< std::tuple<int, NonTrivialDestruct, int> >::value, "?" );
+	static_assert( !oel::is_trivially_copyable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
 
 	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
 	static_assert(alignof(oel::aligned_storage_t<64, 64>) == 64, "?");
@@ -33,8 +33,9 @@ namespace
 	static_assert(alignof(oel::aligned_union_t<Foo>) == 32, "?");
 
 	static_assert(!oel::can_memmove_with< int *, float * >::value, "?");
-	static_assert(!oel::can_memmove_with< int *, std::list<int>::iterator >::value, "?");
-	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >::value, "?");
+	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >(), "?");
+	static_assert(!oel::can_memmove_with< int *, std::move_iterator<std::list<int>::iterator> >(), "?");
+	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<int *> >(), "?");
 
 	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::string> >::value,
 				  "Not critical, this assert can be removed");
@@ -194,7 +195,7 @@ TEST(utilTest, toPointerContiguous)
 	auto addr = &a[0];
 	using Iter = dynarray_iterator<PointerLike<int>, dynarray<int>>;
 	Iter it{{addr}, nullptr, 0};
-	static_assert(std::is_same<PointerLike<int>, Iter::pointer>::value, "?");
+	static_assert(std::is_same<PointerLike<int>, Iter::pointer>(), "?");
 	auto result = to_pointer_contiguous(it);
 	EXPECT_EQ(addr, result);
 }

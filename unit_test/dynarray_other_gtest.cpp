@@ -20,7 +20,7 @@ namespace
 	using Iter = dynarray<float>::iterator;
 	using ConstIter = dynarray<float>::const_iterator;
 
-	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>::value, "?");
+	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>(), "?");
 
 	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
 	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
