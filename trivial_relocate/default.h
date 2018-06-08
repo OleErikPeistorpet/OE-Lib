@@ -5,7 +5,7 @@
 
 
 // std:: unique_ptr, shared_ptr, weak_ptr, basic_string, pair, tuple
-// boost:: intrusive_ptr, circular_buffer, polymorphic_allocator
+// boost:: intrusive_ptr, circular_buffer, variant, polymorphic_allocator
 
 // This file is included by dynarray.h, so should not be needed in user code
 
@@ -18,6 +18,7 @@
 
 #include <boost/circular_buffer_fwd.hpp>
 #include <boost/container/container_fwd.hpp>
+#include <boost/variant/variant_fwd.hpp>
 
 namespace boost
 {
@@ -65,6 +66,10 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 	template<typename T, typename Alloc>
 	struct is_trivially_relocatable< boost::circular_buffer<T, Alloc> >
 	 :	is_trivially_relocatable<Alloc> {};
+
+	template<typename... Ts>
+	struct is_trivially_relocatable< boost::variant<Ts...> >
+	 :	all_< is_trivially_relocatable<Ts>... > {};
 #endif
 
 
