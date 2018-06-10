@@ -200,11 +200,18 @@ TEST_F(dynarrayConstructTest, constructNChar)
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 
-TEST_F(dynarrayConstructTest, constructNFill)
+TEST_F(dynarrayConstructTest, constructNFillTrivial)
 {
-	testFillTrivial<bool>(true);
+	testFillTrivial(true);
 	testFillTrivial<char>(97);
 	testFillTrivial<int>(97);
+#ifdef OEL_HAS_STD_BYTE
+	testFillTrivial(std::byte{97});
+#endif
+}
+
+TEST_F(dynarrayConstructTest, constructNFill)
+{
 	{
 		dynarrayTrackingAlloc<NontrivialReloc> a(11, NontrivialReloc(97));
 

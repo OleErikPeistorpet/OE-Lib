@@ -11,6 +11,11 @@
 #include <cstring>
 
 
+#if __cpp_lib_byte >= 201603 or (defined _MSC_VER and _HAS_STD_BYTE) or (OEL_GCC_VERSION >= 701 and __cplusplus > 201402L)
+	#define OEL_HAS_STD_BYTE  1
+#endif
+
+
 // std::max not constexpr for GCC 4
 template<typename T>
 constexpr T oel_max(const T & a, const T & b)
@@ -114,7 +119,11 @@ namespace _detail
 	struct UninitFill
 	{
 		template<typename T>
-		using IsByte = bool_constant<sizeof(T) == 1 and std::is_integral<T>::value>;
+		using IsByte = bool_constant< sizeof(T) == 1 and std::is_integral<T>::value
+			#ifdef OEL_HAS_STD_BYTE
+				or std::is_same<T, std::byte>::value
+			#endif
+			>;
 
 		template<typename T, typename... Arg,
 		         enable_if< !IsByte<T>::value > = 0>
@@ -134,9 +143,9 @@ namespace _detail
 		}
 
 		template<typename T, enable_if<IsByte<T>::value> = 0>
-		void operator()(T * first, T * last, Alloc &, int val) const
+		void operator()(T * first, T * last, Alloc &, T val) const
 		{
-			std::memset(first, val, last - first);
+			std::memset(first, static_cast<int>(val), last - first);
 		}
 
 		template<typename T, enable_if< std::is_trivial<T>::value > = 0>
