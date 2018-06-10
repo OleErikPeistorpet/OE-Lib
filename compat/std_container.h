@@ -1,7 +1,5 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
-//
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -11,7 +9,6 @@
 
 namespace oel
 {
-#if 0
 
 template<typename T, typename Ctr>
 struct is_trivially_relocatable< std::stack<T, Ctr> >
@@ -24,10 +21,6 @@ struct is_trivially_relocatable< std::queue<T, Ctr> >
 template<typename T, typename Ctr, typename C>
 struct is_trivially_relocatable< std::priority_queue<T, Ctr, C> >
  :	is_trivially_relocatable<Ctr> {};
-
-template<typename T, size_t S>
-struct is_trivially_relocatable< std::array<T, S> >
- :	is_trivially_relocatable<T> {};
 
 template<typename T>
 struct is_trivially_relocatable< std::deque<T> > : std::true_type {};
@@ -69,5 +62,4 @@ template<typename K, typename T, typename H, typename P>
 struct is_trivially_relocatable< std::unordered_multi_map<K, T, H, P> >
  :	std::true_type {};
 
-#endif
 } // namespace oel
