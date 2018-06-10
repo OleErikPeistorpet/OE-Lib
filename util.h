@@ -102,9 +102,9 @@ bool index_valid(const CountableRange & ci, Integer index);
 
 ///
 template<size_t I, typename T, size_t N>
-T &       get(T(& arr)[N]);
+T &       get(T(&arr)[N]);
 template<size_t I, typename T, size_t N>
-const T & get(const T(& arr)[N]);
+const T & get(const T(&arr)[N]);
 
 
 
@@ -341,13 +341,13 @@ inline bool oel::index_valid(const CountableRange & ci, Integer idx)
 
 
 template<size_t I, typename T, size_t N>
-inline T & oel::get(T(& arr)[N])
+inline T & oel::get(T(&arr)[N])
 {
 	static_assert(I < N, "Invalid array index");
 	return arr[I];
 }
 template<size_t I, typename T, size_t N>
-inline const T & oel::get(const T(& arr)[N])
+inline const T & oel::get(const T(&arr)[N])
 {
 	static_assert(I < N, "Invalid array index");
 	return arr[I];
