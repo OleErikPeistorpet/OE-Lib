@@ -86,7 +86,7 @@
 #endif
 
 
-#if defined __cpp_deduction_guides or (defined _MSC_VER and _MSC_VER >= 1914 and _HAS_CXX17)
+#if defined __cpp_deduction_guides or (_MSC_VER >= 1914 and _HAS_CXX17)
 	#define OEL_HAS_DEDUCTION_GUIDES  1
 #endif
 
