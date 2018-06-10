@@ -46,7 +46,6 @@ protected:
 
 TEST_F(dynarrayTest, pushBack)
 {
-	MoveOnly::ClearCount();
 	{
 		dynarray<MoveOnly> up;
 
@@ -86,7 +85,6 @@ TEST_F(dynarrayTest, pushBack)
 
 TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 {
-	NontrivialReloc::ClearCount();
 	{
 		dynarray<NontrivialReloc> da;
 
@@ -220,7 +218,7 @@ TEST_F(dynarrayTest, assign)
 TEST_F(dynarrayTest, assignNonForwardRange)
 {
 	{
-		dynarray<std::string> das;
+		dynarrayTrackingAlloc<std::string> das;
 
 		std::string * p = nullptr;
 		das.assign(make_iterator_range(p, p));
@@ -267,6 +265,7 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 		copyDest = std::initializer_list<std::string>{};
 		EXPECT_TRUE(copyDest.empty());
 	}
+	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 #endif
 
@@ -321,7 +320,7 @@ TEST_F(dynarrayTest, appendNonForwardRange)
 	{
 		std::stringstream ss("1 2 3 4 5");
 
-		dynarray<int> dest;
+		dynarrayTrackingAlloc<int> dest;
 
 		std::istream_iterator<int> it(ss);
 
@@ -332,53 +331,101 @@ TEST_F(dynarrayTest, appendNonForwardRange)
 		for (int i = 0; i < ssize(dest); ++i)
 			EXPECT_EQ(i + 1, dest[i]);
 	}
+	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 #endif
 
+TEST_F(dynarrayTest, insertRTrivial)
+{
+	// Should hit static_assert
+	//dynarray<double> d;
+	//d.insert_r( d.begin(), oel::iterator_range< std::istream_iterator<double> >({}, {}) );
+
+	size_t const initSize = 2;
+	auto toInsert = {-1.0, -2.0};
+	for (auto nReserve : {initSize, initSize + toInsert.size()})
+		for (size_t insertOffset = 0; insertOffset <= initSize; ++insertOffset)
+		{	{
+				dynarrayTrackingAlloc<double> dest(oel::reserve, nReserve);
+				dest.emplace_back(1);
+				dest.emplace_back(2);
+
+				dest.insert(dest.begin() + insertOffset, toInsert);
+
+				EXPECT_TRUE(dest.size() == initSize + toInsert.size());
+				for (size_t i = 0; i < toInsert.size(); ++i)
+					EXPECT_TRUE( toInsert.begin()[i] == dest[i + insertOffset] );
+
+				if (insertOffset == 0)
+				{
+					EXPECT_EQ(1, *(dest.end() - 2));
+					EXPECT_EQ(2, *(dest.end() - 1));
+				}
+				else if (insertOffset == initSize)
+				{
+					EXPECT_EQ(1, dest[0]);
+					EXPECT_EQ(2, dest[1]);
+				}
+				else
+				{	EXPECT_EQ(1, dest.front());
+					EXPECT_EQ(2, dest.back());
+				}
+			}
+			EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+		}
+}
+
 TEST_F(dynarrayTest, insertR)
 {
-	{
-		oel::dynarray<double> dest;
-		// Test insert empty std iterator range to empty dynarray
-		std::deque<double> src;
-		dest.insert_r(dest.begin(), src);
+	size_t const initSize = 2;
+	std::array<double, 2> const toInsert{-1, -2};
+	for (auto nReserve : {initSize, initSize + toInsert.size()})
+		for (size_t insertOffset = 0; insertOffset <= initSize; ++insertOffset)
+			for (int countThrow = 0; countThrow <= oel::ssize(toInsert); ++countThrow)
+			{	{
+					dynarray<MoveOnly> dest(oel::reserve, nReserve);
+					dest.emplace_back(1);
+					dest.emplace_back(2);
 
-		dest.insert(dest.begin(), std::initializer_list<double>{});
-		EXPECT_EQ(0U, dest.size());
+					if (countThrow < oel::ssize(toInsert))
+					{
+					OEL_WHEN_EXCEPTIONS_ON(
+						MoveOnly::countToThrowOn = countThrow;
+						EXPECT_THROW( dest.insert_r(dest.begin() + insertOffset, toInsert), TestException );
+					)
+						EXPECT_TRUE(initSize <= dest.size() and dest.size() <= initSize + countThrow);
+					}
+					else
+					{	dest.insert_r(dest.begin() + insertOffset, toInsert);
 
-		// Should hit static_assert
-		//dest.insert_r( dest.begin(), oel::iterator_range< std::istream_iterator<double> >({}, {}) );
-	}
-
-	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
-
-	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.insert_r(double_dynarr.begin(), arrayA);
-	double_dynarr.insert_r(double_dynarr.end(), double_dynarr2);
-
-	{
-		dynarray<int> int_dynarr;
-		int_dynarr.insert(int_dynarr.begin(), {1, 2, 3, 4});
-
-		double_dynarr.insert_r(double_dynarr.end(), int_dynarr);
-	}
-
-	ASSERT_EQ(8U, double_dynarr.size());
-
-	EXPECT_EQ(arrayA[0], double_dynarr[0]);
-	EXPECT_EQ(arrayA[1], double_dynarr[1]);
-	EXPECT_EQ(arrayA[2], double_dynarr[2]);
-	EXPECT_EQ(arrayA[3], double_dynarr[3]);
-
-	EXPECT_DOUBLE_EQ(1, double_dynarr[4]);
-	EXPECT_DOUBLE_EQ(2, double_dynarr[5]);
-	EXPECT_DOUBLE_EQ(3, double_dynarr[6]);
-	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
+						EXPECT_TRUE(dest.size() == initSize + toInsert.size());
+					}
+					if (dest.size() > initSize)
+					{
+						for (int i = 0; i < countThrow; ++i)
+							EXPECT_TRUE( toInsert[i] == *dest[i + insertOffset] );
+					}
+					if (insertOffset == 0)
+					{
+						EXPECT_EQ(1, **(dest.end() - 2));
+						EXPECT_EQ(2, **(dest.end() - 1));
+					}
+					else if (insertOffset == initSize)
+					{
+						EXPECT_EQ(1, *dest[0]);
+						EXPECT_EQ(2, *dest[1]);
+					}
+					else
+					{	EXPECT_EQ(1, *dest.front());
+						EXPECT_EQ(2, *dest.back());
+					}
+				}
+				EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
+			}
 }
 
 TEST_F(dynarrayTest, insert)
 {
-	MoveOnly::ClearCount();
 	{
 		dynarray<MoveOnly> up;
 

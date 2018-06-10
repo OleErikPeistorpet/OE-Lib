@@ -8,8 +8,6 @@
 
 //! @cond INTERNAL
 
-struct ThrowOnConstructT {} const throwOnConstruct;
-
 class TestException : public std::exception {};
 
 struct MyCounter
@@ -196,5 +194,9 @@ bool operator==(StatefulAllocator<T, PropagateOnMoveAssign> a, StatefulAllocator
 template<typename T, typename U, bool PropagateOnMoveAssign>
 bool operator!=(StatefulAllocator<T, PropagateOnMoveAssign> a, StatefulAllocator<U, PropagateOnMoveAssign> b)
 { return !(a == b); }
+
+
+template<typename T>
+using dynarrayTrackingAlloc = oel::dynarray< T, TrackingAllocator<T> >;
 
 //! @endcond

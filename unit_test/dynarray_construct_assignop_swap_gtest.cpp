@@ -18,9 +18,6 @@ std::unordered_map<void *, std::size_t> AllocCounter::sizeFromPtr;
 
 using namespace oel;
 
-template<typename T>
-using dynarrayTrackingAlloc = dynarray< T, TrackingAllocator<T> >;
-
 class dynarrayConstructTest : public ::testing::Test
 {
 protected:
