@@ -22,21 +22,21 @@ namespace _detail
 	};
 
 
-	template< typename Alloc,
-		bool = std::is_empty<Alloc>::value and std::is_default_constructible<Alloc>::value >
-	struct AllocRefOptimized
+	template< typename T,
+		bool = std::is_empty<T>::value and std::is_default_constructible<T>::value >
+	struct RefOptimizeEmpty
 	{
-		Alloc & alloc;
+		T & _ref;
 
-		Alloc & Get() noexcept { return alloc; }
+		T & Get() noexcept { return _ref; }
 	};
 
-	template<typename Alloc>
-	struct AllocRefOptimized<Alloc, true>
+	template<typename T>
+	struct RefOptimizeEmpty<T, true>
 	{
-		OEL_ALWAYS_INLINE AllocRefOptimized(Alloc &) {}
+		OEL_ALWAYS_INLINE RefOptimizeEmpty(T &) {}
 
-		Alloc Get() noexcept { return Alloc{}; }
+		T Get() noexcept { return T{}; }
 	};
 }
 

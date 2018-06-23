@@ -338,15 +338,13 @@ private:
 	_memOwner<Alloc> _m; // the only data member
 
 
-	using _allocRef = _detail::AllocRefOptimized<Alloc>;
-
-	struct _scopedPtr : private _allocRef
+	struct _scopedPtr : private _detail::RefOptimizeEmpty<Alloc>
 	{
 		pointer data;  // owner
 		pointer allocEnd;
 
 		_scopedPtr(Alloc & a, size_type const allocSize)
-		 :	_allocRef{a},
+		 :	_scopedPtr::RefOptimizeEmpty{a},
 			data{_allocate(a, allocSize)},
 			allocEnd{data + allocSize} {
 		}
