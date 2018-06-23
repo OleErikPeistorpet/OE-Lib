@@ -64,24 +64,28 @@ namespace _detail
 	}
 
 
-	template<typename T, typename Alloc, typename... Args>
-	inline auto Construct(Alloc & a, T *__restrict p, Args &&... args)
-	 -> decltype( a.construct(p, static_cast<Args &&>(args)...) )
-	            { a.construct(p, static_cast<Args &&>(args)...); }
-	// void * worse match than T *
-	template<typename T, typename Alloc, typename... Args,
-	         enable_if< std::is_constructible<T, Args...>::value > = 0>
-	inline void Construct(Alloc &, void *__restrict p, Args &&... args)
-	{	// T constructible from Args
-		::new(p) T(static_cast<Args &&>(args)...);
-	}
+	template<typename Alloc, typename T>
+	struct Construct
+	{
+		template<typename... Args, typename Alloc_ = Alloc>
+		auto operator()(Alloc_ & a, T *__restrict p, Args &&... args) const
+		 -> decltype( a.construct(p, static_cast<Args &&>(args)...) )
+		            { a.construct(p, static_cast<Args &&>(args)...); }
+		// void * worse match than T *
+		template<typename... Args,
+		         enable_if< std::is_constructible<T, Args...>::value > = 0>
+		void operator()(Alloc &, void *__restrict p, Args &&... args) const
+		{	// T constructible from Args
+			::new(p) T(static_cast<Args &&>(args)...);
+		}
 
-	template<typename T, typename Alloc, typename... Args,
-	         enable_if< !std::is_constructible<T, Args...>::value > = 0>
-	inline void Construct(Alloc &, void *__restrict p, Args &&... args)
-	{	// list-initialize
-		::new(p) T{static_cast<Args &&>(args)...};
-	}
+		template<typename... Args,
+		         enable_if< !std::is_constructible<T, Args...>::value > = 0>
+		void operator()(Alloc &, void *__restrict p, Args &&... args) const
+		{	// list-initialize
+			::new(p) T{static_cast<Args &&>(args)...};
+		}
+	};
 
 
 	template<typename T>
@@ -117,7 +121,7 @@ namespace _detail
 		{
 			while (dest != dLast)
 			{
-				Construct<T>(alloc, dest, *src);
+				Construct<Alloc, T>{}(alloc, dest, *src);
 				++src; ++dest;
 			}
 		}
@@ -145,7 +149,7 @@ namespace _detail
 			OEL_TRY_
 			{
 				for (; first != last; ++first)
-					Construct<T>(alloc, first, arg...);
+					Construct<Alloc, T>{}(alloc, first, args...);
 			}
 			OEL_CATCH_ALL
 			{
