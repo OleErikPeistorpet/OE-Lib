@@ -429,6 +429,12 @@ private:
 		(void) a;
 	}
 
+#ifdef __GNUC__
+	#pragma GCC diagnostic push
+	#if __GNUC__ >= 8
+	#pragma GCC diagnostic ignored "-Wclass-memaccess"
+	#endif
+#endif
 
 	void _initPostAllocate(const T * src)
 	{
@@ -1072,6 +1078,9 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 	return first;
 }
 
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 template<typename T, typename Alloc>
 OEL_ALWAYS_INLINE inline T & dynarray<T, Alloc>::at(size_type i)
