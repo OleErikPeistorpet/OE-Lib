@@ -117,15 +117,15 @@ namespace _detail
 		using IsByte = bool_constant< sizeof(T) == 1 and
 			(std::is_integral<T>::value or std::is_enum<T>::value) >;
 
-		template<typename T, typename... Arg,
+		template<typename T, typename... Args,
 		         enable_if< !IsByte<T>::value > = 0>
-		void operator()(T * first, T *const last, Alloc & alloc, const Arg &... arg) const
+		void operator()(T * first, T *const last, Alloc & alloc, const Args &... args) const
 		{
 			T *const init = first;
 			OEL_TRY_
 			{
 				for (; first != last; ++first)
-					_detail::Construct(alloc, first, arg...);
+					_detail::Construct(alloc, first, args...);
 			}
 			OEL_CATCH_ALL
 			{
