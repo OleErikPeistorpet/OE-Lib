@@ -88,20 +88,17 @@ namespace _detail
 	};
 
 
-	template<typename T>
-	void Destroy(T * first, const T * last) noexcept
-	{	// first > last is OK, does nothing
+	template<typename Ptr, typename ConstPtr>
+	void Destroy(Ptr first, ConstPtr const last) noexcept
+	{
+		using T = typename std::pointer_traits<Ptr>::element_type;
 		OEL_CONST_COND if (!std::is_trivially_destructible<T>::value) // for speed with non-optimized builds
 		{
-			for (; first < last; ++first)
-				first-> ~T();
+			T *       p = _detail::ToAddress(first);
+			const T * e = _detail::ToAddress(last);
+			for (; p < e; ++p)
+				p-> ~T();
 		}
-	}
-
-	template<typename PtrLike, enable_if< !std::is_pointer<PtrLike>::value > = 0>
-	inline void Destroy(PtrLike first, PtrLike last) noexcept
-	{
-		_detail::Destroy(_detail::ToAddress(first), _detail::ToAddress(last));
 	}
 
 
