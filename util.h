@@ -177,6 +177,16 @@ namespace _detail
 	{
 		return _detail::ToAddress(_Unchecked(it));
 	}
+	// For different std lib versions. Seems to have changed with 15.8
+	template
+	<	typename ContiguousIterator,
+		enable_if< std::is_same<decltype( ContiguousIterator{}._Unwrapped() ),
+		                        typename ContiguousIterator::pointer> ::value > = 0
+	> inline
+	auto to_pointer_contiguous(const ContiguousIterator & it) noexcept
+	{
+		return _detail::ToAddress(it._Unwrapped());
+	}
 #endif
 
 
