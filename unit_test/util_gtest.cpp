@@ -33,8 +33,9 @@ namespace
 	static_assert(alignof(oel::aligned_union_t<Foo>) == 32, "?");
 
 	static_assert(!oel::can_memmove_with< int *, float * >::value, "?");
-	static_assert(!oel::can_memmove_with< int *, std::list<int>::iterator >::value, "?");
 	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >::value, "?");
+	static_assert(!oel::can_memmove_with< int *, std::move_iterator<std::list<int>::iterator> >::value, "?");
+	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<int *> >::value, "?");
 
 	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::string> >::value,
 				  "Not critical, this assert can be removed");
@@ -186,7 +187,7 @@ TEST(utilTest, toPointerContiguous)
 	}
 	std::array<int, 3> a;
 
-	using P  = decltype( to_pointer_contiguous(a.begin()) );
+	using P  = decltype(to_pointer_contiguous( std::make_move_iterator(a.begin()) ));
 	using CP = decltype( to_pointer_contiguous(a.cbegin()) );
 	static_assert(std::is_same<P, int *>::value, "?");
 	static_assert(std::is_same<CP, const int *>::value, "?");
