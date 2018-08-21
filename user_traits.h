@@ -98,29 +98,14 @@ is_trivially_copyable<T> specify_trivial_relocate(T &&);
 template<typename T>
 struct is_trivially_relocatable;
 
+} // namespace oel
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Implementation only in rest of the file
+// Implementation
 
-
-namespace _detail
-{
-	template<typename Range>
-	typename Range::difference_type DiffT(int);
-
-	template<typename> std::ptrdiff_t DiffT(long);
-
-
-	template<typename T>
-	typename T::is_always_equal IsAlwaysEqual(int);
-
-	template<typename T>
-	std::is_empty<T> IsAlwaysEqual(long);
-}
-
-} // namespace oel
 
 template<typename T>
 struct oel::is_trivially_copyable :

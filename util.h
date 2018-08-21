@@ -7,6 +7,7 @@
 
 
 #include "auxi/type_traits.h"
+#include "auxi/contiguous_iterator_to_ptr.h"
 #include "make_unique.h"
 
 #include <stdexcept>
@@ -109,12 +110,6 @@ struct deref_args
 
 	using is_transparent = void;
 };
-
-
-
-//! Convert iterator to pointer. This should be overloaded for each class of contiguous iterator (C++17 concept)
-template<typename T>
-constexpr T * to_pointer_contiguous(T * it) noexcept;
 
 
 
