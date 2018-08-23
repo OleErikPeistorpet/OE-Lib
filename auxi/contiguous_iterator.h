@@ -178,6 +178,10 @@ public:
 	}
 
 
+#ifdef _CPPLIB_VER
+	using _Unchecked_type = pointer;
+#endif
+
 	pointer _pElem; //!< Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
 	//! Pointer to struct storing allocation ID and container size
 	typename _ptrTrait::template rebind<_detail::DebugAllocationHeader const> _header;
@@ -198,11 +202,3 @@ typename std::pointer_traits<Ptr>::element_type *
 }
 
 } // namespace oel
-
-
-#ifdef _CPPLIB_VER
-	//! Mark dynarray_iterator as checked
-	template<typename P, typename T>
-	struct std::_Is_checked_helper< oel::dynarray_iterator<P, T> >
-	 :	public std::true_type {};
-#endif
