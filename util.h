@@ -136,6 +136,25 @@ constexpr default_init_t default_init; //!< An instance of default_init_t for co
 
 namespace _detail
 {
+	template< typename T,
+		bool = std::is_empty<T>::value and std::is_default_constructible<T>::value >
+	struct RefOptimizeEmpty
+	{
+		T & _ref;
+
+		T & Get() noexcept { return _ref; }
+	};
+
+	template<typename T>
+	struct RefOptimizeEmpty<T, true>
+	{
+		OEL_ALWAYS_INLINE RefOptimizeEmpty(T &) {}
+
+		T Get() noexcept { return T{}; }
+	};
+
+
+
 	struct Throw
 	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
 		[[noreturn]] static void OutOfRange(const char * what)
@@ -148,6 +167,7 @@ namespace _detail
 			OEL_THROW(std::length_error(what), what);
 		}
 	};
+
 
 
 	template<typename Unsigned, typename Integral>
