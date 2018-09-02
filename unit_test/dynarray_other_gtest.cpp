@@ -7,7 +7,7 @@
 
 #if defined __has_include
 #if __has_include(<Eigen/Dense>)
-	#include "compat/eigen_dense.h"
+	#include "trivial_relocate/eigen_dense.h"
 
 	static_assert(oel::is_trivially_relocatable<Eigen::Rotation2Df>::value, "?");
 #endif

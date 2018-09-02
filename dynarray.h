@@ -8,7 +8,7 @@
 
 #include "auxi/algo_detail.h"
 #include "auxi/dynarray_iterator.h"
-#include "compat/default.h"
+#include "trivial_relocate/default.h"
 #include "align_allocator.h"
 
 #include <algorithm>

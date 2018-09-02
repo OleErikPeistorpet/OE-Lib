@@ -94,7 +94,7 @@ is_trivially_copyable<T> specify_trivial_relocate(T &&);
 
 /** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
 *
-* Many useful classes are declared trivially relocatable, see compat folder. */
+* Many useful classes are declared trivially relocatable, see `trivial_relocate` folder. */
 template<typename T>
 struct is_trivially_relocatable;
 
