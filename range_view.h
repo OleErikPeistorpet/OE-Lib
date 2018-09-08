@@ -101,7 +101,7 @@ public:
 
 	constexpr iterator  end() const   OEL_ALWAYS_INLINE { return this->_begin + this->_size; }
 
-	constexpr reference back() const   OEL_ALWAYS_INLINE { return end()[-1]; }
+	constexpr reference back() const                 { return this->_begin[this->_size - 1]; }
 
 	constexpr reference operator[](difference_type index) const   OEL_ALWAYS_INLINE { return this->_begin[index]; }
 

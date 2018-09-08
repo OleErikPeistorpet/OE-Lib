@@ -70,7 +70,8 @@ TEST(rangeTest, countedView)
 	EXPECT_EQ(2, test[1]);
 	test.drop_front();
 	EXPECT_EQ(1U, test.size());
-	EXPECT_EQ(2, test.end()[-1]);
+	EXPECT_EQ(2, test.back());
+	EXPECT_TRUE(test.end() == i.end());
 }
 
 #if !defined OEL_NO_BOOST
