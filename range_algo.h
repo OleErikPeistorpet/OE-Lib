@@ -178,7 +178,7 @@ namespace _detail
 	}
 
 
-	const char *const errorCopyMsg = "Too small dest oel::copy";
+	constexpr auto * errorCopyMsg = "Too small dest oel::copy";
 
 	template<typename Ret, typename InputRange, typename OutputRange, typename FuncItersParam, typename FuncNoParam>
 	Ret CopyImpl(const InputRange & from, OutputRange & to, FuncItersParam succeed, FuncNoParam fail)

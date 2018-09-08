@@ -84,16 +84,16 @@ TEST_F(dynarrayConstructTest, greaterThanMax)
 		char a[2];
 	};
 
-	using Test = dynarray<Size2>;
+	using Dynarr = dynarray<Size2>;
 #ifndef _MSC_VER
 	const // unreachable code warnings
 #endif
 		size_t n = std::numeric_limits<size_t>::max() / 2 + 1;
 
-	EXPECT_THROW(Test d(reserve, n), std::length_error);
-	EXPECT_THROW(Test d(n, default_init), std::length_error);
-	EXPECT_THROW(Test d(n), std::length_error);
-	EXPECT_THROW(Test d(n, Size2{{}}), std::length_error);
+	EXPECT_THROW(Dynarr d(reserve, n), std::length_error);
+	EXPECT_THROW(Dynarr d(n, default_init), std::length_error);
+	EXPECT_THROW(Dynarr d(n), std::length_error);
+	EXPECT_THROW(Dynarr d(n, Size2{{}}), std::length_error);
 }
 #endif
 
