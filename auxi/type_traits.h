@@ -6,12 +6,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../user_traits.h"
+#include "adl_begin_end.h"
 
 #ifndef OEL_NO_BOOST
 #include <boost/iterator/iterator_categories.hpp>
 #endif
-#include <iterator>
 
 
 namespace oel

@@ -7,6 +7,7 @@
 
 
 #include "auxi/type_traits.h"
+#include "auxi/adl_begin_end.h"
 #include "auxi/contiguous_iterator_to_ptr.h"
 #include "make_unique.h"
 
@@ -15,7 +16,7 @@
 
 
 /** @file
-* @brief Contains as_signed/as_unsigned, index_valid, ssize, adl_begin/adl_end, deref_args and more
+* @brief Contains as_signed/as_unsigned, index_valid, ssize, deref_args and more
 */
 
 namespace oel
@@ -50,47 +51,6 @@ template<typename Integral, typename SizedRange>
 constexpr bool index_valid(const SizedRange & r, Integral index);
 
 
-
-using std::begin;
-using std::end;
-
-#if __cplusplus >= 201402 or defined _MSC_VER
-	using std::cbegin;   using std::cend;
-	using std::crbegin;  using std::crend;
-#endif
-
-/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
-*
-* Note the global using-directive  @code
-	auto it = container.begin();     // Fails with types that don't have begin member such as built-in arrays
-	auto it = std::begin(container); // Fails with types that have only non-member begin outside of namespace std
-	// Argument-dependent lookup, as generic as it gets
-	using std::begin; auto it = begin(container);
-	auto it = adl_begin(container);  // Equivalent to line above
-@endcode  */
-template<typename Range>  OEL_ALWAYS_INLINE
-constexpr auto adl_begin(Range & r) -> decltype(begin(r))         { return begin(r); }
-//! Const version of adl_begin(), analogous to std::cbegin
-template<typename Range>  OEL_ALWAYS_INLINE
-constexpr auto adl_cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
-
-//! Argument-dependent lookup non-member end, defaults to std::end
-template<typename Range>  OEL_ALWAYS_INLINE
-constexpr auto adl_end(Range & r) -> decltype(end(r))         { return end(r); }
-//! Const version of adl_end()
-template<typename Range>  OEL_ALWAYS_INLINE
-constexpr auto adl_cend(const Range & r) -> decltype(end(r))  { return end(r); }
-
-} // namespace oel
-
-using oel::adl_begin;
-using oel::adl_cbegin;
-using oel::adl_end;
-using oel::adl_cend;
-
-
-namespace oel
-{
 
 /** @brief Calls operator * on arguments before passing them to Func
 *
