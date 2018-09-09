@@ -72,8 +72,9 @@ inline namespace debug
 #ifdef OEL_HAS_DEDUCTION_GUIDES
 template<typename InputRange,
          typename Alloc = allocator< iterator_value_t<decltype( cbegin(std::declval<InputRange>()) )> >>
-explicit dynarray(InputRange, Alloc = Alloc{})
- -> dynarray<iterator_value_t<decltype( cbegin(std::declval<InputRange>()) )>, Alloc>;
+explicit dynarray(const InputRange &, Alloc = Alloc{})
+ -> dynarray< iterator_value_t<decltype( cbegin(std::declval<InputRange>()) )>,
+              Alloc >;
 #endif
 
 /**
@@ -1017,7 +1018,8 @@ template<typename T, typename Alloc> template<typename InputRange>
 inline auto dynarray<T, Alloc>::assign(const InputRange & src) -> decltype(::adl_begin(src))
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _assignImpl(::adl_begin(src), _sizeOrEnd<IterSrc>(src),
+	return _assignImpl(::adl_begin(src),
+	                   _sizeOrEnd<IterSrc>(src),
 	                   can_memmove_with<T *, IterSrc>());
 }
 
@@ -1035,7 +1037,9 @@ template<typename T, typename Alloc> template<typename InputRange>
 inline auto dynarray<T, Alloc>::append(const InputRange & src) -> decltype(::adl_begin(src))
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _append( ::adl_begin(src), _sizeOrEnd<IterSrc>(src), can_memmove_with<T *, IterSrc>() );
+	return _append(::adl_begin(src),
+	               _sizeOrEnd<IterSrc>(src),
+	               can_memmove_with<T *, IterSrc>());
 }
 
 

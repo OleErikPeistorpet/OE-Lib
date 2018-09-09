@@ -249,10 +249,22 @@ TEST_F(dynarrayConstructTest, constructInitList)
 #if OEL_HAS_DEDUCTION_GUIDES
 TEST_F(dynarrayConstructTest, deductionGuides)
 {
-	std::array<int, 1> ar;
+	using Base = std::array<int, 2>;
+	struct NonMoveableRange : public Base
+	{
+		NonMoveableRange() : Base{} {}
+
+		NonMoveableRange(const NonMoveableRange &) = delete;
+		NonMoveableRange(NonMoveableRange &&) = delete;
+	}
+	ar;
+
 	auto d = dynarray(ar, StatefulAllocator<int>{});
 	static_assert(std::is_same< decltype(d)::allocator_type, StatefulAllocator<int> >());
 	EXPECT_EQ(d.size(), ar.size());
+
+	dynarray fromTemp(std::array<int, 1>{});
+	static_assert(std::is_same< decltype(fromTemp)::allocator_type, oel::allocator<int> >());
 
 	dynarray sizeAndVal(2, 1.f);
 	static_assert(std::is_same<decltype(sizeAndVal)::value_type, float>());
