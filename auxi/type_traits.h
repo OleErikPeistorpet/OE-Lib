@@ -25,8 +25,8 @@ namespace _detail
 	std::is_empty<T> IsAlwaysEqual(long);
 
 
-	template<typename Range>
-	typename Range::difference_type DiffT(int);
+	template<typename T>
+	typename T::difference_type DiffT(int);
 
 	template<typename> std::ptrdiff_t DiffT(long);
 }
@@ -79,6 +79,10 @@ using iterator_traversal_t
 
 template<typename Iterator>
 using iterator_is_random_access = std::is_base_of< random_access_traversal_tag, iterator_traversal_t<Iterator> >;
+
+//! Type returned by begin function (found by ADL)
+template<typename Range>
+using range_iterator_t = decltype( begin(std::declval<Range &>()) );
 
 
 
