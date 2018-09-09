@@ -50,8 +50,8 @@ namespace _detail
 
 	template<typename T, typename Alloc, bool B, typename... Args>
 	inline auto ConstructImpl(bool_constant<B>, Alloc & a, T *__restrict p, Args &&... args)
-	 -> decltype( a.construct(p, std::forward<Args>(args)...) )
-	            { a.construct(p, std::forward<Args>(args)...); }
+	->	decltype( a.construct(p, std::forward<Args>(args)...) )
+		        { a.construct(p, std::forward<Args>(args)...); }
 	// void * worse match than T *
 	template<typename T, typename Alloc, typename... Args>
 	inline void ConstructImpl(std::true_type, Alloc &, void *__restrict p, Args &&... args)

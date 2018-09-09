@@ -74,7 +74,7 @@ template<typename InputRange,
          typename Alloc = allocator<iterator_value_t< range_iterator_t<InputRange> >>
         >
 explicit dynarray(const InputRange &, Alloc = Alloc{})
- -> dynarray<iterator_value_t< range_iterator_t<InputRange> >, Alloc>;
+->	dynarray<iterator_value_t< range_iterator_t<InputRange> >, Alloc>;
 #endif
 
 /**
@@ -568,7 +568,7 @@ private:
 
 	template<typename Range, typename IterTrav> // pass dummy int to prefer this overload
 	static auto _sizeOrEnd(const Range & r, IterTrav, int)
-	 -> decltype( oel::ssize(r), size_type() ) { return oel::ssize(r); }
+	->	decltype( oel::ssize(r), size_type() ) { return oel::ssize(r); }
 
 	template<typename Range>
 	static size_type _sizeOrEnd(const Range & r, forward_traversal_tag, long)

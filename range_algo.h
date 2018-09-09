@@ -62,7 +62,7 @@ struct copy_unsafe_return
 * To move instead of copy, pass `view::move(source)`. To mimic std::copy_n, use view::counted  */
 template<typename SizedInputRange, typename RandomAccessIter>
 auto copy_unsafe(const SizedInputRange & source, RandomAccessIter dest)
- -> copy_unsafe_return<decltype(begin(source))>;
+->	copy_unsafe_return<decltype(begin(source))>;
 
 template<typename IteratorSource, typename IteratorDest>
 struct last_iterators
@@ -79,7 +79,7 @@ struct last_iterators
 * To move instead of copy, wrap source with view::move or view::move_n  */
 template<typename InputRange, typename RandomAccessRange>
 auto copy(const InputRange & source, RandomAccessRange & dest)
- -> last_iterators<decltype(begin(source)), decltype(begin(dest))>;
+->	last_iterators<decltype(begin(source)), decltype(begin(dest))>;
 /**
 * @brief Copies as many elements from source as will fit in dest
 * @return true if all elements were copied, false means truncation happened
@@ -123,8 +123,8 @@ namespace _detail
 {
 	template<typename Container> inline
 	auto EraseEnd(Container & c, typename Container::iterator f)
-	 -> decltype(c.erase_to_end(f))
-	    { return c.erase_to_end(f); }
+	->	decltype(c.erase_to_end(f))
+		{ return c.erase_to_end(f); }
 
 	template<typename Container, typename... None> inline
 	void EraseEnd(Container & c, typename Container::iterator f, None...) { c.erase(f, c.end()); }
@@ -132,7 +132,7 @@ namespace _detail
 
 	template<typename Container, typename UnaryPred> inline
 	auto RemoveIf(Container & c, UnaryPred p, int)  // pass dummy int to prefer this overload
-	 -> decltype(c.remove_if(p)) { return c.remove_if(p); }
+	->	decltype(c.remove_if(p)) { return c.remove_if(p); }
 
 	template<typename Container, typename UnaryPred>
 	void RemoveIf(Container & c, UnaryPred p, long)
@@ -142,7 +142,7 @@ namespace _detail
 
 	template<typename Container, typename BinaryPred> inline
 	auto Unique(Container & c, BinaryPred p, int)
-	 -> decltype(c.unique(p)) { return c.unique(p); }
+	->	decltype(c.unique(p)) { return c.unique(p); }
 
 	template<typename Container, typename BinaryPred>
 	void Unique(Container & c, BinaryPred p, long)
@@ -253,7 +253,7 @@ namespace _detail
 
 template<typename SizedInputRange, typename RandomAccessIter>
 inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
- ->	copy_unsafe_return<decltype(begin(src))>
+->	copy_unsafe_return<decltype(begin(src))>
 {
 	using InIter = decltype(begin(src));
 	return{ _detail::CopyUnsf(begin(src), oel::ssize(src), dest,
@@ -262,7 +262,7 @@ inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
 
 template<typename InputRange, typename RandomAccessRange>
 inline auto oel::copy(const InputRange & src, RandomAccessRange & dest)
- ->	last_iterators<decltype(begin(src)), decltype(begin(dest))>
+->	last_iterators<decltype(begin(src)), decltype(begin(dest))>
 {
 	using IterSrc  = decltype(begin(src));
 	using IterDest = decltype(begin(dest));

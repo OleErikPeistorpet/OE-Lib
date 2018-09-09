@@ -108,7 +108,7 @@ public:
 	//! Return raw pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous(T *))
 	template<typename It = Iterator>
 	auto data() const noexcept
-	 -> decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
+	->	decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
 };
 
 //! View creation functions, other than oel::make_iterator_range
@@ -151,14 +151,14 @@ auto move(InputRange & r)   { return _detail::Move(r, int{}); }
 	* Note that passing an rvalue range should result in a compile error. Use a named variable. */
 	template<typename UnaryFunc, typename SizedRange>
 	auto transform(SizedRange & r, UnaryFunc f)
-	 ->	counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
+	->	counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
 		{
 			return {boost::make_transform_iterator(begin(r), std::move(f)), oel::ssize(r)};
 		}
 	//! Create a view with boost::transform_iterator from iterator and count
 	template<typename UnaryFunc, typename Iterator>
-	counted_view< boost::transform_iterator<UnaryFunc, Iterator> >
-		transform_n(Iterator first, iterator_difference_t<Iterator> count, UnaryFunc f)
+	auto transform_n(Iterator first, iterator_difference_t<Iterator> count, UnaryFunc f)
+	->	counted_view< boost::transform_iterator<UnaryFunc, Iterator> >
 		{
 			return {boost::make_transform_iterator(first, std::move(f)), count};
 		}

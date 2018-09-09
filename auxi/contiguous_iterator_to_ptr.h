@@ -67,8 +67,8 @@ constexpr T * to_pointer_contiguous(T * it) noexcept { return it; }
 
 template<typename Iterator>
 auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
- -> decltype( to_pointer_contiguous(it.base()) )
-     { return to_pointer_contiguous(it.base()); }
+->	decltype( to_pointer_contiguous(it.base()) )
+	 { return to_pointer_contiguous(it.base()); }
 
 
 
@@ -83,7 +83,7 @@ namespace _detail
 
 	template<typename IterDest, typename IterSrc>
 	auto CanMemmoveWith(IterDest dest, IterSrc src)
-	 -> decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
+	->	decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
 
 	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
 	false_type CanMemmoveWith(...);
