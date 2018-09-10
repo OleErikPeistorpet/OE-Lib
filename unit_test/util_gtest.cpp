@@ -187,7 +187,7 @@ TEST(utilTest, toPointerContiguous)
 	}
 	std::array<int, 3> a;
 
-	using P  = decltype( to_pointer_contiguous(a.begin()) );
+	using P  = decltype(to_pointer_contiguous( std::make_move_iterator(a.begin()) ));
 	using CP = decltype( to_pointer_contiguous(a.cbegin()) );
 	static_assert(std::is_same<P, int *>::value, "?");
 	static_assert(std::is_same<CP, const int *>::value, "?");

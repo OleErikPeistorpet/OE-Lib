@@ -8,7 +8,7 @@
 
 #include "auxi/algo_detail.h"
 #include "auxi/container_util.h"
-#include "auxi/contiguous_iterator.h"
+#include "auxi/dynarray_iterator.h"
 #include "compat/default.h"
 #include "align_allocator.h"
 
@@ -330,7 +330,7 @@ private:
 			reservEnd = data + capacity;
 		}
 
-		_memOwner(_memOwner && other)
+		_memOwner(_memOwner && other) noexcept
 		 :	_internBase(other), Alloc(std::move(other))
 		{
 			other.reservEnd = other.end = other.data = nullptr;
@@ -345,15 +345,13 @@ private:
 	_memOwner<Alloc> _m; // the only data member
 
 
-	using _allocRef = _detail::AllocRefOptimized<Alloc>;
-
-	struct _scopedPtr : private _allocRef
+	struct _scopedPtr : private _detail::RefOptimizeEmpty<Alloc>
 	{
 		pointer data;  // owner
 		pointer allocEnd;
 
 		_scopedPtr(Alloc & a, size_type const allocSize)
-		 :	_allocRef{a},
+		 :	_scopedPtr::RefOptimizeEmpty{a},
 			data{_allocate(a, allocSize)},
 			allocEnd{data + allocSize} {
 		}
@@ -392,7 +390,7 @@ private:
 	}
 
 	template<typename Iterator>
-	Iterator _makeIter(pointer p) const
+	Iterator _makeIter(pointer p) const noexcept
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (_m.data)
@@ -424,7 +422,7 @@ private:
 
 	OEL_ALWAYS_INLINE void _moveAssignAlloc(std::false_type, Alloc &) {}
 
-	void _swapAlloc(std::true_type, Alloc & a)
+	void _swapAlloc(std::true_type, Alloc & a) noexcept
 	{
 		using std::swap;
 		swap(static_cast<Alloc &>(_m), a);
@@ -436,6 +434,12 @@ private:
 		(void) a;
 	}
 
+#ifdef __GNUC__
+	#pragma GCC diagnostic push
+	#if __GNUC__ >= 8
+	#pragma GCC diagnostic ignored "-Wclass-memaccess"
+	#endif
+#endif
 
 	void _initPostAllocate(const T * src)
 	{
@@ -453,18 +457,18 @@ private:
 
 	static size_type _calcCapAddOne(size_type const oldCap, size_type = 0)
 	{
-		constexpr auto startBytesGood = max(3 * sizeof(void *), 4 * sizeof(int));
-		constexpr auto minGrow = max<size_t>( startBytesGood / sizeof(T),
+		constexpr auto startBytesGood = oel_max(3 * sizeof(void *), 4 * sizeof(int));
+		constexpr auto minGrow = oel_max<size_t>( startBytesGood / sizeof(T),
 				sizeof(T) <= 8 * sizeof(int) ? 2 : 1 );
 		OEL_CONST_COND if (minGrow > 1)
-			return oldCap + max(oldCap / 2, minGrow);
+			return oldCap + oel_max(oldCap / 2, minGrow);
 		else
 			return oldCap + oldCap / 2 + 1;
 	}
 
 	static size_type _calcCap(size_type oldCap, size_type newSize)
 	{	// growth factor is 1.5
-		return max(oldCap + oldCap / 2, newSize);
+		return oel_max(oldCap + oldCap / 2, newSize);
 	}
 
 
@@ -798,10 +802,10 @@ template<typename T, typename Alloc> template<typename... Args>
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
 {
-	_debugSizeUpdater guard{_m};
-
 #define OEL_DYNARR_INSERT_STEP1  \
 	_detail::AssertTrivialRelocate<T>{};  \
+	\
+	_debugSizeUpdater guard{_m};  \
 	\
 	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
 	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);  \
@@ -813,7 +817,7 @@ typename dynarray<T, Alloc>::iterator
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
 		_detail::Construct<Alloc>(_m, reinterpret_cast<T *>(&tmp), std::forward<Args>(args)...);
-		// Relocate [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
+		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_m.end;
 
@@ -830,21 +834,19 @@ template<typename T, typename Alloc> template<typename ForwardRange>
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src)
 {
-	_debugSizeUpdater guard{_m};
-
 	auto first = ::adl_begin(src);
+	size_type const count = _sizeOrEnd<decltype(first)>(src);
 
 	static_assert(std::is_base_of< forward_traversal_tag, iterator_traversal_t<decltype(first)> >::value,
 				  "insert_r requires that source models Forward Range (Boost concept)");
 
-	size_type const count = _sizeOrEnd<decltype(first)>(src);
-
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1
+
 	if (_unusedCapacity() >= count)
 	{
 		T *const dLast = pPos + count;
-		// Relocate elements to make space, conceptually destroying [pos, pos + count)
+		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
 		std::memmove(dLast, pPos, sizeof(T) * nAfterPos);
 		_m.end += count;
 		// Construct new
@@ -1079,6 +1081,9 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 	return first;
 }
 
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 template<typename T, typename Alloc>
 OEL_ALWAYS_INLINE inline T & dynarray<T, Alloc>::at(size_type i)

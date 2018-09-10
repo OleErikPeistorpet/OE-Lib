@@ -14,10 +14,10 @@
 /** @file
 * @brief specify_trivial_relocate to be overloaded for user classes
 *
-* Also provides all_ and a forward declaration of dynarray.
+* Also provides a forward declaration of dynarray (and a few other minor things)
 */
 
-#if defined __has_include
+#ifdef __has_include
 	#if !__has_include(<boost/config.hpp>)
 	#define OEL_NO_BOOST  1
 	#endif
@@ -58,7 +58,7 @@ using std::true_type; // equals bool_constant<true>
 using std::false_type;
 
 
-//! Equivalent to std::is_trivially_copyable, but may be specialized for some types
+//! Equivalent to std::is_trivially_copyable, but may be specialized (for user types)
 template<typename T>
 struct is_trivially_copyable;
 
@@ -98,29 +98,14 @@ is_trivially_copyable<T> specify_trivial_relocate(T &&);
 template<typename T>
 struct is_trivially_relocatable;
 
+} // namespace oel
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Implementation only in rest of the file
+// Implementation
 
-
-namespace _detail
-{
-	template<typename Range>
-	typename Range::difference_type DiffT(int);
-
-	template<typename> std::ptrdiff_t DiffT(long);
-
-
-	template<typename T>
-	typename T::is_always_equal IsAlwaysEqual(int);
-
-	template<typename T>
-	std::is_empty<T> IsAlwaysEqual(long);
-}
-
-} // namespace oel
 
 template<typename T>
 struct oel::is_trivially_copyable :

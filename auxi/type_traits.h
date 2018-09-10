@@ -16,18 +16,23 @@
 
 namespace oel
 {
+namespace _detail
+{
+	template<typename T>
+	typename T::is_always_equal IsAlwaysEqual(int);
 
-//! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
-template<bool Condition>
-using enable_if = typename std::enable_if<Condition, int>::type;
+	template<typename T>
+	std::is_empty<T> IsAlwaysEqual(long);
 
+
+	template<typename Range>
+	typename Range::difference_type DiffT(int);
+
+	template<typename> std::ptrdiff_t DiffT(long);
+}
 
 
 template<bool...> struct bool_pack_t;
-
-//! If all of Vs are equal to true, this is-a true_type, else false_type
-template<bool... Vs>
-using all_true   = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
 
 /** @brief Similar to std::conjunction, but is not short-circuiting
 *
@@ -37,18 +42,18 @@ void ProcessNumbers(Ts... n) {
 	static_assert(oel::all_< std::is_arithmetic<Ts>... >::value, "Only arithmetic types, please");
 @endcode  */
 template<typename... BoolConstants>
-struct all_ : all_true<BoolConstants::value...> {};
+struct all_   : std::is_same< bool_pack_t<true, BoolConstants::value...>,
+                              bool_pack_t<BoolConstants::value..., true> > {};
 
 
-
-//! If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a true_type, else false_type
-template<typename IteratorDest, typename IteratorSource>
-struct can_memmove_with;
+//! Part of std::allocator_traits for C++17
+template<typename T>
+using is_always_equal   = decltype( _detail::IsAlwaysEqual<T>(0) );
 
 
 //! Range::difference_type if present, else std::ptrdiff_t
 template<typename Range>
-using range_difference_t  = decltype( _detail::DiffT<Range>(0) );
+using range_difference_t   = decltype( _detail::DiffT<Range>(0) );
 
 template<typename Iterator>
 using iterator_difference_t = typename std::iterator_traits<Iterator>::difference_type;
@@ -77,9 +82,10 @@ using iterator_is_random_access = std::is_base_of< random_access_traversal_tag, 
 
 
 
-//! Part of std::allocator_traits for C++17
-template<typename T>
-using is_always_equal  = decltype( _detail::IsAlwaysEqual<T>(0) );
+//! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
+template<bool Condition>
+using enable_if = typename std::enable_if<Condition, int>::type;
+
 
 
 #if defined __GLIBCXX__ and __GNUC__ == 4
@@ -97,36 +103,12 @@ using is_always_equal  = decltype( _detail::IsAlwaysEqual<T>(0) );
 
 using std::size_t;
 
+} // namespace oel
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-
-template<typename T>
-T * to_pointer_contiguous(T *) noexcept;
-
-namespace _detail
-{
-	template<typename T>
-	is_trivially_copyable<T> CanMemmoveArrays(T * /*dest*/, const T *);
-
-	template<typename IterDest, typename IterSrc>
-	auto CanMemmoveWith(IterDest dest, IterSrc src)
-	 -> decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
-
-	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
-	false_type CanMemmoveWith(...);
-}
-
-} // namespace oel
-
-//! @cond FALSE
-template<typename IteratorDest, typename IteratorSource>
-struct oel::can_memmove_with :
-	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
-	                                  std::declval<IteratorSource>()) ) {};
-//! @endcond
 
 
 template<typename T>

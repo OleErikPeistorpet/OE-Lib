@@ -24,7 +24,7 @@ namespace
 
 	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
 	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
-	static_assert(oel::can_memmove_with<float *, ConstIter>::value, "?");
+	static_assert(oel::can_memmove_with< float *, std::move_iterator<Iter> >::value, "?");
 	static_assert( !oel::can_memmove_with<int *, Iter>::value, "?" );
 
 	static_assert(oel::is_trivially_copyable<Iter>::value, "?");

@@ -156,9 +156,9 @@ auto move(InputRange & r)   { return _detail::Move(r, int{}); }
 			return {boost::make_transform_iterator(begin(r), std::move(f)), oel::ssize(r)};
 		}
 	//! Create a view with boost::transform_iterator from iterator and count
-	template<typename UnaryFunc, typename InputIterator>
-	counted_view< boost::transform_iterator<UnaryFunc, InputIterator> >
-		transform_n(InputIterator first, iterator_difference_t<InputIterator> count, UnaryFunc f)
+	template<typename UnaryFunc, typename Iterator>
+	counted_view< boost::transform_iterator<UnaryFunc, Iterator> >
+		transform_n(Iterator first, iterator_difference_t<Iterator> count, UnaryFunc f)
 		{
 			return {boost::make_transform_iterator(first, std::move(f)), count};
 		}

@@ -93,7 +93,7 @@ namespace _detail
 	}
 
 	template<size_t> inline
-	void OpDelete(void * ptr, true_type)
+	void OpDelete(void * ptr, true_type) noexcept
 	{
 		::operator delete(ptr);
 	}
@@ -106,7 +106,7 @@ namespace _detail
 	}
 
 	template<size_t Align> inline
-	void OpDelete(void * ptr, false_type)
+	void OpDelete(void * ptr, false_type) noexcept
 	{
 		::operator delete(ptr, std::align_val_t{Align});
 	}
@@ -140,7 +140,7 @@ namespace _detail
 	}
 
 	template<size_t> inline
-	void OpDelete(void * ptr, false_type)
+	void OpDelete(void * ptr, false_type) noexcept
 	{
 		boost::alignment::aligned_free(ptr);
 	}

@@ -10,17 +10,17 @@
 
 #include <cstring>
 
-namespace oel
-{
 
 // std::max not constexpr for GCC 4
 template<typename T>
-constexpr T max(const T & a, const T & b)
+constexpr T oel_max(const T & a, const T & b)
 {
 	return a < b ? b : a;
 }
 
 
+namespace oel
+{
 namespace _detail
 {
 	template<typename ContiguousIter>
@@ -114,7 +114,8 @@ namespace _detail
 	struct UninitFill
 	{
 		template<typename T>
-		using IsByte = bool_constant<sizeof(T) == 1 and std::is_integral<T>::value>;
+		using IsByte = bool_constant< sizeof(T) == 1 and
+			(std::is_integral<T>::value or std::is_enum<T>::value) >;
 
 		template<typename T, typename... Arg,
 		         enable_if< !IsByte<T>::value > = 0>
@@ -133,10 +134,10 @@ namespace _detail
 			}
 		}
 
-		template<typename T, enable_if<IsByte<T>::value> = 0>
-		void operator()(T * first, T * last, Alloc &, int val) const
+		template<typename T, enable_if< IsByte<T>::value > = 0>
+		void operator()(T * first, T * last, Alloc &, T val) const
 		{
-			std::memset(first, val, last - first);
+			std::memset(first, static_cast<int>(val), last - first);
 		}
 
 		template<typename T, enable_if< std::is_trivial<T>::value > = 0>

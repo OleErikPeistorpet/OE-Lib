@@ -7,6 +7,7 @@
 
 
 #include "auxi/type_traits.h"
+#include "auxi/contiguous_iterator_to_ptr.h"
 #include "make_unique.h"
 
 #include <stdexcept>
@@ -112,16 +113,6 @@ struct deref_args
 
 
 
-//! Convert iterator to pointer. This should be overloaded for each class of contiguous iterator (C++17 concept)
-template<typename T> inline
-T * to_pointer_contiguous(T * ptr) noexcept  { return ptr; }
-
-template<typename Iterator> inline
-auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
- -> decltype( to_pointer_contiguous(it.base()) )  { return to_pointer_contiguous(it.base()); }
-
-
-
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {
@@ -141,43 +132,6 @@ constexpr default_init_t default_init; //!< An instance of default_init_t for co
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is not for users (implementation)
-
-
-namespace _detail
-{
-	// Part of pointer_traits for C++17
-	template<typename Ptr>
-	OEL_ALWAYS_INLINE constexpr typename std::pointer_traits<Ptr>::element_type * ToAddress(Ptr p)
-	{
-		return p.operator->();
-	}
-
-	template<typename T>
-	OEL_ALWAYS_INLINE constexpr T * ToAddress(T * p) { return p; }
-}
-
-#ifdef __GLIBCXX__
-	template<typename Ptr, typename C> inline
-	typename std::pointer_traits<Ptr>::element_type *
-		to_pointer_contiguous(__gnu_cxx::__normal_iterator<Ptr, C> it) noexcept
-	{
-		return _detail::ToAddress(it.base());
-	}
-#elif _LIBCPP_VERSION
-	template<typename T> inline
-	T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return it.base(); }
-
-#elif _CPPLIB_VER
-	template
-	<	typename ContiguousIterator,
-		enable_if< std::is_same<decltype( _Unchecked(ContiguousIterator{}) ),
-		                        typename ContiguousIterator::pointer> ::value > = 0
-	> inline
-	auto to_pointer_contiguous(const ContiguousIterator & it) noexcept
-	{
-		return _detail::ToAddress(_Unchecked(it));
-	}
-#endif
 
 
 namespace _detail
