@@ -180,8 +180,8 @@ namespace _detail
 
 	constexpr auto * errorCopyMsg = "Too small dest oel::copy";
 
-	template<typename Ret, typename InputRange, typename OutputRange, typename FuncItersParam, typename FuncNoParam>
-	Ret CopyImpl(const InputRange & from, OutputRange & to, FuncItersParam succeed, FuncNoParam fail)
+	template<typename InputRange, typename OutputRange, typename FuncItersParam, typename FuncNoParam>
+	auto CopyImpl(const InputRange & from, OutputRange & to, FuncItersParam succeed, FuncNoParam fail)
 	{
 		auto src = begin(from); auto const sLast = end(from);
 		auto dest = begin(to);  auto const dLast = end(to);
@@ -202,7 +202,7 @@ namespace _detail
 	template<typename Ret, typename IterSource, typename IteratorDest, typename InputRange, typename OutputRange> inline
 	Ret Copy(const InputRange & src, OutputRange & dest, long)
 	{
-		return _detail::CopyImpl<Ret>
+		return _detail::CopyImpl
 			(	src, dest,
 				[](IterSource si, IteratorDest di) { return Ret{si, di}; },
 				[]() -> Ret { Throw::OutOfRange(errorCopyMsg); }
@@ -228,7 +228,7 @@ namespace _detail
 	{
 		using IterSrc  = decltype(begin(src));
 		using IterDest = decltype(begin(dest));
-		return _detail::CopyImpl<bool>
+		return _detail::CopyImpl
 			(	src, dest,
 				[](IterSrc, IterDest) { return true; },
 				[]() { return false; }

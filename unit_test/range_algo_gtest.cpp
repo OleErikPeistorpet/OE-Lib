@@ -157,7 +157,7 @@ OEL_WHEN_EXCEPTIONS_ON(
 		EXPECT_TRUE(std::next(li.begin())->empty());
 		EXPECT_TRUE(end(li) == sLast.base());
 	}
-	std::list<std::string> li{"aa", "bb"};
+	std::forward_list<std::string> li{"aa", "bb"};
 	std::array<std::string, 4> strDest;
 	success = oel::copy_fit(li, strDest);
 	EXPECT_EQ("aa", strDest[0]);
