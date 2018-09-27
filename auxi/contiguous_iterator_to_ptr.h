@@ -81,8 +81,8 @@ namespace _detail
 	template<typename T>
 	is_trivially_copyable<T> CanMemmoveArrays(T * /*dest*/, const T *);
 
-	template<typename IterDest, typename IterSrc>
-	auto CanMemmoveWith(IterDest dest, IterSrc src)
+	template<typename IteratorDest, typename IterSource>
+	auto CanMemmoveWith(IteratorDest dest, IterSource src)
 	->	decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
 
 	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible

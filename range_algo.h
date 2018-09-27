@@ -152,8 +152,8 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename ContiguousIter, typename Integral, typename CntigusIter2>
-	ContiguousIter CopyUnsf(ContiguousIter const src, Integral const n, CntigusIter2 const dest, true_type)
+	template<typename ContiguousIter, typename Integral, typename ContiguousIter2>
+	ContiguousIter CopyUnsf(ContiguousIter const src, Integral const n, ContiguousIter2 const dest, true_type)
 	{	// can use memcpy
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != n)
@@ -166,8 +166,8 @@ namespace _detail
 		return src + n;
 	}
 
-	template<typename InputIter, typename Integral, typename RanAccessIter>
-	InputIter CopyUnsf(InputIter src, Integral const n, RanAccessIter const dest, false_type)
+	template<typename InputIter, typename Integral, typename RandomAccessIter>
+	InputIter CopyUnsf(InputIter src, Integral const n, RandomAccessIter const dest, false_type)
 	{
 		for (Integral i = 0; i < n; ++i)
 		{
@@ -199,18 +199,18 @@ namespace _detail
 		return succeed(src, dest);
 	}
 
-	template<typename Ret, typename IterSrc, typename IterDest, typename InputRange, typename OutputRange> inline
+	template<typename Ret, typename IterSource, typename IteratorDest, typename InputRange, typename OutputRange> inline
 	Ret Copy(const InputRange & src, OutputRange & dest, long)
 	{
 		return _detail::CopyImpl<Ret>
 			(	src, dest,
-				[](IterSrc si, IterDest di) { return Ret{si, di}; },
+				[](IterSource si, IteratorDest di) { return Ret{si, di}; },
 				[]() -> Ret { Throw::OutOfRange(errorCopyMsg); }
 			);
 	}
 
-	template<typename Ret, typename, typename, typename SizedRange, typename RanAccessRange>
-	Ret Copy(const SizedRange & src, RanAccessRange & dest, decltype( oel::ssize(src), int() ))
+	template<typename Ret, typename, typename, typename SizedRange, typename RandomAccessRange>
+	Ret Copy(const SizedRange & src, RandomAccessRange & dest, decltype( oel::ssize(src), int() ))
 	{
 		auto const n = oel::ssize(src);
 		if (n <= oel::ssize(dest))
@@ -235,8 +235,8 @@ namespace _detail
 			);
 	}
 
-	template<typename SizedRange, typename RanAccessRange>
-	bool CopyFit(const SizedRange & src, RanAccessRange & dest, decltype( oel::ssize(src), int() ))
+	template<typename SizedRange, typename RandomAccessRange>
+	bool CopyFit(const SizedRange & src, RandomAccessRange & dest, decltype( oel::ssize(src), int() ))
 	{
 		auto const destSize = oel::ssize(dest);
 		auto n = oel::ssize(src);
