@@ -91,7 +91,7 @@ namespace _detail
 
 	inline void OpDelete(void * p, size_t size, size_t, false_type) noexcept
 	{
-	#if __cpp_sized_deallocation
+	#if OEL_USE_SIZED_DEALLOC
 		::operator delete(p, size);
 	#else
 		::operator delete(p);
@@ -108,7 +108,13 @@ namespace _detail
 
 	inline void OpDelete(void * p, size_t size, size_t aligned, true_type) noexcept
 	{
-		::operator delete(p, size, std::align_val_t{aligned});
+	#if !OEL_USE_SIZED_DEALLOC
+		(void) size;
+		::operator delete( p,
+	#else
+		::operator delete( p, size,
+	#endif
+			std::align_val_t{aligned} );
 	}
 #else
 	struct BadAlloc
