@@ -31,7 +31,7 @@ struct allocator
 	using propagate_on_container_move_assignment = std::true_type;
 
 	T *  allocate(size_t nElems);
-	void deallocate(T * ptr, size_t) noexcept(nodebug);
+	void deallocate(T * ptr, size_t nElems) noexcept(nodebug);
 
 	static constexpr size_t max_size()   { return (size_t)-1 / sizeof(T); }
 
@@ -73,37 +73,42 @@ using aligned_union_t = aligned_storage_t<sizeof(T), alignof(T)>;
 namespace _detail
 {
 	template<size_t Align>
-	using CanDefaultNew = bool_constant<
+	using IsOveralign = bool_constant<(
 		#if defined __STDCPP_DEFAULT_NEW_ALIGNMENT__
-			Align <= __STDCPP_DEFAULT_NEW_ALIGNMENT__
+			Align > __STDCPP_DEFAULT_NEW_ALIGNMENT__
 		#elif _WIN64 or defined __x86_64__ // then assuming 16 byte aligned from operator new
-			Align <= 16
+			Align > 16
 		#else
-			Align <= alignof(::max_align_t)
+			Align > alignof(::max_align_t)
 		#endif
-		>;
+		)>;
 
 	template<size_t>
-	inline void * OpNew(size_t size, true_type)
+	inline void * OpNew(size_t size, false_type)
 	{
 		return ::operator new(size);
 	}
 
-	inline void OpDelete(void * p, size_t, true_type) noexcept
+	inline void OpDelete(void * p, size_t size, size_t, false_type) noexcept
 	{
+	#if __cpp_sized_deallocation
+		::operator delete(p, size);
+	#else
 		::operator delete(p);
+		(void) size;
+	#endif
 	}
 
 #if __cpp_aligned_new >= 201606
 	template<size_t Align>
-	inline void * OpNew(size_t size, false_type)
+	inline void * OpNew(size_t size, true_type)
 	{
 		return ::operator new(size, std::align_val_t{Align});
 	}
 
-	inline void OpDelete(void * p, size_t const aligned, false_type) noexcept
+	inline void OpDelete(void * p, size_t size, size_t aligned, true_type) noexcept
 	{
-		::operator delete(p, std::align_val_t{aligned});
+		::operator delete(p, size, std::align_val_t{aligned});
 	}
 #else
 	struct BadAlloc
@@ -126,7 +131,7 @@ namespace _detail
 	}
 
 	template<size_t Align>
-	void * OpNew(size_t const size, false_type)
+	void * OpNew(size_t const size, true_type)
 	{
 		if (size <= (size_t)-1 - Align) // then size + Align doesn't overflow
 		{
@@ -136,7 +141,7 @@ namespace _detail
 		BadAlloc::Throw();
 	}
 
-	inline void OpDelete(void * p, size_t, false_type)
+	inline void OpDelete(void * p, size_t, size_t, true_type)
 	{
 		OEL_ASSERT(p); // OpNew never returns null, and the standard mandates
 		               // a pointer previously obtained from an equal allocator
@@ -150,14 +155,16 @@ template<typename T>
 T * allocator<T>::allocate(size_t nElems)
 {
 	void * p = _detail::OpNew<alignof(T)>
-		(sizeof(T) * nElems, _detail::CanDefaultNew<alignof(T)>());
+		(sizeof(T) * nElems, _detail::IsOveralign<alignof(T)>());
 	return static_cast<T *>(p);
 }
 
 template<typename T>
-OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept(nodebug)
+OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t nElems) noexcept(nodebug)
 {
-	_detail::OpDelete(ptr, alignof(T), _detail::CanDefaultNew<alignof(T)>());
+	_detail::OpDelete(
+		ptr, sizeof(T) * nElems, alignof(T),
+		_detail::IsOveralign<alignof(T)>() );
 }
 
 } // namespace oel
