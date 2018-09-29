@@ -6,13 +6,21 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+//! Users can override (in case of incompatible standard library)
+#ifndef OEL_ALIGNED_NEW
+	#if __cpp_aligned_new && __cpp_sized_deallocation
+	#define OEL_ALIGNED_NEW  1
+	#else
+	#define OEL_ALIGNED_NEW  0
+	#endif
+#endif
+
 #include "auxi/impl_algo.h"
 
-#if __cpp_aligned_new < 201606
+#if !OEL_ALIGNED_NEW
 #include <cstdint> // for uintptr_t
 #endif
-#include <stddef.h> // for max_align_t
-
+#include <cstddef> // for max_align_t
 
 /** @file
 */
@@ -31,7 +39,7 @@ struct allocator
 	using propagate_on_container_move_assignment = std::true_type;
 
 	T *  allocate(size_t nElems);
-	void deallocate(T * ptr, size_t) noexcept;
+	void deallocate(T * ptr, size_t nElems) noexcept;
 
 	static constexpr size_t max_size()   { return (size_t)-1 / sizeof(T); }
 
@@ -73,31 +81,30 @@ namespace _detail
 		#elif _WIN64 or defined __x86_64__ // then assuming 16 byte aligned from operator new
 			Align <= 16
 		#else
-			Align <= alignof(::max_align_t)
+			Align <= alignof(std::max_align_t)
 		#endif
 		>;
 
-	template< size_t >
-	inline void * OpNew(size_t size, true_type)
+	inline void OpDelete(void * p, size_t const size, size_t, true_type /*regularAlignment*/) noexcept
 	{
-		return ::operator new(size);
-	}
-
-	OEL_ALWAYS_INLINE inline void OpDelete(void * p, size_t, true_type) noexcept
-	{
+	#if __cpp_sized_deallocation
+		::operator delete(p, size);
+	#else
 		::operator delete(p);
+		(void) size;
+	#endif
 	}
 
-#if __cpp_aligned_new >= 201606
+#if OEL_ALIGNED_NEW
 	template< size_t Align >
-	inline void * OpNew(size_t size, false_type)
+	inline void * OpNewAlign(size_t size)
 	{
 		return ::operator new(size, std::align_val_t{Align});
 	}
 
-	inline void OpDelete(void * p, size_t const aligned, false_type) noexcept
+	inline void OpDelete(void * p, size_t const size, size_t const align, false_type) noexcept
 	{
-		::operator delete(p, std::align_val_t{aligned});
+		::operator delete(p, size, std::align_val_t{align});
 	}
 #else
 	template< size_t Align >
@@ -112,7 +119,7 @@ namespace _detail
 	}
 
 	template< size_t Align >
-	void * OpNew(size_t const size, false_type)
+	void * OpNewAlign(size_t const size)
 	{
 		if (size <= (size_t)-1 - Align) // then size + Align doesn't overflow
 		{
@@ -122,12 +129,17 @@ namespace _detail
 		Throw::LengthError("Too large size in oel::allocator");
 	}
 
-	inline void OpDelete(void * p, size_t, false_type)
+	inline void OpDelete(void *const p, size_t const size, size_t const align, false_type)
 	{
-		OEL_ASSERT(p); // OpNew never returns null, and the standard mandates
+		OEL_ASSERT(p); // OpNewAlign never returns null, and the standard mandates
 		               // a pointer previously obtained from an equal allocator
-		p = static_cast<void **>(p)[-1];
-		::operator delete(p);
+		::operator delete(
+			static_cast<void **>(p)[-1]
+	#if __cpp_sized_deallocation
+			, size + align
+	#endif
+		);
+		(void) size; (void) align;
 	}
 #endif
 }
@@ -135,15 +147,22 @@ namespace _detail
 template< typename T >
 T * allocator<T>::allocate(size_t nElems)
 {
-	void * p = _detail::OpNew<alignof(T)>
-		(sizeof(T) * nElems, _detail::CanDefaultNew<alignof(T)>());
+	size_t const size = sizeof(T) * nElems;
+	void * p;
+	if (_detail::CanDefaultNew<alignof(T)>::value)
+		p = ::operator new(size);
+	else
+		p = _detail::OpNewAlign<alignof(T)>(size);
+
 	return static_cast<T *>(p);
 }
 
 template< typename T >
-inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
+inline void allocator<T>::deallocate(T * ptr, size_t nElems) noexcept
 {
-	_detail::OpDelete(ptr, alignof(T), _detail::CanDefaultNew<alignof(T)>());
+	_detail::OpDelete(
+		ptr, sizeof(T) * nElems, alignof(T),
+		_detail::CanDefaultNew<alignof(T)>() );
 }
 
 } // namespace oel
