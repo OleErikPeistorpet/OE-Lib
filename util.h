@@ -54,7 +54,7 @@ constexpr bool index_valid(const SizedRange & r, Integral index);
 using std::begin;
 using std::end;
 
-#if __cplusplus >= 201402L or defined _MSC_VER
+#if __cplusplus >= 201402 or defined _MSC_VER
 	using std::cbegin;   using std::cend;
 	using std::crbegin;  using std::crend;
 #endif
