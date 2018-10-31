@@ -33,7 +33,7 @@ std::unique_ptr<T> make_unique(size_t arraySize);
 *
 * Non-class elements get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 template< typename T, typename = enable_if<std::is_array<T>::value> >
-std::unique_ptr<T> make_unique_default(size_t arraySize);
+std::unique_ptr<T> make_unique_default_init(size_t arraySize);
 
 
 
@@ -78,7 +78,7 @@ inline std::unique_ptr<T>  oel::make_unique(size_t size)
 }
 
 template<typename T, typename>
-inline std::unique_ptr<T>  oel::make_unique_default(size_t size)
+inline std::unique_ptr<T>  oel::make_unique_default_init(size_t size)
 {
 	OEL_MAKE_UNIQUE_A(new Elem[size]);
 }
