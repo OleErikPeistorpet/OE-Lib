@@ -13,6 +13,10 @@
 #endif
 #endif
 
+#if defined OEL_HAS_STD_PMR
+	static_assert(oel::is_trivially_relocatable< std::pmr::polymorphic_allocator<int> >::value, "?");
+#endif
+
 using oel::dynarray;
 
 namespace

@@ -87,11 +87,7 @@ using enable_if = typename std::enable_if<Condition, int>::type;
 
 #if defined __GLIBCXX__ and __GNUC__ == 4
 	template<typename T>
-	using is_trivially_default_constructible = bool_constant< __has_trivial_constructor(T)
-		#ifdef __INTEL_COMPILER
-			or __is_pod(T)
-		#endif
-		>;
+	using is_trivially_default_constructible = bool_constant<__has_trivial_constructor(T)>;
 #else
 	using std::is_trivially_default_constructible;
 #endif
