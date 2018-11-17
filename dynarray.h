@@ -158,7 +158,7 @@ public:
 	                                          or is_always_equal<Alloc>::value);
 	/**
 	* @brief Replace the contents with source range
-	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
+	* @param source an array, STL container, iterator_range, gsl::span or such.
 	* @pre `begin(source)` shall not point to any element in this dynarray except the front.
 	* @return iterator `begin(source)` incremented by the number of elements in source
 	*
@@ -170,21 +170,19 @@ public:
 
 	/**
 	* @brief Add at end the elements from range (return past-the-last of source)
-	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
+	* @param source an array, STL container, iterator_range, gsl::span or such.
 	* @pre Behavior is undefined if all of the following apply: source refers to any elements in this dynarray,
 	*	source.size() does not exist and source does not model Forward Range (Boost concept)
 	* @return `begin(source)` incremented by source size. The iterator is already invalidated (do not dereference) if
 	*	`begin(source)` pointed into this dynarray and there was insufficient capacity to avoid reallocation.
 	*
-	* Strong exception guarantee if T is noexcept move constructible or trivially relocatable. Otherwise equivalent to
+	* Passing references to this dynarray is safe. The function is otherwise equivalent to
 	* `std::vector::insert(end(), begin(source), end(source))`, where `end(source)` is not needed if source.size() exists. */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
-	//! @brief Equivalent to `std::vector::insert(end(), il)`, but
-	//!	with strong exception guarantee if T is noexcept move constructible or trivially relocatable
+	//! Equivalent to `std::vector::insert(end(), il)`
 	void      append(std::initializer_list<T> il)   { append<>(il); }
-	//! @brief Equivalent to `std::vector::insert(end(), count, val)`, but
-	//!	with strong exception guarantee if T is noexcept move constructible or trivially relocatable
+	//! Equivalent to `std::vector::insert(end(), count, val)`
 	void      append(size_type count, const T & val);
 
 	/**
