@@ -20,8 +20,10 @@
 
 namespace oel
 {
+#if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug
 {
+#endif
 
 /** @brief Checked iterator, for container with contiguous, dynamically allocated memory
 *
@@ -54,7 +56,11 @@ public:
 
 	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
 	{
-		return {_pElem, _header, _allocationId};
+		return { _pElem
+			#if OEL_MEM_BOUND_DEBUG_LVL
+				, _header, _allocationId
+			#endif
+			};
 	}
 
 	reference operator*() const
@@ -69,7 +75,7 @@ public:
 		return _pElem;
 	}
 
-	dynarray_iterator & operator++() &  OEL_ALWAYS_INLINE
+	dynarray_iterator & operator++()  OEL_ALWAYS_INLINE
 	{	// preincrement
 		++_pElem;
 		return *this;
@@ -82,7 +88,7 @@ public:
 		return tmp;
 	}
 
-	dynarray_iterator & operator--() &  OEL_ALWAYS_INLINE
+	dynarray_iterator & operator--()  OEL_ALWAYS_INLINE
 	{	// predecrement
 		--_pElem;
 		return *this;
@@ -181,15 +187,19 @@ public:
 #endif
 
 	pointer _pElem; //!< Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
+#if OEL_MEM_BOUND_DEBUG_LVL
 	//! Pointer to struct storing allocation ID and container size
 	typename _ptrTrait::template rebind<_detail::DebugAllocationHeader const> _header;
 	std::uintptr_t _allocationId;  //!< Used to check if this iterator has been invalidated by deallocation
+#endif
 
 #undef OEL_ITER_CHECK_COMPATIBLE
 #undef OEL_ITER_VALIDATE_DEREF
 };
 
+#if OEL_MEM_BOUND_DEBUG_LVL
 } // namespace debug
+#endif
 
 //! To raw pointer (unchecked)
 template<typename Ptr, typename T>  inline

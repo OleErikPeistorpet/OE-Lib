@@ -114,13 +114,8 @@ public:
 	using difference_type = typename _allocTrait::difference_type;
 	using size_type       = size_t;
 
-#if OEL_MEM_BOUND_DEBUG_LVL
-	using iterator       = debug::dynarray_iterator<pointer, T>;
-	using const_iterator = debug::dynarray_iterator<const_pointer, T>;
-#else
-	using iterator       = pointer;
-	using const_iterator = const_pointer;
-#endif
+	using iterator       = dynarray_iterator<pointer, T>;
+	using const_iterator = dynarray_iterator<const_pointer, T>;
 	using reverse_iterator       = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -408,7 +403,7 @@ private:
 		{	return {p, &_detail::headerNoAllocation, reinterpret_cast<std::uintptr_t>(this)};
 		}
 	#else
-		return p;
+		return {p};
 	#endif
 	}
 
@@ -498,7 +493,7 @@ private:
 	T * _relocateImpl(T *const dest, size_type const n, true_type) const noexcept
 	{
 		T * dLast = dest + n;
-		_detail::MemcpyCheck(_m.data, n, dest);
+		_detail::MemcpyCheck(data(), n, dest);
 		return dLast;
 	}
 	// Returns destination end
