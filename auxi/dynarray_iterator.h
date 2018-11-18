@@ -112,16 +112,14 @@ public:
 		return it += offset;
 	}
 
-	dynarray_iterator operator +(difference_type offset) const
+	friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
 	{
-		auto tmp = *this;
-		return tmp += offset;
+		return it += offset;
 	}
 
-	dynarray_iterator operator -(difference_type offset) const
-	{	// this - integer
-		auto tmp = *this;
-		return tmp -= offset;
+	friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
+	{
+		return it -= offset;
 	}
 
 	difference_type operator -(const const_iterator & right) const
@@ -194,7 +192,7 @@ public:
 } // namespace debug
 
 //! To raw pointer (unchecked)
-template<typename Ptr, typename T> inline
+template<typename Ptr, typename T>  inline
 typename std::pointer_traits<Ptr>::element_type *
 	to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 {
