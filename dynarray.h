@@ -51,22 +51,22 @@ template<typename T, typename A>  OEL_ALWAYS_INLINE inline
 void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept( noexcept(a.swap(b)) )  { a.swap(b); }
 
 //! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
-template<typename T, typename A> inline
+template<typename T, typename A>  inline
 void erase_unstable(dynarray<T, A> & d, typename dynarray<T, A>::size_type index)  { d.erase_unstable(d.begin() + index); }
 
 //! @name GenericContainerInsert
 //!@{
 // Overloads of generic functions for inserting into container (in range_algo.h)
-template<typename T, typename A, typename InputRange> inline
+template<typename T, typename A, typename InputRange>  inline
 void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(source); }
 
-template<typename T, typename A, typename InputRange> inline
+template<typename T, typename A, typename InputRange>  inline
 void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
 
-template<typename T, typename A> inline
+template<typename T, typename A>  inline
 void append(dynarray<T, A> & dest, typename dynarray<T, A>::size_type n, const T & val)  { dest.append(n, val); }
 
-template<typename T, typename A, typename ForwardRange> inline
+template<typename T, typename A, typename ForwardRange>  inline
 typename dynarray<T, A>::iterator
 	insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, const ForwardRange & source)
 	{ return dest.insert_r(pos, source); }
@@ -203,20 +203,20 @@ public:
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if source.size() exists
 	template<typename ForwardRange>
-	iterator  insert_r(const_iterator pos, const ForwardRange & source);
+	iterator  insert_r(const_iterator pos, const ForwardRange & source) &;
 
-	iterator  insert(const_iterator pos, std::initializer_list<T> il)  { return insert_r(pos, il); }
+	iterator  insert(const_iterator pos, std::initializer_list<T> il) &  { return insert_r(pos, il); }
 
-	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
-	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
-
-	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
-	template<typename... Args>
-	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
+	iterator  insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
+	iterator  insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
 
 	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
 	template<typename... Args>
-	reference emplace_back(Args &&... args);
+	iterator  emplace(const_iterator pos, Args &&... elemInitArgs) &;
+
+	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
+	template<typename... Args>
+	reference emplace_back(Args &&... args) &;
 
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
 	void      push_back(const T & val)  { emplace_back(val); }
@@ -228,11 +228,11 @@ public:
 	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
-	iterator  erase_unstable(iterator pos)  { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase_unstable(iterator pos) &  { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
 
-	iterator  erase(iterator pos)           { _erase(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase(iterator pos) &           { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
-	iterator  erase(iterator first, const_iterator last);
+	iterator  erase(iterator first, const_iterator last) &;
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require trivially relocatable T
 	void      erase_to_end(iterator first) noexcept(nodebug);
 
@@ -798,7 +798,7 @@ private:
 
 template<typename T, typename Alloc> template<typename... Args>
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
+	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args) &
 {
 #define OEL_DYNARR_INSERT_STEP1  \
 	_detail::AssertTrivialRelocate<T>{};  \
@@ -830,7 +830,7 @@ typename dynarray<T, Alloc>::iterator
 
 template<typename T, typename Alloc> template<typename ForwardRange>
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src)
+	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src) &
 {
 	auto first = ::adl_begin(src);
 	size_type const count = _sizeOrEnd<decltype(first)>(src);
@@ -885,7 +885,7 @@ typename dynarray<T, Alloc>::iterator
 }
 
 template<typename T, typename Alloc> template<typename... Args>
-inline T & dynarray<T, Alloc>::emplace_back(Args &&... args)
+inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 {
 	_debugSizeUpdater guard{_m};
 
@@ -1059,7 +1059,7 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 }
 
 template<typename T, typename Alloc>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last)
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
 {
 	_detail::AssertTrivialRelocate<T>{};
 
