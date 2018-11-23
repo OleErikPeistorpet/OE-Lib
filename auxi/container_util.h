@@ -38,6 +38,18 @@ namespace _detail
 
 		T Get() noexcept { return T{}; }
 	};
+
+
+	template<typename Alloc, typename Arg>
+	decltype( std::declval<Alloc &>().construct( (typename Alloc::value_type *)0, std::declval<Arg>() ),
+		true_type() )
+		HasConstructTest(int);
+
+	template<typename, typename>
+	false_type HasConstructTest(long);
+
+	template<typename Alloc, typename Arg>
+	using AllocHasConstruct = decltype( HasConstructTest<Alloc, Arg>(0) );
 }
 
 } // namespace oel

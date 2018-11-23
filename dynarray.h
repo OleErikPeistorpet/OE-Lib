@@ -11,6 +11,7 @@
 #include "auxi/dynarray_iterator.h"
 #include "compat/default.h"
 #include "align_allocator.h"
+#include "range_view.h"
 
 #include <algorithm>
 
@@ -586,18 +587,24 @@ private:
 	}
 
 
-	void _allocUnequalMove(dynarray & src, false_type)
+	void _elementwiseMoveImpl(dynarray & src, false_type)
 	{
-		_assignImpl(std::make_move_iterator(src._m.data), src.size(), false_type{});
+		assign( view::move_n(src.data(), src.size()) );
 	}
 
-	void _allocUnequalMove(dynarray & src, true_type /*trivialRelocate*/)
+	void _elementwiseMoveImpl(dynarray & src, true_type /*trivialRelocate*/)
 	{
 		_debugSizeUpdater guard{src._m};
 
 		_detail::Destroy(_m.data, _m.end);
 		_assignImpl(src.begin(), src.size(), true_type{});
-		src._m.end = src._m.data; // elements in src conceptually destroyed
+		src._m.end = src._m.data; // elements relocated from src
+	}
+
+	void _elementwiseMove(dynarray & src)
+	{
+		_elementwiseMoveImpl( src,
+			bool_constant< is_trivially_relocatable<T>::value and !_detail::AllocHasConstruct<Alloc, T &&>::value >{} );
 	}
 
 
@@ -906,7 +913,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
 	OEL_CONST_COND if (!is_always_equal<Alloc>::value and a != other._m)
-		_allocUnequalMove(other, is_trivially_relocatable<T>());
+		_elementwiseMove(other);
 	else
 		_moveInternBase(other._m);
 }
@@ -918,7 +925,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	OEL_CONST_COND if (!_allocTrait::propagate_on_container_move_assignment::value
 	               and static_cast<Alloc &>(_m) != other._m)
 	{
-		_allocUnequalMove(other, is_trivially_relocatable<T>());
+		_elementwiseMove(other);
 	}
 	else // take allocated memory from other
 	{
@@ -928,7 +935,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 			_allocateWrap::Deallocate(_m, _m.data, capacity());
 		}
 		_moveInternBase(other._m);
-		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment(), other._m);
+		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment{}, other._m);
 	}
 	return *this;
 }
@@ -981,7 +988,7 @@ void dynarray<T, Alloc>::swap(dynarray & other)
 	_internBase & a = _m;
 	_internBase & b = other._m;
 	std::swap(a, b);
-	_swapAlloc(typename _allocTrait::propagate_on_container_swap(), other._m);
+	_swapAlloc(typename _allocTrait::propagate_on_container_swap{}, other._m);
 }
 
 
