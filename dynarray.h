@@ -170,7 +170,8 @@ public:
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template< typename InputRange >
-	auto assign(const InputRange & source) -> iterator_t<InputRange const>;
+	auto assign(const InputRange & source)
+	->	iterator_t<InputRange const>       { return _doAssign(oel::adl_begin(source), _detail::SizeOrEnd(source)); }
 
 	void assign(size_type count, const T & val)   { clear(); append(count, val); }
 
@@ -184,7 +185,8 @@ public:
 	* Passing references to this dynarray is supported. The function is otherwise equivalent to
 	* `std::vector::insert(end(), begin(source), end(source))`, where `end(source)` is not needed if source.size() exists. */
 	template< typename InputRange >
-	auto append(const InputRange & source) -> iterator_t<InputRange const>;
+	auto append(const InputRange & source)
+	->	iterator_t<InputRange const>       { return _append(oel::adl_begin(source), _detail::SizeOrEnd(source)); }
 	//! Equivalent to `std::vector::insert(end(), il)`
 	void append(std::initializer_list<T> il)    { append<>(il); }
 	//! Equivalent to `std::vector::insert(end(), count, val)`
@@ -557,30 +559,10 @@ private:
 	}
 
 
-	void _doElementwiseMove(dynarray & src, false_type)
-	{
-		assign(view::move(src._m.data, src._m.end));
-	}
-
-	void _doElementwiseMove(dynarray & src, true_type /*trivialRelocate*/)
-	{
-		_debugSizeUpdater guard{src._m};
-
-		_detail::Destroy(_m.data, _m.end);
-		_assignImpl(src.begin(), src.size(), true_type{});
-		src._m.end = src._m.data; // elements relocated from src
-	}
-
-	void _elementwiseMove(dynarray & src)
-	{
-		constexpr bool canBypassConstruct = !_detail::AllocHasConstruct<Alloc, T &&>::value;
-		_doElementwiseMove( src,
-			bool_constant< is_trivially_relocatable<T>::value and canBypassConstruct >{} );
-	}
-
-
-	template< typename ContiguousIter >
-	ContiguousIter _assignImpl(ContiguousIter const first, size_type const count, true_type /*trivialCopy*/)
+	template< typename ContiguousIter,
+	          enable_if< can_memmove_with< T *, ContiguousIter >::value > = 0
+	>
+	ContiguousIter _doAssign(ContiguousIter const first, size_type const count)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -599,8 +581,8 @@ private:
 		return first + count;
 	}
 
-	template< typename InputIter >
-	InputIter _assignImpl(InputIter src, size_type const count, false_type)
+	template< typename InputIter, typename... None >
+	InputIter _doAssign(InputIter src, size_type const count, None...)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -643,8 +625,8 @@ private:
 		return src;
 	}
 
-	template< typename InputIter, typename Sentinel >
-	InputIter _assignImpl(InputIter first, Sentinel const last, false_type)
+	template< typename InputIter, typename Sentinel, typename... None >
+	InputIter _doAssign(InputIter first, Sentinel const last, None...)
 	{	// single-pass iterator and unknown count
 		clear();
 		for (; first != last; ++first)
@@ -894,7 +876,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
 	OEL_CONST_COND if (!is_always_equal<Alloc>::value and a != other._m)
-		_elementwiseMove(other);
+		append(view::move(other));
 	else
 		_moveInternBase(other._m);
 }
@@ -906,7 +888,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	OEL_CONST_COND if (!_allocTrait::propagate_on_container_move_assignment::value
 	               and static_cast<Alloc &>(_m) != other._m)
 	{
-		_elementwiseMove(other);
+		assign(view::move(other));
 	}
 	else // take allocated memory from other
 	{
@@ -989,16 +971,6 @@ void dynarray<T, Alloc>::shrink_to_fit()
 
 
 template< typename T, typename Alloc >
-template< typename InputRange >
-auto dynarray<T, Alloc>::assign(const InputRange & src) -> iterator_t<InputRange const>
-{
-	return _assignImpl(
-		oel::adl_begin(src),
-		_detail::SizeOrEnd(src),
-		can_memmove_with< T *, iterator_t<InputRange const> >() );
-}
-
-template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 {
 	_appendImpl( n,
@@ -1006,13 +978,6 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 		{
 			_uninitFill{}(dest, dest + n_, alloc, val);
 		} );
-}
-
-template< typename T, typename Alloc >
-template< typename InputRange >
-inline auto dynarray<T, Alloc>::append(const InputRange & src) -> iterator_t<InputRange const>
-{
-	return _append(oel::adl_begin(src), _detail::SizeOrEnd(src));
 }
 
 
