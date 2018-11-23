@@ -345,6 +345,17 @@ TEST_F(dynarrayConstructTest, moveConstructWithAlloc)
 	testMoveConstruct< StatefulAllocator<MoveOnly, false> >({0}, {0});
 }
 
+struct NonAssignable
+{
+	NonAssignable(NonAssignable &&) = default;
+	void operator =(NonAssignable &&) = delete;
+};
+
+TEST_F(dynarrayConstructTest, moveConstructNonAssignable)
+{	// just to check that it compiles
+	dynarray<NonAssignable> d(dynarray<NonAssignable>{}, allocator<NonAssignable>{});
+}
+
 template<typename T>
 void testConstructMoveElements()
 {
