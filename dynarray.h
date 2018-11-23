@@ -557,25 +557,21 @@ private:
 	}
 
 
-	void _doElementwiseMove(dynarray & src, false_type)
+	struct _canRelocateElementsOnMove :
+		bool_constant< is_trivially_relocatable<T>::value and !_detail::AllocHasConstruct<Alloc, T &&>::value >{};
+
+	void _allocateMoveAssign(dynarray & src, false_type)
 	{
-		assign(view::move(src._m.data, src._m.end));
+		assign(view::move(src));
 	}
 
-	void _doElementwiseMove(dynarray & src, true_type /*trivialRelocate*/)
+	void _allocateMoveAssign(dynarray & src, true_type /*trivialRelocate*/)
 	{
 		_debugSizeUpdater guard{src._m};
 
 		_detail::Destroy(_m.data, _m.end);
 		_assignImpl(src.begin(), src.size(), true_type{});
 		src._m.end = src._m.data; // elements relocated from src
-	}
-
-	void _elementwiseMove(dynarray & src)
-	{
-		constexpr bool canBypassConstruct = !_detail::AllocHasConstruct<Alloc, T &&>::value;
-		_doElementwiseMove( src,
-			bool_constant< is_trivially_relocatable<T>::value and canBypassConstruct >{} );
 	}
 
 
@@ -894,9 +890,15 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
 	OEL_CONST_COND if (!is_always_equal<Alloc>::value and a != other._m)
-		_elementwiseMove(other);
+	{
+		OEL_CONST_COND if (_canRelocateElementsOnMove::value)
+			_allocateMoveAssign(other, true_type{});
+		else
+			append(view::move(other));
+	}
 	else
-		_moveInternBase(other._m);
+	{	_moveInternBase(other._m);
+	}
 }
 
 template< typename T, typename Alloc >
@@ -906,7 +908,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	OEL_CONST_COND if (!_allocTrait::propagate_on_container_move_assignment::value
 	               and static_cast<Alloc &>(_m) != other._m)
 	{
-		_elementwiseMove(other);
+		_allocateMoveAssign(other, _canRelocateElementsOnMove{});
 	}
 	else // take allocated memory from other
 	{
