@@ -109,7 +109,7 @@ namespace _detail
 	false_type HasConstructTest(long);
 
 	template< typename Alloc, typename Arg >
-	using AllocHasConstruct = decltype( HasConstructTest<Alloc, Arg>(0) );
+	struct AllocHasConstruct : decltype( HasConstructTest<Alloc, Arg>(0) ) {};
 }
 
 } // namespace oel
