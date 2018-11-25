@@ -456,20 +456,22 @@ private:
 		return _m.reservEnd - _m.end;
 	}
 
-	static size_type _calcCapAddOne(size_type const oldCap, size_type = 0)
+	size_type _calcCapAddOne(size_type = 0) const
 	{
 		constexpr auto startBytesGood = oel_max(3 * sizeof(void *), 4 * sizeof(int));
 		constexpr auto minGrow = oel_max<size_t>( startBytesGood / sizeof(T),
 				sizeof(T) <= 8 * sizeof(int) ? 2 : 1 );
+		size_type const c = capacity();
 		OEL_CONST_COND if (minGrow > 1)
-			return oldCap + oel_max(oldCap / 2, minGrow);
+			return c + oel_max(c / 2, minGrow);
 		else
-			return oldCap + oldCap / 2 + 1;
+			return c + c / 2 + 1;
 	}
 
-	static size_type _calcCap(size_type oldCap, size_type newSize)
+	size_type _calcCap(size_type const newSize) const
 	{	// growth factor is 1.5
-		return oel_max(oldCap + oldCap / 2, newSize);
+		size_type c = capacity();
+		return oel_max(c + c / 2, newSize);
 	}
 
 
@@ -512,7 +514,7 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		if (capacity() < newSize)
-			_growTo(_calcCap(capacity(), newSize));
+			_growTo(_calcCap(newSize));
 
 		T *const newEnd = _m.data + newSize;
 		if (_m.end < newEnd)
@@ -741,7 +743,7 @@ private:
 	void _appendRealloc(size_type const count, MakeFuncAppend const makeNew)
 	{
 		size_type const oldSize = size();
-		_scopedPtr newBuf{_m, _calcCap(capacity(), oldSize + count)};
+		_scopedPtr newBuf{_m, _calcCap(oldSize + count)};
 
 		pointer const pos = newBuf.data + oldSize;
 		makeNew(pos, count, _m);
@@ -755,7 +757,7 @@ private:
 	template<typename... Args>
 	void _emplaceBackRealloc(Args &&... args)
 	{
-		_scopedPtr newBuf{_m, _calcCapAddOne(capacity())};
+		_scopedPtr newBuf{_m, _calcCapAddOne()};
 
 		pointer const pos = newBuf.data + size();
 		_detail::Construct<Alloc>(_m, pos, std::forward<Args>(args)...);
@@ -767,11 +769,12 @@ private:
 	}
 
 
-	template<typename CalcCapFunc, typename MakeFuncInsert, typename... Args>
+	template< size_t(dynarray::*CalcNewCap)(size_t) const,
+	          typename MakeFuncInsert, typename... Args >
 	T * _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
-	                   CalcCapFunc calcNewCap, MakeFuncInsert const makeNew, Args &&... args)
+	                   MakeFuncInsert const makeNew, Args &&... args)
 	{
-		_scopedPtr newBuf{_m, calcNewCap(capacity(), size() + nToAdd)};
+		_scopedPtr newBuf{_m, (this->*CalcNewCap)(size() + nToAdd)};
 
 		size_type const nBefore = pos - data();
 		T *const newPos = newBuf.data + nBefore;
@@ -825,8 +828,8 @@ typename dynarray<T, Alloc>::iterator
 		std::memcpy(pPos, &tmp, sizeof(T)); // relocate the new element to pos
 	}
 	else
-	{	pPos = _insertRealloc(pPos, nAfterPos, {}, _calcCapAddOne,
-		                      _emplaceMakeElem{}, std::forward<Args>(args)...);
+	{	pPos = _insertRealloc<&dynarray::_calcCapAddOne>
+			(pPos, nAfterPos, {}, _emplaceMakeElem{}, std::forward<Args>(args)...);
 	}
 	return _makeIter<iterator>(pPos);
 }
@@ -876,7 +879,7 @@ typename dynarray<T, Alloc>::iterator
 	}
 	else // not enough room, reallocate
 	{
-		pPos = _insertRealloc( pPos, nAfterPos, count, _calcCap,
+		pPos = _insertRealloc<&dynarray::_calcCap>( pPos, nAfterPos, count,
 			[first](T * newPos, size_type count_, Alloc & a)
 			{
 				T *const dLast = newPos + count_;
