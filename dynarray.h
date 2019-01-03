@@ -477,29 +477,32 @@ private:
 	}
 
 
-	void _relocateImpl(T *__restrict dest, T *const dLast, size_type, false_type) noexcept
+	T * _relocateImpl(T *__restrict dest, size_type, false_type) const noexcept
 	{
 		OEL_WHEN_EXCEPTIONS_ON(
 			static_assert(std::is_nothrow_move_constructible<T>::value,
 				"Reallocation in dynarray requires that T is noexcept move constructible or trivially relocatable");
 		)
 		T *__restrict src = _m.data;
-		while (dest != dLast)
+		while (src != _m.end)
 		{
 			::new(static_cast<void *>(dest)) T(std::move(*src));
 			src-> ~T();
 			++src; ++dest;
 		}
+		return dest;
 	}
 
-	void _relocateImpl(T * dest, T *, size_type n, true_type) noexcept
+	T * _relocateImpl(T *const dest, size_type const n, true_type) const noexcept
 	{
+		T * dLast = dest + n;
 		_detail::MemcpyCheck(_m.data, n, dest);
+		return dLast;
 	}
-
-	OEL_ALWAYS_INLINE void _relocateData(T * dest, T * dLast, size_type n)
+	// Returns destination end
+	OEL_ALWAYS_INLINE T * _relocateData(T * dest, size_type n)
 	{
-		_relocateImpl(dest, dLast, n, is_trivially_relocatable<T>());
+		return _relocateImpl(dest, n, is_trivially_relocatable<T>());
 	}
 
 
@@ -508,11 +511,7 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		_scopedPtr newBuf{_m, newCap};
-
-		pointer const newEnd = newBuf.data + size();
-		_relocateData(newBuf.data, newEnd, size());
-
-		_m.end = newEnd;
+		_m.end = _relocateData(newBuf.data, size());
 		newBuf.Swap(_m);
 	}
 
@@ -761,7 +760,7 @@ private:
 
 		pointer const pos = newBuf.data + oldSize;
 		makeNew(pos, count, _m);
-		_relocateData(newBuf.data, pos, oldSize);
+		_relocateData(newBuf.data, oldSize);
 
 		_m.end = pos;
 		newBuf.Swap(_m);
@@ -774,7 +773,7 @@ private:
 
 		pointer const pos = newBuf.data + size();
 		_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
-		_relocateData(newBuf.data, pos, size());
+		_relocateData(newBuf.data, size());
 
 		_m.end = pos;
 		newBuf.Swap(_m);
@@ -1013,9 +1012,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	if (0 < used)
 	{
 		newData = _allocateWrap::Allocate(_m, used);
-		pointer const newEnd = newData + used;
-		_relocateData(newData, newEnd, used);
-		_m.end = newEnd;
+		_m.end = _relocateData(newData, used);
 	}
 	else
 	{	_m.end = newData = nullptr;
