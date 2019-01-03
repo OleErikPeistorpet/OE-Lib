@@ -87,49 +87,49 @@ TEST_F(dynarrayTest, pushBack)
 TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 {
 	{
-		dynarray<NontrivialReloc> da;
+		dynarray<TrivialRelocat> da;
 
 		double const VALUES[] = {-1.1, 2.0, -0.7, 9.6};
 		std::deque<double> expected;
 
-		da.push_back(NontrivialReloc{VALUES[0]});
+		da.push_back(TrivialRelocat{VALUES[0]});
 		expected.push_back(VALUES[0]);
 		ASSERT_EQ(1U, da.size());
-		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
+		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 
 		da.emplace_back(VALUES[1]);
 		expected.emplace_back(VALUES[1]);
 		ASSERT_EQ(2U, da.size());
-		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
+		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		NontrivialReloc::countToThrowOn = 1;
+		TrivialRelocat::countToThrowOn = 1;
 		try
 		{
 			for(;;)
 			{
-				da.push_back(NontrivialReloc{VALUES[2]});
+				da.push_back(TrivialRelocat{VALUES[2]});
 				expected.push_back(VALUES[2]);
 			}
 		}
 		catch (TestException &) {
 		}
 		ASSERT_EQ(expected.size(), da.size());
-		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
+		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 	)
 		da.emplace_back(VALUES[3]);
 		expected.emplace_back(VALUES[3]);
 		ASSERT_EQ(expected.size(), da.size());
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		NontrivialReloc::countToThrowOn = 0;
-		EXPECT_THROW( da.push_back(NontrivialReloc{0}), TestException );
+		TrivialRelocat::countToThrowOn = 0;
+		EXPECT_THROW( da.push_back(TrivialRelocat{0}), TestException );
 		ASSERT_EQ(expected.size(), da.size());
 	)
-		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
+		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		NontrivialReloc::countToThrowOn = 3;
+		TrivialRelocat::countToThrowOn = 3;
 		try
 		{
 			for(;;)
@@ -144,7 +144,7 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 	)
 		EXPECT_TRUE( std::equal(begin(da), end(da), begin(expected)) );
 	}
-	EXPECT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
+	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 }
 
 TEST_F(dynarrayTest, assign)
@@ -167,30 +167,30 @@ TEST_F(dynarrayTest, assign)
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 
-	NontrivialReloc::ClearCount();
+	TrivialRelocat::ClearCount();
 	{
-		dynarray<NontrivialReloc> dest;
+		dynarray<TrivialRelocat> dest;
 		OEL_WHEN_EXCEPTIONS_ON(
 		{
-			NontrivialReloc obj{-5.0};
-			NontrivialReloc::countToThrowOn = 0;
+			TrivialRelocat obj{-5.0};
+			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
 				dest.assign(view::counted(&obj, 1)),
 				TestException );
 			EXPECT_TRUE(dest.begin() == dest.end());
 		} )
-		EXPECT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
+		EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 
-		dest = {NontrivialReloc{-1.0}};
+		dest = {TrivialRelocat{-1.0}};
 		EXPECT_EQ(1U, dest.size());
-		dest = {NontrivialReloc{1.0}, NontrivialReloc{2.0}};
+		dest = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
 		EXPECT_EQ(1.0, *dest.at(0));
 		EXPECT_EQ(2.0, *dest.at(1));
-		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(dest), NontrivialReloc::nDestruct);
+		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(dest), TrivialRelocat::nDestruct);
 		OEL_WHEN_EXCEPTIONS_ON(
 		{
-			NontrivialReloc obj{-3.3};
-			NontrivialReloc::countToThrowOn = 0;
+			TrivialRelocat obj{-3.3};
+			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
 				dest.assign(make_iterator_range(&obj, &obj + 1)),
 				TestException );
@@ -202,8 +202,8 @@ TEST_F(dynarrayTest, assign)
 			EXPECT_TRUE(dest.empty());
 
 		OEL_WHEN_EXCEPTIONS_ON(
-			NontrivialReloc obj{-1.3};
-			NontrivialReloc::countToThrowOn = 0;
+			TrivialRelocat obj{-1.3};
+			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
 				dest.assign(view::counted(&obj, 1)),
 				TestException );
@@ -211,7 +211,7 @@ TEST_F(dynarrayTest, assign)
 		)
 		}
 	}
-	EXPECT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
+	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 }
 
 // std::stringstream doesn't seem to work using libstdc++ with -fno-exceptions
@@ -379,19 +379,19 @@ TEST_F(dynarrayTest, insertRTrivial)
 TEST_F(dynarrayTest, insertR)
 {
 	size_t const initSize = 2;
-	std::array<double, 2> const toInsert{-1, -2};
+	std::array<TrivialRelocat, 2> const toInsert{TrivialRelocat{-1}, TrivialRelocat{-2}};
 	for (auto nReserve : {initSize, initSize + toInsert.size()})
 		for (size_t insertOffset = 0; insertOffset <= initSize; ++insertOffset)
 			for (int countThrow = 0; countThrow <= oel::ssize(toInsert); ++countThrow)
 			{	{
-					dynarray<MoveOnly> dest(oel::reserve, nReserve);
+					dynarray<TrivialRelocat> dest(oel::reserve, nReserve);
 					dest.emplace_back(1);
 					dest.emplace_back(2);
 
 					if (countThrow < oel::ssize(toInsert))
 					{
 					OEL_WHEN_EXCEPTIONS_ON(
-						MoveOnly::countToThrowOn = countThrow;
+						TrivialRelocat::countToThrowOn = countThrow;
 						EXPECT_THROW( dest.insert_r(dest.begin() + insertOffset, toInsert), TestException );
 					)
 						EXPECT_TRUE(initSize <= dest.size() and dest.size() <= initSize + countThrow);
@@ -404,7 +404,7 @@ TEST_F(dynarrayTest, insertR)
 					if (dest.size() > initSize)
 					{
 						for (int i = 0; i < countThrow; ++i)
-							EXPECT_TRUE( toInsert[i] == *dest[i + insertOffset] );
+							EXPECT_TRUE( *toInsert[i] == *dest[i + insertOffset] );
 					}
 					if (insertOffset == 0)
 					{
@@ -421,57 +421,55 @@ TEST_F(dynarrayTest, insertR)
 						EXPECT_EQ(2, *dest.back());
 					}
 				}
-				EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
+				EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct + toInsert.size());
 			}
 }
 
 TEST_F(dynarrayTest, insert)
 {
 	{
-		dynarray<MoveOnly> up;
+		dynarray<TrivialRelocat> test;
 
 		double const VALUES[] = {-1.1, 0.4, 1.3, 2.2};
 
-		auto & ptr = *up.insert(begin(up), MoveOnly{VALUES[2]});
+		auto & ptr = *test.emplace(begin(test), VALUES[2]);
 		EXPECT_EQ(VALUES[2], *ptr);
-		ASSERT_EQ(1U, up.size());
+		ASSERT_EQ(1U, test.size());
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		MoveOnly::countToThrowOn = 0;
-		EXPECT_THROW( up.emplace(begin(up)), TestException );
-		ASSERT_EQ(1U, up.size());
+		TrivialRelocat::countToThrowOn = 0;
+		EXPECT_THROW( test.insert(begin(test), TrivialRelocat{0.0}), TestException );
+		ASSERT_EQ(1U, test.size());
 	)
-		up.insert(begin(up), MoveOnly{VALUES[0]});
-		ASSERT_EQ(2U, up.size());
+		test.insert(begin(test), TrivialRelocat{VALUES[0]});
+		ASSERT_EQ(2U, test.size());
 
 	OEL_WHEN_EXCEPTIONS_ON(
-		MoveOnly::countToThrowOn = 0;
-		EXPECT_THROW( up.emplace(begin(up) + 1), TestException );
-		ASSERT_EQ(2U, up.size());
+		TrivialRelocat::countToThrowOn = 0;
+		EXPECT_THROW( test.insert(begin(test) + 1, TrivialRelocat{0.0}), TestException );
+		ASSERT_EQ(2U, test.size());
 	)
-		up.insert(end(up), MoveOnly{VALUES[3]});
-		auto & p2 = *up.insert(begin(up) + 1, MoveOnly{VALUES[1]});
+		test.emplace(end(test), VALUES[3]);
+		auto & p2 = *test.insert(begin(test) + 1, TrivialRelocat{VALUES[1]});
 		EXPECT_EQ(VALUES[1], *p2);
-		ASSERT_EQ(4U, up.size());
+		ASSERT_EQ(4U, test.size());
 
 		auto v = std::begin(VALUES);
-		for (const auto & p : up)
+		for (const auto & p : test)
 		{
 			EXPECT_EQ(*v, *p);
 			++v;
 		}
 
-		auto it = up.insert( begin(up) + 2, std::move(up[2]) );
-		EXPECT_EQ(up[2].get(), it->get());
-		EXPECT_EQ(nullptr, up[3].get());
+		auto it = test.insert( begin(test) + 2, std::move(test[2]) );
+		EXPECT_EQ(test[2].get(), it->get());
 
-		auto const val = *up.back();
-		up.insert( end(up) - 1, std::move(up.back()) );
-		ASSERT_EQ(6U, up.size());
-		EXPECT_EQ(nullptr, up.back().get());
-		EXPECT_EQ(val, *end(up)[-2]);
+		auto const val = *test.back();
+		test.insert( end(test) - 1, std::move(test.back()) );
+		ASSERT_EQ(6U, test.size());
+		EXPECT_EQ(val, *end(test)[-2]);
 	}
-	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
+	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 }
 
 TEST_F(dynarrayTest, resize)
@@ -600,21 +598,21 @@ void testErase()
 	ret = d.erase(ret);
 	EXPECT_EQ(begin(d) + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
-	EXPECT_EQ(5, static_cast<int>(d.back()));
+	EXPECT_EQ(5, static_cast<double>(d.back()));
 
 	ret = d.erase(end(d) - 1);
 	EXPECT_EQ(end(d), ret);
 	ASSERT_EQ(s - 3, d.size());
-	EXPECT_EQ(1, static_cast<int>(d.front()));
+	EXPECT_EQ(1, static_cast<double>(d.front()));
 }
 
 TEST_F(dynarrayTest, eraseSingle)
 {
 	testErase<int>();
 
-	NontrivialReloc::ClearCount();
-	testErase<NontrivialReloc>();
-	EXPECT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
+	MoveOnly::ClearCount();
+	testErase<MoveOnly>();
+	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
 TEST_F(dynarrayTest, eraseRange)

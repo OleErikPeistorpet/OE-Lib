@@ -84,10 +84,6 @@ namespace _detail
 	}
 
 
-	struct NoOp
-	{	OEL_ALWAYS_INLINE void operator()(...) const {}
-	};
-
 	template<typename Alloc, typename ContiguousIter, typename T,
 	         enable_if< can_memmove_with<T *, ContiguousIter>::value > = 0>
 	inline void UninitCopy(ContiguousIter src, T * dFirst, T * dLast, Alloc &)
@@ -95,9 +91,9 @@ namespace _detail
 		_detail::MemcpyCheck(src, dLast - dFirst, dFirst);
 	}
 
-	template<typename Alloc, typename InputIter, typename T, typename FuncTakingLast = NoOp,
+	template<typename Alloc, typename InputIter, typename T,
 	         enable_if< !can_memmove_with<T *, InputIter>::value > = 0>
-	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc, FuncTakingLast const extraCleanup = {})
+	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc)
 	{
 		T *const dFirst = dest;
 		OEL_TRY_
@@ -111,7 +107,6 @@ namespace _detail
 		OEL_CATCH_ALL
 		{
 			_detail::Destroy(dFirst, dest);
-			extraCleanup(dLast);
 			OEL_WHEN_EXCEPTIONS_ON(throw);
 		}
 		return src;

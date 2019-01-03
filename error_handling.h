@@ -77,12 +77,8 @@
 
 #ifdef _MSC_VER
 	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
-
-	#define OEL_SUPPRESS_WARN_UNUSED __pragma(warning(suppress : 4100))
 #else
 	#define OEL_CONST_COND
-
-	#define OEL_SUPPRESS_WARN_UNUSED
 #endif
 
 

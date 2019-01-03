@@ -481,23 +481,29 @@ private:
 	}
 
 
-	template<typename... FuncTakingLast>
-	void _relocateImpl(std::false_type, T * dFirst, T * dLast, size_type, FuncTakingLast... extraCleanupIfException)
-	{	// could combine to single loop in special case when Construct is noexcept
-		_detail::UninitCopy<Alloc>(std::make_move_iterator(_m.data), dFirst, dLast, _m, extraCleanupIfException...);
-		_detail::Destroy(_m.data, _m.end);
+	void _relocateImpl(T *__restrict dest, T *const dLast, size_type, false_type) noexcept
+	{
+		OEL_WHEN_EXCEPTIONS_ON(
+			static_assert(std::is_nothrow_move_constructible<T>::value,
+				"This function requires that T is noexcept move constructible or trivially relocatable");
+		)
+		T *__restrict src = _m.data;
+		while (dest != dLast)
+		{
+			::new(static_cast<void *>(dest)) T(std::move(*src));
+			src-> ~T();
+			++src; ++dest;
+		}
 	}
 
-	template<typename... Unused>
-	void _relocateImpl(std::true_type, T * dest, T *, size_type n, Unused...)
+	void _relocateImpl(T * dest, T *, size_type n, true_type) noexcept
 	{
 		_detail::MemcpyCheck(_m.data, n, dest);
 	}
 
-	template<typename... FuncTakingLast>
-	OEL_ALWAYS_INLINE void _relocateData(T * dest, T * dLast, size_type n, FuncTakingLast... extraCleanupIfException)
+	OEL_ALWAYS_INLINE void _relocateData(T * dest, T * dLast, size_type n)
 	{
-		_relocateImpl(is_trivially_relocatable<T>(), dest, dLast, n, extraCleanupIfException...);
+		_relocateImpl(dest, dLast, n, is_trivially_relocatable<T>());
 	}
 
 
@@ -759,8 +765,7 @@ private:
 
 		pointer const pos = newBuf.data + oldSize;
 		makeNew(pos, count, _m);
-		_relocateData( newBuf.data, pos, oldSize,
-			[count](T * pos_) { _detail::Destroy(pos_, pos_ + count); } );
+		_relocateData(newBuf.data, pos, oldSize);
 
 		_m.end = pos;
 		newBuf.Swap(_m);
@@ -773,9 +778,8 @@ private:
 
 		pointer const pos = newBuf.data + size();
 		_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
-		_relocateData( newBuf.data, pos, size(),
-			OEL_SUPPRESS_WARN_UNUSED
-				[](T * pos_) { pos_-> ~T(); } );
+		_relocateData(newBuf.data, pos, size());
+
 		_m.end = pos;
 		newBuf.Swap(_m);
 	}
@@ -1006,10 +1010,6 @@ void dynarray<T, Alloc>::swap(dynarray & other)
 template<typename T, typename Alloc>
 void dynarray<T, Alloc>::shrink_to_fit()
 {
-	OEL_WHEN_EXCEPTIONS_ON(
-		static_assert(std::is_nothrow_move_constructible<T>::value or is_trivially_relocatable<T>::value,
-			"This function requires that T is noexcept move constructible or trivially relocatable"); )
-
 	_debugSizeUpdater guard{_m};
 
 	size_type const used = size();

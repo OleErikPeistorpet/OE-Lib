@@ -62,44 +62,45 @@ public:
 
 	const double * get() const { return val.get(); }
 
-	double operator *() const { return *val; }
+	double operator *() const        { return *val; }
+	explicit operator double() const { return *val; }
 };
-oel::true_type specify_trivial_relocate(MoveOnly);
+oel::false_type specify_trivial_relocate(MoveOnly);
 
-class NontrivialReloc : public MyCounter
+class TrivialRelocat : public MyCounter
 {
 	double val;
 	short unused;
 
 public:
-	explicit NontrivialReloc(double v)
+	explicit TrivialRelocat(double v) noexcept
 	 :	val(v)
 	{	++nConstructions;
 	}
 
-	NontrivialReloc(const NontrivialReloc & other)
+	TrivialRelocat(const TrivialRelocat & other)
 	{
 		ConditionalThrow();
 		val = other.val;
 		++nConstructions;
 	}
 
-	NontrivialReloc & operator =(const NontrivialReloc & other)
+	TrivialRelocat & operator =(const TrivialRelocat & other)
 	{
 		ConditionalThrow();
 		val = other.val;
 		return *this;
 	}
 
-	~NontrivialReloc() { ++nDestruct; }
-
-	operator double() const { return val; }
+	~TrivialRelocat() { ++nDestruct; }
 
 	double operator *() const { return val; }
 
 	const double * get() const { return &val; }
+
+	bool operator==(double d) const { return val == d; }
 };
-oel::false_type specify_trivial_relocate(NontrivialReloc);
+oel::true_type specify_trivial_relocate(TrivialRelocat);
 
 struct TrivialDefaultConstruct
 {
