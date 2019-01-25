@@ -772,7 +772,7 @@ private:
 		_scopedPtr newBuf{_m, _calcCapAddOne()};
 
 		pointer const pos = newBuf.data + size();
-		_detail::Construct<Alloc>(_m, pos, std::forward<Args>(args)...);
+		_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
 		_relocateData( newBuf.data, pos, size(),
 			OEL_SUPPRESS_WARN_UNUSED
 				[](T * pos_) { pos_-> ~T(); } );
@@ -790,7 +790,7 @@ private:
 
 		size_type const nBefore = pos - data();
 		T *const newPos = newBuf.data + nBefore;
-		T *const afterAdded = makeNew(newPos, nToAdd, _m, std::forward<Args>(args)...);
+		T *const afterAdded = makeNew(newPos, nToAdd, _m, static_cast<Args &&>(args)...);
 		// Exception free from here
 		if (_m.data)
 		{
@@ -808,7 +808,7 @@ private:
 		template<typename... Args>
 		T * operator()(T *const newPos, size_type, Alloc & a, Args &&... args) const
 		{
-			_detail::Construct(a, newPos, std::forward<Args>(args)...);
+			_detail::Construct(a, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
 		}
 	};
@@ -832,7 +832,7 @@ typename dynarray<T, Alloc>::iterator
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
-		_detail::Construct<Alloc>(_m, reinterpret_cast<T *>(&tmp), std::forward<Args>(args)...);
+		_detail::Construct<Alloc>(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_m.end;
@@ -841,7 +841,7 @@ typename dynarray<T, Alloc>::iterator
 	}
 	else
 	{	pPos = _insertRealloc<&dynarray::_calcCapAddOne>
-			(pPos, nAfterPos, {}, _emplaceMakeElem{}, std::forward<Args>(args)...);
+			(pPos, nAfterPos, {}, _emplaceMakeElem{}, static_cast<Args &&>(args)...);
 	}
 	return _makeIter<iterator>(pPos);
 }
@@ -908,9 +908,9 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	_debugSizeUpdater guard{_m};
 
 	if (_m.end < _m.reservEnd)
-		_detail::Construct<Alloc>(_m, _m.end, std::forward<Args>(args)...);
+		_detail::Construct<Alloc>(_m, _m.end, static_cast<Args &&>(args)...);
 	else
-		_emplaceBackRealloc(std::forward<Args>(args)...);
+		_emplaceBackRealloc(static_cast<Args &&>(args)...);
 
 	pointer const pos = _m.end;
 	++_m.end;
