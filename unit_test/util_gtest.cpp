@@ -9,7 +9,7 @@
 
 namespace
 {
-	static_assert(oel::is_trivially_relocatable< std::array<std::unique_ptr<double>, 4> >(), "?");
+	static_assert(oel::is_trivially_relocatable< std::tuple<std::unique_ptr<double>> >(), "?");
 
 	struct NonTrivialAssign
 	{
@@ -36,9 +36,6 @@ namespace
 	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >(), "?");
 	static_assert(!oel::can_memmove_with< int *, std::move_iterator<std::list<int>::iterator> >(), "?");
 	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<int *> >(), "?");
-
-	static_assert(oel::is_trivially_copyable< std::reference_wrapper<std::string> >::value,
-				  "Not critical, this assert can be removed");
 }
 
 template<typename SizeT>
@@ -88,7 +85,7 @@ struct OneSizeT
 
 TEST(utilTest, makeUnique)
 {
-	auto ps = oel::make_unique_default<std::string[]>(2);
+	auto ps = oel::make_unique_default_init<std::string[]>(2);
 	EXPECT_TRUE(ps[0].empty());
 	EXPECT_TRUE(ps[1].empty());
 

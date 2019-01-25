@@ -5,6 +5,7 @@
 #include "dynarray.h"
 
 #include <deque>
+#include <array>
 
 
 using oel::dynarray;

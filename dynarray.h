@@ -10,9 +10,17 @@
 #include "auxi/dynarray_iterator.h"
 #include "trivial_relocate/default.h"
 #include "align_allocator.h"
+#include "range_view.h"
 
 #include <algorithm>
 
+#ifdef __has_include
+#if __has_include(<memory_resource>) and (!defined _MSC_VER or _HAS_CXX17)
+	#include <memory_resource>
+
+	#define OEL_HAS_STD_PMR  1
+#endif
+#endif
 
 /** @file
 */
@@ -43,22 +51,22 @@ template<typename T, typename A>  OEL_ALWAYS_INLINE inline
 void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept( noexcept(a.swap(b)) )  { a.swap(b); }
 
 //! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
-template<typename T, typename A> inline
+template<typename T, typename A>  inline
 void erase_unstable(dynarray<T, A> & d, typename dynarray<T, A>::size_type index)  { d.erase_unstable(d.begin() + index); }
 
 //! @name GenericContainerInsert
 //!@{
 // Overloads of generic functions for inserting into container (in range_algo.h)
-template<typename T, typename A, typename InputRange> inline
+template<typename T, typename A, typename InputRange>  inline
 void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(source); }
 
-template<typename T, typename A, typename InputRange> inline
+template<typename T, typename A, typename InputRange>  inline
 void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
 
-template<typename T, typename A> inline
+template<typename T, typename A>  inline
 void append(dynarray<T, A> & dest, typename dynarray<T, A>::size_type n, const T & val)  { dest.append(n, val); }
 
-template<typename T, typename A, typename ForwardRange> inline
+template<typename T, typename A, typename ForwardRange>  inline
 typename dynarray<T, A>::iterator
 	insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, const ForwardRange & source)
 	{ return dest.insert_r(pos, source); }
@@ -165,7 +173,7 @@ public:
 	                                          or is_always_equal<Alloc>::value);
 	/**
 	* @brief Replace the contents with source range
-	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
+	* @param source an array, STL container, iterator_range, gsl::span or such.
 	* @pre `begin(source)` shall not point to any element in this dynarray except the front.
 	* @return iterator `begin(source)` incremented by the number of elements in source
 	*
@@ -177,21 +185,19 @@ public:
 
 	/**
 	* @brief Add at end the elements from range (return past-the-last of source)
-	* @param source an array, STL container, gsl::span, boost::iterator_range or such.
+	* @param source an array, STL container, iterator_range, gsl::span or such.
 	* @pre Behavior is undefined if all of the following apply: source refers to any elements in this dynarray,
 	*	source.size() does not exist and source does not model Forward Range (Boost concept)
 	* @return `begin(source)` incremented by source size. The iterator is already invalidated (do not dereference) if
 	*	`begin(source)` pointed into this dynarray and there was insufficient capacity to avoid reallocation.
 	*
-	* Strong exception guarantee if T is noexcept move constructible or trivially relocatable. Otherwise equivalent to
+	* Passing references to this dynarray is safe. The function is otherwise equivalent to
 	* `std::vector::insert(end(), begin(source), end(source))`, where `end(source)` is not needed if source.size() exists. */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
-	//! @brief Equivalent to `std::vector::insert(end(), il)`, but
-	//!	with strong exception guarantee if T is noexcept move constructible or trivially relocatable
+	//! Equivalent to `std::vector::insert(end(), il)`
 	void      append(std::initializer_list<T> il)   { append<>(il); }
-	//! @brief Equivalent to `std::vector::insert(end(), count, val)`, but
-	//!	with strong exception guarantee if T is noexcept move constructible or trivially relocatable
+	//! Equivalent to `std::vector::insert(end(), count, val)`
 	void      append(size_type count, const T & val);
 
 	/**
@@ -205,20 +211,20 @@ public:
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if source.size() exists
 	template<typename ForwardRange>
-	iterator  insert_r(const_iterator pos, const ForwardRange & source);
+	iterator  insert_r(const_iterator pos, const ForwardRange & source) &;
 
-	iterator  insert(const_iterator pos, std::initializer_list<T> il)  { return insert_r(pos, il); }
+	iterator  insert(const_iterator pos, std::initializer_list<T> il) &  { return insert_r(pos, il); }
 
-	iterator  insert(const_iterator pos, T && val)       { return emplace(pos, std::move(val)); }
-	iterator  insert(const_iterator pos, const T & val)  { return emplace(pos, val); }
-
-	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
-	template<typename... Args>
-	iterator  emplace(const_iterator pos, Args &&... elemInitArgs);
+	iterator  insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
+	iterator  insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
 
 	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
 	template<typename... Args>
-	reference emplace_back(Args &&... args);
+	iterator  emplace(const_iterator pos, Args &&... elemInitArgs) &;
+
+	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
+	template<typename... Args>
+	reference emplace_back(Args &&... args) &;
 
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
 	void      push_back(const T & val)  { emplace_back(val); }
@@ -230,11 +236,11 @@ public:
 	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
-	iterator  erase_unstable(iterator pos)  { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase_unstable(iterator pos) &  { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
 
-	iterator  erase(iterator pos)           { _erase(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase(iterator pos) &           { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
-	iterator  erase(iterator first, const_iterator last);
+	iterator  erase(iterator first, const_iterator last) &;
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require trivially relocatable T
 	void      erase_to_end(iterator first) noexcept(nodebug);
 
@@ -591,18 +597,24 @@ private:
 	}
 
 
-	void _allocUnequalMove(dynarray & src, false_type)
+	void _elementwiseMoveImpl(dynarray & src, false_type)
 	{
-		_assignImpl(std::make_move_iterator(src._m.data), src.size(), false_type{});
+		assign( view::move_n(src.data(), src.size()) );
 	}
 
-	void _allocUnequalMove(dynarray & src, true_type /*trivialRelocate*/)
+	void _elementwiseMoveImpl(dynarray & src, true_type /*trivialRelocate*/)
 	{
 		_debugSizeUpdater guard{src._m};
 
 		_detail::Destroy(_m.data, _m.end);
 		_assignImpl(src.begin(), src.size(), true_type{});
-		src._m.end = src._m.data; // elements in src conceptually destroyed
+		src._m.end = src._m.data; // elements relocated from src
+	}
+
+	void _elementwiseMove(dynarray & src)
+	{
+		_elementwiseMoveImpl( src,
+			bool_constant< is_trivially_relocatable<T>::value and !_detail::AllocHasConstruct<Alloc, T &&>::value >{} );
 	}
 
 
@@ -804,7 +816,7 @@ private:
 
 template<typename T, typename Alloc> template<typename... Args>
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args)
+	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args) &
 {
 #define OEL_DYNARR_INSERT_STEP1  \
 	_detail::AssertTrivialRelocate<T>{};  \
@@ -836,7 +848,7 @@ typename dynarray<T, Alloc>::iterator
 
 template<typename T, typename Alloc> template<typename ForwardRange>
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src)
+	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src) &
 {
 	auto first = ::adl_begin(src);
 	size_type const count = _sizeOrEnd<decltype(first)>(src);
@@ -891,7 +903,7 @@ typename dynarray<T, Alloc>::iterator
 }
 
 template<typename T, typename Alloc> template<typename... Args>
-inline T & dynarray<T, Alloc>::emplace_back(Args &&... args)
+inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 {
 	_debugSizeUpdater guard{_m};
 
@@ -912,7 +924,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
 	OEL_CONST_COND if (!is_always_equal<Alloc>::value and a != other._m)
-		_allocUnequalMove(other, is_trivially_relocatable<T>());
+		_elementwiseMove(other);
 	else
 		_moveInternBase(other._m);
 }
@@ -924,7 +936,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	OEL_CONST_COND if (!_allocTrait::propagate_on_container_move_assignment::value
 	               and static_cast<Alloc &>(_m) != other._m)
 	{
-		_allocUnequalMove(other, is_trivially_relocatable<T>());
+		_elementwiseMove(other);
 	}
 	else // take allocated memory from other
 	{
@@ -934,7 +946,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 			_allocateWrap::Deallocate(_m, _m.data, capacity());
 		}
 		_moveInternBase(other._m);
-		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment(), other._m);
+		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment{}, other._m);
 	}
 	return *this;
 }
@@ -987,7 +999,7 @@ void dynarray<T, Alloc>::swap(dynarray & other)
 	_internBase & a = _m;
 	_internBase & b = other._m;
 	std::swap(a, b);
-	_swapAlloc(typename _allocTrait::propagate_on_container_swap(), other._m);
+	_swapAlloc(typename _allocTrait::propagate_on_container_swap{}, other._m);
 }
 
 
@@ -1068,7 +1080,7 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 }
 
 template<typename T, typename Alloc>
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last)
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
 {
 	_detail::AssertTrivialRelocate<T>{};
 

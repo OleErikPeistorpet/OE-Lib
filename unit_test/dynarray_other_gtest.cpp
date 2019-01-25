@@ -13,6 +13,10 @@
 #endif
 #endif
 
+#if defined OEL_HAS_STD_PMR
+	static_assert(oel::is_trivially_relocatable< std::pmr::polymorphic_allocator<int> >::value, "?");
+#endif
+
 using oel::dynarray;
 
 namespace
@@ -34,6 +38,9 @@ namespace
 
 	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
 				  "Not critical, this assert can be removed");
+
+	static_assert(oel::_detail::AllocHasConstruct< TrackingAllocator<double>, int >::value, "?");
+	static_assert( !oel::_detail::AllocHasConstruct< oel::allocator<double>, int >::value, "?" );
 }
 
 TEST(dynarrayOtherTest, zeroBitRepresentation)

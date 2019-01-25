@@ -4,25 +4,15 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-// std:: unique_ptr, shared_ptr, weak_ptr, basic_string, array
+// std:: unique_ptr, shared_ptr, weak_ptr, basic_string, pair, tuple
 // boost:: intrusive_ptr, circular_buffer, polymorphic_allocator
-// is_trivially_copyable std:: reference_wrapper, pair, tuple
 
 // This file is included by dynarray.h, so should not be needed in user code
 
 #include "../auxi/type_traits.h"
 
 #include <memory>
-#include <array>
 #include <tuple>
-
-#if defined __has_include
-#if __has_include(<memory_resource>) and (!defined _MSC_VER or _HAS_CXX17)
-	#include <memory_resource>
-
-	#define OEL_HAS_STD_PMR  1
-#endif
-#endif
 
 #ifndef OEL_NO_BOOST
 
@@ -49,16 +39,6 @@ namespace oel
 }
 #endif
 
-#if defined __GLIBCXX__ and __GNUC__ == 4  // MSVC, GCC 5, libc++ all good
-
-#include <functional>
-
-namespace oel
-{	template<typename T>
-	struct is_trivially_copyable< std::reference_wrapper<T> > : true_type{};
-}
-#endif
-
 namespace oel
 {
 
@@ -72,16 +52,6 @@ struct is_trivially_relocatable< std::shared_ptr<T> > : true_type {};
 
 template<typename T>
 struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
-
-template<typename T, std::size_t S>
-struct is_trivially_relocatable< std::array<T, S> >
- :	is_trivially_relocatable<T> {};
-
-#ifdef OEL_HAS_STD_PMR
-	//! Should work with any reasonable implementation, but can't be sure without testing
-	template<typename T>
-	struct is_trivially_relocatable< std::pmr::polymorphic_allocator<T> > : true_type {};
-#endif
 
 #ifndef OEL_NO_BOOST
 	#if BOOST_VERSION >= 106000
@@ -102,8 +72,16 @@ template<typename T, typename U>
 struct is_trivially_copyable< std::pair<T, U> >
  :	all_< is_trivially_copyable<T>, is_trivially_copyable<U> > {};
 
+template<typename T, typename U>
+struct is_trivially_relocatable< std::pair<T, U> >
+ :	all_< is_trivially_relocatable<T>, is_trivially_relocatable<U> > {};
+
 template<typename... Ts>
 struct is_trivially_copyable< std::tuple<Ts...> >
  :	all_< is_trivially_copyable<Ts>... > {};
+
+template<typename... Ts>
+struct is_trivially_relocatable< std::tuple<Ts...> >
+ :	all_< is_trivially_relocatable<Ts>... > {};
 
 }

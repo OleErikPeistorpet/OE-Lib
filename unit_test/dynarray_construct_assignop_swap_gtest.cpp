@@ -340,7 +340,7 @@ void testConstructMoveElements()
 	// not propagating, not equal, cannot steal the memory
 	for (auto const na : {0, 1, 101})
 	{
-		using Alloc = StatefulAllocator<T, false>;
+		using Alloc = StatefulAllocator<T, false, false>;
 		dynarray<T, Alloc> a(reserve, na, Alloc{1});
 
 		for (int i = 0; i < na; ++i)
@@ -358,20 +358,15 @@ void testConstructMoveElements()
 		EXPECT_EQ(2, b.get_allocator().id);
 
 		EXPECT_EQ(nExpectAlloc, AllocCounter::nAllocations);
-		OEL_CONST_COND if (is_trivially_relocatable<T>::value)
-		{
-			EXPECT_EQ(na, T::nConstructions - T::nDestruct);
-			EXPECT_TRUE(a.empty());
-		}
-		else
-		{	EXPECT_EQ(b.size(), a.size());
-		}
+
+		EXPECT_EQ(ssize(a) + ssize(b), T::nConstructions - T::nDestruct);
+
 		EXPECT_EQ(capBefore, a.capacity());
 		ASSERT_EQ(na, ssize(b));
 		for (int i = 0; i < na; ++i)
 			EXPECT_TRUE(b[i].get() and *b[i] == i + 0.5);
 	}
-	EXPECT_EQ(AllocCounter::nConstructCalls, T::nDestruct);
+	EXPECT_EQ(T::nConstructions, T::nDestruct);
 	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 
@@ -438,7 +433,7 @@ void testAssignMoveElements()
 	{
 		for (auto const nb : {0, 1, 2})
 		{
-			using Alloc = StatefulAllocator<T, false>;
+			using Alloc = StatefulAllocator<T, false, false>;
 			dynarray<T, Alloc> a(reserve, na, Alloc{1});
 			dynarray<T, Alloc> b(reserve, nb, Alloc{2});
 
@@ -460,20 +455,15 @@ void testAssignMoveElements()
 			EXPECT_EQ(2, b.get_allocator().id);
 
 			EXPECT_EQ(nExpectAlloc, AllocCounter::nAllocations);
-			OEL_CONST_COND if (is_trivially_relocatable<T>::value)
-			{
-				EXPECT_EQ(na, T::nConstructions - T::nDestruct);
-				EXPECT_TRUE(a.empty());
-			}
-			else
-			{	EXPECT_EQ(b.size(), a.size());
-			}
+
+			EXPECT_EQ(ssize(a) + ssize(b), T::nConstructions - T::nDestruct);
+
 			EXPECT_EQ(capBefore, a.capacity());
 			ASSERT_EQ(na, ssize(b));
 			for (int i = 0; i < na; ++i)
 				EXPECT_TRUE(b[i].get() and *b[i] == i + 0.5);
 		}
-		EXPECT_EQ(AllocCounter::nConstructCalls, T::nDestruct);
+		EXPECT_EQ(T::nConstructions, T::nDestruct);
 		EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 	}
 }
@@ -487,6 +477,25 @@ TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
 	testAssignMoveElements<NontrivialReloc>();
 }
 
+#ifdef OEL_HAS_STD_PMR
+
+TEST_F(dynarrayConstructTest, moveAssignPolymorphicAlloc)
+{
+	using Nested = pmr::dynarray< pmr::dynarray<int> >;
+	std::pmr::monotonic_buffer_resource bufRes{};
+	auto a = Nested(1);
+	auto b = Nested(1, &bufRes);
+	ASSERT_TRUE(b.get_allocator() == b.front().get_allocator());
+	ASSERT_TRUE(a.front().get_allocator() != b.front().get_allocator());
+
+	b = std::move(a);
+
+	EXPECT_EQ(b.get_allocator().resource(), &bufRes);
+	EXPECT_EQ(b.front().get_allocator().resource(), &bufRes);
+	EXPECT_TRUE(a.get_allocator() != b.get_allocator());
+	EXPECT_TRUE(b.get_allocator() == b.front().get_allocator());
+}
+#endif
 
 TEST_F(dynarrayConstructTest, selfMoveAssign)
 {

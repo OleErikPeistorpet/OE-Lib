@@ -143,7 +143,7 @@ struct AllocCounter
 };
 
 template<typename T>
-struct TrackingAllocator : oel::allocator<T>
+struct TrackingAllocatorBase : oel::allocator<T>
 {
 	using _base = oel::allocator<T>;
 
@@ -168,7 +168,11 @@ struct TrackingAllocator : oel::allocator<T>
 
 		_base::deallocate(ptr, nObjects);
 	}
+};
 
+template<typename T>
+struct TrackingAllocator : TrackingAllocatorBase<T>
+{
 	template<typename U, typename... Args>
 	void construct(U * raw, Args &&... args)
 	{
@@ -177,23 +181,23 @@ struct TrackingAllocator : oel::allocator<T>
 	}
 };
 
-template<typename T, bool PropagateOnMoveAssign = false>
-struct StatefulAllocator : TrackingAllocator<T>
+template<typename T, bool PropagateOnMoveAssign = false, bool UseConstruct = true>
+struct StatefulAllocator : std::conditional< UseConstruct, TrackingAllocator<T>, TrackingAllocatorBase<T> >::type
 {
 	using propagate_on_container_move_assignment = oel::bool_constant<PropagateOnMoveAssign>;
 
 	int id;
 
 	StatefulAllocator(int id_ = 0) : id(id_) {}
+
+	template<typename U>
+	friend bool operator==(StatefulAllocator a, StatefulAllocator<U, PropagateOnMoveAssign, UseConstruct> b)
+	{ return a.id == b.id; }
+
+	template<typename U>
+	friend bool operator!=(StatefulAllocator a, StatefulAllocator<U, PropagateOnMoveAssign, UseConstruct> b)
+	{ return !(a == b); }
 };
-
-template<typename T, typename U, bool PropagateOnMoveAssign>
-bool operator==(StatefulAllocator<T, PropagateOnMoveAssign> a, StatefulAllocator<U, PropagateOnMoveAssign> b)
-{ return a.id == b.id; }
-
-template<typename T, typename U, bool PropagateOnMoveAssign>
-bool operator!=(StatefulAllocator<T, PropagateOnMoveAssign> a, StatefulAllocator<U, PropagateOnMoveAssign> b)
-{ return !(a == b); }
 
 
 template<typename T>
