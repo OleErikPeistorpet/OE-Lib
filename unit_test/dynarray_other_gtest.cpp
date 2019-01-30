@@ -1,3 +1,6 @@
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
 #include "dynarray.h"
 #include "test_classes.h"
 #include "range_view.h"
@@ -141,6 +144,28 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
+#endif
+
+#ifdef __has_include
+#if __has_include(<variant>) and (__cplusplus >= 201703 or _HAS_CXX17)
+	#include "trivial_relocate/std_variant.h"
+
+	TEST(dynarrayOtherTest, stdVariant)
+	{
+		using Inner = std::conditional_t< oel::is_trivially_relocatable<std::string>::value, std::string, dynarray<char> >;
+		using V = std::variant<std::unique_ptr<double>, Inner>;
+		static_assert(oel::is_trivially_relocatable<V>());
+
+		dynarray<V> a;
+
+		a.emplace_back(Inner("abc"));
+		a.push_back(std::make_unique<double>(3.3));
+		a.reserve(9);
+
+		EXPECT_TRUE(std::strcmp( "abc", std::get<Inner>(a[0]).data() ) == 0);
+		EXPECT_EQ( 3.3, *std::get<0>(a[1]) );
+	}
+#endif
 #endif
 
 TEST(dynarrayOtherTest, withReferenceWrapper)
