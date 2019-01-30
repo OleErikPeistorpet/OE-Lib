@@ -86,19 +86,15 @@ explicit dynarray(const InputRange &, Alloc = Alloc{})
 #endif
 
 /**
-* @brief Resizable array, dynamically allocated. Very similar to std::vector, but much faster in many cases.
+* @brief Resizable array, dynamically allocated. Very similar to std::vector, but faster in many cases.
 *
 * In general, only that which differs from std::vector is documented.
 *
-* Efficiency is better if template argument T is trivially relocatable, which is true for most types, but needs
-* to be declared manually for each type that is not trivially copyable. See specify_trivial_relocate(T &&).
-* Also, if T is trivially relocatable, it does not need to be copyable or even move constructible (you can use
-* emplace_back, pop_back, erase). There are a few notable functions for which trivially relocatable T is required
-* (checked when compiling): emplace, insert, insert_r and `erase(first, last)`
-*
-* About strong exception guarantee: For all functions which for std::vector are specified to have no effect
-* if an exception is thrown: If T's move constructor is not noexcept and T is not trivially relocatable,
-* dynarray will use the throwing move constructor, and the exception guarantee is lowered to basic.
+* For functions that may reallocate, there is a requirement that template argument T is trivially relocatable or
+* noexcept move constructible (checked when compiling). Most types can be relocated trivially, but it often needs
+* to be declared manually. See specify_trivial_relocate(T &&). Performance is better if T is trivially relocatable.
+* Furthermore, a few functions require that T is trivially relocatable (noexcept movable is not enough):
+* emplace, insert, insert_r and `erase(first, last)`
 *
 * The default allocator supports over-aligned types (e.g. __m256)  */
 template<typename T, typename Alloc/* = oel::allocator */>
@@ -144,7 +140,7 @@ public:
 	*
 	* To move instead of copy, wrap r with view::move (the same applies for all functions taking a range template) <br>
 	* Example, construct from a standard istream with formatting (using Boost):
-	* @code
+	@code
 	#include <boost/range/istream_range.hpp>
 	// ...
 	auto result = dynarray<int>(boost::range::istream_range<int>(someStream));
@@ -164,7 +160,7 @@ public:
 
 	dynarray & operator =(dynarray && other) &
 		noexcept(_allocTrait::propagate_on_container_move_assignment::value or is_always_equal<Alloc>::value);
-	//! Treats allocator_type as if it does not have propagate_on_container_copy_assignment
+	//! Acts as if allocator_type does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other) &    { assign(other);  return *this; }
 
 	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
@@ -485,7 +481,7 @@ private:
 	{
 		OEL_WHEN_EXCEPTIONS_ON(
 			static_assert(std::is_nothrow_move_constructible<T>::value,
-				"This function requires that T is noexcept move constructible or trivially relocatable");
+				"Reallocation in dynarray requires that T is noexcept move constructible or trivially relocatable");
 		)
 		T *__restrict src = _m.data;
 		while (dest != dLast)

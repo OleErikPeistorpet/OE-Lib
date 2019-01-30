@@ -34,6 +34,7 @@ namespace boost
 
 namespace oel
 {
+	//! Assumed trivially relocatable if the allocator is. Could also check the pointer type for extra assurance
 	template<typename C, typename Tr, typename Alloc>
 	struct is_trivially_relocatable< std::basic_string<C, Tr, Alloc> >
 	 :	is_trivially_relocatable<Alloc> {};
@@ -43,7 +44,6 @@ namespace oel
 namespace oel
 {
 
-//! std::unique_ptr assumed trivially relocatable if the deleter is
 template<typename T, typename Del>
 struct is_trivially_relocatable< std::unique_ptr<T, Del> >
  :	is_trivially_relocatable<Del> {};

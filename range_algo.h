@@ -36,7 +36,7 @@ void erase_unstable(RandomAccessContainer & c, typename RandomAccessContainer::s
 /**
 * @brief Erase from container all elements for which predicate returns true
 *
-* This function mimics feature from paper N4009 (C++17). Wraps std::remove_if  */
+* This function mimics `std::experimental::erase_if` (C++20 no longer experimental?)  */
 template<typename Container, typename UnaryPredicate>
 void erase_if(Container & c, UnaryPredicate p);
 /**
