@@ -129,11 +129,10 @@ namespace _detail
 	};
 
 
-
-	template<typename Unsigned, typename Integral>
-	constexpr bool IndexValid(Unsigned size, Integral i, false_type)
-	{	// assumes that size never is greater than INTMAX_MAX, and INTMAX_MAX is half UINTMAX_MAX
-		return static_cast<std::uintmax_t>(i) < size;
+	template<typename Unsigned>
+	constexpr bool IndexValid(Unsigned size, std::uintmax_t i, false_type)
+	{	// assumes that size never is greater than INTMAX_MAX
+		return i < size;
 	}
 
 	template<typename Unsigned, typename Integral>
@@ -146,9 +145,9 @@ namespace _detail
 } // namespace oel
 
 template<typename Integral, typename SizedRange>
-constexpr bool oel::index_valid(const SizedRange & r, Integral i)
+constexpr bool oel::index_valid(const SizedRange & r, Integral index)
 {
 	using T = decltype(oel::ssize(r));
-	using NotBigInts = bool_constant<sizeof(T) < sizeof(std::uintmax_t) and sizeof i < sizeof(std::uintmax_t)>;
-	return _detail::IndexValid(as_unsigned(oel::ssize(r)), i, NotBigInts{});
+	using NeitherIsBig = bool_constant<sizeof(T) < sizeof(std::uintmax_t) and sizeof index < sizeof(std::uintmax_t)>;
+	return _detail::IndexValid(as_unsigned(oel::ssize(r)), index, NeitherIsBig{});
 }

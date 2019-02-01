@@ -44,7 +44,7 @@ void erase_if(Container & c, UnaryPredicate p);
 *
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
 template< typename Container, typename BinaryPredicate = std::equal_to<typename Container::value_type> >
-void erase_successive_dup(Container & c, BinaryPredicate isDuplicate = BinaryPredicate{});
+void erase_successive_dup(Container & c, BinaryPredicate isDuplicate = {});
 
 
 
@@ -152,8 +152,8 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename ContiguousIter, typename Integral, typename ContiguousIter2>
-	ContiguousIter CopyUnsf(ContiguousIter const src, Integral const n, ContiguousIter2 const dest, true_type)
+	template<typename ContiguousIter, typename ContiguousIter2>
+	ContiguousIter CopyUnsf(ContiguousIter const src, std::ptrdiff_t const n, ContiguousIter2 const dest, true_type)
 	{	// can use memcpy
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != n)
