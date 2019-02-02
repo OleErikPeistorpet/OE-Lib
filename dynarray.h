@@ -79,10 +79,10 @@ inline namespace debug
 
 #ifdef OEL_HAS_DEDUCTION_GUIDES
 template<typename InputRange,
-         typename Alloc = allocator<iterator_value_t< range_iterator_t<InputRange> >>
+         typename Alloc = allocator<iter_value_t< range_iterator_t<InputRange> >>
         >
 explicit dynarray(const InputRange &, Alloc = Alloc{})
-->	dynarray<iterator_value_t< range_iterator_t<InputRange> >, Alloc>;
+->	dynarray<iter_value_t< range_iterator_t<InputRange> >, Alloc>;
 #endif
 
 /**
@@ -594,7 +594,7 @@ private:
 	template<typename Iter, typename Range>
 	static auto _sizeOrEnd(const Range & r)
 	{
-		return _sizeOrEnd(r, iterator_traversal_t<Iter>(), 0);
+		return _sizeOrEnd(r, iter_traversal_t<Iter>(), 0);
 	}
 
 
@@ -852,7 +852,7 @@ typename dynarray<T, Alloc>::iterator
 	auto first = ::adl_begin(src);
 	size_type const count = _sizeOrEnd<decltype(first)>(src);
 
-	static_assert(std::is_base_of< forward_traversal_tag, iterator_traversal_t<decltype(first)> >::value,
+	static_assert(std::is_base_of< forward_traversal_tag, iter_traversal_t<decltype(first)> >::value,
 				  "insert_r requires that source models Forward Range (Boost concept)");
 
 	OEL_DYNARR_INSERT_STEP1

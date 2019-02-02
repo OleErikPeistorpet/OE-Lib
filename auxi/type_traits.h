@@ -54,14 +54,18 @@ using is_always_equal   = decltype( _detail::IsAlwaysEqual<T>(0) );
 template<typename Range>
 using range_difference_t   = decltype( _detail::DiffT<Range>(0) );
 
-template<typename Iterator>
-using iterator_difference_t = typename std::iterator_traits<Iterator>::difference_type;
+//! Type returned by begin function (found by ADL)
+template<typename Range>
+using range_iterator_t = decltype( begin(std::declval<Range &>()) );
 
 template<typename Iterator>
-using iterator_value_t = typename std::iterator_traits<Iterator>::value_type;
+using iter_difference_t = typename std::iterator_traits<Iterator>::difference_type;
 
 template<typename Iterator>
-using iterator_traversal_t
+using iter_value_t = typename std::iterator_traits<Iterator>::value_type;
+
+template<typename Iterator>
+using iter_traversal_t
 #ifndef OEL_NO_BOOST
 	= typename boost::iterator_traversal<Iterator>::type;
 
@@ -77,11 +81,7 @@ using iterator_traversal_t
 #endif
 
 template<typename Iterator>
-using iterator_is_random_access = std::is_base_of< random_access_traversal_tag, iterator_traversal_t<Iterator> >;
-
-//! Type returned by begin function (found by ADL)
-template<typename Range>
-using range_iterator_t = decltype( begin(std::declval<Range &>()) );
+using iter_is_random_access = std::is_base_of< random_access_traversal_tag, iter_traversal_t<Iterator> >;
 
 
 

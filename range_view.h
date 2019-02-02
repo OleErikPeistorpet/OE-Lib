@@ -38,8 +38,8 @@ protected:
 	Iterator _end;
 };
 
-template<typename Iterator, enable_if< iterator_is_random_access<Iterator>::value > = 0>
-iterator_difference_t<Iterator> ssize(const iterator_range<Iterator> & r)   { return r.end() - r.begin(); }
+template<typename Iterator, enable_if< iter_is_random_access<Iterator>::value > = 0>
+iter_difference_t<Iterator> ssize(const iterator_range<Iterator> & r)   { return r.end() - r.begin(); }
 
 //! Create an iterator_range from two iterators, with type deduced from arguments
 template<typename Iterator> inline
@@ -47,13 +47,13 @@ iterator_range<Iterator> make_iterator_range(Iterator first, Iterator last)  { r
 
 
 //! Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
-template<typename Iterator, bool = iterator_is_random_access<Iterator>::value>
+template<typename Iterator, bool = iter_is_random_access<Iterator>::value>
 class counted_view
 {
 public:
 	using iterator        = Iterator;
-	using value_type      = iterator_value_t<Iterator>;
-	using difference_type = iterator_difference_t<Iterator>;
+	using value_type      = iter_value_t<Iterator>;
+	using difference_type = iter_difference_t<Iterator>;
 #ifndef OEL_VIEW_SIGNED_SIZE // defined by user if they want
 	using size_type       = size_t;
 #else
@@ -117,7 +117,7 @@ namespace view
 
 //! Create a counted_view from iterator and count, with type deduced from first
 template<typename Iterator>
-constexpr counted_view<Iterator> counted(Iterator first, iterator_difference_t<Iterator> count)  { return {first, count}; }
+constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Iterator> count)  { return {first, count}; }
 
 
 //! Create an iterator_range of std::move_iterator from two iterators
@@ -129,7 +129,7 @@ iterator_range< std::move_iterator<InputIterator> >
 //! Create a counted_view with move_iterator from iterator and count
 template<typename InputIterator>
 counted_view< std::move_iterator<InputIterator> >
-	move_n(InputIterator first, iterator_difference_t<InputIterator> count)
+	move_n(InputIterator first, iter_difference_t<InputIterator> count)
 	{
 		return {std::make_move_iterator(first), count};
 	}
@@ -153,14 +153,14 @@ auto move(InputRange & r)   { return _detail::Move(r, int{}); }
 	auto transform(SizedRange & r, UnaryFunc f)
 	->	counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
 		{
-			return {boost::make_transform_iterator(begin(r), std::move(f)), oel::ssize(r)};
+			return {boost::make_transform_iterator(begin(r), f), oel::ssize(r)};
 		}
 	//! Create a view with boost::transform_iterator from iterator and count
 	template<typename UnaryFunc, typename Iterator>
-	auto transform_n(Iterator first, iterator_difference_t<Iterator> count, UnaryFunc f)
+	auto transform_n(Iterator first, iter_difference_t<Iterator> count, UnaryFunc f)
 	->	counted_view< boost::transform_iterator<UnaryFunc, Iterator> >
 		{
-			return {boost::make_transform_iterator(first, std::move(f)), count};
+			return {boost::make_transform_iterator(first, f), count};
 		}
 #endif
 }
