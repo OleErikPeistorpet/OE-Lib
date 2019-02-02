@@ -381,17 +381,19 @@ TEST_F(dynarrayTest, insertRTrivial)
 
 TEST_F(dynarrayTest, insertR)
 {
+	using oel::ssize;
+
 	size_t const initSize = 2;
 	std::array<TrivialRelocat, 2> const toInsert{TrivialRelocat{-1}, TrivialRelocat{-2}};
 	for (auto nReserve : {initSize, initSize + toInsert.size()})
 		for (size_t insertOffset = 0; insertOffset <= initSize; ++insertOffset)
-			for (int countThrow = 0; countThrow <= oel::ssize(toInsert); ++countThrow)
+			for (int countThrow = 0; countThrow <= ssize(toInsert); ++countThrow)
 			{	{
 					dynarray<TrivialRelocat> dest(oel::reserve, nReserve);
 					dest.emplace_back(1);
 					dest.emplace_back(2);
 
-					if (countThrow < oel::ssize(toInsert))
+					if (countThrow < ssize(toInsert))
 					{
 					OEL_WHEN_EXCEPTIONS_ON(
 						TrivialRelocat::countToThrowOn = countThrow;
@@ -424,7 +426,7 @@ TEST_F(dynarrayTest, insertR)
 						EXPECT_EQ(2, *dest.back());
 					}
 				}
-				EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct + toInsert.size());
+				EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct + ssize(toInsert));
 			}
 }
 
@@ -485,7 +487,7 @@ TEST_F(dynarrayTest, resize)
 	ASSERT_EQ(S1, d.size());
 
 OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(d.resize(d.max_size(), oel::default_init), std::bad_alloc);
+	EXPECT_THROW(d.resize_default_init(d.max_size()), std::bad_alloc);
 	EXPECT_EQ(S1, d.size());
 )
 	for (const auto & e : d)
@@ -717,7 +719,7 @@ TEST_F(dynarrayTest, greaterThanMax)
 	EXPECT_THROW(d.reserve((size_t) -1), std::length_error);
 	EXPECT_THROW(d.reserve(n), std::length_error);
 	EXPECT_THROW(d.resize(n), std::length_error);
-	EXPECT_THROW(d.resize(n, oel::default_init), std::length_error);
+	EXPECT_THROW(d.resize_default_init(n), std::length_error);
 	ASSERT_TRUE(d.empty());
 	EXPECT_THROW(d.append(n, Size2{{}}), std::length_error);
 }
