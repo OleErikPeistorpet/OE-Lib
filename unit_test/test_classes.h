@@ -9,7 +9,6 @@
 #include <memory>
 #include <unordered_map>
 
-//! @cond INTERNAL
 
 class TestException : public std::exception {};
 
@@ -206,5 +205,3 @@ struct StatefulAllocator : std::conditional< UseConstruct, TrackingAllocator<T>,
 
 template<typename T>
 using dynarrayTrackingAlloc = oel::dynarray< T, TrackingAllocator<T> >;
-
-//! @endcond
