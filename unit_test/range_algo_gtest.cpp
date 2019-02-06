@@ -44,7 +44,7 @@ TEST(rangeTest, eraseIf)
 	EXPECT_TRUE(std::equal(begin(li), end(li), begin(test1)));
 }
 
-TEST(rangeTest, eraseSuccessiveDup)
+TEST(rangeTest, eraseAdjacentDup)
 {
 	using namespace oel;
 
@@ -53,9 +53,9 @@ TEST(rangeTest, eraseSuccessiveDup)
 	dynarray<int> uniqueTest;
 	uniqueTest.assign(li);
 
-	erase_successive_dup(li);
+	erase_adjacent_dup(li);
 	EXPECT_EQ(4U, li.size());
-	erase_successive_dup(uniqueTest);
+	erase_adjacent_dup(uniqueTest);
 	EXPECT_FALSE(uniqueTest != expect);
 }
 

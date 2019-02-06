@@ -40,11 +40,12 @@ void erase_unstable(RandomAccessContainer & c, typename RandomAccessContainer::s
 template<typename Container, typename UnaryPredicate>
 void erase_if(Container & c, UnaryPredicate p);
 /**
-* @brief Erase consecutive duplicate elements in container. Wraps std::unique
+* @brief Erase consecutive duplicate elements in container
 *
+* Calls Container::unique if available (with fallback std::unique).
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
 template< typename Container, typename BinaryPredicate = std::equal_to<typename Container::value_type> >
-void erase_successive_dup(Container & c, BinaryPredicate isDuplicate = {});
+void erase_adjacent_dup(Container & c, BinaryPredicate isDuplicate = {});
 
 
 
@@ -283,7 +284,7 @@ inline void oel::erase_if(Container & c, UnaryPredicate p)
 }
 
 template<typename Container, typename BinaryPredicate>
-inline void oel::erase_successive_dup(Container & c, BinaryPredicate p)
+inline void oel::erase_adjacent_dup(Container & c, BinaryPredicate p)
 {
 	_detail::Unique(c, p, int{});
 }
