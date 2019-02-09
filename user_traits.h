@@ -6,41 +6,25 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "error_handling.h"
+
 #include <type_traits>
 
 
 /** @file
 * @brief specify_trivial_relocate to be overloaded for user classes
 *
-* Also provides forward declarations of dynarray and fixcap_array.
+* Also provides forward declarations of dynarray and fixcap_array (and a few other minor things)
 */
 
-#if _MSC_VER && _MSC_VER < 1900
-	#ifndef _ALLOW_KEYWORD_MACROS
-	#define _ALLOW_KEYWORD_MACROS 1
-	#endif
-
-	#ifndef noexcept
-	#define noexcept throw()
-	#endif
-
-	#undef constexpr
-	#define constexpr
-
-	#define OEL_ALIGNOF __alignof
-#else
-	#define OEL_ALIGNOF alignof
-#endif
-
-
-#if defined(__has_include)
+#ifdef __has_include
 	#if !__has_include(<boost/config.hpp>)
-	#define OEL_NO_BOOST 1
+	#define OEL_NO_BOOST  1
 	#endif
 #endif
 
 
-/// Obscure Efficient Library
+//! Obscure Efficient Library
 namespace oel
 {
 
@@ -49,11 +33,27 @@ using std::size_t;
 
 template<typename T> struct allocator;  // forward declare
 
+#ifdef OEL_DYNARRAY_IN_DEBUG
+inline namespace debug
+	#if __GNUC__ >= 5
+		__attribute__((abi_tag))
+	#endif
+{
+#endif
+
 template<typename T, typename Alloc = allocator<T> >
 class dynarray;
 
+#ifdef OEL_DYNARRAY_IN_DEBUG
+}
+#endif
+
 template<typename T, size_t Capacity, typename Size = size_t>
 class fixcap_array;
+
+
+//! Functions marked with `noexcept(nodebug)` will only throw exceptions from OEL_ASSERT (none by default)
+constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 
 
 
@@ -64,31 +64,28 @@ using std::true_type; // equals bool_constant<true>
 using std::false_type;
 
 
-/// Equivalent to std::is_trivially_copyable, but can be specialized for a type if you are sure memcpy is safe to copy it
+//! Equivalent to std::is_trivially_copyable, but may be specialized (for user types)
 template<typename T>
-struct is_trivially_copyable :
-	#if __GLIBCXX__ && __GNUC__ == 4
-		bool_constant< (__has_trivial_copy(T) && __has_trivial_assign(T))
-			#if __INTEL_COMPILER
-				|| __is_pod(T)
-			#endif
-			> {};
-	#else
-		std::is_trivially_copyable<T> {};
-	#endif
+struct is_trivially_copyable;
 
 /**
-* @brief Function declaration to specify that T does not have a pointer member to any of its data members
-*	(including inherited), and does not notify any observers in its copy/move constructor.
+* @brief Function declaration to specify that T objects can transparently be relocated in memory.
+*
+* This means that T cannot have a member that is a pointer to any of its non-static members
+* (including inherited), and must not need to update external state during move construction.
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
 * http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
 *
-* Declare a function in the namespace of the type like this:
+* Already true for trivially copyable types. For others, declare a function in the namespace of the type like this:
 @code
 oel::true_type specify_trivial_relocate(MyClass &&);
+
 // Or if you are unsure if a member or base class is and will stay trivially relocatable:
-oel::is_trivially_relocatable<MemberTypeOfU> specify_trivial_relocate(U &&);
+class MyClass {
+	std::string name;
+};
+oel::is_trivially_relocatable<std::string> specify_trivial_relocate(MyClass &&);
 
 // With nested class, use friend keyword:
 class Outer {
@@ -99,33 +96,33 @@ class Outer {
 };
 @endcode  */
 template<typename T>
-#if OEL_TRIVIAL_RELOCATE_DEFAULT
-	true_type
-#else
-	is_trivially_copyable<T>
-#endif
-	specify_trivial_relocate(T &&);
+bool_constant<
+	#if defined __GLIBCXX__ and __GNUC__ == 4
+		__has_trivial_copy(T) and __has_trivial_destructor(T)
+	#else
+		std::is_trivially_move_constructible<T>::value and std::is_trivially_destructible<T>::value
+	#endif
+>	specify_trivial_relocate(T &&);
 
-/// Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
+/** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
+*
+* Many useful classes are declared trivially relocatable, see compat folder. */
 template<typename T>
 struct is_trivially_relocatable;
 
-// Many useful classes are declared trivially relocatable, see compat folder
-
-
-template<bool...> struct bool_pack_t;
-
-template<bool... Vs>
-using all_true = std::is_same< bool_pack_t<true, Vs...>, bool_pack_t<Vs..., true> >;
-
-/** @brief If all of BoolConstants have value equal to true, this trait is-a std::true_type, else false_type
-*
-* Example: @code
-template<typename... Ts>
-void ProcessNumbers(Ts... n) {
-	static_assert(oel::all_< std::is_arithmetic<Ts>... >::value, "Only arithmetic types, please");
-@endcode  */
-template<typename... BoolConstants>
-struct all_ : all_true<BoolConstants::value...> {};
-
 } // namespace oel
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Implementation
+
+
+template<typename T>
+struct oel::is_trivially_copyable :
+	#if defined __GLIBCXX__ and __GNUC__ == 4
+		bool_constant< __has_trivial_copy(T) and __has_trivial_assign(T) and __has_trivial_destructor(T) > {};
+	#else
+		std::is_trivially_copyable<T> {};
+	#endif

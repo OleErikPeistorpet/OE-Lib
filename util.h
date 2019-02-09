@@ -6,63 +6,91 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "core_util.h"
+#include "auxi/type_traits.h"
+#include "auxi/contiguous_iterator_to_ptr.h"
+#include "make_unique.h"
 
-#include <memory>
-#include <cstdint>
+#include <stdexcept>
+#include <cstdint> // for uintmax_t
 
 
 /** @file
-* @brief Utilities: as_signed/as_unsigned, index_valid, make_unique, deref_args
+* @brief Contains as_signed/as_unsigned, index_valid, ssize, adl_begin/adl_end, deref_args and more
 */
 
 namespace oel
 {
 
-/// Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
-template<typename T> inline
-constexpr typename std::make_signed<T>::type   as_signed(T val) noexcept  { return (typename std::make_signed<T>::type)val; }
-/// Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
-template<typename T> inline
-constexpr typename std::make_unsigned<T>::type as_unsigned(T val) noexcept
-	{ return (typename std::make_unsigned<T>::type)val; }
+//! Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
+template<typename T>  OEL_ALWAYS_INLINE
+constexpr typename std::make_signed<T>::type
+	as_signed(T val) noexcept                  { return (typename std::make_signed<T>::type) val; }
+//! Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
+template<typename T>  OEL_ALWAYS_INLINE
+constexpr typename std::make_unsigned<T>::type
+	as_unsigned(T val) noexcept                { return (typename std::make_unsigned<T>::type) val; }
 
 
-///@{
-/// Check if index is valid (can be used with operator[]) for array or other range.
-template< typename UnsignedInt, typename SizedRange,
-          enable_if<std::is_unsigned<UnsignedInt>::value> = 0 > inline
-bool index_valid(const SizedRange & r, UnsignedInt index)   { return index < as_unsigned(oel::ssize(r)); }
 
-template<typename SizedRange> inline
-bool index_valid(const SizedRange & r, std::int32_t index)  { return 0 <= index && index < oel::ssize(r); }
-
-template<typename SizedRange> inline
-bool index_valid(const SizedRange & r, std::int64_t index)
-{	// assumes that r.size() is never greater than INT64_MAX
-	return static_cast<std::uint64_t>(index) < as_unsigned(oel::ssize(r));
-}
-///@}
+//! Returns r.size() as signed type
+template<typename SizedRange>  OEL_ALWAYS_INLINE
+constexpr auto ssize(const SizedRange & r)
+ -> decltype( static_cast< range_difference_t<SizedRange> >(r.size()) )
+     { return static_cast< range_difference_t<SizedRange> >(r.size()); }
+//! Returns number of elements in array as signed type
+template<typename T, std::ptrdiff_t Size>  OEL_ALWAYS_INLINE
+constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
-/**
-* @brief Same as std::make_unique, but performs direct-list-initialization if there is no matching constructor
+/** @brief Check if index is valid (can be used with operator[]) for array or other container-like object
 *
-* (Works for aggregates.) http://open-std.org/JTC1/SC22/WG21/docs/papers/2015/n4462.html  */
-template< typename T, typename... Args, typename = enable_if<!std::is_array<T>::value> >
-std::unique_ptr<T> make_unique(Args &&... args);
+* Negative index gives false result, even if the value is within range after conversion to an unsigned type,
+* which happens implicitly when passed to operator[] of dynarray and std containers. */
+template<typename Integral, typename SizedRange>
+constexpr bool index_valid(const SizedRange & r, Integral index);
 
-/// Equivalent to std::make_unique (array version).
-template< typename T, typename = enable_if<std::is_array<T>::value> >
-std::unique_ptr<T> make_unique(size_t arraySize);
-/**
-* @brief Array is default-initialized, can be significantly faster for non-class elements
+
+
+using std::begin;
+using std::end;
+
+#if __cplusplus >= 201402L or defined _MSC_VER
+	using std::cbegin;   using std::cend;
+	using std::crbegin;  using std::crend;
+#endif
+
+/** @brief Argument-dependent lookup non-member begin, defaults to std::begin
 *
-* Non-class elements get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-template< typename T, typename = enable_if<std::is_array<T>::value> >
-std::unique_ptr<T> make_unique_default(size_t arraySize);
+* Note the global using-directive  @code
+	auto it = container.begin();     // Fails with types that don't have begin member such as built-in arrays
+	auto it = std::begin(container); // Fails with types that have only non-member begin outside of namespace std
+	// Argument-dependent lookup, as generic as it gets
+	using std::begin; auto it = begin(container);
+	auto it = adl_begin(container);  // Equivalent to line above
+@endcode  */
+template<typename Range>  OEL_ALWAYS_INLINE
+constexpr auto adl_begin(Range & r) -> decltype(begin(r))         { return begin(r); }
+//! Const version of adl_begin(), analogous to std::cbegin
+template<typename Range>  OEL_ALWAYS_INLINE
+constexpr auto adl_cbegin(const Range & r) -> decltype(begin(r))  { return begin(r); }
+
+//! Argument-dependent lookup non-member end, defaults to std::end
+template<typename Range>  OEL_ALWAYS_INLINE
+constexpr auto adl_end(Range & r) -> decltype(end(r))         { return end(r); }
+//! Const version of adl_end()
+template<typename Range>  OEL_ALWAYS_INLINE
+constexpr auto adl_cend(const Range & r) -> decltype(end(r))  { return end(r); }
+
+} // namespace oel
+
+using oel::adl_begin;
+using oel::adl_cbegin;
+using oel::adl_end;
+using oel::adl_cend;
 
 
+namespace oel
+{
 
 /** @brief Calls operator * on arguments before passing them to Func
 *
@@ -72,66 +100,75 @@ oel::dynarray< std::unique_ptr<double> > d;
 std::sort(d.begin(), d.end(), deref_args<std::less<>>{}); // std::less<double> before C++14
 @endcode  */
 template<typename Func>
-class deref_args
+struct deref_args
 {
-	Func _f;
-
-public:
-	deref_args(Func f = Func{})  : _f(std::move(f)) {}
+	Func wrapped;
 
 	template<typename... Ts>
-	auto operator()(Ts &&... args) const -> decltype( _f(*std::forward<Ts>(args)...) )
-	                                         { return _f(*std::forward<Ts>(args)...); }
+	auto operator()(Ts &&... args) const -> decltype( wrapped(*std::forward<Ts>(args)...) )
+	                                         { return wrapped(*std::forward<Ts>(args)...); }
 
 	using is_transparent = void;
 };
 
 
 
+//! Tag to select a constructor that allocates storage without filling it with objects
+struct reserve_tag
+{
+	explicit constexpr reserve_tag() {}
+};
+constexpr reserve_tag reserve; //!< An instance of reserve_tag for convenience
+
+//! Tag to specify default initialization
+struct default_init_t
+{
+	explicit constexpr default_init_t() {}
+};
+constexpr default_init_t default_init; //!< An instance of default_init_t for convenience
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Implementation only in rest of the file
+// The rest of the file is not for users (implementation)
 
 
 namespace _detail
 {
-	template<typename T, typename... Args> inline
-	T * New(std::true_type, Args &&... args)
-	{
-		return new T(std::forward<Args>(args)...);
+	struct Throw
+	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
+		[[noreturn]] static void OutOfRange(const char * what)
+		{
+			OEL_THROW(std::out_of_range(what), what);
+		}
+
+		[[noreturn]] static void LengthError(const char * what)
+		{
+			OEL_THROW(std::length_error(what), what);
+		}
+	};
+
+
+	template<typename Unsigned, typename Integral>
+	constexpr bool IndexValid(Unsigned size, Integral i, false_type)
+	{	// assumes that size never is greater than INTMAX_MAX, and INTMAX_MAX is half UINTMAX_MAX
+		return static_cast<std::uintmax_t>(i) < size;
 	}
 
-	template<typename T, typename... Args> inline
-	T * New(std::false_type, Args &&... args)
-	{
-		return new T{std::forward<Args>(args)...};
+	template<typename Unsigned, typename Integral>
+	constexpr bool IndexValid(Unsigned size, Integral i, true_type)
+	{	// found to be faster when both types are smaller than intmax_t
+		return (0 <= i) & (as_unsigned(i) < size);
 	}
 }
 
 } // namespace oel
 
-template<typename T, typename... Args, typename>
-inline std::unique_ptr<T>  oel::make_unique(Args &&... args)
+template<typename Integral, typename SizedRange>
+constexpr bool oel::index_valid(const SizedRange & r, Integral i)
 {
-	T * p = _detail::New<T>(std::is_constructible<T, Args...>(), std::forward<Args>(args)...);
-	return std::unique_ptr<T>(p);
+	using T = decltype(oel::ssize(r));
+	using NotBigInts = bool_constant<sizeof(T) < sizeof(std::uintmax_t) and sizeof i < sizeof(std::uintmax_t)>;
+	return _detail::IndexValid(as_unsigned(oel::ssize(r)), i, NotBigInts{});
 }
-
-#define OEL_MAKE_UNIQUE_A(newExpr)  \
-	static_assert(std::extent<T>::value == 0, "make_unique forbids T[size]. Please use T[]");  \
-	using Elem = typename std::remove_extent<T>::type;  \
-	return std::unique_ptr<T>(newExpr)
-
-template<typename T, typename>
-inline std::unique_ptr<T>  oel::make_unique(size_t size)
-{
-	OEL_MAKE_UNIQUE_A( new Elem[size]() ); // value-initialize
-}
-
-template<typename T, typename>
-inline std::unique_ptr<T>  oel::make_unique_default(size_t size)
-{
-	OEL_MAKE_UNIQUE_A(new Elem[size]);
-}
-
-#undef OEL_MAKE_UNIQUE_A

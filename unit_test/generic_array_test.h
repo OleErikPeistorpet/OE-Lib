@@ -1,21 +1,16 @@
 #include "test_classes.h"
 #include "range_view.h"
-#include "compat/std_classes_extra.h"
 
 #include <cstdint>
 #include <deque>
 
-/// @cond INTERNAL
 
 using oel::make_iterator_range;
-using oel::make_view_n;
 namespace view = oel::view;
 
 template<typename ArrayString, typename ArrayChar, typename ArrayBool>
 void testConstruct()
 {
-	// TODO: Test exception safety of constructors
-
 	ArrayString a;
 	decltype(a) b(a);
 	ASSERT_EQ(0U, b.size());
@@ -47,29 +42,27 @@ void testPushBack()
 		up.push_back(MoveOnly{VALUES[0]});
 		ASSERT_EQ(1U, up.size());
 
-		EXPECT_THROW( up.emplace_back(ThrowOnConstruct), TestException );
+	OEL_WHEN_EXCEPTIONS_ON(
+		MoveOnly::countToThrowOn = 0;
+		EXPECT_THROW( up.emplace_back(), TestException );
 		ASSERT_EQ(1U, up.size());
-
+	)
 		up.push_back(MoveOnly{VALUES[1]});
 		ASSERT_EQ(2U, up.size());
 
-		EXPECT_THROW( up.emplace_back(ThrowOnConstruct), TestException );
+	OEL_WHEN_EXCEPTIONS_ON(
+		MoveOnly::countToThrowOn = 0;
+		EXPECT_THROW( up.emplace_back(), TestException );
 		ASSERT_EQ(2U, up.size());
-
+	)
 		up.push_back( std::move(up.back()) );
 		ASSERT_EQ(3U, up.size());
 
 		EXPECT_EQ(VALUES[0], *up[0]);
-		EXPECT_EQ(nullptr, up[1]);
+		EXPECT_EQ(nullptr, up[1].get());
 		EXPECT_EQ(VALUES[1], *up[2]);
 	}
-	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
-
-	ArrayArrayInt nested;
-	nested.emplace_back(3, oel::default_init);
-	EXPECT_EQ(3U, nested.back().size());
-	nested.emplace_back(std::initializer_list<int>{1, 2});
-	EXPECT_EQ(2U, nested.back().size());
+	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
 template<typename ArrayNontrivialReloc>
@@ -77,70 +70,64 @@ void testPushBackNonTrivialReloc()
 {
 	NontrivialReloc::ClearCount();
 	{
-		ArrayNontrivialReloc mo;
+		ArrayNontrivialReloc da;
 
 		double const VALUES[] = {-1.1, 2.0, -0.7, 9.6};
 		std::deque<double> expected;
 
-		mo.push_back(NontrivialReloc{VALUES[0]});
+		da.push_back(NontrivialReloc{VALUES[0]});
 		expected.push_back(VALUES[0]);
-		ASSERT_EQ(1U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(mo), NontrivialReloc::nDestruct);
+		ASSERT_EQ(1U, da.size());
+		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
 
-		mo.emplace_back(VALUES[1], ThrowOnMoveOrCopy);
+		da.emplace_back(VALUES[1]);
 		expected.emplace_back(VALUES[1]);
-		ASSERT_EQ(2U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(mo), NontrivialReloc::nDestruct);
+		ASSERT_EQ(2U, da.size());
+		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
 
+	OEL_WHEN_EXCEPTIONS_ON(
+		NontrivialReloc::countToThrowOn = 1;
 		try
 		{
-			mo.push_back(NontrivialReloc{VALUES[2]});
-			expected.push_back(VALUES[2]);
+			for(;;)
+			{
+				da.push_back(NontrivialReloc{VALUES[2]});
+				expected.push_back(VALUES[2]);
+			}
 		}
 		catch (TestException &) {
 		}
-		ASSERT_EQ(expected.size(), mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(mo), NontrivialReloc::nDestruct);
-
-		try
-		{
-			mo.push_back(NontrivialReloc{VALUES[2]});
-			expected.push_back(VALUES[2]);
-		}
-		catch (TestException &) {
-		}
-		ASSERT_EQ(3U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(mo), NontrivialReloc::nDestruct);
-
-		mo.emplace_back(VALUES[3], ThrowOnMoveOrCopy);
+		ASSERT_EQ(expected.size(), da.size());
+		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
+	)
+		da.emplace_back(VALUES[3]);
 		expected.emplace_back(VALUES[3]);
-		ASSERT_EQ(4U, mo.size());
-		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(mo), NontrivialReloc::nDestruct);
+		ASSERT_EQ(expected.size(), da.size());
 
-		EXPECT_THROW( mo.emplace_back(ThrowOnConstruct), TestException );
-		ASSERT_EQ(4U, mo.size());
+	OEL_WHEN_EXCEPTIONS_ON(
+		NontrivialReloc::countToThrowOn = 0;
+		EXPECT_THROW( da.push_back(NontrivialReloc{0}), TestException );
+		ASSERT_EQ(expected.size(), da.size());
+	)
+		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(da), NontrivialReloc::nDestruct);
 
+	OEL_WHEN_EXCEPTIONS_ON(
+		NontrivialReloc::countToThrowOn = 3;
 		try
 		{
-			mo.push_back( std::move(mo.front()) );
-			expected.push_back(expected.front());
+			for(;;)
+			{
+				da.push_back(da.front());
+				expected.push_back(expected.front());
+			}
 		}
 		catch (TestException &) {
 		}
-		ASSERT_EQ(expected.size(), mo.size());
-
-		try
-		{
-			mo.push_back( std::move(mo.front()) );
-			expected.push_back(expected.front());
-		}
-		catch (TestException &) {
-		}
-		EXPECT_EQ(5U, mo.size());
-
-		EXPECT_TRUE( std::equal(begin(mo), end(mo), begin(expected)) );
+		ASSERT_EQ(expected.size(), da.size());
+	)
+		EXPECT_TRUE( std::equal(begin(da), end(da), begin(expected)) );
 	}
-	EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
+	EXPECT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
 }
 
 template<typename ArrayMoveOnly, typename ArrayNontrivialReloc>
@@ -162,51 +149,52 @@ void testAssign()
 		test.assign(oel::view::move_n(src, 0));
 		EXPECT_EQ(0U, test.size());
 	}
-	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
+	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 
 	NontrivialReloc::ClearCount();
 	{
 		ArrayNontrivialReloc dest;
+		OEL_WHEN_EXCEPTIONS_ON(
 		{
-			NontrivialReloc obj{-5.0, ThrowOnMoveOrCopy};
-			try
-			{	dest.assign(make_view_n(&obj, 1));
-			}
-			catch (TestException &) {
-			}
+			NontrivialReloc obj{-5.0};
+			NontrivialReloc::countToThrowOn = 0;
+			EXPECT_THROW(
+				dest.assign(view::counted(&obj, 1)),
+				TestException );
 			EXPECT_TRUE(dest.begin() == dest.end());
-		}
-		EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
+		} )
+		EXPECT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
 
 		dest = {NontrivialReloc{-1.0}};
 		EXPECT_EQ(1U, dest.size());
 		dest = {NontrivialReloc{1.0}, NontrivialReloc{2.0}};
-		EXPECT_DOUBLE_EQ(1.0, dest.at(0));
-		EXPECT_DOUBLE_EQ(2.0, dest.at(1));
-		EXPECT_EQ(NontrivialReloc::nConstruct - ssize(dest), NontrivialReloc::nDestruct);
+		EXPECT_EQ(1.0, *dest.at(0));
+		EXPECT_EQ(2.0, *dest.at(1));
+		EXPECT_EQ(NontrivialReloc::nConstructions - ssize(dest), NontrivialReloc::nDestruct);
+		OEL_WHEN_EXCEPTIONS_ON(
 		{
-			NontrivialReloc obj{-3.3, ThrowOnMoveOrCopy};
-			try
-			{	dest.assign(make_iterator_range(&obj, &obj + 1));
-			}
-			catch (TestException &) {
-			}
-			EXPECT_TRUE(dest.empty() || dest.at(1) == 2.0);
-		}
+			NontrivialReloc obj{-3.3};
+			NontrivialReloc::countToThrowOn = 0;
+			EXPECT_THROW(
+				dest.assign(make_iterator_range(&obj, &obj + 1)),
+				TestException );
+			EXPECT_TRUE(dest.empty() or *dest.at(1) == 2.0);
+		} )
 		{
 			dest.clear();
 			EXPECT_TRUE(dest.empty());
 
-			NontrivialReloc obj{-1.3, ThrowOnMoveOrCopy};
-			try
-			{	dest.assign(make_view_n(&obj, 1));
-			}
-			catch (TestException &) {
-			}
+		OEL_WHEN_EXCEPTIONS_ON(
+			NontrivialReloc obj{-1.3};
+			NontrivialReloc::countToThrowOn = 0;
+			EXPECT_THROW(
+				dest.assign(view::counted(&obj, 1)),
+				TestException );
 			EXPECT_TRUE(dest.empty());
+		)
 		}
 	}
-	EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
+	EXPECT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
 }
 
 template<typename ArrayString>
@@ -220,9 +208,8 @@ void testAssignStringStream()
 	EXPECT_EQ(0U, das.size());
 
 	std::stringstream ss{"My computer emits Hawking radiation"};
-	std::istream_iterator<std::string> begin{ss};
-	std::istream_iterator<std::string> end;
-	das.assign(make_iterator_range(begin, end));
+	std::istream_iterator<std::string> b{ss}, e;
+	das.assign(make_iterator_range(b, e));
 
 	EXPECT_EQ(5U, das.size());
 
@@ -234,17 +221,17 @@ void testAssignStringStream()
 
 	ArrayString copyDest;
 
-	copyDest.assign(make_view_n(cbegin(das), 2));
-	copyDest.assign( make_view_n(cbegin(das), das.size()) );
+	copyDest.assign(view::counted(das.cbegin(), 2));
+	copyDest.assign( view::counted(begin(das), das.size()) );
 
 	EXPECT_TRUE(das == copyDest);
 
-	copyDest.assign(make_iterator_range(cbegin(das), cbegin(das) + 1));
+	copyDest.assign(make_iterator_range(das.cbegin(), das.cbegin() + 1));
 
 	EXPECT_EQ(1U, copyDest.size());
 	EXPECT_EQ(das[0], copyDest[0]);
 
-	copyDest.assign(make_view_n(cbegin(das) + 2, 3));
+	copyDest.assign(view::counted(das.cbegin() + 2, 3));
 
 	EXPECT_EQ(3U, copyDest.size());
 	EXPECT_EQ(das[2], copyDest[0]);
@@ -271,6 +258,7 @@ void testAppend()
 		dest.append(src);
 
 		dest.append({});
+		EXPECT_EQ(0U, dest.size());
 
 		double const TEST_VAL = 6.6;
 		dest.append(2, TEST_VAL);
@@ -283,7 +271,7 @@ void testAppend()
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	ArrayDouble double_dynarr, double_dynarr2;
-	double_dynarr.append( make_view_n(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.append( view::counted(oel::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.append(double_dynarr2);
 
 	{
@@ -318,9 +306,9 @@ void testAppendFromStringStream()
 	// Should hit static_assert
 	//dest.insert_r(dest.begin(), make_iterator_range(it, std::istream_iterator<int>()));
 
-	it = dest.append(make_view_n(it, 2));
+	it = dest.append(view::counted(it, 2));
 
-	dest.append(make_view_n(it, 2));
+	dest.append(view::counted(it, 2));
 
 	for (int i = 0; i < ssize(dest); ++i)
 		EXPECT_EQ(i + 1, dest[i]);
@@ -377,15 +365,19 @@ void testInsert()
 		EXPECT_EQ(VALUES[2], *ptr);
 		ASSERT_EQ(1U, up.size());
 
-		EXPECT_THROW( up.emplace(begin(up), ThrowOnConstruct), TestException );
+	OEL_WHEN_EXCEPTIONS_ON(
+		MoveOnly::countToThrowOn = 0;
+		EXPECT_THROW( up.emplace(begin(up)), TestException );
 		ASSERT_EQ(1U, up.size());
-
+	)
 		up.insert(begin(up), MoveOnly{VALUES[0]});
 		ASSERT_EQ(2U, up.size());
 
-		EXPECT_THROW( up.emplace(begin(up) + 1, ThrowOnConstruct), TestException );
+	OEL_WHEN_EXCEPTIONS_ON(
+		MoveOnly::countToThrowOn = 0;
+		EXPECT_THROW( up.emplace(begin(up) + 1), TestException );
 		ASSERT_EQ(2U, up.size());
-
+	)
 		up.insert(end(up), MoveOnly{VALUES[3]});
 		auto & p2 = *up.insert(begin(up) + 1, MoveOnly{VALUES[1]});
 		EXPECT_EQ(VALUES[1], *p2);
@@ -399,16 +391,16 @@ void testInsert()
 		}
 
 		auto it = up.insert( begin(up) + 2, std::move(up[2]) );
-		EXPECT_EQ(up[2], *it);
-		EXPECT_EQ(nullptr, up[3]);
+		EXPECT_EQ(up[2].get(), it->get());
+		EXPECT_EQ(nullptr, up[3].get());
 
 		auto const val = *up.back();
 		up.insert( end(up) - 1, std::move(up.back()) );
 		ASSERT_EQ(6U, up.size());
-		EXPECT_EQ(nullptr, up.back());
+		EXPECT_EQ(nullptr, up.back().get());
 		EXPECT_EQ(val, *end(up)[-2]);
 	}
-	EXPECT_EQ(MoveOnly::nConstruct, MoveOnly::nDestruct);
+	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
 template<typename ArrayInt, typename Exception>
@@ -421,18 +413,10 @@ void testResize()
 	d.resize(S1);
 	ASSERT_EQ(S1, d.size());
 
-	int nExcept = 0;
-	try
-	{
-		d.resize((size_t)-8, oel::default_init);
-	}
-	catch (Exception &)
-	{
-		++nExcept;
-	}
-	EXPECT_EQ(1, nExcept);
-
+OEL_WHEN_EXCEPTIONS_ON(
+	EXPECT_THROW(d.resize(d.max_size(), oel::default_init), std::bad_alloc);
 	EXPECT_EQ(S1, d.size());
+)
 	for (const auto & e : d)
 	{
 		EXPECT_EQ(0, e);
@@ -452,12 +436,12 @@ void internalTestErase()
 	ret = d.erase(ret);
 	EXPECT_EQ(begin(d) + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
-	EXPECT_DOUBLE_EQ(s, d.back());
+	EXPECT_EQ(5, static_cast<int>(d.back()));
 
 	ret = d.erase(end(d) - 1);
 	EXPECT_EQ(end(d), ret);
 	ASSERT_EQ(s - 3, d.size());
-	EXPECT_DOUBLE_EQ(1, d.front());
+	EXPECT_EQ(1, static_cast<int>(d.front()));
 }
 
 template<typename ArrayInt, typename ArrayNontrivialReloc>
@@ -467,7 +451,7 @@ void testEraseSingle()
 
 	NontrivialReloc::ClearCount();
 	internalTestErase<ArrayNontrivialReloc>();
-	EXPECT_EQ(NontrivialReloc::nConstruct, NontrivialReloc::nDestruct);
+	EXPECT_EQ(NontrivialReloc::nConstructions, NontrivialReloc::nDestruct);
 }
 
 template<typename ArrayUnsigned>
@@ -494,14 +478,3 @@ void testEraseToEnd()
 	li.erase_to_end(std::remove(begin(li), end(li), 1));
 	EXPECT_EQ(4U, li.size());
 }
-
-template<typename ArrayInt, typename ArrayReferenceWrapperArrayConstOfInt>
-void testWithRefWrapper()
-{
-	ArrayInt arr[]{ ArrayInt(/*size*/ 2, 1), {1, 1}, {1, 3} };
-	ArrayReferenceWrapperArrayConstOfInt refs{arr[0], arr[1]};
-	refs.push_back(arr[2]);
-	EXPECT_EQ(3, refs.at(2).get().at(1));
-}
-
-/// @endcond

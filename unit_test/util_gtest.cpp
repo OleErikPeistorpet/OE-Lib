@@ -1,103 +1,91 @@
-#include "util.h"
 #include "dynarray.h"
-#include "range_algo.h"
-#include "range_view.h"
+#include "test_classes.h"
 
 #include "gtest/gtest.h"
 #include <list>
 #include <set>
-#include <forward_list>
-#include <functional>
+#include <array>
 
-/// @cond INTERNAL
 
-// The fixture for testing utilities
-class utilTest : public ::testing::Test
+namespace
 {
-protected:
-	utilTest()
-	{
-		// You can do set-up work for each test here.
-	}
+	static_assert(oel::is_trivially_relocatable< std::tuple<std::unique_ptr<double>> >::value, "?");
 
-	// Objects declared here can be used by all tests.
+	struct NonTrivialAssign
+	{
+		void operator =(const NonTrivialAssign &) { ; }
+	};
+	struct NonTrivialDestruct
+	{
+		~NonTrivialDestruct() { ; }
+	};
+	static_assert( !oel::is_trivially_copyable<NonTrivialAssign>::value, "?" );
+	static_assert( !oel::is_trivially_copyable<NonTrivialDestruct>::value, "?" );
+
+	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >::value, "?");
+	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
+	static_assert( !oel::is_trivially_copyable< std::tuple<int, NonTrivialDestruct, int> >::value, "?" );
+
+	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
+	static_assert(alignof(oel::aligned_storage_t<64, 64>) == 64, "?");
+
+	struct alignas(32) Foo { char a[20]; };
+	static_assert(alignof(oel::aligned_union_t<Foo>) == 32, "?");
+
+	static_assert(!oel::can_memmove_with< int *, float * >::value, "?");
+	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >::value, "?");
+	static_assert(!oel::can_memmove_with< int *, std::move_iterator<std::list<int>::iterator> >::value, "?");
+	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<int *> >::value, "?");
+}
+
+template<typename SizeT>
+struct DummyRange
+{
+	using difference_type = typename std::make_signed<SizeT>::type;
+
+	SizeT n;
+
+	SizeT size() const { return n; }
 };
 
-TEST_F(utilTest, indexValid)
+TEST(utilTest, indexValid)
 {
 	using namespace oel;
 
-	std::list<std::string> li{"aa", "bb"};
+	DummyRange<unsigned> r1{1};
 
-	EXPECT_TRUE( index_valid(li, std::int64_t(1)) );
-	EXPECT_FALSE(index_valid(li, 2));
-	EXPECT_FALSE( index_valid(li, std::uint64_t(-1)) );
+	EXPECT_TRUE(index_valid(r1, (std::ptrdiff_t) 0));
+	EXPECT_FALSE(index_valid(r1, (size_t) 1));
+	EXPECT_FALSE(index_valid(r1, -1));
+	EXPECT_FALSE(index_valid(r1, (size_t) -1));
+	{
+		auto const size = std::numeric_limits<unsigned>::max();
+		DummyRange<unsigned> r2{size};
 
-	//long l = 1L;
-	//EXPECT_TRUE(index_valid(li, l));
+		EXPECT_FALSE(index_valid(r2, -2));
+		EXPECT_FALSE(index_valid(r2, (long long) -2));
+		EXPECT_FALSE(index_valid(r2, (unsigned) -1));
+		EXPECT_TRUE(index_valid(r2, size - 1));
+		EXPECT_TRUE(index_valid(r2, 0));
+	}
+	{
+		auto const size = as_unsigned(std::numeric_limits<long long>::max());
+		DummyRange<unsigned long long> r2{size};
+
+		EXPECT_FALSE(index_valid(r2, (unsigned long long) -2));
+		EXPECT_FALSE(index_valid(r2, (long long) -2));
+		EXPECT_TRUE(index_valid(r2, size - 1));
+	}
 }
-
-TEST_F(utilTest, countedView)
-{
-	using namespace oel;
-
-	static_assert(std::is_nothrow_move_constructible<counted_view<int *>>::value, "?");
-
-	dynarray<int> i{1, 2};
-	counted_view<dynarray<int>::const_iterator> test = i;
-	EXPECT_EQ(i.size(), test.size());
-	EXPECT_TRUE(test.data() == i.data());
-	EXPECT_EQ(1, test[0]);
-	EXPECT_EQ(2, test[1]);
-	test.drop_front();
-	EXPECT_EQ(1U, test.size());
-	EXPECT_EQ(2, test.end()[-1]);
-}
-
-#ifndef OEL_NO_BOOST
-TEST_F(utilTest, viewTransform)
-{
-	using namespace oel;
-
-	int src[] { 1, 2, 3 };
-
-	struct Fun
-	{	int operator()(int i) const
-		{
-			return i * i;
-		}
-	};
-	dynarray<int> test( view::transform(src, Fun{}) );
-	EXPECT_EQ(3U, test.size());
-	EXPECT_EQ(1, test[0]);
-	EXPECT_EQ(4, test[1]);
-	EXPECT_EQ(9, test[2]);
-
-	auto v = make_view_n(src, 2);
-	test.append(view::transform( v, std::function<int(int &)>([](int & i) { return i++; }) ));
-	EXPECT_EQ(5U, test.size());
-	EXPECT_EQ(1, test[3]);
-	EXPECT_EQ(2, test[4]);
-	EXPECT_EQ(2, src[0]);
-	EXPECT_EQ(3, src[1]);
-
-	auto r = make_iterator_range(begin(src) + 1, end(src));
-	auto f = [](int i) { return i; };
-	test.assign( view::transform(r, std::ref(f)) );
-	EXPECT_EQ(2U, test.size());
-	EXPECT_EQ(src[1], test[0]);
-	EXPECT_EQ(src[2], test[1]);
-}
-#endif
 
 struct OneSizeT
 {
 	size_t val;
 };
 
-TEST_F(utilTest, makeUnique)
+TEST(utilTest, makeUnique)
 {
-	auto ps = oel::make_unique_default<std::string[]>(2);
+	auto ps = oel::make_unique_default_init<std::string[]>(2);
 	EXPECT_TRUE(ps[0].empty());
 	EXPECT_TRUE(ps[1].empty());
 
@@ -115,27 +103,24 @@ TEST_F(utilTest, makeUnique)
 	EXPECT_EQ(6, p2->back());
 }
 
-struct BlahBy
+struct RangeWithLargerDiffT
 {
 	using difference_type = long;
 
 	unsigned short size() const  { return 2; }
 };
 
-TEST_F(utilTest, ssize)
+TEST(utilTest, ssize)
 {
-	BlahBy bb;
-	auto const test = oel::ssize(bb);
+	RangeWithLargerDiffT r;
+	auto const test = oel::ssize(r);
 
 	static_assert(std::is_same<decltype(test), long const>::value, "?");
-
-	auto v = std::is_same<short, decltype( oel::as_signed(bb.size()) )>::value;
-	EXPECT_TRUE(v);
 
 	ASSERT_EQ(2, test);
 }
 
-TEST_F(utilTest, derefArgs)
+TEST(utilTest, derefArgs)
 {
 	using namespace oel;
 	dynarray< std::unique_ptr<double> > d;
@@ -145,7 +130,12 @@ TEST_F(utilTest, derefArgs)
 	d.push_back(make_unique<double>(2.0));
 	d.push_back(make_unique<double>(2.0));
 	{
-		std::set< double *, deref_args<std::less<double>> > s;
+	#if __cplusplus < 201402L and _MSC_VER < 1900
+		using Less = std::less<double>;
+	#else
+		using Less = std::less<>;
+	#endif
+		std::set< double *, deref_args<Less> > s;
 		for (const auto & p : d)
 			s.insert(p.get());
 
@@ -158,8 +148,51 @@ TEST_F(utilTest, derefArgs)
 		for (double * v : s)
 			EXPECT_DOUBLE_EQ(++cmp, *v);
 	}
-	auto last = std::unique(d.begin(), d.end(), deref_args<std::equal_to<double>>{});
+	auto last = std::unique(d.begin(), d.end(), deref_args<std::equal_to<double>>());
 	EXPECT_EQ(3, last - d.begin());
 }
 
-/// @endcond
+template<typename T>
+struct PointerLike
+{
+	using difference_type = ptrdiff_t;
+	using element_type = T;
+
+	T * p;
+
+	T * operator->() const { return p; }
+	T & operator *() const { return *p; }
+};
+static_assert(oel::is_trivially_default_constructible< PointerLike<bool> >::value, "?");
+static_assert(oel::is_trivially_copyable< PointerLike<bool> >::value, "?");
+
+TEST(utilTest, toPointerContiguous)
+{
+	using namespace oel;
+	{
+		std::basic_string<wchar_t> s;
+		using P  = decltype( to_pointer_contiguous(s.begin()) );
+		using CP = decltype( to_pointer_contiguous(s.cbegin()) );
+		static_assert(std::is_same<P, wchar_t *>::value, "?");
+		static_assert(std::is_same<CP, const wchar_t *>::value, "?");
+
+	#if _HAS_CXX17
+		std::string_view v;
+		using Q = decltype( to_pointer_contiguous(v.begin()) );
+		static_assert(std::is_same<Q, const char *>::value, "?");
+	#endif
+	}
+	std::array<int, 3> a;
+
+	using P  = decltype(to_pointer_contiguous( std::make_move_iterator(a.begin()) ));
+	using CP = decltype( to_pointer_contiguous(a.cbegin()) );
+	static_assert(std::is_same<P, int *>::value, "?");
+	static_assert(std::is_same<CP, const int *>::value, "?");
+
+	auto addr = &a[0];
+	using Iter = dynarray_iterator<PointerLike<int>, dynarray<int>>;
+	Iter it{{addr}, nullptr, 0};
+	static_assert(std::is_same<PointerLike<int>, Iter::pointer>::value, "?");
+	auto result = to_pointer_contiguous(it);
+	EXPECT_EQ(addr, result);
+}

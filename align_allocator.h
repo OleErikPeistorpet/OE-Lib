@@ -6,54 +6,37 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "core_util.h"
+#include "util.h"
 
-#ifndef OEL_NO_BOOST
-	#include <boost/align/aligned_alloc.hpp>
+#if !defined(OEL_NO_BOOST) and __cpp_aligned_new < 201606
+#include <boost/align/aligned_alloc.hpp>
 #endif
-#include <cstddef>  // for max_align_t
+#include <cstddef> // for max_align_t
+#include <limits>
 
+
+/** @file
+*/
 
 namespace oel
 {
 
-/// Same as std::aligned_storage<Size, Align>::type, with support for alignment above that of std::max_align_t (up to 128)
-template<size_t Size, size_t Align>
-struct aligned_storage_t;
-/// Currently only one type, meant to support multiple
-template<typename T>
-using aligned_union_t = aligned_storage_t<sizeof(T), OEL_ALIGNOF(T)>;
-
-
-
-/// An automatic alignment allocator. Does not compile if the alignment of T is not supported.
+//! An automatic alignment allocator. If the alignment of T is not supported, allocate does not compile.
 template<typename T>
 struct allocator
 {
 	using value_type = T;
+
 	using propagate_on_container_move_assignment = std::true_type;
 
-	T * allocate(size_t nObjects);
-	void deallocate(T * ptr, size_t);
+	T *  allocate(size_t nElems);
+	void deallocate(T * ptr, size_t) noexcept;
 
-	/// U constructible from Args, direct-initialization
-	template<typename U, typename... Args,
-	         enable_if< std::is_constructible<U, Args...>::value > = 0>
-	void construct(U * raw, Args &&... args)
-	{
-		::new(static_cast<void *>(raw)) U(std::forward<Args>(args)...);
-	}
-	/// U not constructible from Args, list-initialization
-	template<typename U, typename... Args,
-	         enable_if< !std::is_constructible<U, Args...>::value > = 0>
-	void construct(U * raw, Args &&... args)
-	{
-		::new(static_cast<void *>(raw)) U{std::forward<Args>(args)...};
-	}
+	static constexpr size_t max_size()  { return std::numeric_limits<size_t>::max() / sizeof(T); }
 
 	allocator() = default;
-	template<typename U>
-	allocator(const allocator<U> &) noexcept {}
+	template<typename U>  OEL_ALWAYS_INLINE
+	constexpr allocator(const allocator<U> &) noexcept {}
 
 	template<typename U>
 	friend bool operator==(allocator<T>, allocator<U>) noexcept { return true; }
@@ -62,61 +45,46 @@ struct allocator
 };
 
 
-namespace _detail
-{
-	template<typename T>
-	typename T::is_always_equal IsAlwaysEqual(int);
-	template<typename T>
-	std::is_empty<T>            IsAlwaysEqual(long);
-}
 
-/// Part of std::allocator_traits for C++17
-template<typename Alloc>
-using is_always_equal_allocator  = decltype( _detail::IsAlwaysEqual<Alloc>(int{}) );
+//! Similar to std::aligned_storage_t, but supports any alignment the compiler can provide
+template<size_t Size, size_t Align>
+struct
+#ifdef __GNUC__
+	__attribute__(( aligned(Align), may_alias ))
+#else
+	alignas(Align)
+#endif
+	aligned_storage_t
+{
+	unsigned char as_bytes[Size];
+};
+//! A trivial type of same size and alignment as type T, suitable for use as uninitialized storage for an object
+template<typename T>
+using aligned_union_t = aligned_storage_t<sizeof(T), alignof(T)>;
 
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// The rest of the file is not for users (implementation)
-
-
-/// @cond INTERNAL
-
-#if _MSC_VER
-	#define OEL_ALIGNAS(amount, alignee) __declspec(align(amount)) alignee
-#else
-	#define OEL_ALIGNAS(amount, alignee) alignee __attribute__(( aligned(amount) ))
-#endif
-
-#define OEL_STORAGE_ALIGNED_TO(alignment)  \
-	template<size_t Size>  \
-	struct aligned_storage_t<Size, alignment>  \
-	{  \
-		OEL_ALIGNAS(alignment, unsigned char data[Size]);  \
-	}
-
-OEL_STORAGE_ALIGNED_TO(1);
-OEL_STORAGE_ALIGNED_TO(2);
-OEL_STORAGE_ALIGNED_TO(4);
-OEL_STORAGE_ALIGNED_TO(8);
-OEL_STORAGE_ALIGNED_TO(16);
-OEL_STORAGE_ALIGNED_TO(32);
-OEL_STORAGE_ALIGNED_TO(64);
-OEL_STORAGE_ALIGNED_TO(128);
-
-#undef OEL_STORAGE_ALIGNED_TO
+// Implementation only in rest of the file
 
 
 namespace _detail
 {
 	template<size_t Align>
 	using CanDefaultAlloc = bool_constant<
-		#if _WIN64 || defined(__x86_64__)  // 16 byte alignment on 64-bit Windows/Linux
-			Align <= 16 >;
+		#if defined __STDCPP_DEFAULT_NEW_ALIGNMENT__
+			Align <= __STDCPP_DEFAULT_NEW_ALIGNMENT__
+		#elif _WIN64 or defined __x86_64__  // 16 byte alignment on 64-bit Windows/Linux
+			Align <= 16
 		#else
-			Align <= OEL_ALIGNOF(std::max_align_t) >;
+			Align <= alignof(
+				#if OEL_GCC_VERSION != 408
+					std
+				#endif
+					::max_align_t)
 		#endif
+		>;
 
 	template<size_t> inline
 	void * OpNew(size_t nBytes, true_type)
@@ -124,12 +92,25 @@ namespace _detail
 		return ::operator new(nBytes);
 	}
 
-	inline void OpDelete(void * ptr, true_type)
+	template<size_t> inline
+	void OpDelete(void * ptr, true_type) noexcept
 	{
 		::operator delete(ptr);
 	}
 
-#ifndef OEL_NO_BOOST
+#if __cpp_aligned_new >= 201606
+	template<size_t Align> inline
+	void * OpNew(size_t nBytes, false_type)
+	{
+		return ::operator new(nBytes, std::align_val_t{Align});
+	}
+
+	template<size_t Align> inline
+	void OpDelete(void * ptr, false_type) noexcept
+	{
+		::operator delete(ptr, std::align_val_t{Align});
+	}
+#elif !defined(OEL_NO_BOOST)
 	template<size_t Align>
 	void * OpNew(size_t const nBytes, false_type)
 	{
@@ -141,14 +122,14 @@ namespace _detail
 				if (p)
 					return p;
 
-			#if !__GLIBCXX__ || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9) || __GNUC__ > 4
+			#if !defined(__GLIBCXX__) or OEL_GCC_VERSION >= 409
 				auto handler = std::get_new_handler();
 			#else
 				auto handler = std::set_new_handler(nullptr);
 				std::set_new_handler(handler);
 			#endif
 				if (!handler)
-					OEL_THROW(std::bad_alloc{});
+					OEL_THROW(std::bad_alloc{}, "Failed allocator::allocate");
 
 				(*handler)();
 			}
@@ -158,30 +139,36 @@ namespace _detail
 		}
 	}
 
-	inline void OpDelete(void * ptr, false_type)
+	template<size_t> inline
+	void OpDelete(void * ptr, false_type) noexcept
 	{
 		boost::alignment::aligned_free(ptr);
 	}
+#else
+	template<size_t Align>
+	void * OpNew(size_t, false_type)
+	{
+		static_assert(Align == 0,
+			"The requested alignment requires Boost or a compiler supporting over-aligned dynamic allocation (C++17)");
+		return {};
+	}
+
+	template<size_t> void OpDelete(void *, false_type);
 #endif
 }
-/// @endcond
 
 template<typename T>
-inline T * allocator<T>::allocate(size_t nObjects)
+inline T * allocator<T>::allocate(size_t nElems)
 {
-	using CanDefaultAlloc = _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>;
-#ifdef OEL_NO_BOOST
-	static_assert(CanDefaultAlloc::value,
-		"The value of Align is not supported by operator new. Boost v1.56 required (and OEL_NO_BOOST not defined).");
-#endif
-	void * p = _detail::OpNew<OEL_ALIGNOF(T)>(sizeof(T) * nObjects, CanDefaultAlloc{});
+	void * p = _detail::OpNew<alignof(T)>
+		(sizeof(T) * nElems, _detail::CanDefaultAlloc<alignof(T)>());
 	return static_cast<T *>(p);
 }
 
 template<typename T>
-inline void allocator<T>::deallocate(T * ptr, size_t)
+OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 {
-	_detail::OpDelete(ptr, _detail::CanDefaultAlloc<OEL_ALIGNOF(T)>());
+	_detail::OpDelete<alignof(T)>(ptr, _detail::CanDefaultAlloc<alignof(T)>());
 }
 
 } // namespace oel

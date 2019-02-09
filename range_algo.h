@@ -6,10 +6,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "auxi/algo_detail.h"
 #include "range_view.h"
 
 #include <algorithm>
-#include <string.h>
+#include <functional> // for equal_to
 
 
 /** @file
@@ -21,12 +22,12 @@
 namespace oel
 {
 
-/** @brief Erase the element at index from container without maintaining order of elements.
+/** @brief Erase the element at index from container without maintaining order of elements after index.
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template<typename RandomAccessContainer> inline
-void erase_unordered(RandomAccessContainer & c, typename RandomAccessContainer::size_type index)
+template<typename RandomAccessContainer>
+void erase_unstable(RandomAccessContainer & c, typename RandomAccessContainer::size_type index)
 {
 	c[index] = std::move(c.back());
 	c.pop_back();
@@ -37,27 +38,28 @@ void erase_unordered(RandomAccessContainer & c, typename RandomAccessContainer::
 *
 * This function mimics feature from paper N4009 (C++17). Wraps std::remove_if  */
 template<typename Container, typename UnaryPredicate>
-void erase_if(Container & c, UnaryPredicate pred);
+void erase_if(Container & c, UnaryPredicate p);
 /**
 * @brief Erase consecutive duplicate elements in container. Wraps std::unique
 *
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
-template<typename Container>
-void erase_successive_dup(Container & c);
+template< typename Container, typename BinaryPredicate = std::equal_to<typename Container::value_type> >
+void erase_successive_dup(Container & c, BinaryPredicate isDuplicate = BinaryPredicate{});
 
 
 
 template<typename IteratorSource>
 struct copy_unsafe_return
 {
-	IteratorSource src_last;
+	IteratorSource source_last;
 };
 /**
 * @brief Copies the elements in source into the range beginning at dest
-* @return begin(source) incremented by source size
+* @return `begin(source)` incremented by source size
+* @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* If the ranges overlap, behavior is undefined (uses memcpy when possible).
-* To move instead of copy, pass view::move(source). To mimic std::copy_n, use view::counted  */
+* Requires that source has size() member or is an array, and that dest is a Random Access Iterator.
+* To move instead of copy, pass `view::move(source)`. To mimic std::copy_n, use view::counted  */
 template<typename SizedInputRange, typename RandomAccessIter>
 auto copy_unsafe(const SizedInputRange & source, RandomAccessIter dest)
  -> copy_unsafe_return<decltype(begin(source))>;
@@ -65,15 +67,16 @@ auto copy_unsafe(const SizedInputRange & source, RandomAccessIter dest)
 template<typename IteratorSource, typename IteratorDest>
 struct last_iterators
 {
-	IteratorSource src_last;
+	IteratorSource source_last;
 	IteratorDest   dest_last;
 };
 /**
 * @brief Copies the elements in source range into dest range, throws std::out_of_range if dest is smaller than source
-* @return struct containing begin(source) and begin(dest), both incremented by number of elements in source
+* @return struct containing `begin(source)` and `begin(dest)`, both incremented by the number of elements in source
+* @pre The ranges shall not overlap, except if `begin(source)` equals `begin(dest)` (then elements are self assigned)
 *
-* The ranges shall not overlap, except if begin(source) equals begin(dest) (self assign).
-* To move instead of copy, pass view::move(source)  */
+* Requires that dest is a Random Access Range (Boost concept) to compile.
+* To move instead of copy, wrap source with view::move or view::move_n  */
 template<typename InputRange, typename RandomAccessRange>
 auto copy(const InputRange & source, RandomAccessRange & dest)
  -> last_iterators<decltype(begin(source)), decltype(begin(dest))>;
@@ -86,18 +89,28 @@ template<typename InputRange, typename RandomAccessRange>
 bool copy_fit(const InputRange & source, RandomAccessRange & dest);
 
 
-///@{
-/// For generic code that may use either dynarray or std library container
+
+/** @name GenericContainerInsert
+* @brief For generic code that may use either dynarray or std library container (overloaded in dynarray.h)  */
+//!@{
 template<typename Container, typename InputRange> inline
 void assign(Container & dest, const InputRange & source)  { dest.assign(begin(source), end(source)); }
 
 template<typename Container, typename InputRange> inline
 void append(Container & dest, const InputRange & source)  { dest.insert(dest.end(), begin(source), end(source)); }
 
+template<typename Container, typename T> inline
+void append(Container & dest, typename Container::size_type count, const T & val)
+{
+	dest.resize(dest.size() + count, val);
+}
+
 template<typename Container, typename InputRange> inline
 typename Container::iterator insert(Container & dest, typename Container::const_iterator pos, const InputRange & source)
-													{ return dest.insert(pos, begin(source), end(source)); }
-///@}
+{
+	return dest.insert(pos, begin(source), end(source));
+}
+//!@}
 
 
 
@@ -106,14 +119,20 @@ typename Container::iterator insert(Container & dest, typename Container::const_
 // Implementation only in rest of the file
 
 
-/// @cond INTERNAL
 namespace _detail
 {
 	template<typename Container> inline
-	void EraseEnd(Container & c, typename Container::iterator first) { c.erase(first, c.end()); }
+	auto EraseEnd(Container & c, typename Container::iterator f)
+	 -> decltype(c.erase_to_end(f))
+	    { return c.erase_to_end(f); }
+
+	template<typename Container, typename... None> inline
+	void EraseEnd(Container & c, typename Container::iterator f, None...) { c.erase(f, c.end()); }
+
 
 	template<typename Container, typename UnaryPred> inline
-	auto RemoveIf(Container & c, UnaryPred p, int) -> decltype(c.remove_if(p)) { return c.remove_if(p); }
+	auto RemoveIf(Container & c, UnaryPred p, int)  // pass dummy int to prefer this overload
+	 -> decltype(c.remove_if(p)) { return c.remove_if(p); }
 
 	template<typename Container, typename UnaryPred>
 	void RemoveIf(Container & c, UnaryPred p, long)
@@ -121,35 +140,36 @@ namespace _detail
 		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p) );
 	}
 
-	template<typename Container> inline // pass dummy int to prefer this overload
-	auto Unique(Container & c, int) -> decltype(c.unique()) { return c.unique(); }
+	template<typename Container, typename BinaryPred> inline
+	auto Unique(Container & c, BinaryPred p, int)
+	 -> decltype(c.unique(p)) { return c.unique(p); }
 
-	template<typename Container>
-	void Unique(Container & c, long)
+	template<typename Container, typename BinaryPred>
+	void Unique(Container & c, BinaryPred p, long)
 	{
-		_detail::EraseEnd( c, std::unique(begin(c), end(c)) );
+		_detail::EraseEnd( c, std::unique(begin(c), end(c), p) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename CntigusIter, typename IntT, typename CntigusIter2> inline
-	CntigusIter CopyUnsf(CntigusIter const src, IntT const n, CntigusIter2 const dest, true_type)
+	template<typename ContiguousIter, typename Integral, typename CntigusIter2>
+	ContiguousIter CopyUnsf(ContiguousIter const src, Integral const n, CntigusIter2 const dest, true_type)
 	{	// can use memcpy
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != n)
-		{	// Dereference iterators at bounds, this detects out of range errors if they are checked iterators
-			(void) *src; (void) *dest;
+		{	// Dereference to detect out of range errors if the iterator has internal check
+			(void) *dest;
 			(void) *(dest + (n - 1));
 		}
 	#endif
-		::memcpy(to_pointer_contiguous(dest), to_pointer_contiguous(src), sizeof(*src) * n);
+		_detail::MemcpyCheck(src, n, to_pointer_contiguous(dest));
 		return src + n;
 	}
 
-	template<typename InputIter, typename IntT, typename RanAccessIter>
-	InputIter CopyUnsf(InputIter src, IntT const n, RanAccessIter const dest, false_type)
+	template<typename InputIter, typename Integral, typename RanAccessIter>
+	InputIter CopyUnsf(InputIter src, Integral const n, RanAccessIter const dest, false_type)
 	{
-		for (IntT i = 0; i < n; ++i)
+		for (Integral i = 0; i < n; ++i)
 		{
 			dest[i] = *src;
 			++src;
@@ -158,15 +178,7 @@ namespace _detail
 	}
 
 
-#if _MSC_VER
-	__declspec(noreturn) inline
-#else
-	__attribute__((noreturn)) static
-#endif
-	void ThrowFromCopy()
-	{
-		OEL_THROW(std::out_of_range("Too small dest for oel::copy"));
-	}
+	const char *const errorCopyMsg = "Too small dest oel::copy";
 
 	template<typename Ret, typename InputRange, typename OutputRange, typename FuncItersParam, typename FuncNoParam>
 	Ret CopyImpl(const InputRange & from, OutputRange & to, FuncItersParam succeed, FuncNoParam fail)
@@ -187,25 +199,28 @@ namespace _detail
 		return succeed(src, dest);
 	}
 
-	template<typename Ret, typename IterSrc, typename IterDest, typename InputRange, typename OutputRange>
+	template<typename Ret, typename IterSrc, typename IterDest, typename InputRange, typename OutputRange> inline
 	Ret Copy(const InputRange & src, OutputRange & dest, long)
 	{
 		return _detail::CopyImpl<Ret>
 			(	src, dest,
-				[](IterSrc s, IterDest d) { return Ret{s, d}; },
-				[]() -> Ret { ThrowFromCopy(); }
+				[](IterSrc si, IterDest di) { return Ret{si, di}; },
+				[]() -> Ret { Throw::OutOfRange(errorCopyMsg); }
 			);
 	}
 
 	template<typename Ret, typename, typename, typename SizedRange, typename RanAccessRange>
-	auto Copy(const SizedRange & src, RanAccessRange & dest, int)
-	 -> decltype( oel::ssize(src), Ret() )
+	Ret Copy(const SizedRange & src, RanAccessRange & dest, decltype( oel::ssize(src), int() ))
 	{
 		auto const n = oel::ssize(src);
 		if (n <= oel::ssize(dest))
-			return{ oel::copy_unsafe(src, begin(dest)).src_last, begin(dest) + n };
+		{
+			auto sLast = oel::copy_unsafe(src, begin(dest)).source_last;
+			return {sLast, begin(dest) + n};
+		}
 		else
-			ThrowFromCopy();
+		{	Throw::OutOfRange(errorCopyMsg);
+		}
 	}
 
 	template<typename InputRange, typename OutputRange> inline
@@ -221,8 +236,7 @@ namespace _detail
 	}
 
 	template<typename SizedRange, typename RanAccessRange>
-	auto CopyFit(const SizedRange & src, RanAccessRange & dest, int)
-	 -> decltype( oel::ssize(src), bool() )
+	bool CopyFit(const SizedRange & src, RanAccessRange & dest, decltype( oel::ssize(src), int() ))
 	{
 		auto const destSize = oel::ssize(dest);
 		auto n = oel::ssize(src);
@@ -230,26 +244,25 @@ namespace _detail
 		if (!success)
 			n = destSize;
 
-		oel::copy_unsafe(oel::make_view_n(begin(src), n), begin(dest));
+		oel::copy_unsafe(view::counted(begin(src), n), begin(dest));
 		return success;
 	}
 }
-/// @endcond
 
 } // namespace oel
 
 template<typename SizedInputRange, typename RandomAccessIter>
 inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
- -> copy_unsafe_return<decltype(begin(src))>
+ ->	copy_unsafe_return<decltype(begin(src))>
 {
 	using InIter = decltype(begin(src));
 	return{ _detail::CopyUnsf(begin(src), oel::ssize(src), dest,
-							  can_memmove_with<RandomAccessIter, InIter>()) };
+	                          can_memmove_with<RandomAccessIter, InIter>()) };
 }
 
 template<typename InputRange, typename RandomAccessRange>
 inline auto oel::copy(const InputRange & src, RandomAccessRange & dest)
- -> last_iterators<decltype(begin(src)), decltype(begin(dest))>
+ ->	last_iterators<decltype(begin(src)), decltype(begin(dest))>
 {
 	using IterSrc  = decltype(begin(src));
 	using IterDest = decltype(begin(dest));
@@ -269,8 +282,8 @@ inline void oel::erase_if(Container & c, UnaryPredicate p)
 	_detail::RemoveIf(c, p, int{});
 }
 
-template<typename Container>
-inline void oel::erase_successive_dup(Container & c)
+template<typename Container, typename BinaryPredicate>
+inline void oel::erase_successive_dup(Container & c, BinaryPredicate p)
 {
-	_detail::Unique(c, int{});
+	_detail::Unique(c, p, int{});
 }

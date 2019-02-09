@@ -1,5 +1,3 @@
-/// @cond INTERNAL
-
 #include "user_traits.h"
 
 struct Outer
@@ -16,6 +14,8 @@ oel::is_trivially_relocatable<Outer::Inner> specify_trivial_relocate(Outer &&);
 
 static_assert( !oel::is_trivially_relocatable<Outer>::value, "?" );
 
+void Outer::Foo(oel::dynarray<Inner> & d) { d.max_size(); }
+
 
 class ForwDeclared;
 
@@ -28,6 +28,6 @@ class ContainSelf
 
 class ForwDeclared { char a; };
 
+namespace {
 ContainSelf instance{};
-
-/// @endcond
+}

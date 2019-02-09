@@ -6,36 +6,25 @@
 #include <forward_list>
 #include <deque>
 #include <array>
-#include <functional>
+#include <valarray>
 
-/// @cond INTERNAL
+namespace view = oel::view;
 
-class rangeTest : public ::testing::Test
+TEST(rangeTest, eraseUnstable)
 {
-protected:
-	rangeTest()
-	{
-		// You can do set-up work for each test here.
-	}
-
-	// Objects declared here can be used by all tests.
-};
-
-TEST_F(rangeTest, eraseUnordered)
-{
-	using oel::erase_unordered;
+	using oel::erase_unstable;
 
 	std::deque<std::string> d{"aa", "bb", "cc"};
 
-	erase_unordered(d, 1);
+	erase_unstable(d, 1);
 	EXPECT_EQ(2U, d.size());
 	EXPECT_EQ("cc", d.back());
-	erase_unordered(d, 1);
+	erase_unstable(d, 1);
 	EXPECT_EQ(1U, d.size());
 	EXPECT_EQ("aa", d.front());
 }
 
-TEST_F(rangeTest, eraseIf)
+TEST(rangeTest, eraseIf)
 {
 	using namespace oel;
 
@@ -52,7 +41,7 @@ TEST_F(rangeTest, eraseIf)
 	EXPECT_TRUE(std::equal(begin(li), end(li), begin(test1)));
 }
 
-TEST_F(rangeTest, eraseSuccessiveDup)
+TEST(rangeTest, eraseSuccessiveDup)
 {
 	using namespace oel;
 
@@ -67,7 +56,7 @@ TEST_F(rangeTest, eraseSuccessiveDup)
 	EXPECT_FALSE(uniqueTest != expect);
 }
 
-TEST_F(rangeTest, countedView)
+TEST(rangeTest, countedView)
 {
 	using namespace oel;
 
@@ -84,11 +73,9 @@ TEST_F(rangeTest, countedView)
 	EXPECT_EQ(2, test.end()[-1]);
 }
 
-#ifndef OEL_NO_BOOST
-TEST_F(rangeTest, viewTransform)
+#if !defined OEL_NO_BOOST
+TEST(rangeTest, viewTransform)
 {
-	using namespace oel;
-
 	int src[] { 1, 2, 3 };
 
 	struct Fun
@@ -97,21 +84,21 @@ TEST_F(rangeTest, viewTransform)
 			return i * i;
 		}
 	};
-	dynarray<int> test( view::transform(src, Fun{}) );
+	oel::dynarray<int> test( view::transform(src, Fun{}) );
 	EXPECT_EQ(3U, test.size());
 	EXPECT_EQ(1, test[0]);
 	EXPECT_EQ(4, test[1]);
 	EXPECT_EQ(9, test[2]);
-
-	auto v = make_view_n(src, 2);
-	test.append(view::transform( v, std::function<int(int &)>([](int & i) { return i++; }) ));
+	{
+	auto f = std::function<int(int &)>( [](int & i) { return i++; } );
+	test.append(view::transform_n(src, 2, f));
 	EXPECT_EQ(5U, test.size());
 	EXPECT_EQ(1, test[3]);
 	EXPECT_EQ(2, test[4]);
 	EXPECT_EQ(2, src[0]);
 	EXPECT_EQ(3, src[1]);
-
-	auto r = make_iterator_range(begin(src) + 1, end(src));
+	}
+	auto r = oel::make_iterator_range(std::begin(src) + 1, std::end(src));
 	auto f = [](int i) { return i; };
 	test.assign( view::transform(r, std::ref(f)) );
 	EXPECT_EQ(2U, test.size());
@@ -120,28 +107,40 @@ TEST_F(rangeTest, viewTransform)
 }
 #endif
 
-TEST_F(rangeTest, copy)
+TEST(rangeTest, copyUnsafe)
+{
+	std::valarray<int> src(2);
+	src[0] = 1;
+	src[1] = 2;
+	std::valarray<int> dest(2);
+	oel::copy_unsafe(src, begin(dest));
+	EXPECT_EQ(1, dest[0]);
+	EXPECT_EQ(2, dest[1]);
+}
+
+TEST(rangeTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
 	test2[4] = -7;
-	auto fitInto = oel::make_view_n(std::begin(test2), 4);
+	auto fitInto = view::counted(std::begin(test2), 4);
 
+OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
-
+)
 	auto success = oel::copy_fit(test, fitInto);
 	EXPECT_TRUE(std::equal(begin(test), begin(test) + 4, test2));
 	EXPECT_EQ(-7, test2[4]);
 	EXPECT_FALSE(success);
 
-	EXPECT_EQ(4, test[4]);
+	ASSERT_EQ(4, test[4]);
 	auto l = oel::copy(test2, test).dest_last;
 	EXPECT_EQ(-7, test[4]);
 	EXPECT_TRUE(end(test) == l);
 	{
 		std::forward_list<std::string> li{"aa", "bb"};
 		std::array<std::string, 2> strDest;
-		auto sLast = oel::copy(oel::view::move_iter_rng(li), strDest).src_last;
+		auto sLast = oel::copy(view::move(li), strDest).source_last;
 		EXPECT_EQ("aa", strDest[0]);
 		EXPECT_EQ("bb", strDest[1]);
 		EXPECT_TRUE(li.begin()->empty());
@@ -163,13 +162,14 @@ void testAppend()
 
 	oel::append(c, std::initializer_list<int>{1, 2});
 	EXPECT_EQ(2U, c.size());
-	EXPECT_EQ(2, c[1]);
+	oel::append(c, 3, -1);
+	EXPECT_EQ(5U, c.size());
+	EXPECT_EQ( 2, *std::next(c.begin()) );
+	EXPECT_EQ(-1, c.back());
 }
 
-TEST_F(rangeTest, append)
+TEST(rangeTest, append)
 {
-	testAppend< std::deque<int> >();
+	testAppend< std::list<int> >();
 	testAppend< oel::dynarray<int> >();
 }
-
-/// @endcond

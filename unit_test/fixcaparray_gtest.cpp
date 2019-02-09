@@ -86,28 +86,25 @@ TEST_F(fixcap_arrayTest, eraseToEnd)
 	testEraseToEnd< fixcap_array<int, 7> >();
 }
 
-#ifndef OEL_NO_BOOST
 TEST_F(fixcap_arrayTest, overAligned)
 {
 	unsigned int const testAlignment = 32;
-
-	fixcap_array< oel::aligned_storage_t<testAlignment, testAlignment>, 5 > special(0);
+	struct Type
+	{	oel::aligned_storage_t<testAlignment, testAlignment> a;
+	};
+	fixcap_array<Type, 5> special(0);
 	EXPECT_TRUE(special.cbegin() == special.cend());
 
-	special.append(5, {});
-	EXPECT_EQ(5U, special.size());
+	special.insert(special.begin(), Type());
+	special.emplace(special.begin());
+	special.emplace(special.begin() + 1);
+	EXPECT_EQ(3U, special.size());
 	for (const auto & v : special)
 		EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&v) % testAlignment);
 
-	special.resize(1, oel::default_init);
+	special.erase_unstable(special.end() - 1);
+	special.erase_unstable(special.begin());
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
-}
-#endif
-
-TEST_F(fixcap_arrayTest, withRefWrapper)
-{
-	using ArrayInt = fixcap_array<int, 2>;
-	testWithRefWrapper< ArrayInt, fixcap_array<std::reference_wrapper<ArrayInt const>, 3> >();
 }
 
 TEST_F(fixcap_arrayTest, misc)
@@ -133,11 +130,11 @@ TEST_F(fixcap_arrayTest, misc)
 	FCArray7 dest0;
 	dest0.assign(daSrc);
 
-	dest0.append( oel::make_iterator_range(cbegin(daSrc), cend(daSrc) - 1) );
+	dest0.append( oel::make_iterator_range(daSrc.cbegin(), daSrc.cend() - 1) );
 	dest0.pop_back();
-	dest0.append(oel::make_view_n(fASrc, 2));
+	dest0.append(view::counted(fASrc, 2));
 	dest0.pop_back();
-	auto srcEnd = dest0.append( oel::make_view_n(dequeSrc.begin(), dequeSrc.size()) );
+	auto srcEnd = dest0.append( view::counted(dequeSrc.begin(), dequeSrc.size()) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	FCArray7 dest1;
@@ -149,14 +146,14 @@ TEST_F(fixcap_arrayTest, misc)
 	{
 		fixcap_array<int, 2> di{1, -2};
 		auto it = begin(di);
-		it = di.erase_unordered(it);
+		it = di.erase_unstable(it);
 		EXPECT_EQ(-2, *it);
-		it = di.erase_unordered(it);
+		it = di.erase_unstable(it);
 		EXPECT_EQ(end(di), it);
 
 		di = {1, -2};
-		erase_unordered(di, 1);
-		erase_unordered(di, 0);
+		erase_unstable(di, 1);
+		erase_unstable(di, 0);
 		EXPECT_TRUE(di.empty());
 	}
 }
