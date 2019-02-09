@@ -37,6 +37,7 @@ add_executable(oel-test
 	dynarray_construct_assignop_swap_gtest.cpp
 	dynarray_mutate_gtest.cpp
 	dynarray_other_gtest.cpp
+	fixcaparray_gtest.cpp
 	forward_decl_test.cpp
 	gtest_mem_main.cpp
 	range_algo_gtest.cpp

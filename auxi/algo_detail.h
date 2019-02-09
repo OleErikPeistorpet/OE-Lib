@@ -64,6 +64,13 @@ namespace _detail
 		                 a, p, std::forward<Args>(args)...);
 	}
 
+	template<typename T, typename... Args>
+	OEL_ALWAYS_INLINE inline void ConstructA(T *__restrict p, Args &&... args)
+	{
+		struct {} a;
+		Construct(a, p, static_cast<Args &&>(args)...);
+	}
+
 
 	template<typename T>
 	void Destroy(T * first, const T * last) noexcept
@@ -156,18 +163,11 @@ namespace _detail
 
 	struct UninitFillA
 	{
-		template<typename T>
-		void operator()(T *const first, T *const last) const
+		template<typename T, typename... Arg>
+		void operator()(T *const first, T *const last, const Arg &... arg) const
 		{
 			struct A {} a;
-			UninitFill<A>{}(first, last, a);
-		}
-
-		template<typename T>
-		void operator()(T *const first, T *const last, const T & val) const
-		{
-			struct A {} a;
-			UninitFill<A>{}(first, last, a, val);
+			UninitFill<A>{}(first, last, a, arg...);
 		}
 	};
 

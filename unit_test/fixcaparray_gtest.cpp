@@ -68,7 +68,43 @@ TEST_F(fixcap_arrayTest, insert)
 
 TEST_F(fixcap_arrayTest, resize)
 {
-	testResize< fixcap_array<int, 4>, std::length_error >();
+	fixcap_array<int, 4> d;
+
+	size_t const S1 = 4;
+
+	d.resize(S1);
+	ASSERT_EQ(S1, d.size());
+
+OEL_WHEN_EXCEPTIONS_ON(
+	EXPECT_THROW(d.resize_default_init(d.max_size() + 1), std::length_error);
+	EXPECT_EQ(S1, d.size());
+)
+	for (const auto & e : d)
+	{
+		EXPECT_EQ(0, e);
+	}
+
+
+	fixcap_array< fixcap_array<int, 4>, 4 > nested;
+	nested.resize(3);
+	EXPECT_EQ(3U, nested.size());
+	EXPECT_TRUE(nested.back().empty());
+
+	nested.front().resize(S1);
+
+	nested.resize(1);
+	EXPECT_EQ(1U, nested.size());
+	for (auto i : nested.front())
+		EXPECT_EQ(0, i);
+
+	auto it = nested.begin();
+
+	nested.resize(nested.max_size());
+
+	EXPECT_TRUE(nested.begin() == it);
+
+	EXPECT_EQ(S1, nested.front().size());
+	EXPECT_TRUE(nested.back().empty());
 }
 
 TEST_F(fixcap_arrayTest, eraseSingle)

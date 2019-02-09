@@ -403,26 +403,6 @@ void testInsert()
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
-template<typename ArrayInt, typename Exception>
-void testResize()
-{
-	ArrayInt d;
-
-	size_t const S1 = 4;
-
-	d.resize(S1);
-	ASSERT_EQ(S1, d.size());
-
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(d.resize(d.max_size(), oel::default_init), std::bad_alloc);
-	EXPECT_EQ(S1, d.size());
-)
-	for (const auto & e : d)
-	{
-		EXPECT_EQ(0, e);
-	}
-}
-
 template<typename ArrayT>
 void internalTestErase()
 {

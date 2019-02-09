@@ -180,7 +180,7 @@ public:
 } // namespace debug
 
 //! To raw pointer (unchecked)
-template<typename Ptr, typename C> inline
+template<typename Ptr, typename C>  inline
 typename std::pointer_traits<Ptr>::element_type *
 	to_pointer_contiguous(const array_iterator<Ptr, C> & it) noexcept
 {
@@ -195,13 +195,13 @@ namespace _detail
 {
 	template<typename Iterator>
 #if OEL_MEM_BOUND_DEBUG_LVL
-	using CtnrIteratorMaker = Iterator;
+	using ArrayIteratorMaker = Iterator;
 #else
-	struct CtnrIteratorMaker
+	struct ArrayIteratorMaker
 	{
 		Iterator _pos;
 
-		CtnrIteratorMaker(Iterator pos, const void *) : _pos(pos) {}
+		ArrayIteratorMaker(Iterator pos, const void *) : _pos(pos) {}
 
 		operator Iterator() const { return _pos; }
 	};
