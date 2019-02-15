@@ -33,6 +33,18 @@ add_subdirectory(
 )
 
 
+include(CheckCXXSourceCompiles)
+
+check_cxx_source_compiles(
+	"#if __has_include(<new>)
+	int main() {}
+	#endif"
+	CAN_HAS_INCLUDE
+)
+if(NOT CAN_HAS_INCLUDE)
+	add_definitions(-DOEL_NO_BOOST)
+endif()
+
 add_executable(oel-test
 	dynarray_construct_assignop_swap_gtest.cpp
 	dynarray_mutate_gtest.cpp
