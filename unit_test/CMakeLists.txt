@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.1)
 
 
 set(CMAKE_CXX_STANDARD 14)
@@ -44,7 +44,7 @@ add_executable(oel-test
 )
 
 target_include_directories(oel-test PRIVATE
-    ${CMAKE_SOURCE_DIR}/..
+	${CMAKE_SOURCE_DIR}/..
 )
 
 target_link_libraries(oel-test gtest_main)
