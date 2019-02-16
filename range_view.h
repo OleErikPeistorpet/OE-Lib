@@ -42,7 +42,7 @@ template<typename Iterator, enable_if< iter_is_random_access<Iterator>::value > 
 iter_difference_t<Iterator> ssize(const iterator_range<Iterator> & r)   { return r.end() - r.begin(); }
 
 //! Create an iterator_range from two iterators, with type deduced from arguments
-template<typename Iterator> inline
+template<typename Iterator>  inline
 iterator_range<Iterator> make_iterator_range(Iterator first, Iterator last)  { return {first, last}; }
 
 
@@ -140,8 +140,8 @@ counted_view< std::move_iterator<InputIterator> >
 * @return `counted_view<std::move_iterator>` if r.size() exists or r is an array, else `iterator_range<std::move_iterator>`
 *
 * Note that passing an rvalue range should result in a compile error. Use a named variable. */
-template<typename InputRange> inline
-auto move(InputRange & r)   { return _detail::Move(r, int{}); }
+template<typename InputRange>  inline
+auto move(InputRange & r)     { return _detail::Move(r, int{}); }
 
 
 #ifndef OEL_NO_BOOST

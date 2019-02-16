@@ -69,7 +69,9 @@ void append(dynarray<T, A> & dest, typename dynarray<T, A>::size_type n, const T
 template<typename T, typename A, typename ForwardRange>  inline
 typename dynarray<T, A>::iterator
 	insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, const ForwardRange & source)
-	{ return dest.insert_r(pos, source); }
+	{
+		return dest.insert_r(pos, source);
+	}
 //!@}
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
@@ -127,13 +129,14 @@ public:
 	explicit dynarray(const Alloc & a) noexcept  : _m(a) {}
 
 	//! Construct empty dynarray with space reserved for at least minCap elements
-	dynarray(reserve_tag, size_type minCap, const Alloc & a = Alloc{})  : _m(a, minCap) {}
+	dynarray(reserve_tag, size_type minCap, const Alloc & a = Alloc{})   : _m(a, minCap) {}
 
 	/** @brief Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
 	*
 	* @copydetails resize_default_init(size_type)  */
 	dynarray(size_type size, default_init_t, const Alloc & a = Alloc{});
-	explicit dynarray(size_type size, const Alloc & a = Alloc{});  //!< (Value-initializes elements, same as std::vector)
+	//! (Value-initializes elements, same as std::vector)
+	explicit dynarray(size_type size, const Alloc & a = Alloc{});
 	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
 
 	/** @brief Equivalent to `std::vector(begin(r), end(r), a)`, where `end(r)` is not needed if r.size() exists
@@ -151,11 +154,11 @@ public:
 
 	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})  : _m(a, il.size())
 	                                                                  { _initPostAllocate(il.begin()); }
-	dynarray(dynarray && other) noexcept               : _m(std::move(other._m)) {}
+	dynarray(dynarray && other) noexcept                : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, const Alloc & a);
 	dynarray(const dynarray & other);
-	dynarray(const dynarray & other, const Alloc & a)  : _m(a, other.size())
-	                                                   { _initPostAllocate(other.data()); }
+	dynarray(const dynarray & other, const Alloc & a)   : _m(a, other.size())
+	                                                    { _initPostAllocate(other.data()); }
 	~dynarray() noexcept;
 
 	dynarray & operator =(dynarray && other) &
@@ -201,7 +204,6 @@ public:
 	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 	void      resize_default_init(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<Alloc, T>); }
-	//! (Value-initializes added elements, same as std::vector::resize)
 	void      resize(size_type n)                { _resizeImpl(n, _uninitFill{}); }
 
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
@@ -240,20 +242,20 @@ public:
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require trivially relocatable T
 	void      erase_to_end(iterator first) noexcept(nodebug);
 
-	void      clear() noexcept        { erase_to_end(begin()); }
+	void      clear() noexcept         { erase_to_end(begin()); }
 
-	bool      empty() const noexcept  { return _m.data == _m.end; }
+	bool      empty() const noexcept   { return _m.data == _m.end; }
 
-	size_type size() const noexcept   { return _m.end - _m.data; }
+	size_type size() const noexcept    { return _m.end - _m.data; }
 
-	void      reserve(size_type minCap)  { if (capacity() < minCap) _growTo(minCap); }
+	void      reserve(size_type minCap)   { if (capacity() < minCap) _growTo(minCap); }
 
 	//! It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
 	void      shrink_to_fit();
 
-	size_type capacity() const noexcept  { return _m.reservEnd - _m.data; }
+	size_type capacity() const noexcept   { return _m.reservEnd - _m.data; }
 
-	size_type max_size() const noexcept  { return _allocTrait::max_size(_m) - _allocateWrap::sizeForHeader; }
+	size_type max_size() const noexcept   { return _allocTrait::max_size(_m) - _allocateWrap::sizeForHeader; }
 
 	//! How much smaller capacity is than the number passed to allocator_type::allocate
 	static constexpr size_type allocate_size_overhead()  { return _allocateWrap::sizeForHeader; }
@@ -402,8 +404,7 @@ private:
 			return {p, h, h->id};
 		}
 		else
-		{	return { p, &_detail::headerNoAllocation,
-				reinterpret_cast<std::uintptr_t>(this) };
+		{	return {p, &_detail::headerNoAllocation, reinterpret_cast<std::uintptr_t>(this)};
 		}
 	#else
 		return p;
@@ -665,8 +666,7 @@ private:
 			newEnd = _m.reservEnd;
 		}
 		else
-		{
-			newEnd = _m.data + count;
+		{	newEnd = _m.data + count;
 			if (newEnd < _m.end)
 			{	// downsizing, assign new and destroy rest
 				src = copy(src, _m.data, newEnd);
@@ -677,7 +677,7 @@ private:
 			}
 		}
 		while (_m.end < newEnd)
-		{	// put rest of new in uninitialized part
+		{	// each iteration updates _m.end for exception safety
 			_detail::Construct<Alloc>(_m, _m.end, *src);
 			++src; ++_m.end;
 		}
@@ -782,8 +782,9 @@ private:
 
 	template< size_t(dynarray::*CalcNewCap)(size_t) const,
 	          typename MakeFuncInsert, typename... Args >
-	T * _insertRealloc(T *const pos, size_type const nAfterPos, size_type const nToAdd,
-	                   MakeFuncInsert const makeNew, Args &&... args)
+	T * _insertRealloc(
+		T *const pos, size_type const nAfterPos, size_type const nToAdd,
+		MakeFuncInsert const makeNew, Args &&... args)
 	{
 		_scopedPtr newBuf{_m, (this->*CalcNewCap)(size() + nToAdd)};
 
@@ -870,8 +871,7 @@ typename dynarray<T, Alloc>::iterator
 			_detail::UninitCopy<Alloc>(first, pPos, dLast, _m);
 		}
 		else
-		{
-			T * dest = pPos;
+		{	T * dest = pPos;
 			OEL_TRY_
 			{
 				while (dest != dLast)
@@ -888,15 +888,16 @@ typename dynarray<T, Alloc>::iterator
 			}
 		}
 	}
-	else // not enough room, reallocate
-	{
-		pPos = _insertRealloc<&dynarray::_calcCap>( pPos, nAfterPos, count,
-			[first](T * newPos, size_type count_, Alloc & a)
-			{
-				T *const dLast = newPos + count_;
-				_detail::UninitCopy(first, newPos, dLast, a);
-				return dLast;
-			} );
+	else // not enough room
+	{	pPos = _insertRealloc<&dynarray::_calcCap>
+			(	pPos, nAfterPos, count,
+				[first](T * newPos, size_type count_, Alloc & a)
+				{
+					T *const dLast = newPos + count_;
+					_detail::UninitCopy(first, newPos, dLast, a);
+					return dLast;
+				}
+			);
 	}
 	return _makeIter<iterator>(pPos);
 }
@@ -1026,9 +1027,10 @@ template<typename T, typename Alloc> template<typename InputRange>
 inline auto dynarray<T, Alloc>::assign(const InputRange & src) -> decltype(::adl_begin(src))
 {
 	using IterSrc = decltype(::adl_begin(src));
-	return _assignImpl(::adl_begin(src),
-	                   _sizeOrEnd<IterSrc>(src),
-	                   can_memmove_with<T *, IterSrc>());
+	return _assignImpl(
+		::adl_begin(src),
+		_sizeOrEnd<IterSrc>(src),
+		can_memmove_with<T *, IterSrc>() );
 }
 
 template<typename T, typename Alloc>

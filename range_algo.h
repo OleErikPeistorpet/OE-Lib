@@ -94,20 +94,20 @@ bool copy_fit(const InputRange & source, RandomAccessRange & dest);
 /** @name GenericContainerInsert
 * @brief For generic code that may use either dynarray or std library container (overloaded in dynarray.h)  */
 //!@{
-template<typename Container, typename InputRange> inline
+template<typename Container, typename InputRange>  inline
 void assign(Container & dest, const InputRange & source)  { dest.assign(begin(source), end(source)); }
 
-template<typename Container, typename InputRange> inline
+template<typename Container, typename InputRange>  inline
 void append(Container & dest, const InputRange & source)  { dest.insert(dest.end(), begin(source), end(source)); }
 
-template<typename Container, typename T> inline
+template<typename Container, typename T>  inline
 void append(Container & dest, typename Container::size_type count, const T & val)
 {
 	dest.resize(dest.size() + count, val);
 }
 
-template<typename Container, typename InputRange> inline
-typename Container::iterator insert(Container & dest, typename Container::const_iterator pos, const InputRange & source)
+template<typename Container, typename ContainerIterator, typename InputRange>  inline
+typename Container::iterator insert(Container & dest, ContainerIterator pos, const InputRange & source)
 {
 	return dest.insert(pos, begin(source), end(source));
 }
@@ -127,8 +127,8 @@ namespace _detail
 	->	decltype(c.erase_to_end(f))
 		{ return c.erase_to_end(f); }
 
-	template<typename Container, typename... None> inline
-	void EraseEnd(Container & c, typename Container::iterator f, None...) { c.erase(f, c.end()); }
+	template<typename Container, typename ContainerIter, typename... None>
+	inline void EraseEnd(Container & c, ContainerIter f, None...) { c.erase(f, c.end()); }
 
 
 	template<typename Container, typename UnaryPred> inline
@@ -200,8 +200,8 @@ namespace _detail
 		return succeed(src, dest);
 	}
 
-	template<typename Ret, typename IterSource, typename IteratorDest, typename InputRange, typename OutputRange> inline
-	Ret Copy(const InputRange & src, OutputRange & dest, long)
+	template<typename Ret, typename IterSource, typename IteratorDest, typename InputRange, typename OutputRange>
+	inline Ret Copy(const InputRange & src, OutputRange & dest, long)
 	{
 		return _detail::CopyImpl
 			(	src, dest,
@@ -211,7 +211,8 @@ namespace _detail
 	}
 
 	template<typename Ret, typename, typename, typename SizedRange, typename RandomAccessRange>
-	Ret Copy(const SizedRange & src, RandomAccessRange & dest, decltype( oel::ssize(src), int() ))
+	Ret Copy(const SizedRange & src, RandomAccessRange & dest,
+	         decltype( oel::ssize(src), int() )) // best match for int if ssize(src) is well-formed (SFINAE)
 	{
 		auto const n = oel::ssize(src);
 		if (n <= oel::ssize(dest))
@@ -224,8 +225,8 @@ namespace _detail
 		}
 	}
 
-	template<typename InputRange, typename OutputRange> inline
-	bool CopyFit(const InputRange & src, OutputRange & dest, long)
+	template<typename InputRange, typename OutputRange>
+	inline bool CopyFit(const InputRange & src, OutputRange & dest, long)
 	{
 		using IterSrc  = decltype(begin(src));
 		using IterDest = decltype(begin(dest));
@@ -257,8 +258,10 @@ inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
 ->	copy_unsafe_return<decltype(begin(src))>
 {
 	using InIter = decltype(begin(src));
-	return{ _detail::CopyUnsf(begin(src), oel::ssize(src), dest,
-	                          can_memmove_with<RandomAccessIter, InIter>()) };
+	return {
+		_detail::CopyUnsf(
+			begin(src), oel::ssize(src), dest,
+			can_memmove_with<RandomAccessIter, InIter>() )};
 }
 
 template<typename InputRange, typename RandomAccessRange>
@@ -267,7 +270,8 @@ inline auto oel::copy(const InputRange & src, RandomAccessRange & dest)
 {
 	using IterSrc  = decltype(begin(src));
 	using IterDest = decltype(begin(dest));
-	return _detail::Copy< last_iterators<IterSrc, IterDest>, IterSrc, IterDest >(src, dest, int{});
+	return _detail::Copy< last_iterators<IterSrc, IterDest>, IterSrc, IterDest >
+			(src, dest, int{});
 }
 
 template<typename InputRange, typename RandomAccessRange>
