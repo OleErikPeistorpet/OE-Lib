@@ -15,7 +15,7 @@
 #include <algorithm>
 
 #ifdef __has_include
-#if __has_include(<memory_resource>) and (!defined _MSC_VER or _HAS_CXX17)
+#if __has_include(<memory_resource>) and (__cplusplus > 201500 or _HAS_CXX17)
 	#include <memory_resource>
 
 	#define OEL_HAS_STD_PMR  1
@@ -1077,7 +1077,7 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
 {
-	_detail::AssertTrivialRelocate<T>{};
+	(void) _detail::AssertTrivialRelocate<T>{};
 
 	_debugSizeUpdater guard{_m};
 

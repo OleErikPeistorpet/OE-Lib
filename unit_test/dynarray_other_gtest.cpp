@@ -147,7 +147,7 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 #endif
 
 #ifdef __has_include
-#if __has_include(<variant>) and (__cplusplus >= 201703 or _HAS_CXX17)
+#if __has_include(<variant>) and (__cplusplus > 201500 or _HAS_CXX17)
 	#include "trivial_relocate/std_variant.h"
 
 	TEST(dynarrayOtherTest, stdVariant)
