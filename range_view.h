@@ -54,11 +54,7 @@ public:
 	using iterator        = Iterator;
 	using value_type      = iter_value_t<Iterator>;
 	using difference_type = iter_difference_t<Iterator>;
-#ifndef OEL_VIEW_SIGNED_SIZE // defined by user if they want
 	using size_type       = size_t;
-#else
-	using size_type       = difference_type;
-#endif
 
 	//! Initialize to empty
 	constexpr counted_view() noexcept                      : _size() {}
@@ -105,7 +101,7 @@ public:
 
 	constexpr reference operator[](difference_type index) const   OEL_ALWAYS_INLINE { return this->_begin[index]; }
 
-	//! Return raw pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous(T *))
+	//! Get raw pointer to underlying array. The function will exist only if `to_pointer_contiguous(begin())` is valid
 	template<typename It = Iterator>
 	auto data() const noexcept
 	->	decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
