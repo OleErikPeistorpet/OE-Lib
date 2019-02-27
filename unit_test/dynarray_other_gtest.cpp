@@ -10,7 +10,7 @@
 
 #if defined __has_include
 #if __has_include(<Eigen/Dense>)
-	#include "trivial_relocate/eigen_dense.h"
+	#include "optimize_ext/eigen_dense.h"
 
 	static_assert(oel::is_trivially_relocatable<Eigen::Rotation2Df>::value, "?");
 #endif
@@ -148,7 +148,7 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 
 #ifdef __has_include
 #if __has_include(<variant>) and (__cplusplus > 201500 or _HAS_CXX17)
-	#include "trivial_relocate/std_variant.h"
+	#include "optimize_ext/std_variant.h"
 
 	TEST(dynarrayOtherTest, stdVariant)
 	{

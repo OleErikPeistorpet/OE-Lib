@@ -100,7 +100,7 @@ bool_constant<
 
 /** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
 *
-* Many useful classes are declared trivially relocatable, see `trivial_relocate` folder. */
+* Many external classes are declared trivially relocatable, see `optimize_ext` folder. */
 template<typename T>
 struct is_trivially_relocatable;
 

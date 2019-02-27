@@ -7,7 +7,9 @@
 // std:: unique_ptr, shared_ptr, weak_ptr, basic_string, pair, tuple
 // boost:: intrusive_ptr, circular_buffer, variant, polymorphic_allocator
 
-// This file is included by dynarray.h, so should not be needed in user code
+/** @file
+* @brief This is included by dynarray.h, so should not be needed in user code
+*/
 
 #include "../auxi/type_traits.h"
 

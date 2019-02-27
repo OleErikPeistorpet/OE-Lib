@@ -4,6 +4,10 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+/** @file
+* @brief Must be included manually in user code
+*/
+
 #include "../auxi/type_traits.h"
 
 #include <variant>
