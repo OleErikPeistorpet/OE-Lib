@@ -46,7 +46,7 @@ using is_always_equal   = decltype( _detail::IsAlwaysEqual<T>(0) );
 
 //! Type returned by begin function (found by ADL)
 template<typename Range>
-using range_iterator_t = decltype( begin(std::declval<Range &>()) );
+using iterator_t = decltype( begin(std::declval<Range &>()) );
 
 template<typename Iterator>
 using iter_difference_t = typename std::iterator_traits<Iterator>::difference_type;

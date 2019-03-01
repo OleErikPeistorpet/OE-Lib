@@ -81,10 +81,10 @@ inline namespace debug
 
 #ifdef OEL_HAS_DEDUCTION_GUIDES
 template<typename InputRange,
-         typename Alloc = allocator<iter_value_t< range_iterator_t<InputRange> >>
+         typename Alloc = allocator<iter_value_t< iterator_t<InputRange> >>
         >
 explicit dynarray(const InputRange &, Alloc = Alloc{})
-->	dynarray<iter_value_t< range_iterator_t<InputRange> >, Alloc>;
+->	dynarray<iter_value_t< iterator_t<InputRange> >, Alloc>;
 #endif
 
 /**
@@ -149,7 +149,7 @@ public:
 	auto result = dynarray<int>(boost::range::istream_range<int>(someStream));
 	@endcode  */
 	template< typename InputRange,
-		typename /*EnableIfRange*/ = range_iterator_t<InputRange> >
+	          typename /*EnableIfRange*/ = iterator_t<InputRange> >
 	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})  : _m(a) { append(r); }
 
 	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})  : _m(a, il.size())
