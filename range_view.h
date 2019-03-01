@@ -54,7 +54,7 @@ public:
 	using iterator        = Iterator;
 	using value_type      = iter_value_t<Iterator>;
 	using difference_type = iter_difference_t<Iterator>;
-	using size_type       = size_t;
+	using size_type       = typename std::make_unsigned<difference_type>::type;
 
 	//! Initialize to empty
 	constexpr counted_view() noexcept                      : _size() {}
@@ -66,9 +66,9 @@ public:
 
 	constexpr iterator  begin() const   OEL_ALWAYS_INLINE { return _begin; }
 
-	constexpr size_type size() const noexcept    OEL_ALWAYS_INLINE { return _size; }
+	constexpr size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
 
-	constexpr bool      empty() const noexcept   OEL_ALWAYS_INLINE { return 0 == _size; }
+	constexpr bool      empty() const noexcept   { return 0 == _size; }
 
 	//! Increment begin, decrementing size
 	void      drop_front();
@@ -76,8 +76,8 @@ public:
 	void      drop_back();
 
 protected:
-	Iterator  _begin;
-	size_type _size;
+	Iterator       _begin;
+	difference_type _size;
 };
 
 //! Specialization for random-access Iterator

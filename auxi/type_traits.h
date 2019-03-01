@@ -22,12 +22,6 @@ namespace _detail
 
 	template<typename T>
 	std::is_empty<T> IsAlwaysEqual(long);
-
-
-	template<typename T>
-	typename T::difference_type DiffT(int);
-
-	template<typename> std::ptrdiff_t DiffT(long);
 }
 
 
@@ -49,10 +43,6 @@ struct all_   : std::is_same< bool_pack_t<true, BoolConstants::value...>,
 template<typename T>
 using is_always_equal   = decltype( _detail::IsAlwaysEqual<T>(0) );
 
-
-//! Range::difference_type if present, else std::ptrdiff_t
-template<typename Range>
-using range_difference_t   = decltype( _detail::DiffT<Range>(0) );
 
 //! Type returned by begin function (found by ADL)
 template<typename Range>
@@ -88,6 +78,10 @@ using iter_is_random_access = std::is_base_of< random_access_traversal_tag, iter
 //! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
 template<bool Condition>
 using enable_if = typename std::enable_if<Condition, int>::type;
+
+
+template<typename... Ts>
+using common_type = typename std::common_type<Ts...>::type;
 
 
 

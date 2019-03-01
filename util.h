@@ -33,11 +33,13 @@ constexpr typename std::make_unsigned<T>::type
 
 
 
-//! Returns r.size() as signed type
+//! Returns r.size() as signed type (same as std::ssize in C++20)
 template<typename SizedRange>  OEL_ALWAYS_INLINE
 constexpr auto ssize(const SizedRange & r)
-->	decltype( static_cast< range_difference_t<SizedRange> >(r.size()) )
-	 { return static_cast< range_difference_t<SizedRange> >(r.size()); }
+->	common_type<std::ptrdiff_t, decltype( as_signed(r.size()) )>
+	{
+		return static_cast< common_type<std::ptrdiff_t, decltype( as_signed(r.size()) )> >(r.size());
+	}
 //! Returns number of elements in array as signed type
 template<typename T, std::ptrdiff_t Size>  OEL_ALWAYS_INLINE
 constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }

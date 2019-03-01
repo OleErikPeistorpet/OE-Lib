@@ -44,12 +44,19 @@ namespace
 template<typename SizeT>
 struct DummyRange
 {
-	using difference_type = typename std::make_signed<SizeT>::type;
-
 	SizeT n;
 
 	SizeT size() const { return n; }
 };
+
+TEST(utilTest, ssize)
+{
+	auto test  = oel::ssize(DummyRange<unsigned short>{});
+	auto test2 = oel::ssize(DummyRange<std::uintmax_t>{});
+
+	static_assert(std::is_same<decltype(test), std::ptrdiff_t>::value, "?");
+	static_assert(std::is_same<decltype(test2), std::intmax_t>::value, "?");
+}
 
 TEST(utilTest, indexValid)
 {
@@ -104,23 +111,6 @@ TEST(utilTest, makeUnique)
 	EXPECT_EQ(4U, p2->size());
 	EXPECT_EQ(6, p2->front());
 	EXPECT_EQ(6, p2->back());
-}
-
-struct RangeWithLargerDiffT
-{
-	using difference_type = long;
-
-	unsigned short size() const  { return 2; }
-};
-
-TEST(utilTest, ssize)
-{
-	RangeWithLargerDiffT r;
-	auto const test = oel::ssize(r);
-
-	static_assert(std::is_same<decltype(test), long const>::value, "?");
-
-	ASSERT_EQ(2, test);
 }
 
 TEST(utilTest, derefArgs)
