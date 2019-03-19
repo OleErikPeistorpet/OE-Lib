@@ -12,7 +12,6 @@
 #include "make_unique.h"
 
 #include <stdexcept>
-#include <cstdint> // for uintmax_t
 
 
 /** @file
@@ -22,15 +21,14 @@
 namespace oel
 {
 
-//! Given argument val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
+//! Passed val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T>  OEL_ALWAYS_INLINE
 constexpr typename std::make_signed<T>::type
 	as_signed(T val) noexcept                  { return (typename std::make_signed<T>::type) val; }
-//! Given argument val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
+//! Passed val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
 template<typename T>  OEL_ALWAYS_INLINE
 constexpr typename std::make_unsigned<T>::type
 	as_unsigned(T val) noexcept                { return (typename std::make_unsigned<T>::type) val; }
-
 
 
 //! Returns r.size() as signed type (same as std::ssize in C++20)
@@ -47,8 +45,9 @@ constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 /** @brief Check if index is valid (can be used with operator[]) for array or other container-like object
 *
-* Negative index gives false result, even if the value is within range after conversion to an unsigned type,
-* which happens implicitly when passed to operator[] of dynarray and std containers. */
+* Negative index should give false result. However, this is not always ensured if the number of
+* elements in r is greater than half the maximum value of its unsigned type and that type holds
+* more bits than `int`. This should not be a concern in practice. */
 template<typename Integral, typename SizedRange>
 constexpr bool index_valid(const SizedRange & r, Integral index);
 
@@ -88,6 +87,10 @@ struct default_init_t
 	explicit constexpr default_init_t() {}
 };
 constexpr default_init_t default_init; //!< An instance of default_init_t for convenience
+
+
+//! Functions marked with `noexcept(nodebug)` will only throw exceptions from OEL_ASSERT (none by default)
+constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 
 
 
@@ -131,9 +134,17 @@ namespace _detail
 	};
 
 
+
+	using BigUint =
+	#if ULONG_MAX > UINT_MAX
+		unsigned long;
+	#else
+		unsigned long long;
+	#endif
+
 	template<typename Unsigned>
-	constexpr bool IndexValid(Unsigned size, std::uintmax_t i, false_type)
-	{	// assumes that size never is greater than INTMAX_MAX
+	constexpr bool IndexValid(Unsigned size, BigUint i, false_type)
+	{
 		return i < size;
 	}
 
@@ -150,6 +161,6 @@ template<typename Integral, typename SizedRange>
 constexpr bool oel::index_valid(const SizedRange & r, Integral index)
 {
 	using T = decltype(oel::ssize(r));
-	using NeitherIsBig = bool_constant<sizeof(T) < sizeof(std::uintmax_t) and sizeof index < sizeof(std::uintmax_t)>;
+	using NeitherIsBig = bool_constant<sizeof(T) < sizeof(_detail::BigUint) and sizeof index < sizeof(_detail::BigUint)>;
 	return _detail::IndexValid(as_unsigned(oel::ssize(r)), index, NeitherIsBig{});
 }

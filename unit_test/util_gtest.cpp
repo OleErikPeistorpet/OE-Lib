@@ -61,6 +61,8 @@ TEST(utilTest, ssize)
 TEST(utilTest, indexValid)
 {
 	using namespace oel;
+	using _detail::BigUint;
+	using BigInt = std::make_signed<BigUint>::type;
 
 	DummyRange<unsigned> r1{1};
 
@@ -73,17 +75,17 @@ TEST(utilTest, indexValid)
 		DummyRange<unsigned> r2{size};
 
 		EXPECT_FALSE(index_valid(r2, -2));
-		EXPECT_FALSE(index_valid(r2, (long long) -2));
+		EXPECT_FALSE(index_valid(r2, (BigInt) -2));
 		EXPECT_FALSE(index_valid(r2, (unsigned) -1));
 		EXPECT_TRUE(index_valid(r2, size - 1));
 		EXPECT_TRUE(index_valid(r2, 0));
 	}
 	{
-		auto const size = as_unsigned(std::numeric_limits<long long>::max());
-		DummyRange<unsigned long long> r2{size};
+		auto const size = as_unsigned(std::numeric_limits<BigInt>::max());
+		DummyRange<BigUint> r2{size};
 
-		EXPECT_FALSE(index_valid(r2, (unsigned long long) -2));
-		EXPECT_FALSE(index_valid(r2, (long long) -2));
+		EXPECT_FALSE(index_valid(r2, (BigUint) -2));
+		EXPECT_FALSE(index_valid(r2, (BigInt) -2));
 		EXPECT_TRUE(index_valid(r2, size - 1));
 	}
 }

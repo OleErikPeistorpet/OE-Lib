@@ -46,10 +46,6 @@ class dynarray;
 #endif
 
 
-//! Functions marked with `noexcept(nodebug)` will only throw exceptions from OEL_ASSERT (none by default)
-constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
-
-
 
 template<bool Val>
 using bool_constant = std::integral_constant<bool, Val>;
