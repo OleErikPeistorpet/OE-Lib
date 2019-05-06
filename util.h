@@ -139,7 +139,7 @@ namespace _detail
 
 	template<typename Unsigned, typename Integral>
 	constexpr bool IndexValid(Unsigned size, Integral i, true_type)
-	{	// found to be faster when both types are smaller than intmax_t
+	{	// casting to uint64_t when both types are smaller and using just 'i < size' was found to be slower
 		return (0 <= i) & (as_unsigned(i) < size);
 	}
 }
