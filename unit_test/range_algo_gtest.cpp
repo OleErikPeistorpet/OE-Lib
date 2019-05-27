@@ -10,6 +10,7 @@
 #include <deque>
 #include <array>
 #include <valarray>
+#include <functional>
 
 namespace view = oel::view;
 

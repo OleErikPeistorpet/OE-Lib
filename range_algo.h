@@ -10,7 +10,6 @@
 #include "range_view.h"
 
 #include <algorithm>
-#include <functional> // for equal_to
 
 
 /** @file
@@ -36,7 +35,7 @@ void erase_unstable(RandomAccessContainer & c, typename RandomAccessContainer::s
 /**
 * @brief Erase from container all elements for which predicate returns true
 *
-* This function mimics `std::experimental::erase_if` (C++20 no longer experimental?)  */
+* This mimics `std::erase_if` (C++20) for sequence containers  */
 template<typename Container, typename UnaryPredicate>
 void erase_if(Container & c, UnaryPredicate p);
 /**
@@ -44,8 +43,8 @@ void erase_if(Container & c, UnaryPredicate p);
 *
 * Calls Container::unique if available (with fallback std::unique).
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
-template< typename Container, typename BinaryPredicate = std::equal_to<typename Container::value_type> >
-void erase_adjacent_dup(Container & c, BinaryPredicate isDuplicate = {});
+template<typename Container>
+void erase_adjacent_dup(Container & c);
 
 
 
@@ -132,7 +131,7 @@ namespace _detail
 
 
 	template<typename Container, typename UnaryPred> inline
-	auto RemoveIf(Container & c, UnaryPred p, int)  // pass dummy int to prefer this overload
+	auto RemoveIf(Container & c, UnaryPred p, int)
 	->	decltype(c.remove_if(p)) { return c.remove_if(p); }
 
 	template<typename Container, typename UnaryPred>
@@ -141,14 +140,14 @@ namespace _detail
 		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p) );
 	}
 
-	template<typename Container, typename BinaryPred> inline
-	auto Unique(Container & c, BinaryPred p, int)
-	->	decltype(c.unique(p)) { return c.unique(p); }
+	template<typename Container> inline
+	auto Unique(Container & c, int)  // pass dummy int to prefer this overload
+	->	decltype(c.unique()) { return c.unique(); }
 
-	template<typename Container, typename BinaryPred>
-	void Unique(Container & c, BinaryPred p, long)
+	template<typename Container>
+	void Unique(Container & c, long)
 	{
-		_detail::EraseEnd( c, std::unique(begin(c), end(c), p) );
+		_detail::EraseEnd( c, std::unique(begin(c), end(c)) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -287,8 +286,8 @@ inline void oel::erase_if(Container & c, UnaryPredicate p)
 	_detail::RemoveIf(c, p, int{});
 }
 
-template<typename Container, typename BinaryPredicate>
-inline void oel::erase_adjacent_dup(Container & c, BinaryPredicate p)
+template<typename Container>
+inline void oel::erase_adjacent_dup(Container & c)
 {
-	_detail::Unique(c, p, int{});
+	_detail::Unique(c, int{});
 }
