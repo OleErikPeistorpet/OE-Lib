@@ -186,11 +186,11 @@ public:
 	* @brief Add at end the elements from range (return past-the-last of source)
 	* @param source an array, STL container, iterator_range, gsl::span or such.
 	* @pre Behavior is undefined if all of the following apply: source refers to any elements in this dynarray,
-	*	source.size() does not exist and source does not model Forward Range (Boost concept)
+	*	source.size() does not exist and source does not model ForwardRange (C++20 ranges concept)
 	* @return `begin(source)` incremented by source size. The iterator is already invalidated (do not dereference) if
 	*	`begin(source)` pointed into this dynarray and there was insufficient capacity to avoid reallocation.
 	*
-	* Passing references to this dynarray is safe. The function is otherwise equivalent to
+	* Passing references to this dynarray is supported. The function is otherwise equivalent to
 	* `std::vector::insert(end(), begin(source), end(source))`, where `end(source)` is not needed if source.size() exists. */
 	template<typename InputRange>
 	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
@@ -851,10 +851,10 @@ typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src) &
 {
 	auto first = ::adl_begin(src);
-	size_type const count = _sizeOrEnd<decltype(first)>(src);
 
 	static_assert(std::is_base_of< forward_traversal_tag, iter_traversal_t<decltype(first)> >::value,
-				  "insert_r requires that source models Forward Range (Boost concept)");
+			"insert_r requires that begin(source) is a ForwardIterator (multi-pass)");
+	size_type const count = _sizeOrEnd<decltype(first)>(src);
 
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1
