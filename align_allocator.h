@@ -75,14 +75,10 @@ namespace _detail
 	using CanDefaultAlloc = bool_constant<
 		#if defined __STDCPP_DEFAULT_NEW_ALIGNMENT__
 			Align <= __STDCPP_DEFAULT_NEW_ALIGNMENT__
-		#elif _WIN64 or defined __x86_64__  // 16 byte alignment on 64-bit Windows/Linux
+		#elif _WIN64 or defined __x86_64__ // then assuming 16 byte aligned from operator new
 			Align <= 16
 		#else
-			Align <= alignof(
-				#if OEL_GCC_VERSION != 408
-					std
-				#endif
-					::max_align_t)
+			Align <= alignof(std::max_align_t)
 		#endif
 		>;
 
@@ -122,12 +118,7 @@ namespace _detail
 				if (p)
 					return p;
 
-			#if !defined(__GLIBCXX__) or OEL_GCC_VERSION >= 409
 				auto handler = std::get_new_handler();
-			#else
-				auto handler = std::set_new_handler(nullptr);
-				std::set_new_handler(handler);
-			#endif
 				if (!handler)
 					OEL_THROW(std::bad_alloc{}, "Failed allocator::allocate");
 

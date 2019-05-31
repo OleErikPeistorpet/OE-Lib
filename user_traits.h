@@ -91,8 +91,8 @@ using std::false_type;
 /**
 * @brief Function declaration to specify that T objects can transparently be relocated in memory.
 *
-* This means that T cannot have a member that is a pointer to any of its non-static members
-* (including inherited), and must not need to update external state during move construction.
+* This means that T cannot have a member that is a pointer to any of its non-static members, and
+* must not need to update external state during move construction. (The same recursively for sub-objects)
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
 * http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
@@ -151,12 +151,8 @@ struct is_trivially_relocatable;
 
 
 #ifdef __GNUC__
-	#define OEL_GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
-
 	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
 #else
-	#define OEL_GCC_VERSION  0
-
 	#define OEL_ALWAYS_INLINE
 #endif
 

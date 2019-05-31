@@ -50,8 +50,8 @@ namespace _detail
 	template<typename ContiguousIter>
 	inline void MemcpyCheck(ContiguousIter const src, size_t const nElems, void *const dest)
 	{	// memcpy(nullptr, nullptr, 0) is UB. The trouble is that checking can have significant performance hit.
-		// GCC 4.9 and up known to need the check in some cases
-	#if (!defined __GNUC__ and !defined _MSC_VER) or OEL_GCC_VERSION >= 409 or _MSC_VER >= 2000 or OEL_MEM_BOUND_DEBUG_LVL
+		// GCC known to need the check in some cases
+	#if !defined _MSC_VER or _MSC_VER >= 2000 or OEL_MEM_BOUND_DEBUG_LVL
 		if (nElems > 0)
 	#endif
 		{	// Dereference to detect out of range errors if the iterator has internal check

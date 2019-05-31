@@ -8,7 +8,10 @@ Features relocation optimizations similar to Folly fbvector and UnrealEngine TAr
 
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
-Visual Studio 2015 or GCC 4.8 is required. Clang has been tested briefly, minimum version is unknown.
+Supported compilers:
+* Visual Studio 2015 and greater
+* GCC 4.9 and greater
+* Clang is tested regularly (Travis CI), but minimum version is unknown
 
 ### Visual Studio specific
 
@@ -19,7 +22,7 @@ While usually faster than the Visual C++ standard library, performance can be an
 
 ### Other practical stuff
 
-If not using Boost, you need to manually define OEL_NO_BOOST for some compilers.
+If not using Boost, you need to manually define OEL_NO_BOOST for some older compilers.
 
 To use dense matrixes, quaternions, etc. from the Eigen library efficiently in dynarray: include `optimize_ext/eigen_dense.h`
 

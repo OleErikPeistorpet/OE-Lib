@@ -203,7 +203,7 @@ TEST_F(dynarrayConstructTest, constructNFillTrivial)
 	testFillTrivial(true);
 	testFillTrivial<char>(97);
 	testFillTrivial<int>(97);
-#if __cpp_lib_byte or _HAS_STD_BYTE or (OEL_GCC_VERSION >= 701 and __cplusplus > 201500)
+#if __cpp_lib_byte or _HAS_STD_BYTE or (__GNUC__ >= 7 and __cplusplus > 201500)
 	testFillTrivial(std::byte{97});
 #endif
 }
