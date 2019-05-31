@@ -7,11 +7,8 @@
 
 
 #include "auxi/type_traits.h"
-#include "auxi/adl_begin_end.h"
 #include "auxi/contiguous_iterator_to_ptr.h"
 #include "make_unique.h"
-
-#include <stdexcept>
 
 
 /** @file
@@ -20,6 +17,14 @@
 
 namespace oel
 {
+
+using std::begin;  using std::end;
+
+#if __cplusplus >= 201402 or defined _MSC_VER
+	using std::cbegin;   using std::cend;
+	using std::crbegin;  using std::crend;
+#endif
+
 
 //! Passed val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T>  OEL_ALWAYS_INLINE
@@ -99,6 +104,14 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 // The rest of the file is not for users (implementation)
 
 
+// Cannot do ADL `begin(r)` in implementation of class with begin member
+template<typename Range>  OEL_ALWAYS_INLINE inline
+auto adl_begin(Range & r) -> decltype(begin(r)) { return begin(r); }
+
+template<typename Range>  OEL_ALWAYS_INLINE inline
+auto adl_end(Range & r) -> decltype(end(r)) { return end(r); }
+
+
 namespace _detail
 {
 	template< typename T,
@@ -116,21 +129,6 @@ namespace _detail
 		OEL_ALWAYS_INLINE RefOptimizeEmpty(T &) {}
 
 		T Get() noexcept { return T{}; }
-	};
-
-
-
-	struct Throw
-	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
-		[[noreturn]] static void OutOfRange(const char * what)
-		{
-			OEL_THROW(std::out_of_range(what), what);
-		}
-
-		[[noreturn]] static void LengthError(const char * what)
-		{
-			OEL_THROW(std::length_error(what), what);
-		}
 	};
 
 

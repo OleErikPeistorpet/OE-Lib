@@ -23,4 +23,4 @@ If not using Boost, you need to manually define OEL_NO_BOOST for some compilers.
 
 To use dense matrixes, quaternions, etc. from the Eigen library efficiently in dynarray: include `optimize_ext/eigen_dense.h`
 
-You can customize what happens when a precondition violation is detected. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `error_handling.h`
+You can customize what happens when a precondition violation is detected. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `user_traits.h`

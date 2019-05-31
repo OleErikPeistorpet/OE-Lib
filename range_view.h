@@ -62,7 +62,7 @@ public:
 	//! Construct from array or container with matching iterator type
 	template<typename SizedRange,
 	         enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0> // avoid being selected for copy
-	constexpr counted_view(SizedRange & r)   : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
+	constexpr counted_view(SizedRange & r)   : _begin(oel::adl_begin(r)), _size(oel::ssize(r)) {}
 
 	constexpr iterator  begin() const   OEL_ALWAYS_INLINE { return _begin; }
 

@@ -156,7 +156,8 @@ public:
 	                                                                  { _initPostAllocate(il.begin()); }
 	dynarray(dynarray && other) noexcept                : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, const Alloc & a);
-	dynarray(const dynarray & other);
+	dynarray(const dynarray & other)                    : dynarray(other,
+	                                                     _allocTrait::select_on_container_copy_construction(other._m)) {}
 	dynarray(const dynarray & other, const Alloc & a)   : _m(a, other.size())
 	                                                    { _initPostAllocate(other.data()); }
 	~dynarray() noexcept;
@@ -168,8 +169,8 @@ public:
 
 	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
-	void      swap(dynarray & other) noexcept(_allocTrait::propagate_on_container_swap::value
-	                                          or is_always_equal<Alloc>::value);
+	void       swap(dynarray & other)
+		noexcept(_allocTrait::propagate_on_container_swap::value or is_always_equal<Alloc>::value);
 	/**
 	* @brief Replace the contents with source range
 	* @param source an array, STL container, iterator_range, gsl::span or such.
@@ -178,9 +179,9 @@ public:
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template<typename InputRange>
-	auto      assign(const InputRange & source) -> decltype(::adl_begin(source));
+	auto assign(const InputRange & source) -> iterator_t<InputRange const>;
 
-	void      assign(size_type count, const T & val)  { clear();  append(count, val); }
+	void assign(size_type count, const T & val)   { clear(); append(count, val); }
 
 	/**
 	* @brief Add at end the elements from range (return past-the-last of source)
@@ -193,18 +194,18 @@ public:
 	* Passing references to this dynarray is supported. The function is otherwise equivalent to
 	* `std::vector::insert(end(), begin(source), end(source))`, where `end(source)` is not needed if source.size() exists. */
 	template<typename InputRange>
-	auto      append(const InputRange & source) -> decltype(::adl_begin(source));
+	auto append(const InputRange & source) -> iterator_t<InputRange const>;
 	//! Equivalent to `std::vector::insert(end(), il)`
-	void      append(std::initializer_list<T> il)   { append<>(il); }
+	void append(std::initializer_list<T> il)    { append<>(il); }
 	//! Equivalent to `std::vector::insert(end(), count, val)`
-	void      append(size_type count, const T & val);
+	void append(size_type count, const T & val);
 
 	/**
 	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void      resize_default_init(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<Alloc, T>); }
-	void      resize(size_type n)                { _resizeImpl(n, _uninitFill{}); }
+	void resize_default_init(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<Alloc, T>); }
+	void resize(size_type n)                { _resizeImpl(n, _uninitFill{}); }
 
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if source.size() exists
@@ -583,15 +584,15 @@ private:
 	template<typename Range>
 	static size_type _sizeOrEnd(const Range & r, forward_traversal_tag, long)
 	{
-		return std::distance(::adl_begin(r), ::adl_end(r));
+		return std::distance(oel::adl_begin(r), oel::adl_end(r));
 	}
 
 	template<typename Range>
 	static auto _sizeOrEnd(const Range & r, single_pass_traversal_tag, long)
 	{
-		return ::adl_end(r);
+		return oel::adl_end(r);
 	}
-	// Returns element count as size_type if possible, else adl_end(r)
+	// Returns element count as size_type if possible, else end(r)
 	template<typename Iter, typename Range>
 	static auto _sizeOrEnd(const Range & r)
 	{
@@ -850,7 +851,7 @@ template<typename T, typename Alloc> template<typename ForwardRange>
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src) &
 {
-	auto first = ::adl_begin(src);
+	auto first = oel::adl_begin(src);
 
 	static_assert(std::is_base_of< forward_traversal_tag, iter_traversal_t<decltype(first)> >::value,
 			"insert_r requires that begin(source) is a ForwardIterator (multi-pass)");
@@ -952,11 +953,6 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 }
 
 template<typename T, typename Alloc>
-inline dynarray<T, Alloc>::dynarray(const dynarray & other)
- :	dynarray(other, _allocTrait::select_on_container_copy_construction(other._m)) {
-}
-
-template<typename T, typename Alloc>
 dynarray<T, Alloc>::dynarray(size_type n, default_init_t, const Alloc & a)
  :	_m(a, n)
 {
@@ -1024,11 +1020,11 @@ void dynarray<T, Alloc>::shrink_to_fit()
 
 
 template<typename T, typename Alloc> template<typename InputRange>
-inline auto dynarray<T, Alloc>::assign(const InputRange & src) -> decltype(::adl_begin(src))
+inline auto dynarray<T, Alloc>::assign(const InputRange & src) -> iterator_t<InputRange const>
 {
-	using IterSrc = decltype(::adl_begin(src));
+	using IterSrc = iterator_t<InputRange const>;
 	return _assignImpl(
-		::adl_begin(src),
+		oel::adl_begin(src),
 		_sizeOrEnd<IterSrc>(src),
 		can_memmove_with<T *, IterSrc>() );
 }
@@ -1044,10 +1040,10 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 }
 
 template<typename T, typename Alloc> template<typename InputRange>
-inline auto dynarray<T, Alloc>::append(const InputRange & src) -> decltype(::adl_begin(src))
+inline auto dynarray<T, Alloc>::append(const InputRange & src) -> iterator_t<InputRange const>
 {
-	using IterSrc = decltype(::adl_begin(src));
-	return _append(::adl_begin(src),
+	using IterSrc = iterator_t<InputRange const>;
+	return _append(oel::adl_begin(src),
 	               _sizeOrEnd<IterSrc>(src),
 	               can_memmove_with<T *, IterSrc>());
 }

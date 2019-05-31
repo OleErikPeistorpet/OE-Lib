@@ -6,8 +6,9 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "adl_begin_end.h"
+#include "../user_traits.h"
 
+#include <iterator>
 #ifndef OEL_NO_BOOST
 #include <boost/iterator/iterator_categories.hpp>
 #endif
@@ -44,6 +45,8 @@ template<typename T>
 using is_always_equal   = decltype( _detail::IsAlwaysEqual<T>(0) );
 
 
+using std::begin;
+
 //! Type returned by begin function (found by ADL)
 template<typename Range>
 using iterator_t = decltype( begin(std::declval<Range &>()) );
@@ -74,7 +77,6 @@ template<typename Iterator>
 using iter_is_random_access = std::is_base_of< random_access_traversal_tag, iter_traversal_t<Iterator> >;
 
 
-
 //! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
 template<bool Condition>
 using enable_if = typename std::enable_if<Condition, int>::type;
@@ -84,6 +86,14 @@ template<typename... Ts>
 using common_type = typename std::common_type<Ts...>::type;
 
 
+//! Equivalent to std::is_trivially_copyable, but may be specialized (for user types)
+template<typename T>
+struct is_trivially_copyable :
+	#if defined __GLIBCXX__ and __GNUC__ == 4
+		bool_constant< __has_trivial_copy(T) and __has_trivial_assign(T) and __has_trivial_destructor(T) > {};
+	#else
+		std::is_trivially_copyable<T> {};
+	#endif
 
 #if defined __GLIBCXX__ and __GNUC__ == 4
 	template<typename T>

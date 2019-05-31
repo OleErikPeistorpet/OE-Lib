@@ -9,6 +9,7 @@
 #include "../util.h"
 
 #include <cstring>
+#include <stdexcept>
 
 
 // std::max not constexpr for GCC 4
@@ -23,6 +24,21 @@ namespace oel
 {
 namespace _detail
 {
+	struct Throw
+	{	// at namespace scope this produces warnings of unreferenced function or failed inlining
+		[[noreturn]] static void OutOfRange(const char * what)
+		{
+			OEL_THROW(std::out_of_range(what), what);
+		}
+
+		[[noreturn]] static void LengthError(const char * what)
+		{
+			OEL_THROW(std::length_error(what), what);
+		}
+	};
+
+
+
 	template<typename T> struct AssertTrivialRelocate
 	{
 		static_assert(is_trivially_relocatable<T>::value,
