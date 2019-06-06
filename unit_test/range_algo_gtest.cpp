@@ -82,7 +82,7 @@ TEST(rangeTest, countedView)
 
 TEST(rangeTest, viewTransform)
 {
-	int src[] { 1, 2, 3 };
+	int src[] { 2, 3 };
 
 	struct Fun
 	{	int operator()(int i) const
@@ -90,19 +90,19 @@ TEST(rangeTest, viewTransform)
 			return i * i;
 		}
 	};
-	auto r = oel::make_iterator_range(std::begin(src) + 1, std::end(src));
+	auto r = oel::make_iterator_range(std::begin(src), std::end(src));
 	oel::dynarray<int> test( view::transform(r, Fun{}) );
 	EXPECT_EQ(2U, test.size());
 	EXPECT_EQ(4, test[0]);
 	EXPECT_EQ(9, test[1]);
 
 	auto f = [](int & i) { return i++; };
-	test.append( view::transform_n(src, 2, std::ref(f)) );
+	test.append( view::transform(src, std::ref(f)) );
 	EXPECT_EQ(4U, test.size());
-	EXPECT_EQ(1, test[2]);
-	EXPECT_EQ(2, test[3]);
-	EXPECT_EQ(2, src[0]);
-	EXPECT_EQ(3, src[1]);
+	EXPECT_EQ(2, test[2]);
+	EXPECT_EQ(3, test[3]);
+	EXPECT_EQ(3, src[0]);
+	EXPECT_EQ(4, src[1]);
 }
 
 TEST(rangeTest, viewTransformAsOutput)

@@ -159,13 +159,13 @@ TEST_F(dynarrayTest, assign)
 						 MoveOnly{VALUES[1]} };
 		dynarray<MoveOnly> test;
 
-		test.assign(oel::view::move(src));
+		test.assign(view::move(src));
 
 		EXPECT_EQ(2U, test.size());
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(oel::view::move_n(src, 0));
+		test.assign(view::move(src, src));
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
@@ -175,7 +175,7 @@ TEST_F(dynarrayTest, assign)
 		dynarray<TrivialRelocat> dest;
 		OEL_WHEN_EXCEPTIONS_ON(
 		{
-			TrivialRelocat obj{-5.0};
+			TrivialRelocat obj{0};
 			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
 				dest.assign(view::counted(&obj, 1)),
@@ -192,7 +192,7 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(dest), TrivialRelocat::nDestruct);
 		OEL_WHEN_EXCEPTIONS_ON(
 		{
-			TrivialRelocat obj{-3.3};
+			TrivialRelocat obj{0};
 			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
 				dest.assign(make_iterator_range(&obj, &obj + 1)),
@@ -205,7 +205,7 @@ TEST_F(dynarrayTest, assign)
 			EXPECT_TRUE(dest.empty());
 
 		OEL_WHEN_EXCEPTIONS_ON(
-			TrivialRelocat obj{-1.3};
+			TrivialRelocat obj{0};
 			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
 				dest.assign(view::counted(&obj, 1)),

@@ -602,7 +602,7 @@ private:
 
 	void _elementwiseMoveImpl(dynarray & src, false_type)
 	{
-		assign( view::move_n(src.data(), src.size()) );
+		assign(view::move(src._m.data, src._m.end));
 	}
 
 	void _elementwiseMoveImpl(dynarray & src, true_type /*trivialRelocate*/)

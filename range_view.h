@@ -119,21 +119,13 @@ constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Itera
 //! Create an iterator_range of std::move_iterator from two iterators
 template<typename InputIterator>
 iterator_range< std::move_iterator<InputIterator> >
-	move(InputIterator first, InputIterator last)  { using MovIt = std::move_iterator<InputIterator>;
-	                                                 return {MovIt{first}, MovIt{last}}; }
-
-//! Create a counted_view with move_iterator from iterator and count
-template<typename InputIterator>
-counted_view< std::move_iterator<InputIterator> >
-	move_n(InputIterator first, iter_difference_t<InputIterator> count)
-	{
-		return {std::make_move_iterator(first), count};
-	}
-
+	move(InputIterator first, InputIterator last)   { using MovIt = std::move_iterator<InputIterator>;
+	                                                  return {MovIt{first}, MovIt{last}}; }
 #include "auxi/view_detail_move.inc"
 
 /** @brief Wrap a range such that the elements can be moved from when passed to a container or algorithm
-* @return `counted_view<std::move_iterator>` if r.size() exists or r is an array, else `iterator_range<std::move_iterator>`
+* @return type `counted_view<std::move_iterator>` if r.size() exists or r is an array,
+*	else `iterator_range<std::move_iterator>`
 *
 * Note that passing an rvalue range should result in a compile error. Use a named variable. */
 template<typename InputRange>  inline
@@ -143,20 +135,13 @@ auto move(InputRange & r)     { return _detail::Move(r, int{}); }
 #ifndef OEL_NO_BOOST
 	/** @brief Create a view with boost::transform_iterator from a range with size() member or an array
 	*
-	* Similar to boost::adaptors::transform, but more efficient with typical use.
+	* Similar to boost::adaptors::transform, but can be more efficient because it stores just one iterator.
 	* Note that passing an rvalue range should result in a compile error. Use a named variable. */
 	template<typename UnaryFunc, typename SizedRange>
 	auto transform(SizedRange & r, UnaryFunc f)
 	->	counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
 		{
 			return {boost::make_transform_iterator(begin(r), f), oel::ssize(r)};
-		}
-	//! Create a view with boost::transform_iterator from iterator and count
-	template<typename UnaryFunc, typename Iterator>
-	auto transform_n(Iterator first, iter_difference_t<Iterator> count, UnaryFunc f)
-	->	counted_view< boost::transform_iterator<UnaryFunc, Iterator> >
-		{
-			return {boost::make_transform_iterator(first, f), count};
 		}
 #endif
 }
