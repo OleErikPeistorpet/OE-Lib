@@ -18,14 +18,6 @@
 namespace oel
 {
 
-using std::begin;  using std::end;
-
-#if __cplusplus >= 201402 or defined _MSC_VER
-	using std::cbegin;   using std::cend;
-	using std::crbegin;  using std::crend;
-#endif
-
-
 //! Passed val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template<typename T>  OEL_ALWAYS_INLINE
 constexpr typename std::make_signed<T>::type

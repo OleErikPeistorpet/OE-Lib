@@ -26,13 +26,18 @@ namespace _detail
 }
 
 
+//! Part of std::allocator_traits for C++17
+template<typename T>
+using is_always_equal   = decltype( _detail::IsAlwaysEqual<T>(0) );
+
+
 template<bool...> struct bool_pack_t;
 
 /** @brief Similar to std::conjunction, but is not short-circuiting
 *
 * Example: @code
 template<typename... Ts>
-void ProcessNumbers(Ts... n) {
+struct Numbers {
 	static_assert(oel::all_< std::is_arithmetic<Ts>... >::value, "Only arithmetic types, please");
 @endcode  */
 template<typename... BoolConstants>
@@ -40,12 +45,7 @@ struct all_   : std::is_same< bool_pack_t<true, BoolConstants::value...>,
                               bool_pack_t<BoolConstants::value..., true> > {};
 
 
-//! Part of std::allocator_traits for C++17
-template<typename T>
-using is_always_equal   = decltype( _detail::IsAlwaysEqual<T>(0) );
-
-
-using std::begin;
+using std::begin;  using std::end;
 
 //! Type returned by begin function (found by ADL)
 template<typename Range>

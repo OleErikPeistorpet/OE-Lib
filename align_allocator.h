@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "util.h"
+#include "auxi/type_traits.h"
 
 #if !defined(OEL_NO_BOOST) and __cpp_aligned_new < 201606
 #include <boost/align/aligned_alloc.hpp>
