@@ -7,9 +7,8 @@
 
 
 #include "util.h"
-
 #ifndef OEL_NO_BOOST
-#include <boost/iterator/transform_iterator.hpp>
+#include "auxi/transform_iterator.h"
 #endif
 
 
@@ -133,15 +132,16 @@ auto move(InputRange & r)     { return _detail::Move(r, int{}); }
 
 
 #ifndef OEL_NO_BOOST
-	/** @brief Create a view with boost::transform_iterator from a range with size() member or an array
+	/** @brief Create a view with transform_iterator from a range with size() member or an array
 	*
-	* Similar to boost::adaptors::transform, but can be more efficient because it stores just one iterator.
+	* Similar to boost::adaptors::transform, but more efficient because it stores just one iterator,
+	* and has no size overhead for empty UnaryFunc.
 	* Note that passing an rvalue range should result in a compile error. Use a named variable. */
 	template<typename UnaryFunc, typename SizedRange>
 	auto transform(SizedRange & r, UnaryFunc f)
-	->	counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
+	->	counted_view< transform_iterator<UnaryFunc, decltype(begin(r))> >
 		{
-			return {boost::make_transform_iterator(begin(r), f), oel::ssize(r)};
+			return { {{begin(r), f}}, oel::ssize(r) };
 		}
 #endif
 }
