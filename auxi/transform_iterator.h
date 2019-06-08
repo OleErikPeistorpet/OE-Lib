@@ -8,41 +8,53 @@
 
 #include "type_traits.h"
 
-#ifdef OEL_NO_BOOST
-#include <tuple>
-#else
-#include <boost/compressed_pair.hpp>
-#endif
 
 namespace oel
 {
+namespace _detail
+{
+	template< typename I, typename F,
+		bool = std::is_empty<F>::value >
+	struct TightPair
+	{
+		I inner;
+		F _fun;
+
+		OEL_ALWAYS_INLINE const F & Func() const noexcept { return _fun; }
+	};
+
+	template<typename I, typename F>
+	struct TightPair<I, F, true>
+	 :	F
+	{
+		I inner;
+
+		TightPair(I iter, F func)
+		 :	F(func), inner(iter) {
+		}
+
+		OEL_ALWAYS_INLINE const F & Func() const noexcept { return *this; }
+	};
+}
+
 
 //! Similar to boost::transform_iterator
 template<typename UnaryFunc, typename Iterator>
 class transform_iterator
 {
-#ifdef OEL_NO_BOOST
-	std::tuple<Iterator, UnaryFunc> _m;
+	_detail::TightPair<Iterator, UnaryFunc> _m;
 
-	#define OEL_TRANIT_BASE(m) std::get<0>(m)
-	#define OEL_TRANIT_FUN(m)  std::get<1>(m)
-#else
-	boost::compressed_pair<Iterator, UnaryFunc> _m;
-
-	#define OEL_TRANIT_BASE(m) m.first()
-	#define OEL_TRANIT_FUN(m)  m.second()
-#endif
+	using _baseCategory = typename std::iterator_traits<Iterator>::iterator_category;
 
 public:
-	// TODO: check
 	using iterator_category = typename std::conditional
-	<	std::is_base_of< forward_traversal_tag, iter_traversal_t<Iterator> >::value,
-		forward_traversal_tag,
-		iter_traversal_t<Iterator>
+	<	std::is_base_of< std::forward_iterator_tag, _baseCategory >::value,
+		std::forward_iterator_tag,
+		_baseCategory
 	>::type;
 
 	using difference_type = iter_difference_t<Iterator>;
-	using reference       = decltype( OEL_TRANIT_FUN(_m)(*OEL_TRANIT_BASE(_m)) );
+	using reference       = decltype( _m.Func()(*_m.inner) );
 	using pointer         = void;
 	using value_type      = typename std::decay<reference>::type;
 
@@ -58,41 +70,37 @@ public:
 	* Probably optimizes better than alternatives, but gives potential for surprises  */
 	transform_iterator & operator =(const transform_iterator & other) &
 	{
-		OEL_TRANIT_BASE(_m) = OEL_TRANIT_BASE(other._m);
+		_m.inner = other._m.inner;
 		return *this;
 	}
 
 	reference operator*() const
 	{
-		return OEL_TRANIT_FUN(_m)(*OEL_TRANIT_BASE(_m));
+		return _m.Func()(*_m.inner);
 	}
 
 	transform_iterator & operator++()  OEL_ALWAYS_INLINE
 	{	// preincrement
-		++OEL_TRANIT_BASE(_m);
+		++_m.inner;
 		return *this;
 	}
 
 	transform_iterator operator++(int) &
 	{	// postincrement
 		auto tmp = *this;
-		++OEL_TRANIT_BASE(_m);
+		++_m.inner;
 		return tmp;
 	}
 
-	bool operator==(const transform_iterator & right) const  OEL_ALWAYS_INLINE
+	bool operator==(const transform_iterator & right) const
 	{
-		return OEL_TRANIT_BASE(_m) == OEL_TRANIT_BASE(right._m);
+		return _m.inner == right._m.inner;
 	}
 
-	bool operator!=(const transform_iterator & right) const  OEL_ALWAYS_INLINE
+	bool operator!=(const transform_iterator & right) const
 	{
-		return OEL_TRANIT_BASE(_m) != OEL_TRANIT_BASE(right._m);
+		return _m.inner != right._m.inner;
 	}
-
-
-#undef OEL_TRANIT_FUN
-#undef OEL_TRANIT_BASE
 };
 
 } // namespace oel

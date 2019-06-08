@@ -80,6 +80,14 @@ TEST(rangeTest, countedView)
 
 TEST(rangeTest, viewTransform)
 {
+	{
+		using Elem = oel::dynarray<int>;
+		Elem r[1];
+		auto v = view::transform(r, [](const Elem & c) { return c.size(); });
+		static_assert( sizeof v.begin() == sizeof(Elem *),
+			"Not critical, this assert can be removed" );
+	}
+
 	int src[] { 2, 3 };
 
 	struct Square
