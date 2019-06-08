@@ -78,8 +78,6 @@ TEST(rangeTest, countedView)
 	EXPECT_TRUE(test.end() == i.end());
 }
 
-#if !defined OEL_NO_BOOST
-
 TEST(rangeTest, viewTransform)
 {
 	int src[] { 2, 3 };
@@ -119,7 +117,6 @@ TEST(rangeTest, viewTransformAsOutput)
 	EXPECT_EQ(-1, test[0].second);
 	EXPECT_EQ(-2, test[1].second);
 }
-#endif
 
 TEST(rangeTest, copyUnsafe)
 {
