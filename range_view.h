@@ -41,10 +41,6 @@ protected:
 template<typename Iterator, enable_if< iter_is_random_access<Iterator>::value > = 0>
 iter_difference_t<Iterator> ssize(const iterator_range<Iterator> & r)   { return r.end() - r.begin(); }
 
-//! Create an iterator_range from two iterators, with type deduced from arguments
-template<typename Iterator>  inline
-iterator_range<Iterator> make_iterator_range(Iterator first, Iterator last)  { return {first, last}; }
-
 
 //! Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
 template<typename Iterator, bool = iter_is_random_access<Iterator>::value>
@@ -107,9 +103,15 @@ public:
 	->	decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
 };
 
-//! View creation functions, other than oel::make_iterator_range
+
+//! View creation functions. Trying to mimic subset of C++20 ranges
 namespace view
 {
+
+//! Create an iterator_range from two iterators, with type deduced from arguments
+template<typename Iterator>  inline
+iterator_range<Iterator> subrange(Iterator first, Iterator last)  { return {first, last}; }
+
 
 //! Create a counted_view from iterator and count, with type deduced from first
 template<typename Iterator>

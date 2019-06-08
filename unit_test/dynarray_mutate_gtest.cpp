@@ -12,7 +12,6 @@
 
 
 using oel::dynarray;
-using oel::make_iterator_range;
 namespace view = oel::view;
 
 struct noDefaultConstructAlloc : public oel::allocator<int>
@@ -195,7 +194,7 @@ TEST_F(dynarrayTest, assign)
 			TrivialRelocat obj{0};
 			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
-				dest.assign(make_iterator_range(&obj, &obj + 1)),
+				dest.assign(view::subrange(&obj, &obj + 1)),
 				TestException );
 			EXPECT_TRUE(dest.empty() or *dest.at(1) == 2.0);
 		} )
@@ -225,13 +224,13 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 		dynarrayTrackingAlloc<std::string> das;
 
 		std::string * p = nullptr;
-		das.assign(make_iterator_range(p, p));
+		das.assign(view::subrange(p, p));
 
 		EXPECT_EQ(0U, das.size());
 
 		std::stringstream ss{"My computer emits Hawking radiation"};
 		std::istream_iterator<std::string> b{ss}, e;
-		das.assign(make_iterator_range(b, e));
+		das.assign(view::subrange(b, e));
 
 		EXPECT_EQ(5U, das.size());
 
@@ -248,7 +247,7 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 
 		EXPECT_TRUE(das == copyDest);
 
-		copyDest.assign(make_iterator_range(das.cbegin(), das.cbegin() + 1));
+		copyDest.assign(view::subrange(das.cbegin(), das.cbegin() + 1));
 
 		EXPECT_EQ(1U, copyDest.size());
 		EXPECT_EQ(das[0], copyDest[0]);
@@ -286,7 +285,7 @@ TEST_F(dynarrayTest, append)
 
 		double const TEST_VAL = 6.6;
 		dest.append(2, TEST_VAL);
-		dest.append( make_iterator_range(dest.begin(), dest.end()) );
+		dest.append( view::subrange(dest.begin(), dest.end()) );
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
 			EXPECT_EQ(TEST_VAL, d);

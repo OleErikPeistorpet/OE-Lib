@@ -90,7 +90,7 @@ TEST(rangeTest, viewTransform)
 			return i * i;
 		}
 	};
-	auto r = oel::make_iterator_range(std::begin(src), std::end(src));
+	auto r = view::subrange(std::begin(src), std::end(src));
 	oel::dynarray<int> test( view::transform(r, Fun{}) );
 	EXPECT_EQ(2U, test.size());
 	EXPECT_EQ(4, test[0]);
