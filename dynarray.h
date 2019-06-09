@@ -366,9 +366,8 @@ private:
 
 		~_scopedPtr()
 		{
-			auto && a = this->Get();
 			if (data)
-				_allocateWrap::Deallocate(a, data, allocEnd - data);
+				_allocateWrap::Deallocate(this->Get(), data, allocEnd - data);
 		}
 
 		void Swap(_internBase & other)

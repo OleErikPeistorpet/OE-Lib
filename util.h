@@ -106,8 +106,7 @@ auto adl_end(Range & r) -> decltype(end(r)) { return end(r); }
 
 namespace _detail
 {
-	template< typename T,
-		bool = std::is_empty<T>::value and std::is_default_constructible<T>::value >
+	template< typename T, bool = std::is_empty<T>::value >
 	struct RefOptimizeEmpty
 	{
 		T & _ref;
@@ -117,10 +116,11 @@ namespace _detail
 
 	template<typename T>
 	struct RefOptimizeEmpty<T, true>
+	 :	private T
 	{
-		OEL_ALWAYS_INLINE RefOptimizeEmpty(T &) {}
+		RefOptimizeEmpty(T & ob) : T(ob) {}
 
-		T Get() noexcept { return T{}; }
+		T & Get() noexcept { return *this; }
 	};
 
 
