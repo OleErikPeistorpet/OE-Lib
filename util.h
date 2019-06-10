@@ -116,7 +116,7 @@ namespace _detail
 
 	template<typename T>
 	struct RefOptimizeEmpty<T, true>
-	 :	private T
+	 :	protected T
 	{
 		RefOptimizeEmpty(T & ob) : T(ob) {}
 

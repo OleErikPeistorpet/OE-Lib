@@ -326,18 +326,18 @@ private:
 		using _internBase::end;
 		using _internBase::reservEnd;
 
-		constexpr _memOwner(const Alloc & a)
-		 :	_internBase(), Alloc(a) {
+		constexpr _memOwner(const allocator_type & a)
+		 :	_internBase(), allocator_type(a) {
 		}
-		_memOwner(const Alloc & a, size_type const capacity)
-		 :	Alloc(a)
+		_memOwner(const allocator_type & a, size_type const capacity)
+		 :	allocator_type(a)
 		{
 			end = data = _allocate(*this, capacity);
 			reservEnd = data + capacity;
 		}
 
 		_memOwner(_memOwner && other) noexcept
-		 :	_internBase(other), Alloc(std::move(other))
+		 :	_internBase(other), allocator_type(std::move(other))
 		{
 			other.reservEnd = other.end = other.data = nullptr;
 		}
@@ -356,7 +356,7 @@ private:
 		pointer data;  // owner
 		pointer allocEnd;
 
-		_scopedPtr(Alloc & a, size_type const allocSize)
+		_scopedPtr(allocator_type & a, size_type const allocSize)
 		 :	_scopedPtr::RefOptimizeEmpty{a},
 			data{_allocate(a, allocSize)},
 			allocEnd{data + allocSize} {

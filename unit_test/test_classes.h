@@ -182,6 +182,8 @@ struct TrackingAllocator : TrackingAllocatorBase<T>
 		++AllocCounter::nConstructCalls;
 		new(raw) T(std::forward<Args>(args)...);;
 	}
+
+	using Alloc = void;
 };
 
 template<typename T, bool PropagateOnMoveAssign = false, bool UseConstruct = true>
@@ -200,6 +202,8 @@ struct StatefulAllocator : std::conditional< UseConstruct, TrackingAllocator<T>,
 	template<typename U>
 	friend bool operator!=(StatefulAllocator a, StatefulAllocator<U, PropagateOnMoveAssign, UseConstruct> b)
 	{ return !(a == b); }
+
+	using allocator_type = StatefulAllocator;
 };
 
 
