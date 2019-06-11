@@ -78,26 +78,31 @@ TEST(rangeTest, countedView)
 	EXPECT_TRUE(test.end() == i.end());
 }
 
-#if !defined OEL_NO_BOOST
-
 TEST(rangeTest, viewTransform)
 {
+	{
+		using Elem = oel::dynarray<int>;
+		Elem r[1];
+		auto v = view::transform(r, [](const Elem & c) { return c.size(); });
+		static_assert( sizeof v.begin() == sizeof(Elem *),
+			"Not critical, this assert can be removed" );
+	}
+
 	int src[] { 2, 3 };
 
-	struct Fun
+	struct Square
 	{	int operator()(int i) const
 		{
 			return i * i;
 		}
 	};
 	auto r = view::subrange(std::begin(src), std::end(src));
-	oel::dynarray<int> test( view::transform(r, Fun{}) );
+	oel::dynarray<int> test( view::transform(r, Square{}) );
 	EXPECT_EQ(2U, test.size());
 	EXPECT_EQ(4, test[0]);
 	EXPECT_EQ(9, test[1]);
 
-	auto f = [](int & i) { return i++; };
-	test.append( view::transform(src, std::ref(f)) );
+	test.append( view::transform(src, [](int & i) { return i++; }) );
 	EXPECT_EQ(4U, test.size());
 	EXPECT_EQ(2, test[2]);
 	EXPECT_EQ(3, test[3]);
@@ -112,14 +117,14 @@ TEST(rangeTest, viewTransformAsOutput)
 
 	auto f = [](Pair & p) -> int & { return p.second; };
 	auto v = view::transform(test, std::function<int & (Pair &)>{f});
-	v[0] = -1;
-	v[1] = -2;
+	*v.begin() = -1;
+	v.drop_front();
+	*v.begin() = -2;
 	EXPECT_EQ(1, test[0].first);
 	EXPECT_EQ(3, test[1].first);
 	EXPECT_EQ(-1, test[0].second);
 	EXPECT_EQ(-2, test[1].second);
 }
-#endif
 
 TEST(rangeTest, copyUnsafe)
 {

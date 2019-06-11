@@ -45,10 +45,10 @@ class dynarray_iterator
 public:
 	using iterator_category = std::random_access_iterator_tag;
 
+	using difference_type = typename _ptrTrait::difference_type;
 	using value_type      = ValT;
 	using pointer         = Ptr;
 	using reference       = decltype(*std::declval<Ptr>());
-	using difference_type = typename _ptrTrait::difference_type;
 
 	using const_iterator = dynarray_iterator<typename _ptrTrait::template rebind<ValT const>, ValT>;
 

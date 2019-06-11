@@ -7,17 +7,15 @@
 
 
 #include "util.h"
-
-#ifndef OEL_NO_BOOST
-#include <boost/iterator/transform_iterator.hpp>
-#endif
+#include "auxi/transform_iterator.h"
 
 
 /** @file
 * @brief A view is a lightweight wrapper of a sequence of elements. Views do not mutate or
 *	copy the underlying sequence on construction, and have non-owning reference semantics.
 *
-* Try the Range v3 library for a much more comprehensive suite
+* These are mostly intended as input for dynarray and the oel::copy functions, although counted_view
+* and iterator_range are typically better alternatives to taking containers by reference
 */
 
 namespace oel
@@ -134,18 +132,21 @@ template<typename InputRange>  inline
 auto move(InputRange & r)     { return _detail::Move(r, int{}); }
 
 
-#ifndef OEL_NO_BOOST
-	/** @brief Create a view with boost::transform_iterator from a range with size() member or an array
-	*
-	* Similar to boost::adaptors::transform, but can be more efficient because it stores just one iterator.
-	* Note that passing an rvalue range should result in a compile error. Use a named variable. */
-	template<typename UnaryFunc, typename SizedRange>
-	auto transform(SizedRange & r, UnaryFunc f)
-	->	counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
-		{
-			return {boost::make_transform_iterator(begin(r), f), oel::ssize(r)};
-		}
-#endif
+/** @brief Create a view with transform_iterator from a range with size() member or an array
+@code
+std::bitset<8> arr[] { 3, 5, 7, 11 };
+dynarray<std::string> result;
+result.append( view::transform(arr, [](const auto & bs) { return bs.to_string(); }) );
+@endcode
+* Similar to boost::adaptors::transform, but supports lambdas directly. Also more efficient because
+* it stores just one iterator and has no size overhead for empty UnaryFunc. <br>
+* Note that passing an rvalue range should result in a compile error. Use a named variable. */
+template<typename UnaryFunc, typename SizedRange>
+auto transform(SizedRange & r, UnaryFunc f)
+->	counted_view< transform_iterator<UnaryFunc, decltype(begin(r))> >
+	{
+		return { {f, begin(r)}, oel::ssize(r) };
+	}
 }
 
 
