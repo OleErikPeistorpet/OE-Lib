@@ -2,8 +2,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "throw_from_assert.h"
-
 #include "test_classes.h"
+
 #include "range_view.h"
 #include "dynarray.h"
 
@@ -317,6 +317,21 @@ TEST_F(dynarrayTest, append)
 	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
 }
 
+#if defined _CPPUNWIND or defined __EXCEPTIONS
+TEST_F(dynarrayTest, appendSizeOverflow)
+{
+	dynarray<char> c(1);
+	try
+	{	c.append((size_t)-1, '\0');
+		EXPECT_TRUE(false);
+	}
+	catch (std::bad_alloc &)
+	{}
+	catch (std::length_error &)
+	{}
+}
+#endif
+
 #if !defined __GLIBCXX__ or defined __EXCEPTIONS
 TEST_F(dynarrayTest, appendNonForwardRange)
 {
@@ -325,13 +340,13 @@ TEST_F(dynarrayTest, appendNonForwardRange)
 
 		dynarrayTrackingAlloc<int> dest;
 
-		std::istream_iterator<int> it(ss);
+		std::istream_iterator<int> it(ss), end{};
 
 		it = dest.append(view::counted(it, 2));
 
-		dest.append(view::counted(it, 2));
+		dest.append(view::subrange(it, end));
 
-		for (int i = 0; i < ssize(dest); ++i)
+		for (int i = 0; i < 5; ++i)
 			EXPECT_EQ(i + 1, dest[i]);
 	}
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
