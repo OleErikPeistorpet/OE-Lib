@@ -13,7 +13,7 @@
 /** @file
 * @brief specify_trivial_relocate for user classes, error handling macros, forward declarations
 *
-* Notably provides a forward declaration of dynarray
+* Notably provides forward declarations of oel::array and dynarray
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
@@ -71,6 +71,8 @@ class dynarray;
 #ifdef OEL_DYNARRAY_IN_DEBUG
 }
 #endif
+
+template< typename T > class array;
 
 
 

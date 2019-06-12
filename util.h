@@ -8,15 +8,24 @@
 
 #include "auxi/type_traits.h"
 #include "auxi/contiguous_iterator_to_ptr.h"
-#include "make_unique.h"
 
 
 /** @file
-* @brief Contains as_signed/as_unsigned, index_valid, ssize, deref_args and more
+* @brief Contains make_unique, as_signed/as_unsigned, index_valid, ssize, deref_args and more
 */
 
 namespace oel
 {
+
+/** @brief Same as std::make_unique, but performs list-initialization `T{...}` if there is no matching constructor
+*
+* (Works for aggregates.) http://open-std.org/JTC1/SC22/WG21/docs/papers/2015/n4462.html  */
+template< typename T, typename... Args,
+          typename = enable_if< !std::is_array<T>::value >
+>
+std::unique_ptr<T> make_unique(Args &&... args);
+
+
 
 //! Passed val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template< typename T >  OEL_ALWAYS_INLINE
@@ -31,13 +40,13 @@ constexpr typename std::make_unsigned<T>::type
 //! Returns r.size() as signed type (same as std::ssize in C++20)
 template< typename SizedRange >  OEL_ALWAYS_INLINE
 constexpr auto ssize(const SizedRange & r)
-->	common_type<std::ptrdiff_t, decltype( as_signed(r.size()) )>
+->	common_type<ptrdiff_t, decltype( as_signed(r.size()) )>
 	{
-		return static_cast< common_type<std::ptrdiff_t, decltype( as_signed(r.size()) )> >(r.size());
+		return static_cast< common_type<ptrdiff_t, decltype( as_signed(r.size()) )> >(r.size());
 	}
 //! Returns number of elements in array as signed type
-template< typename T, std::ptrdiff_t Size >  OEL_ALWAYS_INLINE
-constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
+template< typename T, ptrdiff_t Size >  OEL_ALWAYS_INLINE
+constexpr ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
 /** @brief Check if index is valid (can be used with operator[]) for array or other container-like object
@@ -122,6 +131,20 @@ namespace _detail
 
 
 
+	template< typename T, typename... Args >
+	inline T * New(std::true_type, Args &&... args)
+	{
+		return new T(static_cast<Args &&>(args)...);
+	}
+
+	template< typename T, typename... Args >
+	inline T * New(std::false_type, Args &&... args)
+	{
+		return new T{static_cast<Args &&>(args)...};
+	}
+
+
+
 	using BigUint =
 	#if ULONG_MAX > UINT_MAX
 		unsigned long;
@@ -150,4 +173,12 @@ constexpr bool oel::index_valid(const SizedRange & r, Integral index)
 	using T = decltype(oel::ssize(r));
 	using NeitherIsBig = bool_constant<sizeof(T) < sizeof(_detail::BigUint) and sizeof index < sizeof(_detail::BigUint)>;
 	return _detail::IndexValid(as_unsigned(oel::ssize(r)), index, NeitherIsBig{});
+}
+
+
+template< typename T, typename... Args, typename >
+inline std::unique_ptr<T>  oel::make_unique(Args &&... args)
+{
+	T * p = _detail::New<T>(std::is_constructible<T, Args...>(), static_cast<Args &&>(args)...);
+	return std::unique_ptr<T>(p);
 }

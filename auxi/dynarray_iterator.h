@@ -205,18 +205,26 @@ auto to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 
 namespace _detail
 {
-	template< typename T, typename Ptr >
-	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr const pos, T *const block, const void * parent) noexcept
+	template< typename Ptr >
+	struct MakeDynarrayIterator
 	{
-		if (block)
+		template< typename T >
+		dynarray_iterator<Ptr, T> operator()(Ptr const pos, T *const block, const void * parent) const noexcept
 		{
-			const auto * h = OEL_DEBUG_HEADER_OF(block);
-			return {pos, h, h->id};
+		#if OEL_MEM_BOUND_DEBUG_LVL
+			if (block)
+			{
+				const auto * h = OEL_DEBUG_HEADER_OF(block);
+				return {pos, h, h->id};
+			}
+			else
+			{	return {pos, &_detail::headerNoAllocation, reinterpret_cast<std::uintptr_t>(parent)};
+			}
+		#else
+			return pos;
+		#endif
 		}
-		else
-		{	return {pos, &_detail::headerNoAllocation, reinterpret_cast<std::uintptr_t>(parent)};
-		}
-	}
+	};
 }
 
 } // namespace oel
