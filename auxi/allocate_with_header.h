@@ -88,6 +88,16 @@ namespace _detail
 		}
 	#endif
 	};
+
+////////////////////////////////////////////////////////////////////////////////
+
+	template<typename Pointer>
+	struct DynarrBase
+	{
+		Pointer data;
+		Pointer end;
+		Pointer reservEnd;
+	};
 }
 
 } // namespace oel

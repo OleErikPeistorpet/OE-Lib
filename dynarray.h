@@ -322,9 +322,9 @@ private:
 	template<typename> // template to allow constexpr constructor when Alloc copy constructor is not constexpr
 	struct _memOwner : public _internBase, public Alloc
 	{
-		using _internBase::data; // owning pointer
-		using _internBase::end;
-		using _internBase::reservEnd;
+		using _internBase::data;   // Owning pointer to beginning of data buffer
+		using _internBase::end;       // Pointer to one past the back object
+		using _internBase::reservEnd; // Pointer to end of allocated memory
 
 		constexpr _memOwner(const allocator_type & a)
 		 :	_internBase(), allocator_type(a) {
@@ -1112,16 +1112,5 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 #ifdef OEL_DYNARRAY_IN_DEBUG
 }
 #endif
-
-namespace _detail
-{
-	template<typename Pointer>
-	struct DynarrBase
-	{
-		Pointer data;      // Pointer to beginning of data buffer
-		Pointer end;       // Pointer to one past the back object
-		Pointer reservEnd; // Pointer to end of allocated memory
-	};
-}
 
 } // namespace oel

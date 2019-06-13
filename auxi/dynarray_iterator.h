@@ -199,15 +199,4 @@ typename std::pointer_traits<Ptr>::element_type *
 	return _detail::ToAddress(it._pElem);
 }
 
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-
-namespace _detail
-{
-	template<typename> struct DynarrBase;
-}
-
 } // namespace oel
