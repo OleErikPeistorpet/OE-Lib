@@ -74,11 +74,11 @@ namespace _detail
 	{	// T constructible from Args
 		::new(p) T(static_cast<Args &&>(args)...);
 	}
-	// list-initialization
+
 	template<typename T, typename Alloc, typename... Args>
 	inline void ConstructImpl(std::false_type, Alloc &, void *__restrict p, Args &&... args)
 	{
-		::new(p) T{static_cast<Args &&>(args)...};
+		::new(p) T{static_cast<Args &&>(args)...}; // list-initialization
 	}
 
 	template<typename Alloc, typename T, typename... Args>
@@ -109,14 +109,14 @@ namespace _detail
 
 	template<typename Alloc, typename InputIter, typename T,
 	         enable_if< not can_memmove_with<T *, InputIter>::value > = 0>
-	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc)
+	InputIter UninitCopy(InputIter src, T *__restrict dest, T *const dLast, Alloc & allo)
 	{
 		T *const dFirst = dest;
 		OEL_TRY_
 		{
 			while (dest != dLast)
 			{
-				_detail::Construct(alloc, dest, *src);
+				_detail::Construct(allo, dest, *src);
 				++src; ++dest;
 			}
 		}
@@ -138,13 +138,13 @@ namespace _detail
 
 		template<typename T, typename... Args,
 		         enable_if< !IsByte<T>::value > = 0>
-		void operator()(T * first, T *const last, Alloc & alloc, const Args &... args) const
+		void operator()(T *__restrict first, T *const last, Alloc & allo, const Args &... args) const
 		{
 			T *const init = first;
 			OEL_TRY_
 			{
 				for (; first != last; ++first)
-					_detail::Construct(alloc, first, args...);
+					_detail::Construct(allo, first, args...);
 			}
 			OEL_CATCH_ALL
 			{
