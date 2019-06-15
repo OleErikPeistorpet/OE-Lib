@@ -680,7 +680,7 @@ TEST_F(dynarrayTest, eraseUnstable)
 #if __cpp_aligned_new >= 201606 or !defined(OEL_NO_BOOST)
 TEST_F(dynarrayTest, overAligned)
 {
-	unsigned int const testAlignment = 32;
+	static unsigned int const testAlignment = 32;
 	struct Type
 	{	oel::aligned_storage_t<testAlignment, testAlignment> a;
 	};

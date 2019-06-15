@@ -72,7 +72,6 @@ oel::false_type specify_trivial_relocate(MoveOnly);
 class TrivialRelocat : public MyCounter
 {
 	double val;
-	short unused;
 
 public:
 	explicit TrivialRelocat(double v) noexcept

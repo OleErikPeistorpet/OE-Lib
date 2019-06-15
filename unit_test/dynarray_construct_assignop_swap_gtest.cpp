@@ -49,8 +49,6 @@ protected:
 
 namespace
 {
-dynarray<int> shouldGetStaticInit;
-
 struct NonConstexprAlloc : oel::allocator<int>
 {
 	NonConstexprAlloc() {}
@@ -631,7 +629,7 @@ TEST_F(dynarrayConstructTest, swapUnequal)
 #if defined _CPPUNWIND or defined __EXCEPTIONS
 	EXPECT_THROW( swap(one, two), std::logic_error );
 #else
-	EXPECT_DEATH( swap(one, two), "" );
+	ASSERT_DEATH( swap(one, two), "" );
 #endif
 }
 #endif

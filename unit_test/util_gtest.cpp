@@ -30,9 +30,8 @@ namespace
 	static_assert( !oel::is_trivially_copyable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
 
 	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
-	static_assert(alignof(oel::aligned_storage_t<64, 64>) == 64, "?");
 
-	struct alignas(32) Foo { char a[20]; };
+	struct alignas(32) Foo { int a[24]; };
 	static_assert(alignof(oel::aligned_union_t<Foo>) == 32, "?");
 
 	static_assert(!oel::can_memmove_with< int *, float * >::value, "?");
@@ -51,11 +50,11 @@ struct DummyRange
 
 TEST(utilTest, ssize)
 {
-	auto test  = oel::ssize(DummyRange<unsigned short>{});
-	auto test2 = oel::ssize(DummyRange<std::uintmax_t>{});
+	using test  = decltype( oel::ssize(DummyRange<unsigned short>{0}) );
+	using test2 = decltype( oel::ssize(DummyRange<std::uintmax_t>{0}) );
 
-	static_assert(std::is_same<decltype(test), std::ptrdiff_t>::value, "?");
-	static_assert(std::is_same<decltype(test2), std::intmax_t>::value, "?");
+	static_assert(std::is_same<test, std::ptrdiff_t>::value, "?");
+	static_assert(std::is_same<test2, std::intmax_t>::value, "?");
 }
 
 TEST(utilTest, indexValid)

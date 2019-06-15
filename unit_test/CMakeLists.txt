@@ -53,10 +53,19 @@ add_executable(oel-test
 	gtest_mem_main.cpp
 	range_algo_gtest.cpp
 	util_gtest.cpp
+	incl_dynarray.cpp
+	incl_make_unique.cpp
+	incl_range_algo.cpp
+	incl_range_view.cpp
+	incl_util.cpp
 )
 
 target_include_directories(oel-test PRIVATE
 	${CMAKE_SOURCE_DIR}/..
 )
+
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+	target_compile_options(oel-test PRIVATE -Wall -Wextra)
+endif()
 
 target_link_libraries(oel-test gtest_main)

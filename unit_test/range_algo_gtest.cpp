@@ -84,6 +84,8 @@ TEST(rangeTest, viewTransform)
 		using Elem = oel::dynarray<int>;
 		Elem r[1];
 		auto v = view::transform(r, [](const Elem & c) { return c.size(); });
+		static_assert( std::is_same< decltype(v.begin())::iterator_category, std::forward_iterator_tag >{},
+			"Wrong for current implementation" );
 		static_assert( sizeof v.begin() == sizeof(Elem *),
 			"Not critical, this assert can be removed" );
 	}
