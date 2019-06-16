@@ -438,12 +438,6 @@ private:
 		(void) a;
 	}
 
-#ifdef __GNUC__
-	#pragma GCC diagnostic push
-	#if __GNUC__ >= 8
-	#pragma GCC diagnostic ignored "-Wclass-memaccess"
-	#endif
-#endif
 
 	void _initPostAllocate(const T * src)
 	{
@@ -477,6 +471,12 @@ private:
 		return oel_max(c + c / 2, newSize);
 	}
 
+#ifdef __GNUC__
+	#pragma GCC diagnostic push
+	#if __GNUC__ >= 8
+	#pragma GCC diagnostic ignored "-Wclass-memaccess"
+	#endif
+#endif
 
 	T * _relocateImpl(T *__restrict dest, size_type, false_type) const noexcept
 	{
@@ -544,9 +544,7 @@ private:
 	{
 		_debugSizeUpdater guard{_m};
 
-		T *const ptr = to_pointer_contiguous(pos);
-		OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
-
+		T *const ptr = std::addressof(*pos);
 		ptr-> ~T();
 		--_m.end;
 		auto mem = reinterpret_cast<aligned_union_t<T> *>(ptr);

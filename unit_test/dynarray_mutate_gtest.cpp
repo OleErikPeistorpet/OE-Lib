@@ -642,9 +642,9 @@ TEST_F(dynarrayTest, eraseToEnd)
 	EXPECT_EQ(4U, li.size());
 }
 
-TEST_F(dynarrayTest, eraseUnstable)
-{
 #if OEL_MEM_BOUND_DEBUG_LVL
+TEST_F(dynarrayTest, erasePrecondCheck)
+{
 	dynarray<int> di{-2};
 
 	OEL_WHEN_EXCEPTIONS_ON(
@@ -652,9 +652,13 @@ TEST_F(dynarrayTest, eraseUnstable)
 	)
 	OEL_WHEN_EXCEPTIONS_ON(
 		auto copy = di;
-		EXPECT_THROW(copy.erase_unstable(di.begin()), std::logic_error);
+		EXPECT_THROW(copy.erase(di.begin()), std::logic_error);
 	)
+}
 #endif
+
+TEST_F(dynarrayTest, eraseUnstable)
+{
 	{
 		dynarray<MoveOnly> d;
 		d.emplace_back(1);
