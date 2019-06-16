@@ -11,7 +11,7 @@
 #if !defined(OEL_NO_BOOST) and __cpp_aligned_new < 201606
 #include <boost/align/aligned_alloc.hpp>
 #endif
-#include <cstddef> // for max_align_t
+#include <stddef.h> // for max_align_t
 #include <limits>
 
 
@@ -39,9 +39,9 @@ struct allocator
 	constexpr allocator(const allocator<U> &) noexcept {}
 
 	template<typename U>
-	friend bool operator==(allocator<T>, allocator<U>) noexcept { return true; }
+	friend bool operator==(allocator, allocator<U>) noexcept { return true; }
 	template<typename U>
-	friend bool operator!=(allocator<T>, allocator<U>) noexcept { return false; }
+	friend bool operator!=(allocator, allocator<U>) noexcept { return false; }
 };
 
 
@@ -78,7 +78,7 @@ namespace _detail
 		#elif _WIN64 or defined __x86_64__ // then assuming 16 byte aligned from operator new
 			Align <= 16
 		#else
-			Align <= alignof(std::max_align_t)
+			Align <= alignof(::max_align_t)
 		#endif
 		>;
 

@@ -9,8 +9,8 @@ Features relocation optimizations similar to Folly fbvector and UnrealEngine TAr
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
 Supported compilers:
-* Visual Studio 2015 and greater
-* GCC 4.9 and greater
+* Visual Studio 2015 and later
+* GCC 4.8, or 4.9 for over-aligned memory
 * Clang is tested regularly (Travis CI), but minimum version is unknown
 
 ### Visual Studio specific
