@@ -749,17 +749,47 @@ private:
 		}
 	}
 
+/*
+	template<typename U>
+	using _fastPassByValue = bool_constant< is_trivially_copyable<U>::value and sizeof(U) <= 2 * sizeof(int) >;
+
+	template<typename... Args, enable_if< all_<_fastPassByValue<Args>...>::value > = 0>
+	void _emplaceBackRealloc(Args... args)
+	{
+		_realloc(_calcCapAddOne(), size());
+		_detail::Construct<Alloc>(_m, _m.end, args...);
+	}
+
+	template<typename... Args, enable_if< !all_<_fastPassByValue<Args>...>::value > = 0> */
 	template<typename... Args>
 	void _emplaceBackRealloc(Args &&... args)
 	{
-		_scopedPtr newBuf{_m, _calcCapAddOne()};
+		OEL_CONST_COND if (is_trivially_relocatable<T>::value and _detail::AllocHasReallocate<Alloc>::value)
+		{
+			// Temporary in case source is an element of this dynarray
+			aligned_union_t<T> tmp;
+			_detail::Construct<Alloc>(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+			OEL_TRY_
+			{
+				_realloc(_calcCapAddOne(), size());
+			}
+			OEL_CATCH_ALL
+			{
+				reinterpret_cast<T &>(tmp).~T();
+				OEL_WHEN_EXCEPTIONS_ON(throw);
+			}
+			std::memcpy(_m.end, &tmp, sizeof(T));
+		}
+		else
+		{	_scopedPtr newBuf{_m, _calcCapAddOne()};
 
-		T *const pos = newBuf.data + size();
-		_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
-		_relocateData(newBuf.data, size(), is_trivially_relocatable<T>());
+			T *const pos = newBuf.data + size();
+			_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
+			_relocateData(newBuf.data, size(), is_trivially_relocatable<T>());
 
-		_m.end = pos;
-		newBuf.Swap(_m);
+			_m.end = pos;
+			newBuf.Swap(_m);
+		}
 	}
 
 
