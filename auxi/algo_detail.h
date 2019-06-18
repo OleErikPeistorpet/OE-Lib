@@ -102,9 +102,11 @@ namespace _detail
 
 	template<typename Alloc, typename ContiguousIter, typename T,
 	         enable_if< can_memmove_with<T *, ContiguousIter>::value > = 0>
-	inline void UninitCopy(ContiguousIter src, T * dFirst, T * dLast, Alloc &)
+	inline ContiguousIter UninitCopy(ContiguousIter const src, T *__restrict dFirst, T *const dLast, Alloc &)
 	{
-		_detail::MemcpyCheck(src, dLast - dFirst, dFirst);
+		auto const n = dLast - dFirst;
+		_detail::MemcpyCheck(src, n, dFirst);
+		return src + n;
 	}
 
 	template<typename Alloc, typename InputIter, typename T,
@@ -123,7 +125,7 @@ namespace _detail
 		OEL_CATCH_ALL
 		{
 			_detail::Destroy(dFirst, dest);
-			OEL_WHEN_EXCEPTIONS_ON(throw);
+			OEL_RETHROW;
 		}
 		return src;
 	}
@@ -149,7 +151,7 @@ namespace _detail
 			OEL_CATCH_ALL
 			{
 				_detail::Destroy(init, first);
-				OEL_WHEN_EXCEPTIONS_ON(throw);
+				OEL_RETHROW;
 			}
 		}
 

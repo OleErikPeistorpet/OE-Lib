@@ -38,8 +38,8 @@ static_assert( !oel::is_always_equal<throwingAlloc<int>>::value, "?" );
 class dynarrayTest : public ::testing::Test
 {
 protected:
-	dynarrayTest()
-	{
+	~dynarrayTest()
+	{	// Must do clear of the static map after tests to avoid false leak detections
 		AllocCounter::ClearAll();
 		MyCounter::ClearCount();
 	}
@@ -57,19 +57,19 @@ TEST_F(dynarrayTest, pushBack)
 		up.push_back(MoveOnly{VALUES[0]});
 		ASSERT_EQ(1U, up.size());
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( up.emplace_back(), TestException );
 		ASSERT_EQ(1U, up.size());
-	)
+	#endif
 		up.push_back(MoveOnly{VALUES[1]});
 		ASSERT_EQ(2U, up.size());
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( up.emplace_back(), TestException );
 		ASSERT_EQ(2U, up.size());
-	)
+	#endif
 		up.push_back( std::move(up.back()) );
 		ASSERT_EQ(3U, up.size());
 
@@ -104,7 +104,7 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		ASSERT_EQ(2U, da.size());
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		TrivialRelocat::countToThrowOn = 1;
 		try
 		{
@@ -118,19 +118,19 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		}
 		ASSERT_EQ(expected.size(), da.size());
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
-	)
+	#endif
 		da.emplace_back(VALUES[3]);
 		expected.emplace_back(VALUES[3]);
 		ASSERT_EQ(expected.size(), da.size());
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		TrivialRelocat::countToThrowOn = 0;
 		EXPECT_THROW( da.push_back(TrivialRelocat{0}), TestException );
 		ASSERT_EQ(expected.size(), da.size());
-	)
+	#endif
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		TrivialRelocat::countToThrowOn = 3;
 		try
 		{
@@ -143,7 +143,7 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		catch (TestException &) {
 		}
 		ASSERT_EQ(expected.size(), da.size());
-	)
+	#endif
 		EXPECT_TRUE( std::equal(begin(da), end(da), begin(expected)) );
 	}
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
@@ -151,7 +151,6 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 
 TEST_F(dynarrayTest, assign)
 {
-	MoveOnly::ClearCount();
 	{
 		double const VALUES[] = {-1.1, 0.4};
 		MoveOnly src[] { MoveOnly{VALUES[0]},
@@ -168,11 +167,13 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
+}
 
-	TrivialRelocat::ClearCount();
+TEST_F(dynarrayTest, assignTrivialReloc)
+{
 	{
 		dynarray<TrivialRelocat> dest;
-		OEL_WHEN_EXCEPTIONS_ON(
+		#if OEL_HAS_EXCEPTIONS
 		{
 			TrivialRelocat obj{0};
 			TrivialRelocat::countToThrowOn = 0;
@@ -180,7 +181,8 @@ TEST_F(dynarrayTest, assign)
 				dest.assign(view::counted(&obj, 1)),
 				TestException );
 			EXPECT_TRUE(dest.begin() == dest.end());
-		} )
+		}
+		#endif
 		EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 
 		dest = {TrivialRelocat{-1.0}};
@@ -189,7 +191,7 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(1.0, *dest.at(0));
 		EXPECT_EQ(2.0, *dest.at(1));
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(dest), TrivialRelocat::nDestruct);
-		OEL_WHEN_EXCEPTIONS_ON(
+		#if OEL_HAS_EXCEPTIONS
 		{
 			TrivialRelocat obj{0};
 			TrivialRelocat::countToThrowOn = 0;
@@ -197,27 +199,29 @@ TEST_F(dynarrayTest, assign)
 				dest.assign(view::subrange(&obj, &obj + 1)),
 				TestException );
 			EXPECT_TRUE(dest.empty() or *dest.at(1) == 2.0);
-		} )
+		}
+		#endif
 		{
 			dest.clear();
 			EXPECT_LE(2U, dest.capacity());
 			EXPECT_TRUE(dest.empty());
 
-		OEL_WHEN_EXCEPTIONS_ON(
+		#if OEL_HAS_EXCEPTIONS
 			TrivialRelocat obj{0};
 			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
 				dest.assign(view::counted(&obj, 1)),
 				TestException );
 			EXPECT_TRUE(dest.empty());
-		)
+		#endif
 		}
 	}
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 }
 
 // std::stringstream doesn't seem to work using libstdc++ with -fno-exceptions
-#if !defined __GLIBCXX__ or defined __EXCEPTIONS
+// Probably needs a -fno-exceptions build of libstdc++
+#if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, assignNonForwardRange)
 {
 	{
@@ -285,6 +289,7 @@ TEST_F(dynarrayTest, append)
 
 		double const TEST_VAL = 6.6;
 		dest.append(2, TEST_VAL);
+		dest.reserve(2 * dest.size());
 		dest.append( view::subrange(dest.begin(), dest.end()) );
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
@@ -317,21 +322,25 @@ TEST_F(dynarrayTest, append)
 	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
 }
 
-#if !defined __GLIBCXX__ or defined __EXCEPTIONS
+#if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, appendNonForwardRange)
 {
 	{
-		std::stringstream ss("1 2 3 4 5");
+		std::stringstream ss("1 2 3");
 
 		dynarrayTrackingAlloc<int> dest;
 
-		std::istream_iterator<int> it(ss);
+		std::istream_iterator<int> it{ss}, last{};
 
+		it = dest.append(view::counted(it, 0));
 		it = dest.append(view::counted(it, 2));
+		it = dest.append(view::counted(it, 0));
 
-		dest.append(view::counted(it, 2));
+		it = dest.append(view::subrange(it, last));
 
-		for (int i = 0; i < ssize(dest); ++i)
+		EXPECT_EQ(it, last);
+		EXPECT_EQ(3u, dest.size());
+		for (int i = 0; i < 3; ++i)
 			EXPECT_EQ(i + 1, dest[i]);
 	}
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
@@ -394,10 +403,10 @@ TEST_F(dynarrayTest, insertR)
 
 					if (countThrow < ssize(toInsert))
 					{
-					OEL_WHEN_EXCEPTIONS_ON(
+					#if OEL_HAS_EXCEPTIONS
 						TrivialRelocat::countToThrowOn = countThrow;
 						EXPECT_THROW( dest.insert_r(dest.begin() + insertOffset, toInsert), TestException );
-					)
+					#endif
 						EXPECT_TRUE(initSize <= dest.size() and dest.size() <= initSize + countThrow);
 					}
 					else
@@ -440,19 +449,19 @@ TEST_F(dynarrayTest, insert)
 		EXPECT_EQ(VALUES[2], *ptr);
 		ASSERT_EQ(1U, test.size());
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		TrivialRelocat::countToThrowOn = 0;
 		EXPECT_THROW( test.insert(begin(test), TrivialRelocat{0.0}), TestException );
 		ASSERT_EQ(1U, test.size());
-	)
+	#endif
 		test.insert(begin(test), TrivialRelocat{VALUES[0]});
 		ASSERT_EQ(2U, test.size());
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		TrivialRelocat::countToThrowOn = 0;
 		EXPECT_THROW( test.insert(begin(test) + 1, TrivialRelocat{0.0}), TestException );
 		ASSERT_EQ(2U, test.size());
-	)
+	#endif
 		test.emplace(end(test), VALUES[3]);
 		auto & p2 = *test.insert(begin(test) + 1, TrivialRelocat{VALUES[1]});
 		EXPECT_EQ(VALUES[1], *p2);
@@ -485,10 +494,10 @@ TEST_F(dynarrayTest, resize)
 	d.resize(S1);
 	ASSERT_EQ(S1, d.size());
 
-OEL_WHEN_EXCEPTIONS_ON(
+#if OEL_HAS_EXCEPTIONS
 	EXPECT_THROW(d.resize_default_init(d.max_size()), std::bad_alloc);
 	EXPECT_EQ(S1, d.size());
-)
+#endif
 	for (const auto & e : d)
 	{
 		EXPECT_EQ(0, e);
@@ -614,7 +623,6 @@ TEST_F(dynarrayTest, eraseSingle)
 {
 	testErase<int>();
 
-	MoveOnly::ClearCount();
 	testErase<MoveOnly>();
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
@@ -642,18 +650,15 @@ TEST_F(dynarrayTest, eraseToEnd)
 	EXPECT_EQ(4U, li.size());
 }
 
-#if OEL_MEM_BOUND_DEBUG_LVL
+#if OEL_MEM_BOUND_DEBUG_LVL and OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, erasePrecondCheck)
 {
 	dynarray<int> di{-2};
 
-	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW(di.erase_unstable(di.end()), std::logic_error);
-	)
-	OEL_WHEN_EXCEPTIONS_ON(
-		auto copy = di;
-		EXPECT_THROW(copy.erase(di.begin()), std::logic_error);
-	)
+	EXPECT_THROW(di.erase_unstable(di.end()), std::logic_error);
+
+	auto copy = di;
+	EXPECT_THROW(copy.erase(di.begin()), std::logic_error);
 }
 #endif
 
@@ -683,7 +688,7 @@ TEST_F(dynarrayTest, eraseUnstable)
 
 TEST_F(dynarrayTest, overAligned)
 {
-	static unsigned int const testAlignment = 64;
+	constexpr auto testAlignment = oel::_detail::defaultAlign * 2;
 	struct Type
 	{	oel::aligned_storage_t<testAlignment, testAlignment> a;
 	};
@@ -704,13 +709,14 @@ TEST_F(dynarrayTest, overAligned)
 	EXPECT_TRUE(special.capacity() < 3U);
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(special.reserve(special.max_size()), std::bad_alloc); )
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(special.reserve(special.max_size() - 1), std::bad_alloc); )
+#if OEL_HAS_EXCEPTIONS
+	EXPECT_THROW(special.reserve(special.max_size()),     std::bad_alloc);
+	EXPECT_THROW(special.reserve(special.max_size() - 1), std::bad_alloc);
+	EXPECT_THROW(special.reserve(special.max_size() + 1), std::length_error);
+#endif
 }
 
-#if defined _CPPUNWIND or defined __EXCEPTIONS
+#if OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, greaterThanMax)
 {
 	struct Size2
@@ -740,10 +746,10 @@ TEST_F(dynarrayTest, misc)
 	daSrc.insert(begin(daSrc) + 1, 1);
 	ASSERT_EQ(3U, daSrc.size());
 
-OEL_WHEN_EXCEPTIONS_ON(
+#if OEL_HAS_EXCEPTIONS
 	ASSERT_NO_THROW(daSrc.at(2));
 	ASSERT_THROW(daSrc.at(3), std::out_of_range);
-)
+#endif
 	std::deque<size_t> dequeSrc{4, 5};
 
 	dynarray<size_t> dest0;

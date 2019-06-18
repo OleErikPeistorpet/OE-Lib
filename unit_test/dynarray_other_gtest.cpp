@@ -48,6 +48,9 @@ namespace
 
 	static_assert(oel::_detail::AllocHasConstruct< TrackingAllocator<double>, int >::value, "?");
 	static_assert( !oel::_detail::AllocHasConstruct< oel::allocator<double>, int >::value, "?" );
+
+	static_assert(oel::allocator_can_realloc< TrackingAllocator<double> >::value, "?");
+	static_assert(!oel::allocator_can_realloc< oel::allocator<MoveOnly> >::value, "?");
 }
 
 TEST(dynarrayOtherTest, zeroBitRepresentation)
@@ -128,20 +131,20 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 
 		v.emplace_back(-1.0);
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( v.emplace_back(), TestException );
-	)
+	#endif
 		EXPECT_EQ(1, MoveOnly::nConstructions);
 		EXPECT_EQ(0, MoveOnly::nDestruct);
 
 		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
 		v.assign(oel::view::move(arr));
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( v.emplace_back(), TestException );
-	)
+	#endif
 		EXPECT_EQ(2, ssize(v));
 		EXPECT_TRUE(1.0 == *v[0]);
 		EXPECT_TRUE(2.0 == *v[1]);

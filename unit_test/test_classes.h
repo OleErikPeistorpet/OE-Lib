@@ -152,24 +152,39 @@ struct TrackingAllocatorBase : oel::allocator<T>
 
 	using size_type = typename std::allocator_traits<_base>::size_type;
 
-	T * allocate(size_type nElems)
+	T * allocate(size_type count)
 	{
-		auto const p = _base::allocate(nElems);
-		++AllocCounter::nAllocations;
-		AllocCounter::sizeFromPtr[p] = nElems;
+		auto const p = _base::allocate(count);
+		if (p)
+			++AllocCounter::nAllocations;
+
+		AllocCounter::sizeFromPtr[p] = count;
 		return p;
 	}
 
-	void deallocate(T * ptr, size_type nObjects)
+	T * reallocate(T * ptr, size_type count)
 	{
-		++AllocCounter::nDeallocations;
-		// verify that nObjects matches earlier call to allocate
+		if (ptr)
+			++AllocCounter::nDeallocations;
+
+		++AllocCounter::nAllocations;
+		ptr = _base::reallocate(ptr, count);
+		AllocCounter::sizeFromPtr[ptr] = count;
+		return ptr;
+	}
+
+	void deallocate(T * ptr, size_type count)
+	{
+		if (ptr)
+			++AllocCounter::nDeallocations;
+
+		// verify that count matches earlier call to allocate
 		auto it = AllocCounter::sizeFromPtr.find(ptr);
 		ASSERT_TRUE(it != AllocCounter::sizeFromPtr.end());
-		EXPECT_EQ(it->second, nObjects);
+		EXPECT_EQ(it->second, count);
 		AllocCounter::sizeFromPtr.erase(it);
 
-		_base::deallocate(ptr, nObjects);
+		_base::deallocate(ptr, count);
 	}
 };
 
