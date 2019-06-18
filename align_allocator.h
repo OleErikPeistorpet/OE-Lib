@@ -8,21 +8,24 @@
 
 #include "util.h"
 
-#if __cpp_aligned_new < 201606
-#include <cstdint> // for uintptr_t
-#endif
+#include <cstdint>  // for uintptr_t
 #include <stddef.h> // for max_align_t
 
 
 /** @file
 */
 
+#ifndef OEL_NEW_HANDLER
+#define OEL_NEW_HANDLER  !OEL_HAS_EXCEPTIONS
+#endif
+
+
 namespace oel
 {
 
-/** @brief An allocator which aligns the memory to alignof(T)
+/** @brief Automatically handles over-aligned T. Has reallocate method in addition to standard functionality
 *
-* Wraps operator new without overhead when possible. */
+* Either throws std::bad_alloc or calls standard new_handler on failure, depending on value of OEL_NEW_HANDLER  */
 template<typename T>
 struct allocator
 {
@@ -30,8 +33,10 @@ struct allocator
 
 	using propagate_on_container_move_assignment = std::true_type;
 
-	T *  allocate(size_t nElems);
-	void deallocate(T * ptr, size_t) noexcept(nodebug);
+	T *  allocate(size_t count);
+	template< typename T_ = T, typename = enable_if<is_trivially_relocatable<T_>::value> >
+	T *  reallocate(T * ptr, size_t newCount);
+	void deallocate(T * ptr, size_t) noexcept;
 
 	static constexpr size_t max_size()   { return (size_t)-1 / sizeof(T); }
 
@@ -73,91 +78,146 @@ using aligned_union_t = aligned_storage_t<sizeof(T), alignof(T)>;
 namespace _detail
 {
 	template<size_t Align>
-	using CanDefaultNew = bool_constant<
+	using CanDefaultAlloc = bool_constant<
 		#if defined __STDCPP_DEFAULT_NEW_ALIGNMENT__
 			Align <= __STDCPP_DEFAULT_NEW_ALIGNMENT__
-		#elif _WIN64 or defined __x86_64__ // then assuming 16 byte aligned from operator new
+		#elif _WIN64 or defined __x86_64__ // then assuming 16 byte aligned from malloc
 			Align <= 16
 		#else
 			Align <= alignof(::max_align_t)
 		#endif
 		>;
 
-	template<size_t>
-	inline void * OpNew(size_t size, true_type)
-	{
-		return ::operator new(size);
-	}
+	constexpr auto * allocFailMsg = "No memory oel::allocator";
 
-	inline void OpDelete(void * p, size_t, true_type) noexcept
-	{
-		::operator delete(p);
-	}
-
-#if __cpp_aligned_new >= 201606
-	template<size_t Align>
-	inline void * OpNew(size_t size, false_type)
-	{
-		return ::operator new(size, std::align_val_t{Align});
-	}
-
-	inline void OpDelete(void * p, size_t const aligned, false_type) noexcept
-	{
-		::operator delete(p, std::align_val_t{aligned});
-	}
-#else
 	struct BadAlloc
 	{
 		[[noreturn]] static void Throw()
 		{
-			OEL_THROW(std::bad_alloc{}, "Too large size in oel::allocator");
+			OEL_THROW(std::bad_alloc{}, allocFailMsg);
 		}
 	};
+
+	template<size_t>
+	inline void * Malloc(size_t nBytes, true_type) noexcept
+	{
+		return std::malloc(nBytes);
+	}
+
+	template<size_t>
+	inline void * Realloc(void * p, size_t nBytes, true_type) noexcept
+	{
+		return std::realloc(p, nBytes);
+	}
+
+	inline void Free(void * p, true_type) noexcept
+	{
+		std::free(p);
+	}
 
 	template<size_t Align>
 	void * AlignAndStore(void *const orig) noexcept
 	{
-		auto i = reinterpret_cast<std::uintptr_t>(orig) + Align;
-		i &= ~(Align - 1);
-		auto const p = reinterpret_cast<void *>(i);
+		if (orig)
+		{
+			auto i = reinterpret_cast<std::uintptr_t>(orig) + Align;
+			i &= ~(Align - 1);
+			auto const p = reinterpret_cast<void *>(i);
 
-		static_cast<void **>(p)[-1] = orig;
-		return p;
+			static_cast<void **>(p)[-1] = orig;
+			return p;
+		}
+		else
+		{	return orig;
+		}
 	}
 
 	template<size_t Align>
-	void * OpNew(size_t const size, false_type)
+	void * Malloc(size_t nBytes, false_type) noexcept
 	{
-		if (size <= (size_t)-1 - Align) // then size + Align doesn't overflow
-		{
-			void * p = ::operator new(size + Align);
-			return AlignAndStore<Align>(p);
-		}
-		BadAlloc::Throw();
+		void * p = std::malloc(nBytes + Align);
+		return AlignAndStore<Align>(p);
 	}
 
-	inline void OpDelete(void * p, size_t, false_type)
+	template<size_t Align>
+	inline void * Realloc(void * old, size_t nBytes, false_type) noexcept
 	{
-		OEL_ASSERT(p); // OpNew never returns null, and the standard mandates
-		               // a pointer previously obtained from an equal allocator
-		p = static_cast<void **>(p)[-1];
-		::operator delete(p);
+		if (old)
+			old = static_cast<void **>(old)[-1];
+
+		void * p = std::realloc(old, nBytes + Align);
+		return AlignAndStore<Align>(p);
 	}
-#endif
+
+	inline void Free(void * p, false_type) noexcept
+	{
+		if (p)
+		{
+			p = static_cast<void **>(p)[-1];
+			std::free(p);
+		}
+	}
+
+	template<typename AllocFunc>
+	void * AllocAndHandleFail(size_t nBytes, AllocFunc doAlloc)
+	{
+		if (nBytes > 0) // could be removed for known malloc implementations?
+		{
+		#if OEL_NEW_HANDLER
+			for (;;)
+			{
+				void * p = doAlloc(nBytes);
+				if (p)
+					return p;
+
+				auto handler = std::get_new_handler();
+				if (!handler)
+					OEL_ABORT(allocFailMsg);
+
+				(*handler)();
+			}
+		#else
+			void * p = doAlloc(nBytes);
+			if (p)
+				return p;
+			else
+				BadAlloc::Throw();
+		#endif
+		}
+		else
+		{	return nullptr;
+		}
+	}
 }
 
 template<typename T>
-T * allocator<T>::allocate(size_t nElems)
+inline T * allocator<T>::allocate(size_t count)
 {
-	void * p = _detail::OpNew<alignof(T)>
-		(sizeof(T) * nElems, _detail::CanDefaultNew<alignof(T)>());
+	auto f = [](size_t nBytes)
+	{
+		return _detail::Malloc<alignof(T)>
+			(nBytes, _detail::CanDefaultAlloc<alignof(T)>());
+	};
+	void * p = _detail::AllocAndHandleFail(sizeof(T) * count, f);
+	return static_cast<T *>(p);
+}
+
+template<typename T> template<typename, typename>
+inline T * allocator<T>::reallocate(T * old, size_t count)
+{
+	auto f = [old](size_t nBytes)
+	{
+		return _detail::Realloc<alignof(T)>
+			(old, nBytes, _detail::CanDefaultAlloc<alignof(T)>());
+	};
+	void * p = _detail::AllocAndHandleFail(sizeof(T) * count, f);
 	return static_cast<T *>(p);
 }
 
 template<typename T>
-OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept(nodebug)
+OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 {
-	_detail::OpDelete(ptr, alignof(T), _detail::CanDefaultNew<alignof(T)>());
+	_detail::Free(ptr, _detail::CanDefaultAlloc<alignof(T)>());
 }
 
 } // namespace oel

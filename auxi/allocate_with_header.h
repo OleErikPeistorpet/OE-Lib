@@ -41,11 +41,8 @@ namespace _detail
 		static constexpr size_t sizeForHeader = 0;
 	#endif
 
-		static Ptr Allocate(Alloc & a, size_t n)
+		static Ptr _addHeader(const Alloc & a, Ptr p)
 		{
-		#if OEL_MEM_BOUND_DEBUG_LVL
-			n += sizeForHeader;
-			Ptr p = a.allocate(n);
 			p += sizeForHeader;
 
 			auto const h = OEL_DEBUG_HEADER_OF(p);
@@ -53,12 +50,38 @@ namespace _detail
 			new(h) DebugAllocationHeader{reinterpret_cast<std::uintptr_t>(&a) | maxMinBits, 0};
 
 			return p;
+		}
+
+		static Ptr Allocate(Alloc & a, size_t n)
+		{
+		#if OEL_MEM_BOUND_DEBUG_LVL
+			n += sizeForHeader;
+			Ptr p = a.allocate(n);
+			return _addHeader(a, p);
 		#else
 			return a.allocate(n);
 		#endif
 		}
 
-		static void Deallocate(Alloc & a, Ptr p, size_t n)
+		template<typename Alloc_ = Alloc>
+		static auto Realloc(Alloc_ & a, Ptr p, size_t n)
+		->	decltype(a.reallocate(p, n))
+		{
+		#if OEL_MEM_BOUND_DEBUG_LVL
+			if (p)
+			{	// header already present
+				OEL_DEBUG_HEADER_OF(p)->id = 0;
+				p -= sizeForHeader;
+			}
+			n += sizeForHeader;
+			p = a.reallocate(p, n);
+			return _addHeader(a, p);
+		#else
+			return a.reallocate(p, n);
+		#endif
+		}
+
+		static void Deallocate(Alloc & a, Ptr p, size_t n) noexcept
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			OEL_DEBUG_HEADER_OF(p)->id = 0;

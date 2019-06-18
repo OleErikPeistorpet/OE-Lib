@@ -172,9 +172,9 @@ public:
 		noexcept(_allocTrait::propagate_on_container_swap::value or is_always_equal<Alloc>::value);
 	/**
 	* @brief Replace the contents with source range
-	* @param source an array, STL container, iterator_range, gsl::span or such.
+	* @param source An array, STL container, iterator_range, gsl::span or such.
 	* @pre source shall not refer to any elements in this dynarray (same as std::vector::assign)
-	* @return iterator `begin(source)` incremented by the number of elements in source
+	* @return Iterator `begin(source)` incremented by the number of elements in source
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template<typename InputRange>
@@ -184,13 +184,12 @@ public:
 
 	/**
 	* @brief Add at end the elements from source range
-	* @pre Behavior is undefined if all of the following apply: source refers to any elements in this dynarray,
-	*	source.size() does not exist and source does not model forward_range (C++20 concept)
-	* @return `begin(source)` incremented by source size. The iterator is already invalidated (do not dereference) if
-	*	`begin(source)` pointed into this dynarray and there was insufficient capacity to avoid reallocation.
+	* @param source An array, STL container, iterator_range, gsl::span or such.
+	* @pre source shall not refer to any elements in this dynarray (same as std::vector::insert)
+	* @return Iterator `begin(source)` incremented by the number of elements in source
 	*
-	* Passing references to this dynarray is supported. The function is otherwise equivalent to
-	* `std::vector::insert(end(), begin(source), end(source))`, where `end(source)` is not needed if source.size() exists. */
+	* Otherwise equivalent to `std::vector::insert(end(), begin(source), end(source))`,
+	* where `end(source)` is not needed if source.size() exists. */
 	template<typename InputRange>
 	auto append(const InputRange & source) -> iterator_t<InputRange const>;
 	//! Equivalent to `std::vector::insert(end(), il)`
@@ -247,7 +246,7 @@ public:
 
 	size_type size() const noexcept    { return _m.end - _m.data; }
 
-	void      reserve(size_type minCap)   { if (capacity() < minCap) _growTo(minCap); }
+	void      reserve(size_type minCap);
 
 	//! It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
 	void      shrink_to_fit();
@@ -464,7 +463,7 @@ private:
 	#endif
 #endif
 
-	T * _relocateImpl(T *__restrict dest, size_type, false_type) const noexcept
+	T * _relocateData(T *__restrict dest, size_type, false_type) const noexcept
 	{
 		OEL_WHEN_EXCEPTIONS_ON(
 			static_assert(std::is_nothrow_move_constructible<T>::value,
@@ -479,28 +478,32 @@ private:
 		}
 		return dest;
 	}
-
-	T * _relocateImpl(T *const dest, size_type const n, true_type) const noexcept
+	// Returns end of new buffer
+	T * _relocateData(T *const dest, size_type const n, true_type) const noexcept
 	{
 		T * dLast = dest + n;
 		_detail::MemcpyCheck(_m.data, n, dest);
 		return dLast;
 	}
-	// Returns destination end
-	OEL_ALWAYS_INLINE T * _relocateData(T * dest, size_type n)
+
+	template<typename AW = _allocateWrap>
+	void _realloc( size_type const newCap, size_type const oldSize,
+		decltype(AW::Realloc(_m, _m.data, newCap), int()) )
 	{
-		return _relocateImpl(dest, n, is_trivially_relocatable<T>());
+		pointer const p = AW::Realloc(_m, _m.data, newCap);
+		_m.data = p;
+		_m.end = p + oldSize;
+		_m.reservEnd = p + newCap;
 	}
 
-
-	void _growTo(size_type newCap)
+	void _realloc(size_type const newCap, size_type const oldSize, long)
 	{
-		_debugSizeUpdater guard{_m};
-
-		_scopedPtr newBuf{_m, newCap};
-		_m.end = _relocateData(newBuf.data, size());
-		newBuf.Swap(_m);
+		pointer const newData = _allocateWrap::Allocate(_m, newCap);
+		_m.end = _relocateData(newData, oldSize, is_trivially_relocatable<T>());
+		_m.data = newData;
+		_m.reservEnd = newData + newCap;
 	}
+
 
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type const newSize, UninitFillFunc initAdded)
@@ -508,7 +511,7 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		if (capacity() < newSize)
-			_growTo(_calcCap(newSize));
+			_realloc(_calcCap(newSize), size(), int{});
 
 		T *const newEnd = _m.data + newSize;
 		if (_m.end < newEnd)
@@ -718,14 +721,9 @@ private:
 	void _appendRealloc(size_type const count, MakeFuncAppend const makeNew)
 	{
 		size_type const oldSize = size();
-		_scopedPtr newBuf{_m, _calcCap(oldSize + count)};
-
-		T *const pos = newBuf.data + oldSize;
-		makeNew(pos, count, _m);
-		_relocateData(newBuf.data, oldSize);
-
-		_m.end = pos;
-		newBuf.Swap(_m);
+		size_type newCap = _calcCap(oldSize + count);
+		_realloc(newCap, oldSize, int{});
+		makeNew(_m.end, count, _m);
 	}
 
 	template<typename... Args>
@@ -735,7 +733,7 @@ private:
 
 		T *const pos = newBuf.data + size();
 		_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
-		_relocateData(newBuf.data, size());
+		_relocateData(newBuf.data, size(), is_trivially_relocatable<T>());
 
 		_m.end = pos;
 		newBuf.Swap(_m);
@@ -961,22 +959,30 @@ void dynarray<T, Alloc>::swap(dynarray & other)
 
 
 template<typename T, typename Alloc>
+void dynarray<T, Alloc>::reserve(size_type minCap)
+{
+	if (capacity() < minCap)
+	{
+		_debugSizeUpdater guard{_m};
+
+		_realloc(minCap, size(), int{});
+	}
+}
+
+template<typename T, typename Alloc>
 void dynarray<T, Alloc>::shrink_to_fit()
 {
 	_debugSizeUpdater guard{_m};
 
 	size_type const used = size();
-	T * newData;
 	if (0 < used)
 	{
-		newData = _allocateWrap::Allocate(_m, used);
-		_m.end = _relocateData(newData, used);
+		_realloc(used, used, int{});
 	}
 	else
-	{	_m.end = newData = nullptr;
+	{	_resetData(nullptr);
+		_m.reservEnd = _m.end = nullptr;
 	}
-	_resetData(newData); // careful, cannot change _m.reservEnd until after
-	_m.reservEnd = _m.end;
 }
 
 
@@ -993,8 +999,8 @@ template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 {
 	_appendImpl( n,
-		[&val](T * dest, size_type n_, Alloc & a)
-		{
+		[val](T * dest, size_type n_, Alloc & a)
+		{	// captured by value in case val is an element of this
 			_uninitFill{}(dest, dest + n_, a, val);
 		} );
 }
