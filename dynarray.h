@@ -153,7 +153,7 @@ public:
 	dynarray(dynarray && other, const Alloc & a);
 	dynarray(const dynarray & other)                    : dynarray(other,
 	                                                     _allocTrait::select_on_container_copy_construction(other._m)) {}
-	dynarray(const dynarray & other, const Alloc & a)   : _m(a, other.size())
+	dynarray(const dynarray & other, const Alloc & a)   : _m(a, other._m.size)
 	                                                    { _initPostAllocate(other.data()); }
 	~dynarray() noexcept;
 
@@ -240,16 +240,16 @@ public:
 
 	void      clear() noexcept         { erase_to_end(begin()); }
 
-	bool      empty() const noexcept   { return _m.data == _m.end; }
+	bool      empty() const noexcept   { return 0 == _m.size; }
 
-	size_type size() const noexcept    { return _m.end - _m.data; }
+	size_type size() const noexcept   OEL_ALWAYS_INLINE{ return _m.size; }
 
-	void      reserve(size_type minCap)   { if (capacity() < minCap) _growTo(minCap); }
+	void      reserve(size_type minCap)   { if (_m.capacity < minCap) _growTo(minCap); }
 
 	//! It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
 	void      shrink_to_fit();
 
-	size_type capacity() const noexcept   { return _m.reservEnd - _m.data; }
+	size_type capacity() const noexcept   { return _m.capacity; }
 
 	size_type max_size() const noexcept   { return _allocTrait::max_size(_m) - _allocateWrap::sizeForHeader; }
 
@@ -258,13 +258,13 @@ public:
 
 	allocator_type get_allocator() const noexcept  { return _m; }
 
-	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIter<iterator>(_m.data); }
-	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_iterator>(_m.data); }
+	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIt<iterator>(_m.data); }
+	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIt<const_iterator>(_m.data); }
 	const_iterator cbegin() const noexcept   OEL_ALWAYS_INLINE { return begin(); }
 
-	iterator       end() noexcept          OEL_ALWAYS_INLINE { return _makeIter<iterator>(_m.end); }
-	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_iterator>(_m.end); }
-	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
+	iterator       end() noexcept            { return _makeIt<iterator>(_m.data + _m.size); }
+	const_iterator end() const noexcept      { return _makeIt<const_iterator>(_m.data + _m.size); }
+	const_iterator cend() const noexcept     OEL_ALWAYS_INLINE { return end(); }
 
 	reverse_iterator       rbegin() noexcept         OEL_ALWAYS_INLINE { return reverse_iterator{end()}; }
 	const_reverse_iterator rbegin() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
@@ -275,22 +275,22 @@ public:
 	T *             data() noexcept         OEL_ALWAYS_INLINE { return _detail::ToAddress(_m.data); }
 	const T *       data() const noexcept   OEL_ALWAYS_INLINE { return _detail::ToAddress(_m.data); }
 
-	reference       front() noexcept(nodebug)        { return *begin(); }
-	const_reference front() const noexcept(nodebug)  { return *begin(); }
+	reference       front() noexcept(nodebug)        { return (*this)[0]; }
+	const_reference front() const noexcept(nodebug)  { return (*this)[0]; }
 
-	reference       back() noexcept(nodebug)         { return *_makeIter<iterator>(_m.end - 1); }
-	const_reference back() const noexcept(nodebug)   { return *_makeIter<const_iterator>(_m.end - 1); }
+	reference       back() noexcept(nodebug)         { return (*this)[_m.size - 1]; }
+	const_reference back() const noexcept(nodebug)   { return (*this)[_m.size - 1]; }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
 
-	reference       operator[](size_type index) noexcept(nodebug)        { OEL_ASSERT(index < size());
+	reference       operator[](size_type index) noexcept(nodebug)        { OEL_ASSERT(index < _m.size);
 	                                                                       return _m.data[index]; }
-	const_reference operator[](size_type index) const noexcept(nodebug)  { OEL_ASSERT(index < size());
+	const_reference operator[](size_type index) const noexcept(nodebug)  { OEL_ASSERT(index < _m.size);
 	                                                                       return _m.data[index]; }
 	friend bool operator==(const dynarray & left, const dynarray & right)
 		{
-			return left.size() == right.size() and
+			return left._m.size == right._m.size and
 			       std::equal(left.begin(), left.end(), right.begin());
 		}
 	friend bool operator!=(const dynarray & left, const dynarray & right)  { return !(left == right); }
@@ -319,29 +319,31 @@ private:
 	struct _memOwner : public _internBase, public Alloc
 	{
 		using _internBase::data;   // Owning pointer to beginning of data buffer
-		using _internBase::end;       // Pointer to one past the back object
-		using _internBase::reservEnd; // Pointer to end of allocated memory
+		using _internBase::size;
+		using _internBase::capacity;
 
 		constexpr _memOwner(const allocator_type & a)
 		 :	_internBase(), allocator_type(a) {
 		}
-		_memOwner(const allocator_type & a, size_type const capacity)
+		_memOwner(const allocator_type & a, size_type const allocSize)
 		 :	allocator_type(a)
 		{
-			end = data = _allocate(*this, capacity);
-			reservEnd = data + capacity;
+			data = _allocate(*this, allocSize);
+			size = 0;
+			capacity = allocSize;
 		}
 
 		_memOwner(_memOwner && other) noexcept
 		 :	_internBase(other), allocator_type(std::move(other))
 		{
-			other.reservEnd = other.end = other.data = nullptr;
+			other.data = nullptr;
+			other.capacity = other.size = 0;
 		}
 
 		~_memOwner()
 		{
 			if (data)
-				_allocateWrap::Deallocate(*this, data, reservEnd - data);
+				_allocateWrap::Deallocate(*this, data, capacity);
 		}
 	};
 	_memOwner<Alloc> _m; // the only data member
@@ -349,13 +351,13 @@ private:
 
 	struct _scopedPtr : private _detail::RefOptimizeEmpty<Alloc>
 	{
-		pointer data;  // owner
-		pointer allocEnd;
+		pointer   data;  // owner
+		size_type capacity;
 
 		_scopedPtr(allocator_type & a, size_type const allocSize)
 		 :	_scopedPtr::RefOptimizeEmpty{a},
 			data{_allocate(a, allocSize)},
-			allocEnd{data + allocSize} {
+			capacity{allocSize} {
 		}
 
 		_scopedPtr(_scopedPtr &&) = delete;
@@ -363,21 +365,21 @@ private:
 		~_scopedPtr()
 		{
 			if (data)
-				_allocateWrap::Deallocate(this->Get(), data, allocEnd - data);
+				_allocateWrap::Deallocate(this->Get(), data, capacity);
 		}
 
 		void Swap(_internBase & other)
 		{
 			using std::swap;
 			swap(other.data, data);
-			swap(other.reservEnd, allocEnd);
+			swap(other.capacity, capacity);
 		}
 	};
 
 	void _resetData(pointer const newData)
 	{
 		if (_m.data)
-			_allocateWrap::Deallocate(_m, _m.data, capacity());
+			_allocateWrap::Deallocate(_m, _m.data, _m.capacity);
 
 		_m.data = newData;
 	}
@@ -391,7 +393,7 @@ private:
 	}
 
 	template<typename Iterator>
-	Iterator _makeIter(pointer p) const noexcept
+	Iterator _makeIt(pointer p) const noexcept
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (_m.data)
@@ -411,7 +413,8 @@ private:
 	void _moveInternBase(_internBase & src)
 	{
 		static_cast<_internBase &>(_m) = src;
-		src.reservEnd = src.end = src.data = nullptr;
+		src.data = nullptr;
+		src.capacity = src.size = 0;
 	}
 
 	void _moveAssignAlloc(std::true_type, Alloc & src)
@@ -445,14 +448,16 @@ private:
 	{
 		_debugSizeUpdater guard{_m};
 
-		_m.end = _m.reservEnd;
-		_detail::UninitCopy<Alloc>(src, data(), _detail::ToAddress(_m.end), _m);
+		_m.size = _m.capacity;
+		_detail::UninitCopy<Alloc>(src, data(), data() + _m.size, _m);
 	}
 
 
+	pointer _pEnd() const { return _m.data + _m.size; }
+
 	size_type _unusedCapacity() const
 	{
-		return _m.reservEnd - _m.end;
+		return _m.capacity - _m.size;
 	}
 
 	size_type _calcCapAddOne(size_type = 0) const
@@ -460,7 +465,7 @@ private:
 		constexpr auto startBytesGood = oel_max(3 * sizeof(void *), 4 * sizeof(int));
 		constexpr auto minGrow = oel_max<size_t>( startBytesGood / sizeof(T),
 				sizeof(T) <= 8 * sizeof(int) ? 2 : 1 );
-		size_type const c = capacity();
+		size_type const c = _m.capacity;
 		OEL_CONST_COND if (minGrow > 1)
 			return c + oel_max(c / 2, minGrow);
 		else
@@ -469,37 +474,35 @@ private:
 
 	size_type _calcCap(size_type const newSize) const
 	{	// growth factor is 1.5
-		size_type c = capacity();
+		size_type c = _m.capacity;
 		return oel_max(c + c / 2, newSize);
 	}
 
 
-	T * _relocateImpl(T *__restrict dest, size_type, false_type) const noexcept
+	void _relocateImpl(T *__restrict dest, false_type)
 	{
 		OEL_WHEN_EXCEPTIONS_ON(
 			static_assert(std::is_nothrow_move_constructible<T>::value,
 				"Reallocation in dynarray requires that T is noexcept move constructible or trivially relocatable");
 		)
-		T *__restrict src = _m.data;
-		while (src != _m.end)
+		T * src = data();
+		const T * last = src + _m.size;
+		while (src != last)
 		{
 			::new(static_cast<void *>(dest)) T(std::move(*src));
 			src-> ~T();
 			++src; ++dest;
 		}
-		return dest;
 	}
 
-	T * _relocateImpl(T *const dest, size_type const n, true_type) const noexcept
+	void _relocateImpl(T *const dest, true_type)
 	{
-		T * dLast = dest + n;
-		_detail::MemcpyCheck(data(), n, dest);
-		return dLast;
+		_detail::MemcpyCheck(data(), _m.size, dest);
 	}
-	// Returns destination end
-	OEL_ALWAYS_INLINE pointer _relocateData(pointer dest, size_type n)
+
+	void _relocateData(pointer dest)
 	{
-		return _relocateImpl(_detail::ToAddress(dest), n, is_trivially_relocatable<T>());
+		_relocateImpl(_detail::ToAddress(dest), is_trivially_relocatable<T>());
 	}
 
 
@@ -508,7 +511,7 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		_scopedPtr newBuf{_m, newCap};
-		_m.end = _relocateData(newBuf.data, size());
+		_relocateData(newBuf.data);
 		newBuf.Swap(_m);
 	}
 
@@ -517,16 +520,17 @@ private:
 	{	// note: initAdded cannot hold a reference to element of this
 		_debugSizeUpdater guard{_m};
 
-		if (capacity() < newSize)
+		if (_m.capacity < newSize)
 			_growTo(_calcCap(newSize));
 
-		pointer const newEnd = _m.data + newSize;
-		if (_m.end < newEnd)
-			initAdded(_detail::ToAddress(_m.end), _detail::ToAddress(newEnd), _m);
+		T *const oldEnd = data() + _m.size;
+		T *const newEnd = data() + newSize;
+		if (_m.size < newSize)
+			initAdded(oldEnd, newEnd, _m);
 		else
-			_detail::Destroy(newEnd, _m.end);
+			_detail::Destroy(newEnd, oldEnd);
 
-		_m.end = newEnd;
+		_m.size = newSize;
 	}
 
 
@@ -541,12 +545,12 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		T *const ptr = to_pointer_contiguous(pos);
-		OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
+		OEL_ASSERT(data() <= ptr and ptr < data() + _m.size);
 
 		ptr-> ~T();
-		--_m.end;
+		--_m.size;
 		auto mem = reinterpret_cast<aligned_union_t<T> *>(ptr);
-		*mem = *reinterpret_cast<aligned_union_t<T> *>(_detail::ToAddress(_m.end)); // relocate last element to pos
+		*mem = reinterpret_cast<aligned_union_t<T> &>(*_pEnd()); // relocate last element to pos
 	}
 
 	void _erase(iterator const pos, true_type /*trivialRelocate*/)
@@ -554,21 +558,21 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		T *const ptr = to_pointer_contiguous(pos);
-		OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
+		OEL_ASSERT(data() <= ptr and ptr < data() + _m.size);
 
 		ptr-> ~T();
 		T *const next = ptr + 1;
-		std::memmove(ptr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
-		--_m.end;
+		std::memmove(ptr, next, sizeof(T) * (data() + _m.size - next)); // relocate [pos + 1, end) to [pos, end - 1)
+		--_m.size;
 	}
 
 	void _erase(iterator const pos, false_type)
 	{
 		_debugSizeUpdater guard{_m};
 
-		iterator last = std::move(pos + 1, end(), pos);
-		_m.end = to_pointer_contiguous(last);
-		(*_m.end).~T();
+		std::move(pos + 1, end(), pos);
+		--_m.size;
+		(*_pEnd()).~T();
 	}
 
 
@@ -597,16 +601,16 @@ private:
 
 	void _elementwiseMoveImpl(dynarray & src, false_type)
 	{
-		assign(view::move(src._m.data, src._m.end));
+		assign(view::move(src._m.data, src._m.data + src._m.size));
 	}
 
 	void _elementwiseMoveImpl(dynarray & src, true_type /*trivialRelocate*/)
 	{
 		_debugSizeUpdater guard{src._m};
 
-		_detail::Destroy(_m.data, _m.end);
-		_assignImpl(src.begin(), src.size(), true_type{});
-		src._m.end = src._m.data; // elements relocated from src
+		_detail::Destroy(_m.data, _pEnd());
+		_assignImpl(src.begin(), src._m.size, true_type{});
+		src._m.size = 0;  // elements relocated from src
 	}
 
 	void _elementwiseMove(dynarray & src)
@@ -621,14 +625,14 @@ private:
 	{
 		_debugSizeUpdater guard{_m};
 
-		if (capacity() < count)
+		if (_m.capacity < count)
 		{
-			// Deallocating first might be better, but then the _m pointers would have to be nulled in case allocate throws
+			// Deallocating first might be better, but then the _m values would have to be zeroed in case allocate throws
 			_resetData(_allocate(_m, count));
-			_m.end = _m.reservEnd = _m.data + count;
+			_m.size = _m.capacity = count;
 		}
 		else
-		{	_m.end = _m.data + count;
+		{	_m.size = count;
 		}
 		// Not portable. Check for self assignment or use memmove?
 		_detail::MemcpyCheck(first, count, data());
@@ -651,31 +655,31 @@ private:
 			return src_;
 		};
 		pointer newEnd;
-		if (capacity() < count)
+		if (_m.capacity < count)
 		{
 			pointer const newData = _allocate(_m, count);
 			// Old elements might hold some limited resource, destroying them before constructing new is probably good
-			_detail::Destroy(_m.data, _m.end);
+			_detail::Destroy(_m.data, _pEnd());
 			_resetData(newData);
-			_m.end = newData;
-			_m.reservEnd = newData + count;
-			newEnd = _m.reservEnd;
+			_m.size = 0;
+			_m.capacity = count;
+			newEnd = newData + count;
 		}
 		else
 		{	newEnd = _m.data + count;
-			if (newEnd < _m.end)
+			if (newEnd < _pEnd())
 			{	// downsizing, assign new and destroy rest
 				src = copy(src, _m.data, newEnd);
-				erase_to_end(_makeIter<iterator>(newEnd));
+				erase_to_end(_makeIt<iterator>(newEnd));
 			}
 			else // assign to old elements as far as we can
-			{	src = copy(src, _m.data, _m.end);
+			{	src = copy(src, _m.data, _pEnd());
 			}
 		}
-		while (_m.end < newEnd)
-		{	// each iteration updates _m.end for exception safety
-			_construct{}(_m, _detail::ToAddress(_m.end), *src);
-			++src; ++_m.end;
+		while (_pEnd() < newEnd)
+		{	// each iteration updates _m.size for exception safety
+			_construct{}(_m, data() + _m.size, *src);
+			++src; ++_m.size;
 		}
 		return src;
 	}
@@ -693,7 +697,7 @@ private:
 	template<typename InputIter, typename Sentinel>
 	InputIter _append(InputIter first, Sentinel const last, false_type)
 	{	// single pass iterator, no size available
-		size_type const oldSize = size();
+		size_type const oldSize = _m.size;
 		OEL_TRY_
 		{
 			for (; first != last; ++first)
@@ -736,11 +740,11 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		if (_unusedCapacity() >= count)
-			makeNew(_detail::ToAddress(_m.end), count, _m);
+			makeNew(data() + _m.size, count, _m);
 		else
 			_appendRealloc(count, makeNew);
 
-		_m.end += count;
+		_m.size += count;
 	}
 
 	template<typename MakeFuncAppend>
@@ -751,14 +755,12 @@ private:
 #endif
 	void _appendRealloc(size_type const count, MakeFuncAppend const makeNew)
 	{
-		size_type const oldSize = size();
-		_scopedPtr newBuf{_m, _calcCap(oldSize + count)};
+		_scopedPtr newBuf{_m, _calcCap(_m.size + count)};
 
-		pointer const pos = newBuf.data + oldSize;
+		pointer const pos = newBuf.data + _m.size;
 		makeNew(_detail::ToAddress(pos), count, _m);
-		_relocateData(newBuf.data, oldSize);
+		_relocateData(newBuf.data);
 
-		_m.end = pos;
 		newBuf.Swap(_m);
 	}
 
@@ -767,11 +769,10 @@ private:
 	{
 		_scopedPtr newBuf{_m, _calcCapAddOne()};
 
-		pointer const pos = newBuf.data + size();
+		pointer const pos = newBuf.data + _m.size;
 		_construct{}(_m, _detail::ToAddress(pos), static_cast<Args &&>(args)...);
-		_relocateData(newBuf.data, size());
+		_relocateData(newBuf.data);
 
-		_m.end = pos;
 		newBuf.Swap(_m);
 	}
 
@@ -782,7 +783,7 @@ private:
 		T *const pos, size_type const nAfterPos, size_type const nToAdd,
 		MakeFuncInsert const makeNew, Args &&... args)
 	{
-		_scopedPtr newBuf{_m, (this->*CalcNewCap)(size() + nToAdd)};
+		_scopedPtr newBuf{_m, (this->*CalcNewCap)(_m.size + nToAdd)};
 
 		size_type const nBefore = pos - data();
 		T *const newPos = newBuf.data + nBefore;
@@ -793,7 +794,6 @@ private:
 			std::memcpy(_detail::ToAddress(newBuf.data), data(), sizeof(T) * nBefore); // relocate prefix
 			std::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);   // relocate suffix
 		}
-		_m.end = afterAdded + nAfterPos;
 		newBuf.Swap(_m);
 
 		return newPos;
@@ -820,18 +820,17 @@ typename dynarray<T, Alloc>::iterator
 	_debugSizeUpdater guard{_m};  \
 	\
 	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
-	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);  \
-	size_type const nAfterPos = _m.end - pPos;
+	OEL_ASSERT(data() <= pPos and pPos <= data() + _m.size);  \
+	size_type const nAfterPos = data() + _m.size - pPos;
 
 	OEL_DYNARR_INSERT_STEP1
-	if (_m.end < _m.reservEnd)
+	if (_m.size < _m.capacity)
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
 		_construct{}(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
-		++_m.end;
 
 		std::memcpy(pPos, &tmp, sizeof(T)); // relocate the new element to pos
 	}
@@ -839,7 +838,9 @@ typename dynarray<T, Alloc>::iterator
 	{	pPos = _insertRealloc<&dynarray::_calcCapAddOne>
 			(pPos, nAfterPos, {}, _emplaceMakeElem{}, static_cast<Args &&>(args)...);
 	}
-	return _makeIter<iterator>(pPos);
+	++_m.size;
+
+	return _makeIt<iterator>(pPos);
 }
 
 template<typename T, typename Alloc> template<typename ForwardRange>
@@ -850,7 +851,7 @@ typename dynarray<T, Alloc>::iterator
 
 	static_assert(std::is_base_of< forward_traversal_tag, iter_traversal_t<decltype(first)> >::value,
 			"insert_r requires that begin(source) is a ForwardIterator (multi-pass)");
-	size_type const count = _sizeOrEnd<decltype(first)>(src);
+	size_type count = _sizeOrEnd<decltype(first)>(src);
 
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1
@@ -860,7 +861,6 @@ typename dynarray<T, Alloc>::iterator
 		T *const dLast = pPos + count;
 		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
 		std::memmove(dLast, pPos, sizeof(T) * nAfterPos);
-		_m.end += count;
 		// Construct new
 		OEL_CONST_COND if (can_memmove_with<T *, decltype(first)>::value)
 		{
@@ -879,7 +879,7 @@ typename dynarray<T, Alloc>::iterator
 			OEL_CATCH_ALL
 			{	// relocate back to fill hole
 				std::memmove(dest, dLast, sizeof(T) * nAfterPos);
-				_m.end -= (dLast - dest);
+				_m.size += (dest - pPos);
 				OEL_WHEN_EXCEPTIONS_ON(throw);
 			}
 		}
@@ -895,7 +895,9 @@ typename dynarray<T, Alloc>::iterator
 				}
 			);
 	}
-	return _makeIter<iterator>(pPos);
+	_m.size += count;
+
+	return _makeIt<iterator>(pPos);
 }
 
 template<typename T, typename Alloc> template<typename... Args>
@@ -903,13 +905,13 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 {
 	_debugSizeUpdater guard{_m};
 
-	if (_m.end < _m.reservEnd)
-		_construct{}(_m, _detail::ToAddress(_m.end), static_cast<Args &&>(args)...);
+	if (_m.size < _m.capacity)
+		_construct{}(_m, data() + _m.size, static_cast<Args &&>(args)...);
 	else
 		_emplaceBackRealloc(static_cast<Args &&>(args)...);
 
-	pointer const pos = _m.end;
-	++_m.end;
+	pointer const pos = _m.data + _m.size;
+	++_m.size;
 
 	return *pos;
 }
@@ -938,8 +940,8 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	{
 		if (_m.data)
 		{
-			_detail::Destroy(_m.data, _m.end);
-			_allocateWrap::Deallocate(_m, _m.data, capacity());
+			_detail::Destroy(_m.data, _pEnd());
+			_allocateWrap::Deallocate(_m, _m.data, _m.capacity);
 		}
 		_moveInternBase(other._m);
 		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment{}, other._m);
@@ -953,8 +955,8 @@ dynarray<T, Alloc>::dynarray(size_type n, default_init_t, const Alloc & a)
 {
 	_debugSizeUpdater guard{_m};
 
-	_m.end = _m.reservEnd;
-	_detail::UninitDefaultConstruct<Alloc>(data(), _detail::ToAddress(_m.end), _m);
+	_m.size = _m.capacity;
+	_detail::UninitDefaultConstruct<Alloc>(data(), data() + _m.size, _m);
 }
 
 template<typename T, typename Alloc>
@@ -963,8 +965,8 @@ dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
 {
 	_debugSizeUpdater guard{_m};
 
-	_m.end = _m.reservEnd;
-	_uninitFill{}(data(), _detail::ToAddress(_m.end), _m);
+	_m.size = _m.capacity;
+	_uninitFill{}(data(), data() + _m.size, _m);
 }
 
 template<typename T, typename Alloc>
@@ -973,14 +975,14 @@ dynarray<T, Alloc>::dynarray(size_type n, const T & val, const Alloc & a)
 {
 	_debugSizeUpdater guard{_m};
 
-	_m.end = _m.reservEnd;
-	_uninitFill{}(data(), _detail::ToAddress(_m.end), _m, val);
+	_m.size = _m.capacity;
+	_uninitFill{}(data(), data() + _m.size, _m, val);
 }
 
 template<typename T, typename Alloc>
 dynarray<T, Alloc>::~dynarray() noexcept
 {
-	_detail::Destroy(_m.data, _m.end);
+	_detail::Destroy(_m.data, _pEnd());
 }
 
 template<typename T, typename Alloc>
@@ -999,18 +1001,17 @@ void dynarray<T, Alloc>::shrink_to_fit()
 {
 	_debugSizeUpdater guard{_m};
 
-	size_type const used = size();
 	pointer newData;
-	if (0 < used)
+	if (0 < _m.size)
 	{
-		newData = _allocateWrap::Allocate(_m, used);
-		_m.end = _relocateData(newData, used);
+		newData = _allocateWrap::Allocate(_m, _m.size);
+		_relocateData(newData);
 	}
 	else
-	{	_m.end = newData = nullptr;
+	{	newData = nullptr;
 	}
-	_resetData(newData); // careful, cannot change _m.reservEnd until after
-	_m.reservEnd = _m.end;
+	_resetData(newData); // careful, cannot change _m.capacity until after
+	_m.capacity = _m.size;
 }
 
 
@@ -1047,11 +1048,11 @@ inline auto dynarray<T, Alloc>::append(const InputRange & src) -> iterator_t<Inp
 template<typename T, typename Alloc>
 inline void dynarray<T, Alloc>::pop_back() noexcept(nodebug)
 {
-	OEL_ASSERT(_m.data < _m.end);
+	OEL_ASSERT(0 < _m.size);
 	_debugSizeUpdater guard{_m};
 
-	--_m.end;
-	(*_m.end).~T();
+	--_m.size;
+	(*_pEnd()).~T();
 }
 
 template<typename T, typename Alloc>
@@ -1060,9 +1061,9 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 	_debugSizeUpdater guard{_m};
 
 	T *const newEnd = to_pointer_contiguous(first);
-	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
-	_detail::Destroy(newEnd, _detail::ToAddress(_m.end));
-	_m.end = newEnd;
+	OEL_ASSERT(data() <= newEnd and newEnd <= data() + _m.size);
+	_detail::Destroy(newEnd, data() + _m.size);
+	_m.size = newEnd - data();
 }
 
 template<typename T, typename Alloc>
@@ -1074,14 +1075,14 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 
 	T *const      pFirst = to_pointer_contiguous(first);
 	const T *const pLast = to_pointer_contiguous(last);
-	OEL_ASSERT(_m.data <= pFirst and pFirst <= pLast and pLast <= _detail::ToAddress(_m.end));
+	OEL_ASSERT(_m.data <= pFirst and pFirst <= pLast and pLast <= data() + _m.size);
 	if (pFirst < pLast)
 	{
 		_detail::Destroy(pFirst, pLast);
-		size_type const nAfterLast = _detail::ToAddress(_m.end) - pLast;
+		size_type const nAfterLast = data() + _m.size - pLast;
 		// Relocate [last, end) to [first, first + nAfterLast)
 		std::memmove(pFirst, pLast, sizeof(T) * nAfterLast);
-		_m.end = pFirst + nAfterLast;
+		_m.size = pFirst + nAfterLast - data();
 	}
 	return first;
 }
@@ -1100,7 +1101,7 @@ OEL_ALWAYS_INLINE inline T & dynarray<T, Alloc>::at(size_type i)
 template<typename T, typename Alloc>
 const T & dynarray<T, Alloc>::at(size_type i) const
 {
-	if (i < size()) // would be unsafe with signed size_type
+	if (i < _m.size) // would be unsafe with signed size_type
 		return _m.data[i];
 	else
 		_detail::Throw::OutOfRange("Bad index dynarray::at");

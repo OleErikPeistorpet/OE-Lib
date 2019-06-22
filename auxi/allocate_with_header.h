@@ -83,7 +83,7 @@ namespace _detail
 			if (container.data)
 			{
 				auto h = OEL_DEBUG_HEADER_OF(container.data);
-				h->nObjects = container.end - container.data;
+				h->nObjects = container.size;
 			}
 		}
 	#endif
@@ -95,8 +95,8 @@ namespace _detail
 	struct DynarrBase
 	{
 		Pointer data;
-		Pointer end;
-		Pointer reservEnd;
+		size_t  size;
+		size_t  capacity;
 	};
 }
 
