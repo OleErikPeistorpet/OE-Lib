@@ -14,6 +14,16 @@ namespace oel
 {
 namespace _detail
 {
+	template< typename Ptr >
+	struct DynarrBase
+	{
+		Ptr    data;
+		size_t size;
+		size_t capacity;
+	};
+
+////////////////////////////////////////////////////////////////////////////////
+
 	struct DebugAllocationHeader
 	{
 		std::uintptr_t id;
@@ -22,13 +32,20 @@ namespace _detail
 
 	constexpr DebugAllocationHeader headerNoAllocation{0, 0};
 
-	#define OEL_DEBUG_HEADER_OF(ptr)   (      (DebugAllocationHeader *)static_cast<void *>(ptr) - 1)
-	#define OEL_DEBUG_HEADER_OF_C(ptr) ((const DebugAllocationHeader *)static_cast<const void *>(ptr) - 1)
+	OEL_ALWAYS_INLINE inline auto DebugHeaderOf(void * data)
+	{
+		return static_cast<DebugAllocationHeader *>(data) - 1;
+	}
+	OEL_ALWAYS_INLINE inline auto DebugHeaderOf(const void * data)
+	{
+		return static_cast<const DebugAllocationHeader *>(data) - 1;
+	}
 
 	template< typename T >
 	inline bool HasValidIndex(const T * arrayElem, const DebugAllocationHeader & h)
 	{
-		size_t index = arrayElem - reinterpret_cast<const T *>(&h + 1);
+		const void * p{&h + 1};
+		size_t index = arrayElem - static_cast<const T *>(p);
 		return index < h.nObjects;
 	}
 
@@ -46,7 +63,8 @@ namespace _detail
 		{
 			p += sizeForHeader;
 
-			auto const h = OEL_DEBUG_HEADER_OF(p);
+			auto const h = _detail::DebugHeaderOf(p);
+			// Take address, set highest and lowest bits for a hopefully unique bit pattern to compare later
 			constexpr auto maxMinBits = ~(~std::uintptr_t{} >> 1) | 1u;
 			new(h) DebugAllocationHeader{reinterpret_cast<std::uintptr_t>(&a) | maxMinBits, 0};
 
@@ -69,7 +87,7 @@ namespace _detail
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			if (p)
 			{	// volatile to make sure the write isn't optimized away
-				static_cast<volatile std::uintptr_t &>(OEL_DEBUG_HEADER_OF(p)->id) = 0;
+				static_cast<volatile std::uintptr_t &>(_detail::DebugHeaderOf(p)->id) = 0;
 				p -= sizeForHeader;
 			}
 			n += sizeForHeader;
@@ -83,7 +101,7 @@ namespace _detail
 		static void dealloc(Alloc & a, Ptr p, size_t n) noexcept(noexcept( a.deallocate(p, n) ))
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
-			static_cast<volatile std::uintptr_t &>(OEL_DEBUG_HEADER_OF(p)->id) = 0;
+			static_cast<volatile std::uintptr_t &>(_detail::DebugHeaderOf(p)->id) = 0;
 			p -= sizeForHeader;
 			n += sizeForHeader;
 		#endif
@@ -102,22 +120,9 @@ namespace _detail
 		~DebugSizeInHeaderUpdater()
 		{
 			if (container.data)
-			{
-				auto h = OEL_DEBUG_HEADER_OF(container.data);
-				h->nObjects = container.end - container.data;
-			}
+				_detail::DebugHeaderOf(container.data)->nObjects = container.size;
 		}
 	#endif
-	};
-
-////////////////////////////////////////////////////////////////////////////////
-
-	template< typename Ptr >
-	struct DynarrBase
-	{
-		Ptr data;
-		Ptr end;
-		Ptr reservEnd;
 	};
 }
 

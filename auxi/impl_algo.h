@@ -59,12 +59,12 @@ namespace _detail
 
 
 	template< typename T >
-	void Destroy(T * first, const T * last) noexcept
-	{	// first > last is OK, does nothing
+	void Destroy(T *const p, size_t const n) noexcept
+	{
 		if (!std::is_trivially_destructible<T>::value) // for speed with non-optimized builds
 		{
-			for (; first < last; ++first)
-				first-> ~T();
+			for (size_t i{}; i < n; ++i)
+				p[i].~T();
 		}
 	}
 
@@ -92,9 +92,8 @@ namespace _detail
 	template< typename T,
 		enable_if< is_trivially_relocatable<T>::value > = 0
 	>
-	inline T * Relocate(T *__restrict src, size_t const n, T *__restrict dest)
+	inline void Relocate(T *__restrict src, size_t const n, T *__restrict dest)
 	{
-		T *const dLast = dest + n;
 	#if OEL_CHECK_NULL_MEMCPY
 		if (src)
 	#endif
@@ -103,11 +102,10 @@ namespace _detail
 				static_cast<const void *>(src),
 				sizeof(T) * n );
 		}
-		return dLast;
 	}
 
 	template< typename T, typename... None >
-	T * Relocate(T *__restrict src, size_t const n, T *__restrict dest, None...)
+	void Relocate(T *__restrict src, size_t const n, T *__restrict dest, None...)
 	{
 	#if OEL_HAS_EXCEPTIONS
 		static_assert( std::is_nothrow_move_constructible<T>::value,
@@ -118,7 +116,6 @@ namespace _detail
 			::new(static_cast<void *>(dest + i)) T( std::move(src[i]) );
 			src[i].~T();
 		}
-		return dest + n;
 	}
 	#undef OEL_CHECK_NULL_MEMCPY
 
@@ -126,30 +123,29 @@ namespace _detail
 	template< typename Alloc, typename ContiguousIter, typename T,
 	          enable_if< can_memmove_with<T *, ContiguousIter>::value > = 0
 	>
-	inline ContiguousIter UninitCopy(ContiguousIter const src, T *__restrict dFirst, T *const dLast, Alloc &)
+	inline ContiguousIter UninitCopy(ContiguousIter const src, size_t const n, T *__restrict dest, Alloc &)
 	{
-		auto const n = dLast - dFirst;
-		_detail::MemcpyCheck(src, n, dFirst);
+		_detail::MemcpyCheck(src, n, dest);
 		return src + n;
 	}
 
 	template< typename Alloc, typename InputIter, typename T,
 	          enable_if< ! can_memmove_with<T *, InputIter>::value > = 0
 	>
-	InputIter UninitCopy(InputIter src, T *__restrict dest, T *const dLast, Alloc & allo)
+	InputIter UninitCopy(InputIter src, size_t const n, T *__restrict dest, Alloc & allo)
 	{
-		T *const dFirst = dest;
+		size_t i{};
 		OEL_TRY_
 		{
-			while (dest != dLast)
+			while (i < n)
 			{
-				Construct<T>::call(allo, dest, *src);
-				++src; ++dest;
+				Construct<T>::call(allo, dest + i, *src);
+				++i; ++src;
 			}
 		}
 		OEL_CATCH_ALL
 		{
-			_detail::Destroy(dFirst, dest);
+			_detail::Destroy(dest, i);
 			OEL_RETHROW;
 		}
 		return src;
@@ -166,17 +162,17 @@ namespace _detail
 		template< typename T, typename... Args,
 		          enable_if< !IsByte<T>::value > = 0
 		>
-		static void call(T *__restrict first, T *const last, Alloc & allo, const Args &... args)
+		static void call(T *__restrict p, size_t const n, Alloc & allo, const Args &... args)
 		{
-			T *const init = first;
+			size_t i{};
 			OEL_TRY_
 			{
-				for (; first != last; ++first)
-					Construct<T>::call(allo, first, args...);
+				for (; i < n; ++i)
+					Construct<T>::call(allo, p + i, args...);
 			}
 			OEL_CATCH_ALL
 			{
-				_detail::Destroy(init, first);
+				_detail::Destroy(p, i);
 				OEL_RETHROW;
 			}
 		}
@@ -184,27 +180,27 @@ namespace _detail
 		template< typename T,
 		          enable_if< IsByte<T>::value > = 0
 		>
-		static void call(T *const first, T * last, Alloc &, T val)
+		static void call(T * p, size_t n, Alloc &, T val)
 		{
-			std::memset(first, static_cast<int>(val), last - first);
+			std::memset(p, static_cast<int>(val), n);
 		}
 
 		template< typename T,
 		          enable_if< std::is_trivial<T>::value > = 0
 		>
-		static void call(T *const first, T * last, Alloc &)
+		static void call(T * p, size_t n, Alloc &)
 		{
-			std::memset(first, 0, sizeof(T) * (last - first));
+			std::memset(p, 0, sizeof(T) * n);
 		}
 	};
 
 	struct UninitDefaultConstruct
 	{
 		template< typename Alloc, typename T >
-		static void call(T *__restrict first, T *const last, Alloc & a)
+		static void call(T *__restrict p, size_t const n, Alloc & a)
 		{
 			if (!std::is_trivially_default_constructible<T>::value)
-				UninitFill<Alloc>::call(first, last, a);
+				UninitFill<Alloc>::call(p, n, a);
 		}
 	};
 

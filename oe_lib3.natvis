@@ -1,16 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 	<Type Name="oel::dynarray&lt;*&gt;">
-		<DisplayString Condition="_m.end == _m.data">{{size=0 }}</DisplayString>
-		<DisplayString>{{size={_m.end - _m.data} back={_m.end[-1]}}}</DisplayString>
+		<DisplayString Condition="_m.size == 0">{{size=0 }}</DisplayString>
+		<DisplayString>{{size={_m.size} back={_m.data[_m.size - 1]}}}</DisplayString>
 		<Expand>
-			<Item Name="[capacity]" ExcludeView="simple">_m.reservEnd - _m.data</Item>
+			<Item Name="[capacity]" ExcludeView="simple">_m.capacity</Item>
+			<Item Name="[allocator]" ExcludeView="simple">($T2 &amp;)_m</Item>
+			<ArrayItems>
+				<Size>_m.size</Size>
+				<ValuePointer>_m.data</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+	<Type Name="oel::debug::dynarray&lt;*&gt;">
+		<DisplayString Condition="_m.size == 0">{{size=0 }}</DisplayString>
+		<DisplayString>{{size={_m.size} back={_m.data[_m.size - 1]}}}</DisplayString>
+		<Expand>
+			<Item Name="[capacity]" ExcludeView="simple">_m.capacity</Item>
 			<Item Name="[allocator]" ExcludeView="simple">($T2 &amp;)_m</Item>
 			<Item Name="[mem header]" ExcludeView="simple" Condition="_m.data">
 				((oel::_detail::DebugAllocationHeader *)_m.data)[-1]
 			</Item>
 			<ArrayItems>
-				<Size>_m.end - _m.data</Size>
+				<Size>_m.size</Size>
 				<ValuePointer>_m.data</ValuePointer>
 			</ArrayItems>
 		</Expand>

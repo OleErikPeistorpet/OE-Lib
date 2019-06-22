@@ -1,4 +1,4 @@
-# Obscure Efficient Library (v2)
+# Obscure Efficient Library
 
 A cross-platform, very fast substitute for C++ std::vector (and std::copy) with a range-based interface.
 

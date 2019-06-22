@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "allocate_with_header.h"
+#include "dynarray_detail.h"
 
 
 #ifdef _MSC_VER
@@ -218,17 +218,23 @@ namespace oel
 {
 namespace _detail
 {
-	template< typename Ptr >
-	dynarray_iterator<Ptr> MakeDynarrayIter(Ptr const pos, Ptr const begin, const void * parent) noexcept
+	template< typename Ptr, typename ContainerBase >
+	auto MakeDynarrIter(const ContainerBase & parent, Ptr const pos) noexcept
 	{
-		if (begin)
+	#if OEL_MEM_BOUND_DEBUG_LVL
+		if (parent.data)
 		{
-			auto const h = OEL_DEBUG_HEADER_OF_C(begin);
-			return {pos, h, h->id};
+			auto const h = _detail::DebugHeaderOf(parent.data);
+			return dynarray_iterator<Ptr>{pos, h, h->id};
 		}
 		else
-		{	return {pos, &_detail::headerNoAllocation, reinterpret_cast<std::uintptr_t>(parent)};
+		{	auto id = reinterpret_cast<std::uintptr_t>(&parent);
+			return dynarray_iterator<Ptr>{pos, &_detail::headerNoAllocation, id};
 		}
+	#else
+		(void) parent;
+		return pos;
+	#endif
 	}
 }
 
