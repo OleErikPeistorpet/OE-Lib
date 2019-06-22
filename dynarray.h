@@ -263,12 +263,12 @@ public:
 
 	allocator_type get_allocator() const noexcept  { return _m; }
 
-	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIter<iterator>(_m.data); }
-	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_iterator>(_m.data); }
+	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIter(_m.data); }
+	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_pointer>(_m.data); }
 	const_iterator cbegin() const noexcept   OEL_ALWAYS_INLINE { return begin(); }
 
-	iterator       end() noexcept          OEL_ALWAYS_INLINE { return _makeIter<iterator>(_m.end); }
-	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_iterator>(_m.end); }
+	iterator       end() noexcept          OEL_ALWAYS_INLINE { return _makeIter(_m.end); }
+	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_pointer>(_m.end); }
 	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
 
 	reverse_iterator       rbegin() noexcept         OEL_ALWAYS_INLINE { return reverse_iterator{end()}; }
@@ -283,8 +283,8 @@ public:
 	reference       front() noexcept(nodebug)        { return *begin(); }
 	const_reference front() const noexcept(nodebug)  { return *begin(); }
 
-	reference       back() noexcept(nodebug)         { return *_makeIter<iterator>(_m.end - 1); }
-	const_reference back() const noexcept(nodebug)   { return *_makeIter<const_iterator>(_m.end - 1); }
+	reference       back() noexcept(nodebug)         { return *_makeIter(_m.end - 1); }
+	const_reference back() const noexcept(nodebug)   { return *_makeIter<const_pointer>(_m.end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -394,20 +394,13 @@ private:
 			_detail::Throw::LengthError("Going over dynarray max_size");
 	}
 
-	template<typename Iterator>
-	Iterator _makeIter(pointer p) const noexcept
+	template<typename Ptr>
+	OEL_ALWAYS_INLINE auto _makeIter(Ptr pos) const noexcept
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
-		if (_m.data)
-		{
-			const auto *const h = OEL_DEBUG_HEADER_OF(_m.data);
-			return {p, h, h->id};
-		}
-		else
-		{	return {p, &_detail::headerNoAllocation, reinterpret_cast<std::uintptr_t>(this)};
-		}
+		return _detail::MakeDynarrayIter(pos, _m.data, this);
 	#else
-		return p;
+		return pos;
 	#endif
 	}
 
@@ -663,7 +656,7 @@ private:
 			if (newEnd < _m.end)
 			{	// downsizing, assign new and destroy rest
 				src = copy(src, _m.data, newEnd);
-				erase_to_end(_makeIter<iterator>(newEnd));
+				erase_to_end(_makeIter(newEnd));
 			}
 			else // assign to old elements as far as we can
 			{	src = copy(src, _m.data, _m.end);
@@ -836,7 +829,7 @@ typename dynarray<T, Alloc>::iterator
 	{	pPos = _insertRealloc<&dynarray::_calcCapAddOne>
 			(pPos, nAfterPos, {}, _emplaceMakeElem{}, static_cast<Args &&>(args)...);
 	}
-	return _makeIter<iterator>(pPos);
+	return _makeIter(pPos);
 }
 
 template<typename T, typename Alloc> template<typename ForwardRange>
@@ -892,7 +885,7 @@ typename dynarray<T, Alloc>::iterator
 				}
 			);
 	}
-	return _makeIter<iterator>(pPos);
+	return _makeIter(pPos);
 }
 
 template<typename T, typename Alloc> template<typename... Args>

@@ -199,4 +199,26 @@ typename std::pointer_traits<Ptr>::element_type *
 	return _detail::ToAddress(it._pElem);
 }
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+namespace _detail
+{
+	template<typename T, typename Ptr>
+	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr pos, T * block, const void * parent)
+	{
+		if (block)
+		{
+			const auto *const h = OEL_DEBUG_HEADER_OF(block);
+			return {pos, h, h->id};
+		}
+		else
+		{	return {pos, &_detail::headerNoAllocation, reinterpret_cast<std::uintptr_t>(parent)};
+		}
+	}
+}
+
 } // namespace oel
