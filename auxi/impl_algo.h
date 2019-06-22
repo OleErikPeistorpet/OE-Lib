@@ -16,12 +16,12 @@
 namespace oel::_detail
 {
 	template< typename T >
-	void Destroy([[maybe_unused]] T * first, [[maybe_unused]] const T * last) noexcept
+	void Destroy([[maybe_unused]] T *const p, [[maybe_unused]] size_t const n) noexcept
 	{
 		if constexpr( !std::is_trivially_destructible_v<T> ) // for speed with non-optimized builds
 		{
-			for( ; first != last; ++first )
-				first-> ~T();
+			for( size_t i{}; i != n; ++i )
+				p[i].~T();
 		}
 	}
 
@@ -47,11 +47,10 @@ namespace oel::_detail
 
 
 	template< typename T >
-	T * Relocate(T *__restrict src, size_t const n, T *__restrict dest) noexcept
+	void Relocate(T *__restrict src, size_t const n, T *__restrict dest) noexcept
 	{
 		if constexpr( is_trivially_relocatable<T>::value )
 		{
-			T *const dLast = dest + n;
 		#if OEL_CHECK_NULL_MEMCPY
 			if( src )
 		#endif
@@ -60,7 +59,6 @@ namespace oel::_detail
 					static_cast<const void *>(src),
 					sizeof(T) * n );
 			}
-			return dLast;
 		}
 		else
 		{
@@ -73,7 +71,6 @@ namespace oel::_detail
 				::new(static_cast<void *>(dest + i)) T( std::move(src[i]) );
 				src[i].~T();
 			}
-			return dest + n;
 		}
 	}
 	#undef OEL_CHECK_NULL_MEMCPY
@@ -82,23 +79,23 @@ namespace oel::_detail
 	struct ValueInit
 	{
 		template< typename Alloc, typename T >
-		static void call(T *__restrict first, T *const last, [[maybe_unused]] Alloc a)
+		static void call(T *__restrict first, size_t const n, [[maybe_unused]] Alloc a)
 		{
 			if constexpr( std::is_trivially_default_constructible_v<T> )
 			{
 				void * p{first};  // silence -Wclass-memaccess
-				std::memset(p, 0, sizeof(T) * (last - first));
+				std::memset(p, 0, sizeof(T) * n);
 			}
 			else
-			{	T *const init = first;
+			{	size_t i{};
 				OEL_TRY_
 				{
-					for( ; first != last; ++first )
-						std::allocator_traits<Alloc>::construct(a, first);
+					for( ; i != n; ++i )
+						std::allocator_traits<Alloc>::construct(a, first + i);
 				}
 				OEL_CATCH_ALL
 				{
-					_detail::Destroy(init, first);
+					_detail::Destroy(first, i);
 					OEL_RETHROW;
 				}
 			}
@@ -108,14 +105,14 @@ namespace oel::_detail
 	struct DefaultInit
 	{
 		template< typename Alloc, typename T >
-		static void call(T *__restrict first, T *const last, Alloc & a)
+		static void call(T *__restrict p, size_t const n, Alloc & a)
 		{
 			if constexpr( !std::is_trivially_default_constructible_v<T> )
 			{
-				ValueInit::call(first, last, a);
+				ValueInit::call(p, n, a);
 			}
 			else
-			{	(void) first; (void) last; (void) a;
+			{	(void) p; (void) n; (void) a;
 			}
 		}
 	};

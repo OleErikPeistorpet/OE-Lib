@@ -53,8 +53,7 @@ namespace oel::_detail
 	#if OEL_MEM_BOUND_DEBUG_LVL == 0
 		static constexpr size_t sizeForHeader{};
 	#else
-		static constexpr auto _valNBytes    = sizeof(typename Alloc::value_type);
-		static constexpr auto sizeForHeader = (sizeof(DebugAllocationHeader) + _valNBytes - 1) / _valNBytes;
+		static constexpr auto sizeForHeader = (sizeof(DebugAllocationHeader) - 1) / sizeof(typename Alloc::value_type) + 1;
 
 		static Ptr _addHeader(const Alloc & a, Ptr p)
 		{
@@ -118,10 +117,7 @@ namespace oel::_detail
 		~DebugSizeInHeaderUpdater()
 		{
 			if( container.data )
-			{
-				auto n = static_cast<size_t>(container.end - container.data);
-				_detail::DebugHeaderOf(container.data)->nObjects = n;
-			}
+				_detail::DebugHeaderOf(container.data)->nObjects = container.size;
 		}
 	#endif
 	};
@@ -131,9 +127,9 @@ namespace oel::_detail
 	template< typename Ptr >
 	struct DynarrBase
 	{
-		Ptr data;
-		Ptr end;
-		Ptr reservEnd;
+		Ptr    data;
+		size_t size;
+		size_t capacity;
 	};
 
 
