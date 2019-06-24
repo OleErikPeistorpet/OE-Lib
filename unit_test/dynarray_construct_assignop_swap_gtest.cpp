@@ -294,11 +294,16 @@ TEST_F(dynarrayConstructTest, constructRangeNoCopyAssign)
 
 TEST_F(dynarrayConstructTest, constructForwardRangeNoSize)
 {
-	for (size_t const n : {0, 1, 2})
+	for (size_t const n : {0, 1, 59})
 	{
-		std::forward_list<int> li(n);
+		std::forward_list<int> li(n, -6);
 		dynarray<int> d(li);
 		EXPECT_EQ(n, d.size());
+		if (0 != n)
+		{
+			EXPECT_EQ(-6, d.front());
+			EXPECT_EQ(-6, d.back());
+		}
 	}
 }
 
@@ -306,11 +311,11 @@ TEST_F(dynarrayConstructTest, constructForwardRangeNoSize)
 template<typename Alloc>
 void testMoveConstruct(Alloc a0, Alloc a1)
 {
-	for (auto const nl : {0, 1, 80})
+	for (auto const nr : {0, 2})
 	{
 		dynarray<MoveOnly, Alloc> right(a0);
 
-		for (int i = 0; i < 9; ++i)
+		for (int i = 0; i < nr; ++i)
 			right.emplace_back(0.5);
 
 		auto const nAllocBefore = AllocCounter::nAllocations;
@@ -322,14 +327,11 @@ void testMoveConstruct(Alloc a0, Alloc a1)
 		EXPECT_TRUE(left.get_allocator() == a1);
 
 		EXPECT_EQ(nAllocBefore, AllocCounter::nAllocations);
-		EXPECT_EQ(9, MoveOnly::nConstructions - MoveOnly::nDestruct);
+		EXPECT_EQ(nr, MoveOnly::nConstructions - MoveOnly::nDestruct);
 
-		if (0 == nl)
-		{
-			ASSERT_TRUE(right.empty());
-			EXPECT_EQ(0U, right.capacity());
-		}
-		ASSERT_EQ(9U, left.size());
+		EXPECT_TRUE(right.empty());
+		EXPECT_EQ(0U, right.capacity());
+		ASSERT_EQ(nr, left.size());
 		EXPECT_EQ(ptr, left.data());
 	}
 	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
