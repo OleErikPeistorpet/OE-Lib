@@ -8,7 +8,7 @@
 
 #include <array>
 #include <string>
-
+#include <forward_list>
 
 int MyCounter::nConstructions;
 int MyCounter::nDestruct;
@@ -290,6 +290,16 @@ TEST_F(dynarrayConstructTest, constructRangeNoCopyAssign)
 	auto il = { 1.2, 3.4 };
 	dynarray<MoveOnly> test(il);
 	EXPECT_TRUE(test.size() == 2);
+}
+
+TEST_F(dynarrayConstructTest, constructForwardRangeNoSize)
+{
+	for (size_t const n : {0, 1, 2})
+	{
+		std::forward_list<int> li(n);
+		dynarray<int> d(li);
+		EXPECT_EQ(n, d.size());
+	}
 }
 
 

@@ -172,6 +172,33 @@ namespace _detail
 		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
 			UninitFill<Alloc>{}(first, last, a);
 	}
+
+
+
+	template<typename Range, typename IterTrav> // pass dummy int to prefer this overload
+	auto SizeOrEndImpl(const Range & r, IterTrav, int)
+	->	decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
+
+	template<typename Range>
+	size_t SizeOrEndImpl(const Range & r, forward_traversal_tag, long)
+	{
+		size_t n = 0;
+		auto it = begin(r);  auto const last = end(r);
+		while (it != last)
+		{ ++n; ++it; }
+		return n;
+	}
+
+	template<typename Range>
+	auto SizeOrEndImpl(const Range & r, single_pass_traversal_tag, long) { return end(r); }
+
+	// If r is sized or multi-pass, returns element count as size_t, else end(r)
+	template<typename Range>
+	auto SizeOrEnd(const Range & r)
+	{
+		using It = decltype(begin(r));
+		return _detail::SizeOrEndImpl(r, iter_traversal_t<It>(), 0);
+	}
 }
 
 } // namespace oel

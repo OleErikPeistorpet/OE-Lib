@@ -562,29 +562,6 @@ private:
 	}
 
 
-	template<typename Range, typename IterTrav> // pass dummy int to prefer this overload
-	static auto _sizeOrEnd(const Range & r, IterTrav, int)
-	->	decltype( oel::ssize(r), size_type() ) { return oel::ssize(r); }
-
-	template<typename Range>
-	static size_type _sizeOrEnd(const Range & r, forward_traversal_tag, long)
-	{
-		return std::distance(oel::adl_begin(r), oel::adl_end(r));
-	}
-
-	template<typename Range>
-	static auto _sizeOrEnd(const Range & r, single_pass_traversal_tag, long)
-	{
-		return oel::adl_end(r);
-	}
-	// Returns element count as size_type if possible, else end(r)
-	template<typename Iter, typename Range>
-	static auto _sizeOrEnd(const Range & r)
-	{
-		return _sizeOrEnd(r, iter_traversal_t<Iter>(), 0);
-	}
-
-
 	void _elementwiseMoveImpl(dynarray & src, false_type)
 	{
 		assign(view::move(src._m.data, src._m.end));
@@ -837,10 +814,10 @@ typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src) &
 {
 	auto first = oel::adl_begin(src);
+	auto const count = _detail::SizeOrEnd(src);
 
-	static_assert(std::is_base_of< forward_traversal_tag, iter_traversal_t<decltype(first)> >::value,
-			"insert_r requires that begin(source) is a ForwardIterator (multi-pass)");
-	size_type const count = _sizeOrEnd<decltype(first)>(src);
+	static_assert( std::is_same<decltype(count), size_t const>::value,
+			"insert_r requires that begin(source) is a ForwardIterator (multi-pass)" );
 
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1
@@ -1007,11 +984,10 @@ void dynarray<T, Alloc>::shrink_to_fit()
 template<typename T, typename Alloc> template<typename InputRange>
 inline auto dynarray<T, Alloc>::assign(const InputRange & src) -> iterator_t<InputRange const>
 {
-	using IterSrc = iterator_t<InputRange const>;
 	return _assignImpl(
 		oel::adl_begin(src),
-		_sizeOrEnd<IterSrc>(src),
-		can_memmove_with<T *, IterSrc>() );
+		_detail::SizeOrEnd(src),
+		can_memmove_with< T *, iterator_t<InputRange const> >() );
 }
 
 template<typename T, typename Alloc>
@@ -1027,10 +1003,9 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 template<typename T, typename Alloc> template<typename InputRange>
 inline auto dynarray<T, Alloc>::append(const InputRange & src) -> iterator_t<InputRange const>
 {
-	using IterSrc = iterator_t<InputRange const>;
 	return _append(oel::adl_begin(src),
-	               _sizeOrEnd<IterSrc>(src),
-	               can_memmove_with<T *, IterSrc>());
+	               _detail::SizeOrEnd(src),
+	               can_memmove_with< T *, iterator_t<InputRange const> >());
 }
 
 
