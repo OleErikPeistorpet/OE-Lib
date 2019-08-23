@@ -86,19 +86,15 @@ template<typename... Ts>
 using common_type = typename std::common_type<Ts...>::type;
 
 
-//! Equivalent to std::is_trivially_copyable, but may be specialized (for user types)
-template<typename T>
-struct is_trivially_copyable :
-	#if defined __GLIBCXX__ and __GNUC__ == 4
-		bool_constant< __has_trivial_copy(T) and __has_trivial_assign(T) and __has_trivial_destructor(T) > {};
-	#else
-		std::is_trivially_copyable<T> {};
-	#endif
-
 #if defined __GLIBCXX__ and __GNUC__ == 4
+	template<typename T>
+	using is_trivially_copyable =
+		bool_constant< __has_trivial_copy(T) and __has_trivial_assign(T) and __has_trivial_destructor(T) >;
+
 	template<typename T>
 	using is_trivially_default_constructible = bool_constant<__has_trivial_constructor(T)>;
 #else
+	using std::is_trivially_copyable;
 	using std::is_trivially_default_constructible;
 #endif
 

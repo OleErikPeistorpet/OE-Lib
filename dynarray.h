@@ -31,7 +31,7 @@ namespace oel
 //! Mirroring std::pmr and boost::container::pmr
 namespace pmr
 {
-#if defined OEL_HAS_STD_PMR or (!defined OEL_NO_BOOST and BOOST_VERSION >= 106000)
+#if defined OEL_HAS_STD_PMR or !defined OEL_NO_BOOST
 	#ifdef OEL_HAS_STD_PMR
 	using std::pmr::polymorphic_allocator;
 	#else

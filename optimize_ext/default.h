@@ -57,10 +57,8 @@ template<typename T>
 struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 
 #ifndef OEL_NO_BOOST
-	#if BOOST_VERSION >= 106000
 	template<typename T>
 	struct is_trivially_relocatable< boost::container::pmr::polymorphic_allocator<T> > : true_type {};
-	#endif
 
 	template<typename T>
 	struct is_trivially_relocatable< boost::intrusive_ptr<T> > : true_type {};
@@ -76,16 +74,8 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 
 
 template<typename T, typename U>
-struct is_trivially_copyable< std::pair<T, U> >
- :	all_< is_trivially_copyable<T>, is_trivially_copyable<U> > {};
-
-template<typename T, typename U>
 struct is_trivially_relocatable< std::pair<T, U> >
  :	all_< is_trivially_relocatable<T>, is_trivially_relocatable<U> > {};
-
-template<typename... Ts>
-struct is_trivially_copyable< std::tuple<Ts...> >
- :	all_< is_trivially_copyable<Ts>... > {};
 
 template<typename... Ts>
 struct is_trivially_relocatable< std::tuple<Ts...> >

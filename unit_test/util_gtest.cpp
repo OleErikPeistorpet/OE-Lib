@@ -12,7 +12,9 @@
 
 namespace
 {
+	static_assert(oel::is_trivially_relocatable< std::pair<int *, std::unique_ptr<int>> >(), "?");
 	static_assert(oel::is_trivially_relocatable< std::tuple<std::unique_ptr<double>> >(), "?");
+	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value, "?");
 
 	struct NonTrivialAssign
 	{
@@ -25,9 +27,7 @@ namespace
 	static_assert( !oel::is_trivially_copyable<NonTrivialAssign>::value, "?" );
 	static_assert( !oel::is_trivially_copyable<NonTrivialDestruct>::value, "?" );
 
-	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >(), "?");
-	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
-	static_assert( !oel::is_trivially_copyable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
+	static_assert( !oel::is_trivially_relocatable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
 
 	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
 
