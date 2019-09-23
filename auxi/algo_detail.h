@@ -108,7 +108,7 @@ namespace _detail
 	}
 
 	template<typename Alloc, typename InputIter, typename T,
-	         enable_if< !can_memmove_with<T *, InputIter>::value > = 0>
+	         enable_if< not can_memmove_with<T *, InputIter>::value > = 0>
 	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc)
 	{
 		T *const dFirst = dest;

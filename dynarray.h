@@ -562,12 +562,12 @@ private:
 	}
 
 
-	void _elementwiseMoveImpl(dynarray & src, false_type)
+	void _doElementwiseMove(dynarray & src, false_type)
 	{
 		assign(view::move(src._m.data, src._m.end));
 	}
 
-	void _elementwiseMoveImpl(dynarray & src, true_type /*trivialRelocate*/)
+	void _doElementwiseMove(dynarray & src, true_type /*trivialRelocate*/)
 	{
 		_debugSizeUpdater guard{src._m};
 
@@ -578,8 +578,9 @@ private:
 
 	void _elementwiseMove(dynarray & src)
 	{
-		_elementwiseMoveImpl( src,
-			bool_constant< is_trivially_relocatable<T>::value and !_detail::AllocHasConstruct<Alloc, T &&>::value >{} );
+		constexpr bool canBypassConstruct = !_detail::AllocHasConstruct<Alloc, T &&>::value;
+		_doElementwiseMove( src,
+			bool_constant< is_trivially_relocatable<T>::value and canBypassConstruct >{} );
 	}
 
 
