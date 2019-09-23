@@ -82,8 +82,7 @@ namespace _detail
 		#endif
 		>;
 
-	template<size_t> inline
-	void * OpNew(size_t nBytes, true_type)
+	inline void * OpNew(size_t nBytes, size_t, true_type)
 	{
 		return ::operator new(nBytes);
 	}
@@ -95,10 +94,9 @@ namespace _detail
 	}
 
 #if __cpp_aligned_new >= 201606
-	template<size_t Align> inline
-	void * OpNew(size_t nBytes, false_type)
+	inline void * OpNew(size_t nBytes, size_t align, false_type)
 	{
-		return ::operator new(nBytes, std::align_val_t{Align});
+		return ::operator new(nBytes, std::align_val_t{align});
 	}
 
 	template<size_t Align> inline
@@ -107,14 +105,14 @@ namespace _detail
 		::operator delete(ptr, std::align_val_t{Align});
 	}
 #elif !defined(OEL_NO_BOOST)
-	template<size_t Align>
-	void * OpNew(size_t const nBytes, false_type)
+
+	inline void * OpNew(size_t const nBytes, size_t const align, false_type)
 	{
-		if (nBytes > 0) // test could be removed if using MSVC _aligned_malloc
+		if (nBytes > 0) // test could be removed on some platforms
 		{
 			for (;;)
 			{
-				void * p = boost::alignment::aligned_alloc(Align, nBytes);
+				void * p = boost::alignment::aligned_alloc(align, nBytes);
 				if (p)
 					return p;
 
@@ -136,28 +134,27 @@ namespace _detail
 		boost::alignment::aligned_free(ptr);
 	}
 #else
+	void * OpNew(size_t, size_t, false_type);
+
 	template<size_t Align>
-	void * OpNew(size_t, false_type)
+	void OpDelete(void *, false_type)
 	{
 		static_assert(Align == 0,
 			"The requested alignment requires Boost or a compiler supporting over-aligned dynamic allocation (C++17)");
-		return {};
 	}
-
-	template<size_t> void OpDelete(void *, false_type);
 #endif
 }
 
 template<typename T>
 inline T * allocator<T>::allocate(size_t nElems)
 {
-	void * p = _detail::OpNew<alignof(T)>
-		(sizeof(T) * nElems, _detail::CanDefaultAlloc<alignof(T)>());
+	void * p = _detail::OpNew( sizeof(T) * nElems, alignof(T),
+			_detail::CanDefaultAlloc<alignof(T)>() );
 	return static_cast<T *>(p);
 }
 
 template<typename T>
-OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
+OEL_ALWAYS_INLINE void allocator<T>::deallocate(T * ptr, size_t) noexcept
 {
 	_detail::OpDelete<alignof(T)>(ptr, _detail::CanDefaultAlloc<alignof(T)>());
 }
