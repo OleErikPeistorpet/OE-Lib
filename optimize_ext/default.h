@@ -36,10 +36,12 @@ namespace boost
 
 namespace oel
 {
-	//! Assumed trivially relocatable if the allocator is. Could also check the pointer type for extra assurance
 	template<typename C, typename Tr, typename Alloc>
 	struct is_trivially_relocatable< std::basic_string<C, Tr, Alloc> >
-	 :	is_trivially_relocatable<Alloc> {};
+	 :	bool_constant
+		<	is_trivially_relocatable<Alloc>::value and
+			is_trivially_relocatable< typename std::allocator_traits<Alloc>::pointer >::value
+		> {};
 }
 #endif
 
@@ -65,13 +67,15 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 
 	template<typename T, typename Alloc>
 	struct is_trivially_relocatable< boost::circular_buffer<T, Alloc> >
-	 :	is_trivially_relocatable<Alloc> {};
+	 :	bool_constant
+		<	is_trivially_relocatable<Alloc>::value and
+			is_trivially_relocatable< typename std::allocator_traits<Alloc>::pointer >::value
+		> {};
 
 	template<typename... Ts>
 	struct is_trivially_relocatable< boost::variant<Ts...> >
 	 :	all_< is_trivially_relocatable<Ts>... > {};
 #endif
-
 
 template<typename T, typename U>
 struct is_trivially_relocatable< std::pair<T, U> >
