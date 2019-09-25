@@ -6,10 +6,10 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/type_traits.h"
+#include "util.h"
 
-#if !defined(OEL_NO_BOOST) and __cpp_aligned_new < 201606
-#include <boost/align/aligned_alloc.hpp>
+#if __cpp_aligned_new < 201606
+#include <cstdint> // for uintptr_t
 #endif
 #include <stddef.h> // for max_align_t
 #include <limits>
@@ -82,65 +82,67 @@ namespace _detail
 		#endif
 		>;
 
-	inline void * OpNew(size_t nBytes, size_t, true_type)
+	template<size_t>
+	void * OpNew(size_t size, true_type)
 	{
-		return ::operator new(nBytes);
+		return ::operator new(size);
 	}
 
-	template<size_t> inline
-	void OpDelete(void * ptr, true_type) noexcept
+	inline void OpDelete(void * p, size_t, true_type) noexcept
 	{
-		::operator delete(ptr);
+		::operator delete(p);
 	}
 
 #if __cpp_aligned_new >= 201606
-	inline void * OpNew(size_t nBytes, size_t align, false_type)
+	template<size_t Align>
+	void * OpNew(size_t size, false_type)
 	{
-		return ::operator new(nBytes, std::align_val_t{align});
+		return ::operator new(size, std::align_val_t{Align});
 	}
 
-	template<size_t Align> inline
-	void OpDelete(void * ptr, false_type) noexcept
+	inline void OpDelete(void * p, size_t const aligned, false_type) noexcept
 	{
-		::operator delete(ptr, std::align_val_t{Align});
+		::operator delete(p, std::align_val_t{aligned});
 	}
-#elif !defined(OEL_NO_BOOST)
-
-	inline void * OpNew(size_t const nBytes, size_t const align, false_type)
+#else
+	template<size_t Align>
+	void * AlignAndStore(void *const orig) noexcept
 	{
-		if (nBytes > 0) // test could be removed on some platforms
+		auto i = reinterpret_cast<std::uintptr_t>(orig) + Align;
+		i &= ~(Align - 1);
+		auto const p = reinterpret_cast<void *>(i);
+
+		static_cast<void **>(p)[-1] = orig;
+		return p;
+	}
+
+	template<size_t Align>
+	void * OpNew(size_t const size, false_type)
+	{
+		if (size <= std::numeric_limits<size_t>::max() - Align)
 		{
 			for (;;)
 			{
-				void * p = boost::alignment::aligned_alloc(align, nBytes);
+				void * p = std::malloc(size + Align);
 				if (p)
-					return p;
+					return AlignAndStore<Align>(p);
 
 				auto handler = std::get_new_handler();
 				if (!handler)
-					OEL_THROW(std::bad_alloc{}, "Failed allocator::allocate");
+					break;
 
 				(*handler)();
 			}
 		}
-		else
-		{	return nullptr;
-		}
+		OEL_THROW(std::bad_alloc{}, "No memory oel::allocator");
 	}
 
-	template<size_t> inline
-	void OpDelete(void * ptr, false_type) noexcept
+	inline void OpDelete(void * p, size_t, false_type) noexcept(nodebug)
 	{
-		boost::alignment::aligned_free(ptr);
-	}
-#else
-	void * OpNew(size_t, size_t, false_type);
+		OEL_ASSERT(p);
 
-	template<size_t Align>
-	void OpDelete(void *, false_type)
-	{
-		static_assert(Align == 0,
-			"The requested alignment requires Boost or a compiler supporting over-aligned dynamic allocation (C++17)");
+		p = static_cast<void **>(p)[-1];
+		std::free(p);
 	}
 #endif
 }
@@ -148,15 +150,15 @@ namespace _detail
 template<typename T>
 inline T * allocator<T>::allocate(size_t nElems)
 {
-	void * p = _detail::OpNew( sizeof(T) * nElems, alignof(T),
-			_detail::CanDefaultAlloc<alignof(T)>() );
+	void * p = _detail::OpNew<alignof(T)>
+		(sizeof(T) * nElems, _detail::CanDefaultAlloc<alignof(T)>());
 	return static_cast<T *>(p);
 }
 
 template<typename T>
-OEL_ALWAYS_INLINE void allocator<T>::deallocate(T * ptr, size_t) noexcept
+OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 {
-	_detail::OpDelete<alignof(T)>(ptr, _detail::CanDefaultAlloc<alignof(T)>());
+	_detail::OpDelete(ptr, alignof(T), _detail::CanDefaultAlloc<alignof(T)>());
 }
 
 } // namespace oel

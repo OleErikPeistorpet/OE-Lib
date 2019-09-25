@@ -681,7 +681,6 @@ TEST_F(dynarrayTest, eraseUnstable)
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
-#if __cpp_aligned_new >= 201606 or !defined(OEL_NO_BOOST)
 TEST_F(dynarrayTest, overAligned)
 {
 	static unsigned int const testAlignment = 32;
@@ -705,8 +704,9 @@ TEST_F(dynarrayTest, overAligned)
 
 OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_THROW(special.reserve(special.max_size()), std::bad_alloc); )
+OEL_WHEN_EXCEPTIONS_ON(
+	EXPECT_THROW(special.reserve(special.max_size() - 1), std::bad_alloc); )
 }
-#endif
 
 #if defined _CPPUNWIND or defined __EXCEPTIONS
 TEST_F(dynarrayTest, greaterThanMax)
