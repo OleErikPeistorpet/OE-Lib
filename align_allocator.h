@@ -6,9 +6,12 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "util.h"
+#include "auxi/type_traits.h"
 
 #if __cpp_aligned_new < 201606
+#include "util.h"
+
+#include <cstdlib> // for malloc
 #include <cstdint> // for uintptr_t
 #endif
 #include <stddef.h> // for max_align_t
@@ -83,7 +86,7 @@ namespace _detail
 		>;
 
 	template<size_t>
-	void * OpNew(size_t size, true_type)
+	inline void * OpNew(size_t size, true_type)
 	{
 		return ::operator new(size);
 	}
@@ -95,7 +98,7 @@ namespace _detail
 
 #if __cpp_aligned_new >= 201606
 	template<size_t Align>
-	void * OpNew(size_t size, false_type)
+	inline void * OpNew(size_t size, false_type)
 	{
 		return ::operator new(size, std::align_val_t{Align});
 	}
@@ -148,7 +151,7 @@ namespace _detail
 }
 
 template<typename T>
-inline T * allocator<T>::allocate(size_t nElems)
+T * allocator<T>::allocate(size_t nElems)
 {
 	void * p = _detail::OpNew<alignof(T)>
 		(sizeof(T) * nElems, _detail::CanDefaultAlloc<alignof(T)>());
