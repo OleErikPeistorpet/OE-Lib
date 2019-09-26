@@ -24,7 +24,9 @@
 namespace oel
 {
 
-//! An automatic alignment allocator. If the alignment of T is not supported, allocate does not compile.
+/** @brief An allocator which aligns the memory to alignof(T)
+*
+* Wraps operator new without overhead when possible. */
 template<typename T>
 struct allocator
 {
@@ -142,8 +144,8 @@ namespace _detail
 
 	inline void OpDelete(void * p, size_t, false_type) noexcept(nodebug)
 	{
-		OEL_ASSERT(p);
-
+		OEL_ASSERT(p); // OpNew never returns null, and the standard mandates
+		               // a pointer previously obtained from an equal allocator
 		p = static_cast<void **>(p)[-1];
 		std::free(p);
 	}
