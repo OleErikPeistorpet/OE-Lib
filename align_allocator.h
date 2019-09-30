@@ -6,16 +6,15 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/type_traits.h"
+#include "util.h"
 
 #if __cpp_aligned_new < 201606
-#include "util.h"
+#include "auxi/algo_detail.h"
 
 #include <cstdlib> // for malloc
 #include <cstdint> // for uintptr_t
 #endif
 #include <stddef.h> // for max_align_t
-#include <limits>
 
 
 /** @file
@@ -35,9 +34,9 @@ struct allocator
 	using propagate_on_container_move_assignment = std::true_type;
 
 	T *  allocate(size_t nElems);
-	void deallocate(T * ptr, size_t) noexcept;
+	void deallocate(T * ptr, size_t) noexcept(nodebug);
 
-	static constexpr size_t max_size()  { return std::numeric_limits<size_t>::max() / sizeof(T); }
+	static constexpr size_t max_size()   { return (size_t)-1 / sizeof(T); }
 
 	allocator() = default;
 	template<typename U>  OEL_ALWAYS_INLINE
@@ -122,27 +121,28 @@ namespace _detail
 	}
 
 	template<size_t Align>
-	void * OpNew(size_t const size, false_type)
+	void * OpNew(size_t size, false_type)
 	{
-		if (size <= std::numeric_limits<size_t>::max() - Align)
+		if (size <= (size_t)-1 - Align) // then size + Align doesn't overflow
 		{
+			size += Align;
 			for (;;)
 			{
-				void * p = std::malloc(size + Align);
+				void * p = std::malloc(size);
 				if (p)
 					return AlignAndStore<Align>(p);
 
-				auto handler = std::get_new_handler();
+				auto const handler = std::get_new_handler();
 				if (!handler)
 					break;
 
 				(*handler)();
 			}
 		}
-		OEL_THROW(std::bad_alloc{}, "No memory oel::allocator");
+		Throw::BadAlloc();
 	}
 
-	inline void OpDelete(void * p, size_t, false_type) noexcept(nodebug)
+	inline void OpDelete(void * p, size_t, false_type)
 	{
 		OEL_ASSERT(p); // OpNew never returns null, and the standard mandates
 		               // a pointer previously obtained from an equal allocator
@@ -161,7 +161,7 @@ T * allocator<T>::allocate(size_t nElems)
 }
 
 template<typename T>
-OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
+OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept(nodebug)
 {
 	_detail::OpDelete(ptr, alignof(T), _detail::CanDefaultAlloc<alignof(T)>());
 }
