@@ -174,7 +174,7 @@ public:
 	/**
 	* @brief Replace the contents with source range
 	* @param source an array, STL container, iterator_range, gsl::span or such.
-	* @pre `begin(source)` shall not point to any element in this dynarray except the front.
+	* @pre source shall not refer to any elements in this dynarray (same as std::vector::assign)
 	* @return iterator `begin(source)` incremented by the number of elements in source
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
@@ -184,8 +184,7 @@ public:
 	void assign(size_type count, const T & val)   { clear(); append(count, val); }
 
 	/**
-	* @brief Add at end the elements from range (return past-the-last of source)
-	* @param source an array, STL container, iterator_range, gsl::span or such.
+	* @brief Add at end the elements from source range
 	* @pre Behavior is undefined if all of the following apply: source refers to any elements in this dynarray,
 	*	source.size() does not exist and source does not model ForwardRange (C++20 ranges concept)
 	* @return `begin(source)` incremented by source size. The iterator is already invalidated (do not dereference) if
