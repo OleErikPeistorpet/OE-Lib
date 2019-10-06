@@ -26,11 +26,6 @@ namespace _detail
 {
 	struct Throw
 	{	// Exception throwing has been split out from templates to avoid bloat
-		[[noreturn]] static void BadAlloc()
-		{
-			OEL_THROW(std::bad_alloc{}, "No memory oel::allocator");
-		}
-
 		[[noreturn]] static void OutOfRange(const char * what)
 		{
 			OEL_THROW(std::out_of_range(what), what);
