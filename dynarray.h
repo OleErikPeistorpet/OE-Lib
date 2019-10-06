@@ -186,7 +186,7 @@ public:
 	/**
 	* @brief Add at end the elements from source range
 	* @pre Behavior is undefined if all of the following apply: source refers to any elements in this dynarray,
-	*	source.size() does not exist and source does not model ForwardRange (C++20 ranges concept)
+	*	source.size() does not exist and source does not model forward_range (C++20 concept)
 	* @return `begin(source)` incremented by source size. The iterator is already invalidated (do not dereference) if
 	*	`begin(source)` pointed into this dynarray and there was insufficient capacity to avoid reallocation.
 	*

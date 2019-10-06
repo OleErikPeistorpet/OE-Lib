@@ -14,8 +14,8 @@
 * @brief A view is a lightweight wrapper of a sequence of elements. Views do not mutate or
 *	copy the underlying sequence on construction, and have non-owning reference semantics.
 *
-* These are mostly intended as input for dynarray and the oel::copy functions, although counted_view
-* and iterator_range are typically better alternatives to taking containers by reference
+* These are mostly intended as input for dynarray and the oel::copy functions. They are useful for
+* other things however, such as passing around a subrange of a container without expensive copying
 */
 
 namespace oel
