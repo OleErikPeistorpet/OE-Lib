@@ -1,3 +1,10 @@
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#ifdef _CPPLIB_VER
+#define _SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING
+#endif
+
 #include "dynarray.h"
 #include "test_classes.h"
 #include "range_view.h"
@@ -7,7 +14,7 @@
 
 #if defined __has_include
 #if __has_include(<Eigen/Dense>)
-	#include "compat/eigen_dense.h"
+	#include "optimize_ext/eigen_dense.h"
 
 	static_assert(oel::is_trivially_relocatable<Eigen::Rotation2Df>::value, "?");
 #endif
@@ -24,7 +31,7 @@ namespace
 	using Iter = dynarray<float>::iterator;
 	using ConstIter = dynarray<float>::const_iterator;
 
-	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>::value, "?");
+	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>(), "?");
 
 	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
 	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
@@ -141,6 +148,28 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
+#endif
+
+#ifdef __has_include
+#if __has_include(<variant>) and (__cplusplus > 201500 or _HAS_CXX17)
+	#include "optimize_ext/std_variant.h"
+
+	TEST(dynarrayOtherTest, stdVariant)
+	{
+		using Inner = std::conditional_t< oel::is_trivially_relocatable<std::string>{}, std::string, dynarray<char> >;
+		using V = std::variant<std::unique_ptr<double>, Inner>;
+		static_assert(oel::is_trivially_relocatable<V>());
+
+		dynarray<V> a;
+
+		a.emplace_back(Inner("abc"));
+		a.push_back(std::make_unique<double>(3.3));
+		a.reserve(9);
+
+		EXPECT_TRUE(std::strcmp( "abc", std::get<Inner>(a[0]).data() ) == 0);
+		EXPECT_EQ( 3.3, *std::get<0>(a[1]) );
+	}
+#endif
 #endif
 
 TEST(dynarrayOtherTest, withReferenceWrapper)

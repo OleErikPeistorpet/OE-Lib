@@ -1,3 +1,6 @@
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
 #include "dynarray.h"
 #include "test_classes.h"
 
@@ -9,7 +12,9 @@
 
 namespace
 {
-	static_assert(oel::is_trivially_relocatable< std::tuple<std::unique_ptr<double>> >::value, "?");
+	static_assert(oel::is_trivially_relocatable< std::pair<int *, std::unique_ptr<int>> >(), "?");
+	static_assert(oel::is_trivially_relocatable< std::tuple<std::unique_ptr<double>> >(), "?");
+	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value, "?");
 
 	struct NonTrivialAssign
 	{
@@ -22,35 +27,41 @@ namespace
 	static_assert( !oel::is_trivially_copyable<NonTrivialAssign>::value, "?" );
 	static_assert( !oel::is_trivially_copyable<NonTrivialDestruct>::value, "?" );
 
-	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >::value, "?");
-	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
-	static_assert( !oel::is_trivially_copyable< std::tuple<int, NonTrivialDestruct, int> >::value, "?" );
+	static_assert( !oel::is_trivially_relocatable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
 
 	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
-	static_assert(alignof(oel::aligned_storage_t<64, 64>) == 64, "?");
 
-	struct alignas(32) Foo { char a[20]; };
+	struct alignas(32) Foo { int a[24]; };
 	static_assert(alignof(oel::aligned_union_t<Foo>) == 32, "?");
 
 	static_assert(!oel::can_memmove_with< int *, float * >::value, "?");
-	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >::value, "?");
-	static_assert(!oel::can_memmove_with< int *, std::move_iterator<std::list<int>::iterator> >::value, "?");
-	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<int *> >::value, "?");
+	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >(), "?");
+	static_assert(!oel::can_memmove_with< int *, std::move_iterator<std::list<int>::iterator> >(), "?");
+	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<int *> >(), "?");
 }
 
 template<typename SizeT>
 struct DummyRange
 {
-	using difference_type = typename std::make_signed<SizeT>::type;
-
 	SizeT n;
 
 	SizeT size() const { return n; }
 };
 
+TEST(utilTest, ssize)
+{
+	using test  = decltype( oel::ssize(DummyRange<unsigned short>{0}) );
+	using test2 = decltype( oel::ssize(DummyRange<std::uintmax_t>{0}) );
+
+	static_assert(std::is_same<test, std::ptrdiff_t>::value, "?");
+	static_assert(std::is_same<test2, std::intmax_t>::value, "?");
+}
+
 TEST(utilTest, indexValid)
 {
 	using namespace oel;
+	using _detail::BigUint;
+	using BigInt = std::make_signed<BigUint>::type;
 
 	DummyRange<unsigned> r1{1};
 
@@ -63,17 +74,17 @@ TEST(utilTest, indexValid)
 		DummyRange<unsigned> r2{size};
 
 		EXPECT_FALSE(index_valid(r2, -2));
-		EXPECT_FALSE(index_valid(r2, (long long) -2));
+		EXPECT_FALSE(index_valid(r2, (BigInt) -2));
 		EXPECT_FALSE(index_valid(r2, (unsigned) -1));
 		EXPECT_TRUE(index_valid(r2, size - 1));
 		EXPECT_TRUE(index_valid(r2, 0));
 	}
 	{
-		auto const size = as_unsigned(std::numeric_limits<long long>::max());
-		DummyRange<unsigned long long> r2{size};
+		auto const size = as_unsigned(std::numeric_limits<BigInt>::max());
+		DummyRange<BigUint> r2{size};
 
-		EXPECT_FALSE(index_valid(r2, (unsigned long long) -2));
-		EXPECT_FALSE(index_valid(r2, (long long) -2));
+		EXPECT_FALSE(index_valid(r2, (BigUint) -2));
+		EXPECT_FALSE(index_valid(r2, (BigInt) -2));
 		EXPECT_TRUE(index_valid(r2, size - 1));
 	}
 }
@@ -101,23 +112,6 @@ TEST(utilTest, makeUnique)
 	EXPECT_EQ(4U, p2->size());
 	EXPECT_EQ(6, p2->front());
 	EXPECT_EQ(6, p2->back());
-}
-
-struct RangeWithLargerDiffT
-{
-	using difference_type = long;
-
-	unsigned short size() const  { return 2; }
-};
-
-TEST(utilTest, ssize)
-{
-	RangeWithLargerDiffT r;
-	auto const test = oel::ssize(r);
-
-	static_assert(std::is_same<decltype(test), long const>::value, "?");
-
-	ASSERT_EQ(2, test);
 }
 
 TEST(utilTest, derefArgs)
@@ -192,7 +186,7 @@ TEST(utilTest, toPointerContiguous)
 	auto addr = &a[0];
 	using Iter = dynarray_iterator<PointerLike<int>, dynarray<int>>;
 	Iter it{{addr}, nullptr, 0};
-	static_assert(std::is_same<PointerLike<int>, Iter::pointer>::value, "?");
+	static_assert(std::is_same<PointerLike<int>, Iter::pointer>(), "?");
 	auto result = to_pointer_contiguous(it);
 	EXPECT_EQ(addr, result);
 }

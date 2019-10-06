@@ -7,9 +7,8 @@
 
 
 #include "auxi/algo_detail.h"
-#include "auxi/container_util.h"
 #include "auxi/array_iterator.h"
-#include "compat/default.h"
+#include "optimize_ext/default.h"
 #include "align_allocator.h"
 
 #include <algorithm>
@@ -84,7 +83,7 @@ public:
 	fixcap_array(size_type size, const T & fillVal); //!< Throws length_error if size > Capacity
 
 	template< typename InputRange,
-		typename /*EnableIfRange*/ = decltype( ::adl_cbegin(std::declval<InputRange>()) ) >
+	          typename /*EnableIfRange*/ = iterator_t<InputRange> >
 	explicit fixcap_array(const InputRange & range)   : _size() { assign(range); }
 
 	fixcap_array(std::initializer_list<T> init)   : _size() { assign(init); }
@@ -103,9 +102,9 @@ public:
 	* @brief Replace the contents with source
 	* @throw length_error if count > Capacity  */
 	template<typename InputRange>
-	auto      assign(const InputRange & source)
-	->  decltype(::adl_begin(source))                 { return _assign(_getSize(source, 0), source); }
-	void      assign(size_type count, const T & val)  { clear();  append(count, val); }
+	auto assign(const InputRange & source)
+	->  iterator_t<InputRange const>              { return _assign(_getSize(source, 0), source); }
+	void assign(size_type count, const T & val)   { clear(); append(count, val); }
 
 	/**
 	* @brief Add at end the elements from range (in order)
@@ -115,12 +114,12 @@ public:
 	* Any previous end iterator will point to the first element added.
 	* Strong exception safety, aka. commit or rollback semantics  */
 	template<typename InputRange>
-	auto      append(const InputRange & source)
-	->  decltype(::adl_begin(source))               { return _append(_getSize(source, 0), source); }
+	auto append(const InputRange & source)
+	->  iterator_t<InputRange const>            { return _append(_getSize(source, 0), source); }
 	//! Same as `std::vector::insert(end(), il)`
-	void      append(std::initializer_list<T> il)   { append<>(il); }
+	void append(std::initializer_list<T> il)    { append<>(il); }
 	//! Same as `std::vector::insert(end(), count, val)`
-	void      append(size_type count, const T & val);
+	void append(size_type count, const T & val);
 
 	/**
 	* @brief Added elements are default initialized, meaning non-class T produces indeterminate values
@@ -259,7 +258,7 @@ private:
 	template<typename Range>
 	static size_t _count(const Range & r, long)
 	{
-		return std::distance(::adl_begin(r), ::adl_end(r));
+		return std::distance(oel::adl_begin(r), oel::adl_end(r));
 	}
 
 
@@ -401,11 +400,11 @@ private:
 	}
 
 	template<typename SizeRange>
-	auto _assign(size_t count, const SizeRange & src) -> decltype(::adl_begin(src))
+	auto _assign(size_t count, const SizeRange & src) -> decltype(oel::adl_begin(src))
 	{
 		if (Capacity >= count)
 		{
-			auto first = ::adl_begin(src);
+			auto first = oel::adl_begin(src);
 			return _assignInternal(can_memmove_with<pointer, decltype(first)>(), first, count);
 		}
 		else
@@ -414,7 +413,7 @@ private:
 	}
 
 	template<typename InputRange>
-	auto _assign(std::false_type, const InputRange & src) -> decltype(::adl_begin(src))
+	auto _assign(std::false_type, const InputRange & src) -> decltype(oel::adl_begin(src))
 	{	// no fast way of getting size
 		clear();
 		return append<>(src);
@@ -440,11 +439,11 @@ private:
 	}
 
 	template<typename SizeRange>
-	auto _append(size_t count, const SizeRange & src) -> decltype(::adl_begin(src))
+	auto _append(size_t count, const SizeRange & src) -> decltype(oel::adl_begin(src))
 	{
 		if (_unusedCapacity() >= count)
 		{
-			auto first = ::adl_begin(src);
+			auto first = oel::adl_begin(src);
 			return _appendInternal(can_memmove_with<pointer, decltype(first)>(), first, count);
 		}
 		else
@@ -453,9 +452,9 @@ private:
 	}
 
 	template<typename InputRange>
-	auto _append(std::false_type, const InputRange & src) -> decltype(::adl_begin(src))
+	auto _append(std::false_type, const InputRange & src) -> decltype(oel::adl_begin(src))
 	{	// number of items unknown (slowest)
-		auto f = ::adl_begin(src); auto l = ::adl_end(src);
+		auto f = oel::adl_begin(src); auto l = oel::adl_end(src);
 		for (; f != l; ++f)
 			emplace_back(*f);
 
@@ -587,9 +586,9 @@ template<typename T, size_t Capacity, typename Size> template<typename ForwardRa
 typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
 	insert_r(const_iterator pos, const ForwardRange & src) &
 {
-	auto first = ::adl_begin(src);
+	auto first = oel::adl_begin(src);
 
-	static_assert(std::is_base_of< forward_traversal_tag, iterator_traversal_t<decltype(first)> >::value,
+	static_assert(std::is_base_of< forward_traversal_tag, iter_traversal_t<decltype(first)> >::value,
 				  "insert_r requires that source models Forward Range (Boost concept)");
 
 	_detail::AssertTrivialRelocate<T>();

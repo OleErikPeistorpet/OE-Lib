@@ -193,6 +193,9 @@ typename std::pointer_traits<Ptr>::element_type *
 
 namespace _detail
 {
+	template<typename, typename> struct FcaProxy;
+
+
 	template<typename Iterator>
 #if OEL_MEM_BOUND_DEBUG_LVL
 	using ArrayIteratorMaker = Iterator;

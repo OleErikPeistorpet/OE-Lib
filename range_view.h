@@ -7,17 +7,15 @@
 
 
 #include "util.h"
-
-#ifndef OEL_NO_BOOST
-#include <boost/iterator/transform_iterator.hpp>
-#endif
+#include "auxi/transform_iterator.h"
 
 
 /** @file
 * @brief A view is a lightweight wrapper of a sequence of elements. Views do not mutate or
 *	copy the underlying sequence on construction, and have non-owning reference semantics.
 *
-* Try the Range v3 library for a much more comprehensive suite
+* These are mostly intended as input for dynarray and the oel::copy functions. They are useful for
+* other things however, such as passing around a subrange of a container without expensive copying
 */
 
 namespace oel
@@ -38,27 +36,19 @@ protected:
 	Iterator _end;
 };
 
-template<typename Iterator, enable_if< iterator_is_random_access<Iterator>::value > = 0>
-iterator_difference_t<Iterator> ssize(const iterator_range<Iterator> & r)   { return r.end() - r.begin(); }
-
-//! Create an iterator_range from two iterators, with type deduced from arguments
-template<typename Iterator> inline
-iterator_range<Iterator> make_iterator_range(Iterator first, Iterator last)  { return {first, last}; }
+template<typename Iterator, enable_if< iter_is_random_access<Iterator>::value > = 0>
+iter_difference_t<Iterator> ssize(const iterator_range<Iterator> & r)   { return r.end() - r.begin(); }
 
 
 //! Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
-template<typename Iterator, bool = iterator_is_random_access<Iterator>::value>
+template<typename Iterator, bool = iter_is_random_access<Iterator>::value>
 class counted_view
 {
 public:
 	using iterator        = Iterator;
-	using value_type      = typename std::iterator_traits<Iterator>::value_type;
-	using difference_type = iterator_difference_t<Iterator>;
-#ifndef OEL_VIEW_SIGNED_SIZE // defined by user if they want
-	using size_type       = size_t;
-#else
-	using size_type       = difference_type;
-#endif
+	using value_type      = iter_value_t<Iterator>;
+	using difference_type = iter_difference_t<Iterator>;
+	using size_type       = typename std::make_unsigned<difference_type>::type;
 
 	//! Initialize to empty
 	constexpr counted_view() noexcept                      : _size() {}
@@ -66,13 +56,13 @@ public:
 	//! Construct from array or container with matching iterator type
 	template<typename SizedRange,
 	         enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0> // avoid being selected for copy
-	constexpr counted_view(SizedRange & r)   : _begin(::adl_begin(r)), _size(oel::ssize(r)) {}
+	constexpr counted_view(SizedRange & r)   : _begin(oel::adl_begin(r)), _size(oel::ssize(r)) {}
 
 	constexpr iterator  begin() const   OEL_ALWAYS_INLINE { return _begin; }
 
-	constexpr size_type size() const noexcept    OEL_ALWAYS_INLINE { return _size; }
+	constexpr size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
 
-	constexpr bool      empty() const noexcept   OEL_ALWAYS_INLINE { return 0 == _size; }
+	constexpr bool      empty() const noexcept   { return 0 == _size; }
 
 	//! Increment begin, decrementing size
 	void      drop_front();
@@ -80,8 +70,8 @@ public:
 	void      drop_back();
 
 protected:
-	Iterator  _begin;
-	size_type _size;
+	Iterator       _begin;
+	difference_type _size;
 };
 
 //! Specialization for random-access Iterator
@@ -101,68 +91,62 @@ public:
 
 	constexpr iterator  end() const   OEL_ALWAYS_INLINE { return this->_begin + this->_size; }
 
-	constexpr reference back() const   OEL_ALWAYS_INLINE { return end()[-1]; }
+	constexpr reference back() const                 { return this->_begin[this->_size - 1]; }
 
 	constexpr reference operator[](difference_type index) const   OEL_ALWAYS_INLINE { return this->_begin[index]; }
 
-	//! Return raw pointer to underlying array. Will only be found with contiguous Iterator (see to_pointer_contiguous(T *))
+	//! Get raw pointer to underlying array. The function will exist only if `to_pointer_contiguous(begin())` is valid
 	template<typename It = Iterator>
 	auto data() const noexcept
-	 -> decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
+	->	decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
 };
 
-//! View creation functions, other than oel::make_iterator_range
+
+//! View creation functions. Trying to mimic subset of C++20 ranges
 namespace view
 {
 
+//! Create an iterator_range from two iterators, with type deduced from arguments
+template<typename Iterator>  inline
+iterator_range<Iterator> subrange(Iterator first, Iterator last)  { return {first, last}; }
+
+
 //! Create a counted_view from iterator and count, with type deduced from first
 template<typename Iterator>
-constexpr counted_view<Iterator> counted(Iterator first, iterator_difference_t<Iterator> count)  { return {first, count}; }
+constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Iterator> count)  { return {first, count}; }
 
 
 //! Create an iterator_range of std::move_iterator from two iterators
 template<typename InputIterator>
 iterator_range< std::move_iterator<InputIterator> >
-	move(InputIterator first, InputIterator last)  { using MovIt = std::move_iterator<InputIterator>;
-	                                                 return {MovIt{first}, MovIt{last}}; }
-
-//! Create a counted_view with move_iterator from iterator and count
-template<typename InputIterator>
-counted_view< std::move_iterator<InputIterator> >
-	move_n(InputIterator first, iterator_difference_t<InputIterator> count)
-	{
-		return {std::make_move_iterator(first), count};
-	}
-
+	move(InputIterator first, InputIterator last)   { using MovIt = std::move_iterator<InputIterator>;
+	                                                  return {MovIt{first}, MovIt{last}}; }
 #include "auxi/view_detail_move.inc"
 
 /** @brief Wrap a range such that the elements can be moved from when passed to a container or algorithm
-* @return `counted_view<std::move_iterator>` if r.size() exists or r is an array, else `iterator_range<std::move_iterator>`
+* @return type `counted_view<std::move_iterator>` if r.size() exists or r is an array,
+*	else `iterator_range<std::move_iterator>`
 *
 * Note that passing an rvalue range should result in a compile error. Use a named variable. */
-template<typename InputRange> inline
-auto move(InputRange & r)   { return _detail::Move(r, int{}); }
+template<typename InputRange>  inline
+auto move(InputRange & r)     { return _detail::Move(r, int{}); }
 
 
-#ifndef OEL_NO_BOOST
-	/** @brief Create a view with boost::transform_iterator from a range with size() member or an array
-	*
-	* Similar to boost::adaptors::transform, but more efficient with typical use.
-	* Note that passing an rvalue range should result in a compile error. Use a named variable. */
-	template<typename UnaryFunc, typename SizedRange>
-	auto transform(SizedRange & r, UnaryFunc f)
-	 ->	counted_view< boost::transform_iterator<UnaryFunc, decltype(begin(r))> >
-		{
-			return {boost::make_transform_iterator(begin(r), std::move(f)), oel::ssize(r)};
-		}
-	//! Create a view with boost::transform_iterator from iterator and count
-	template<typename UnaryFunc, typename Iterator>
-	counted_view< boost::transform_iterator<UnaryFunc, Iterator> >
-		transform_n(Iterator first, iterator_difference_t<Iterator> count, UnaryFunc f)
-		{
-			return {boost::make_transform_iterator(first, std::move(f)), count};
-		}
-#endif
+/** @brief Create a view with transform_iterator from a range with size() member or an array
+@code
+std::bitset<8> arr[] { 3, 5, 7, 11 };
+dynarray<std::string> result;
+result.append( view::transform(arr, [](const auto & bs) { return bs.to_string(); }) );
+@endcode
+* Similar to boost::adaptors::transform, but supports lambdas directly. Also more efficient because
+* it stores just one iterator and has no size overhead for empty UnaryFunc. <br>
+* Note that passing an rvalue range should result in a compile error. Use a named variable. */
+template<typename UnaryFunc, typename SizedRange>
+auto transform(SizedRange & r, UnaryFunc f)
+->	counted_view< transform_iterator<UnaryFunc, decltype(begin(r))> >
+	{
+		return { {f, begin(r)}, oel::ssize(r) };
+	}
 }
 
 
@@ -176,7 +160,7 @@ template<typename Iterator, bool B>
 constexpr counted_view<Iterator, B>::counted_view(Iterator f, difference_type n)
  :	_begin(f), _size(n)
 {
-#if __cplusplus >= 201402L or defined _MSC_VER
+#if __cplusplus >= 201402 or defined _MSC_VER
 	OEL_ASSERT(n >= 0);
 #endif
 }

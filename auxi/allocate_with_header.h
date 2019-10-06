@@ -1,12 +1,14 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2017 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
 #include "../util.h"
+
+#include <cstdint> // for uintptr_t
 
 namespace oel
 {
@@ -20,8 +22,7 @@ namespace _detail
 
 	constexpr DebugAllocationHeader headerNoAllocation{0, 0};
 
-	#define OEL_DEBUG_HEADER_OF(ptr)  \
-		(reinterpret_cast<_detail::DebugAllocationHeader *>(_detail::ToAddress(ptr)) - 1)
+	#define OEL_DEBUG_HEADER_OF(ptr) (reinterpret_cast<_detail::DebugAllocationHeader *>(ptr) - 1)
 
 	template<typename T, typename Ptr>
 	inline bool HasValidIndex(Ptr arrayElem, const DebugAllocationHeader & h)
@@ -57,7 +58,7 @@ namespace _detail
 		#endif
 		}
 
-		static void Deallocate(Alloc & a, Ptr p, size_t n) noexcept
+		static void Deallocate(Alloc & a, Ptr p, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			OEL_DEBUG_HEADER_OF(p)->id = 0;
@@ -85,6 +86,16 @@ namespace _detail
 			}
 		}
 	#endif
+	};
+
+////////////////////////////////////////////////////////////////////////////////
+
+	template<typename Pointer>
+	struct DynarrBase
+	{
+		Pointer data;
+		Pointer end;
+		Pointer reservEnd;
 	};
 }
 

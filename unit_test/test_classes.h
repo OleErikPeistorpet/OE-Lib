@@ -1,3 +1,6 @@
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
 #pragma once
 
 #include "align_allocator.h"
@@ -6,7 +9,6 @@
 #include <memory>
 #include <unordered_map>
 
-//! @cond INTERNAL
 
 class TestException : public std::exception {};
 
@@ -62,44 +64,44 @@ public:
 
 	const double * get() const { return val.get(); }
 
-	double operator *() const { return *val; }
+	double operator *() const        { return *val; }
+	explicit operator double() const { return *val; }
 };
-oel::true_type specify_trivial_relocate(MoveOnly);
+oel::false_type specify_trivial_relocate(MoveOnly);
 
-class NontrivialReloc : public MyCounter
+class TrivialRelocat : public MyCounter
 {
 	double val;
-	short unused;
 
 public:
-	explicit NontrivialReloc(double v)
+	explicit TrivialRelocat(double v) noexcept
 	 :	val(v)
 	{	++nConstructions;
 	}
 
-	NontrivialReloc(const NontrivialReloc & other)
+	TrivialRelocat(const TrivialRelocat & other)
 	{
 		ConditionalThrow();
 		val = other.val;
 		++nConstructions;
 	}
 
-	NontrivialReloc & operator =(const NontrivialReloc & other)
+	TrivialRelocat & operator =(const TrivialRelocat & other)
 	{
 		ConditionalThrow();
 		val = other.val;
 		return *this;
 	}
 
-	~NontrivialReloc() { ++nDestruct; }
-
-	operator double() const { return val; }
+	~TrivialRelocat() { ++nDestruct; }
 
 	double operator *() const { return val; }
 
 	const double * get() const { return &val; }
+
+	bool operator==(double d) const { return val == d; }
 };
-oel::false_type specify_trivial_relocate(NontrivialReloc);
+oel::true_type specify_trivial_relocate(TrivialRelocat);
 
 struct TrivialDefaultConstruct
 {
@@ -179,6 +181,8 @@ struct TrackingAllocator : TrackingAllocatorBase<T>
 		++AllocCounter::nConstructCalls;
 		new(raw) T(std::forward<Args>(args)...);;
 	}
+
+	using Alloc = void;
 };
 
 template<typename T, bool PropagateOnMoveAssign = false, bool UseConstruct = true>
@@ -197,10 +201,10 @@ struct StatefulAllocator : std::conditional< UseConstruct, TrackingAllocator<T>,
 	template<typename U>
 	friend bool operator!=(StatefulAllocator a, StatefulAllocator<U, PropagateOnMoveAssign, UseConstruct> b)
 	{ return !(a == b); }
+
+	using allocator_type = StatefulAllocator;
 };
 
 
 template<typename T>
 using dynarrayTrackingAlloc = oel::dynarray< T, TrackingAllocator<T> >;
-
-//! @endcond

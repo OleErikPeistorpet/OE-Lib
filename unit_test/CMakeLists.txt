@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.1)
 
 
 set(CMAKE_CXX_STANDARD 14)
@@ -33,6 +33,18 @@ add_subdirectory(
 )
 
 
+include(CheckCXXSourceCompiles)
+
+check_cxx_source_compiles(
+	"#if __has_include(<new>)
+	int main() {}
+	#endif"
+	CAN_HAS_INCLUDE
+)
+if(NOT CAN_HAS_INCLUDE)
+	add_definitions(-DOEL_NO_BOOST)
+endif()
+
 add_executable(oel-test
 	dynarray_construct_assignop_swap_gtest.cpp
 	dynarray_mutate_gtest.cpp
@@ -42,10 +54,19 @@ add_executable(oel-test
 	gtest_mem_main.cpp
 	range_algo_gtest.cpp
 	util_gtest.cpp
+	incl_dynarray.cpp
+	incl_make_unique.cpp
+	incl_range_algo.cpp
+	incl_range_view.cpp
+	incl_util.cpp
 )
 
 target_include_directories(oel-test PRIVATE
-    ${CMAKE_SOURCE_DIR}/..
+	${CMAKE_SOURCE_DIR}/..
 )
+
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+	target_compile_options(oel-test PRIVATE -Wall -Wextra)
+endif()
 
 target_link_libraries(oel-test gtest_main)

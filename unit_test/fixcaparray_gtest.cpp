@@ -26,19 +26,19 @@ TEST_F(fixcap_arrayTest, construct)
 	testConstruct< fixcap_array<std::string, 1>, fixcap_array<char, 4>, fixcap_array<bool, 50> >();
 }
 
-TEST_F(fixcap_arrayTest, pushBack)
+TEST_F(fixcap_arrayTest, pushBackMoveOnly)
 {
 	testPushBack< fixcap_array<MoveOnly, 5>, fixcap_array<fixcap_array<int, 3>, 2> >();
 }
 
-TEST_F(fixcap_arrayTest, pushBackNonTrivialReloc)
+TEST_F(fixcap_arrayTest, pushBackTrivialReloc)
 {
-	testPushBackNonTrivialReloc< fixcap_array<NontrivialReloc, 5> >();
+	testPushBackTrivialReloc< fixcap_array<TrivialRelocat, 5> >();
 }
 
 TEST_F(fixcap_arrayTest, assign)
 {
-	testAssign< fixcap_array<MoveOnly, 5>, fixcap_array<NontrivialReloc, 5> >();
+	testAssign< fixcap_array<MoveOnly, 5>, fixcap_array<TrivialRelocat, 5> >();
 }
 
 TEST_F(fixcap_arrayTest, assignStringStream)
@@ -63,7 +63,7 @@ TEST_F(fixcap_arrayTest, insertR)
 
 TEST_F(fixcap_arrayTest, insert)
 {
-	testInsert< fixcap_array<MoveOnly, 6> >();
+	testInsert< fixcap_array<TrivialRelocat, 6> >();
 }
 
 TEST_F(fixcap_arrayTest, resize)
@@ -109,7 +109,7 @@ OEL_WHEN_EXCEPTIONS_ON(
 
 TEST_F(fixcap_arrayTest, eraseSingle)
 {
-	testEraseSingle< fixcap_array<int, 5>, fixcap_array<NontrivialReloc, 5> >();
+	testEraseSingle< fixcap_array<int, 5>, fixcap_array<MoveOnly, 5> >();
 }
 
 TEST_F(fixcap_arrayTest, eraseRange)
@@ -166,7 +166,7 @@ TEST_F(fixcap_arrayTest, misc)
 	FCArray7 dest0;
 	dest0.assign(daSrc);
 
-	dest0.append( oel::make_iterator_range(daSrc.cbegin(), daSrc.cend() - 1) );
+	dest0.append( view::subrange(daSrc.cbegin(), daSrc.cend() - 1) );
 	dest0.pop_back();
 	dest0.append(view::counted(fASrc, 2));
 	dest0.pop_back();

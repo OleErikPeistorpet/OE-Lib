@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -47,13 +47,13 @@ namespace _detail
 	template<typename T, typename... Args>
 	inline T * New(std::true_type, Args &&... args)
 	{
-		return new T(std::forward<Args>(args)...);
+		return new T(static_cast<Args &&>(args)...);
 	}
 
 	template<typename T, typename... Args>
 	inline T * New(std::false_type, Args &&... args)
 	{
-		return new T{std::forward<Args>(args)...};
+		return new T{static_cast<Args &&>(args)...};
 	}
 }
 
@@ -62,7 +62,7 @@ namespace _detail
 template<typename T, typename... Args, typename>
 inline std::unique_ptr<T>  oel::make_unique(Args &&... args)
 {
-	T * p = _detail::New<T>(std::is_constructible<T, Args...>(), std::forward<Args>(args)...);
+	T * p = _detail::New<T>(std::is_constructible<T, Args...>(), static_cast<Args &&>(args)...);
 	return std::unique_ptr<T>(p);
 }
 

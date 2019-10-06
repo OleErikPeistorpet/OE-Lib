@@ -45,10 +45,10 @@ class dynarray_iterator
 public:
 	using iterator_category = std::random_access_iterator_tag;
 
+	using difference_type = typename _ptrTrait::difference_type;
 	using value_type      = ValT;
 	using pointer         = Ptr;
 	using reference       = decltype(*std::declval<Ptr>());
-	using difference_type = typename _ptrTrait::difference_type;
 
 	using const_iterator = dynarray_iterator<typename _ptrTrait::template rebind<ValT const>, ValT>;
 
@@ -112,16 +112,14 @@ public:
 		return it += offset;
 	}
 
-	dynarray_iterator operator +(difference_type offset) const
+	friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
 	{
-		auto tmp = *this;
-		return tmp += offset;
+		return it += offset;
 	}
 
-	dynarray_iterator operator -(difference_type offset) const
-	{	// this - integer
-		auto tmp = *this;
-		return tmp -= offset;
+	friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
+	{
+		return it -= offset;
 	}
 
 	difference_type operator -(const const_iterator & right) const
@@ -194,11 +192,33 @@ public:
 } // namespace debug
 
 //! To raw pointer (unchecked)
-template<typename Ptr, typename T> inline
+template<typename Ptr, typename T>  inline
 typename std::pointer_traits<Ptr>::element_type *
 	to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 {
 	return _detail::ToAddress(it._pElem);
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+namespace _detail
+{
+	template<typename T, typename Ptr>
+	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr pos, T * block, const void * parent)
+	{
+		if (block)
+		{
+			const auto *const h = OEL_DEBUG_HEADER_OF(block);
+			return {pos, h, h->id};
+		}
+		else
+		{	return {pos, &_detail::headerNoAllocation, reinterpret_cast<std::uintptr_t>(parent)};
+		}
+	}
 }
 
 } // namespace oel
