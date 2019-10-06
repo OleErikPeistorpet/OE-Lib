@@ -241,7 +241,7 @@ namespace _detail
 	{
 		auto const destSize = oel::ssize(dest);
 		auto n = oel::ssize(src);
-		bool const success = (n <= destSize);
+		bool const success{n <= destSize};
 		if (!success)
 			n = destSize;
 

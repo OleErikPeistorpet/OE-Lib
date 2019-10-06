@@ -331,7 +331,7 @@ void testMoveConstruct(Alloc a0, Alloc a1)
 
 		EXPECT_TRUE(right.empty());
 		EXPECT_EQ(0U, right.capacity());
-		ASSERT_EQ(nr, left.size());
+		ASSERT_EQ(nr, ssize(left));
 		EXPECT_EQ(ptr, left.data());
 	}
 	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);

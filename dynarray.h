@@ -982,7 +982,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 
 
 template<typename T, typename Alloc> template<typename InputRange>
-inline auto dynarray<T, Alloc>::assign(const InputRange & src) -> iterator_t<InputRange const>
+auto dynarray<T, Alloc>::assign(const InputRange & src) -> iterator_t<InputRange const>
 {
 	return _assignImpl(
 		oel::adl_begin(src),
