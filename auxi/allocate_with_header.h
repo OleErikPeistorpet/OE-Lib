@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h"
+#include "contiguous_iterator_to_ptr.h"
 
 #include <cstdint> // for uintptr_t
 
@@ -22,10 +22,10 @@ namespace _detail
 
 	constexpr DebugAllocationHeader headerNoAllocation{0, 0};
 
-	#define OEL_DEBUG_HEADER_OF(ptr) (reinterpret_cast<_detail::DebugAllocationHeader *>(ptr) - 1)
+	#define OEL_DEBUG_HEADER_OF(ptr) ((DebugAllocationHeader *)static_cast<void *>(ptr) - 1)
 
-	template<typename T, typename Ptr>
-	inline bool HasValidIndex(Ptr arrayElem, const DebugAllocationHeader & h)
+	template<typename T>
+	inline bool HasValidIndex(const T * arrayElem, const DebugAllocationHeader & h)
 	{
 		size_t index = arrayElem - reinterpret_cast<const T *>(&h + 1);
 		return index < h.nObjects;
@@ -49,7 +49,7 @@ namespace _detail
 			p += sizeForHeader;
 
 			auto const h = OEL_DEBUG_HEADER_OF(p);
-			constexpr auto maxMinBits = ~((std::uintptr_t)-1 >> 1) | 1U;
+			constexpr auto maxMinBits = ~((std::uintptr_t)-1 >> 1) | 1u;
 			new(h) DebugAllocationHeader{reinterpret_cast<std::uintptr_t>(&a) | maxMinBits, 0};
 
 			return p;

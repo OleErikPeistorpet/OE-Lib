@@ -5,8 +5,8 @@
 #define _SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING
 #endif
 
-#include "dynarray.h"
 #include "test_classes.h"
+#include "dynarray.h"
 #include "range_view.h"
 
 #include "gtest/gtest.h"
