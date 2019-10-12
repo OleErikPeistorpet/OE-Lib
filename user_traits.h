@@ -72,7 +72,8 @@ class dynarray;
 }
 #endif
 
-template< typename T > class array;
+template< typename T >
+class [[clang::trivial_abi]] array;
 
 
 

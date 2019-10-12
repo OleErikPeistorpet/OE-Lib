@@ -24,7 +24,7 @@ true_type specify_trivial_relocate(array<T>);
 * The elements are stored contiguously, which means that elements can be accessed not only through iterators, but also using
 * offsets on regular pointers to elements. */
 template< typename T >
-class array
+class [[clang::trivial_abi]] array
 {
 public:
 	using value_type      = T;
