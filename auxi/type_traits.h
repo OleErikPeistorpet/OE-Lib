@@ -9,10 +9,13 @@
 #include "../user_traits.h"
 
 #include <iterator>
-#ifndef OEL_NO_BOOST
-#include <boost/iterator/iterator_categories.hpp>
-#endif
 
+
+#ifdef __has_include
+	#if !__has_include(<boost/config.hpp>)
+	#define OEL_NO_BOOST  1
+	#endif
+#endif
 
 namespace oel
 {
@@ -58,23 +61,10 @@ template<typename Iterator>
 using iter_value_t = typename std::iterator_traits<Iterator>::value_type;
 
 template<typename Iterator>
-using iter_traversal_t
-#ifndef OEL_NO_BOOST
-	= typename boost::iterator_traversal<Iterator>::type;
-
-	using boost::single_pass_traversal_tag;
-	using boost::forward_traversal_tag;
-	using boost::random_access_traversal_tag;
-#else
-	= typename std::iterator_traits<Iterator>::iterator_category;
-
-	using single_pass_traversal_tag = std::input_iterator_tag;
-	using forward_traversal_tag = std::forward_iterator_tag;
-	using random_access_traversal_tag = std::random_access_iterator_tag;
-#endif
+using iter_category = typename std::iterator_traits<Iterator>::iterator_category;
 
 template<typename Iterator>
-using iter_is_random_access = std::is_base_of< random_access_traversal_tag, iter_traversal_t<Iterator> >;
+using iter_is_random_access = std::is_base_of< std::random_access_iterator_tag, iter_category<Iterator> >;
 
 
 //! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy

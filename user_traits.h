@@ -16,13 +16,6 @@
 * Notably provides a forward declaration of dynarray
 */
 
-#ifdef __has_include
-	#if !__has_include(<boost/config.hpp>)
-	#define OEL_NO_BOOST  1
-	#endif
-#endif
-
-
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
 /** @brief 0: no iterator and precondition checks. 1: most checks. 2: all checks.
 *

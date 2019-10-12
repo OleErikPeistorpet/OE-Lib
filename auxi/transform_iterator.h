@@ -44,13 +44,11 @@ class transform_iterator
 {
 	_detail::TightPair<Iterator, UnaryFunc> _m;
 
-	using _baseCategory = typename std::iterator_traits<Iterator>::iterator_category;
-
 public:
 	using iterator_category = typename std::conditional
-	<	std::is_base_of< std::forward_iterator_tag, _baseCategory >::value,
+	<	std::is_base_of< std::forward_iterator_tag, iter_category<Iterator> >::value,
 		std::forward_iterator_tag,
-		_baseCategory
+		iter_category<Iterator>
 	>::type;
 
 	using difference_type = iter_difference_t<Iterator>;
