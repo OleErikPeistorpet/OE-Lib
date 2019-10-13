@@ -114,13 +114,13 @@ namespace _detail
 		T & Get() noexcept { return _ref; }
 	};
 
-	template<typename T>
-	struct RefOptimizeEmpty<T, true>
-	 :	protected T
+	template<typename Type_needs_unique_name_for_MSVC>
+	struct RefOptimizeEmpty<Type_needs_unique_name_for_MSVC, true>
+	 :	protected Type_needs_unique_name_for_MSVC
 	{
-		RefOptimizeEmpty(T & ob) : T(ob) {}
+		RefOptimizeEmpty(Type_needs_unique_name_for_MSVC & o) : Type_needs_unique_name_for_MSVC(o) {}
 
-		T & Get() noexcept { return *this; }
+		Type_needs_unique_name_for_MSVC & Get() noexcept { return *this; }
 	};
 
 

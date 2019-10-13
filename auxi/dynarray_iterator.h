@@ -206,11 +206,11 @@ auto to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 namespace _detail
 {
 	template<typename T, typename Ptr>
-	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr pos, T * block, const void * parent)
+	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr const pos, T *const block, const void * parent) noexcept
 	{
 		if (block)
 		{
-			const auto *const h = OEL_DEBUG_HEADER_OF(block);
+			const auto * h = OEL_DEBUG_HEADER_OF(block);
 			return {pos, h, h->id};
 		}
 		else

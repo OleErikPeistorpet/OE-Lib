@@ -110,16 +110,15 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 	using pointer         = typename _allocTrait::pointer;
-	using const_pointer   = typename _allocTrait::const_pointer;
 	using difference_type = std::ptrdiff_t;
 	using size_type       = size_t;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
-	using iterator       = debug::dynarray_iterator<pointer, T>;
-	using const_iterator = debug::dynarray_iterator<const_pointer, T>;
+	using iterator       = debug::dynarray_iterator<T *, T>;
+	using const_iterator = debug::dynarray_iterator<const T *, T>;
 #else
-	using iterator       = pointer;
-	using const_iterator = const_pointer;
+	using iterator       = T *;
+	using const_iterator = const T *;
 #endif
 	using reverse_iterator       = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
@@ -263,11 +262,11 @@ public:
 	allocator_type get_allocator() const noexcept  { return _m; }
 
 	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIter(_m.data); }
-	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_pointer>(_m.data); }
+	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const T *>(_m.data); }
 	const_iterator cbegin() const noexcept   OEL_ALWAYS_INLINE { return begin(); }
 
 	iterator       end() noexcept          OEL_ALWAYS_INLINE { return _makeIter(_m.end); }
-	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const_pointer>(_m.end); }
+	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const T *>(_m.end); }
 	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
 
 	reverse_iterator       rbegin() noexcept         OEL_ALWAYS_INLINE { return reverse_iterator{end()}; }
@@ -283,7 +282,7 @@ public:
 	const_reference front() const noexcept(nodebug)  { return *begin(); }
 
 	reference       back() noexcept(nodebug)         { return *_makeIter(_m.end - 1); }
-	const_reference back() const noexcept(nodebug)   { return *_makeIter<const_pointer>(_m.end - 1); }
+	const_reference back() const noexcept(nodebug)   { return *_makeIter<const T *>(_m.end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -331,7 +330,7 @@ private:
 		_memOwner(const allocator_type & a, size_type const capacity)
 		 :	allocator_type(a)
 		{
-			end = data = _allocate(*this, capacity);
+			end = data = _allocateExact(*this, capacity);
 			reservEnd = data + capacity;
 		}
 
@@ -357,7 +356,7 @@ private:
 
 		_scopedPtr(allocator_type & a, size_type const allocSize)
 		 :	_scopedPtr::RefOptimizeEmpty{a},
-			data{_allocate(a, allocSize)},
+			data{_allocateExact(a, allocSize)},
 			allocEnd{data + allocSize} {
 		}
 
@@ -377,7 +376,7 @@ private:
 		}
 	};
 
-	void _resetData(pointer const newData)
+	void _resetData(T *const newData)
 	{
 		if (_m.data)
 			_allocateWrap::Deallocate(_m, _m.data, capacity());
@@ -385,10 +384,10 @@ private:
 		_m.data = newData;
 	}
 
-	static pointer _allocate(Alloc & a, size_type const n)
+	static pointer _allocateExact(Alloc & a, size_type const n)
 	{
 		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeForHeader)
-			return _allocateWrap::Allocate(a, n); // allocate should throw if subtraction wrapped around
+			return _allocateWrap::Allocate(a, n);
 		else
 			_detail::Throw::LengthError("Going over dynarray max_size");
 	}
@@ -591,7 +590,7 @@ private:
 		if (capacity() < count)
 		{
 			// Deallocating first might be better, but then the _m pointers would have to be nulled in case allocate throws
-			_resetData(_allocate(_m, count));
+			_resetData(_allocateExact(_m, count));
 			_m.end = _m.reservEnd = _m.data + count;
 		}
 		else
@@ -608,7 +607,7 @@ private:
 	{
 		_debugSizeUpdater guard{_m};
 
-		auto copy = [](InputIter src_, pointer dest, pointer dLast)
+		auto copy = [](InputIter src_, T * dest, T * dLast)
 		{
 			while (dest != dLast)
 			{
@@ -617,10 +616,10 @@ private:
 			}
 			return src_;
 		};
-		pointer newEnd;
+		T * newEnd;
 		if (capacity() < count)
 		{
-			pointer const newData = _allocate(_m, count);
+			T *const newData = _allocateExact(_m, count);
 			// Old elements might hold some limited resource, destroying them before constructing new is probably good
 			_detail::Destroy(_m.data, _m.end);
 			_resetData(newData);
@@ -721,7 +720,7 @@ private:
 		size_type const oldSize = size();
 		_scopedPtr newBuf{_m, _calcCap(oldSize + count)};
 
-		pointer const pos = newBuf.data + oldSize;
+		T *const pos = newBuf.data + oldSize;
 		makeNew(pos, count, _m);
 		_relocateData(newBuf.data, oldSize);
 
@@ -734,7 +733,7 @@ private:
 	{
 		_scopedPtr newBuf{_m, _calcCapAddOne()};
 
-		pointer const pos = newBuf.data + size();
+		T *const pos = newBuf.data + size();
 		_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
 		_relocateData(newBuf.data, size());
 
@@ -875,7 +874,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	else
 		_emplaceBackRealloc(static_cast<Args &&>(args)...);
 
-	pointer const pos = _m.end;
+	T *const pos = _m.end;
 	++_m.end;
 
 	return *pos;
@@ -967,7 +966,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	_debugSizeUpdater guard{_m};
 
 	size_type const used = size();
-	pointer newData;
+	T * newData;
 	if (0 < used)
 	{
 		newData = _allocateWrap::Allocate(_m, used);

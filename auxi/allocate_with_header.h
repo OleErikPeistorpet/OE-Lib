@@ -90,12 +90,12 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename Pointer>
+	template<typename Ptr>
 	struct DynarrBase
 	{
-		Pointer data;
-		Pointer end;
-		Pointer reservEnd;
+		Ptr data;
+		Ptr end;
+		Ptr reservEnd;
 	};
 }
 

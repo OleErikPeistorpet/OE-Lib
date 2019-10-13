@@ -23,17 +23,17 @@ namespace _detail
 		OEL_ALWAYS_INLINE const F & Func() const noexcept { return _fun; }
 	};
 
-	template<typename Iterator_needs_unique_name_for_MSVC, typename Empty_function_object_named_for_MSVC>
-	struct TightPair<Iterator_needs_unique_name_for_MSVC, Empty_function_object_named_for_MSVC, true>
-	 :	Empty_function_object_named_for_MSVC
+	template<typename Iterator_MSVC_needs_unique_name, typename Empty_function_object_MSVC_name>
+	struct TightPair<Iterator_MSVC_needs_unique_name, Empty_function_object_MSVC_name, true>
+	 :	Empty_function_object_MSVC_name
 	{
-		Iterator_needs_unique_name_for_MSVC inner;
+		Iterator_MSVC_needs_unique_name inner;
 
-		TightPair(Iterator_needs_unique_name_for_MSVC it, Empty_function_object_named_for_MSVC f)
-		 :	Empty_function_object_named_for_MSVC(f), inner(it) {
+		TightPair(Iterator_MSVC_needs_unique_name it, Empty_function_object_MSVC_name f)
+		 :	Empty_function_object_MSVC_name(f), inner(it) {
 		}
 
-		OEL_ALWAYS_INLINE const Empty_function_object_named_for_MSVC & Func() const noexcept { return *this; }
+		OEL_ALWAYS_INLINE const Empty_function_object_MSVC_name & Func() const noexcept { return *this; }
 	};
 }
 
