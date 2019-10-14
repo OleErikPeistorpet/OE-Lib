@@ -76,7 +76,7 @@ struct last_iterators
 * @pre The ranges shall not overlap, except if `begin(source)` equals `begin(dest)` (then elements are self assigned)
 *
 * Requires that dest is a random_access_range (C++20 concept) to compile.
-* To move instead of copy, wrap source with view::move or view::move_n  */
+* To move instead of copy, wrap source with view::move  */
 template<typename InputRange, typename RandomAccessRange>
 auto copy(const InputRange & source, RandomAccessRange & dest)
 ->	last_iterators<decltype(begin(source)), decltype(begin(dest))>;

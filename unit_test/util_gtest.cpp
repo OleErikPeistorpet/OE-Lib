@@ -185,8 +185,7 @@ TEST(utilTest, toPointerContiguous)
 	static_assert(std::is_same<CP, const int *>::value, "?");
 
 	auto addr = &a[0];
-	using Iter = dynarray_iterator<PointerLike<int>, dynarray<int>>;
-	Iter it{{addr}, nullptr, 0};
+	dynarray_iterator<PointerLike<int>, int> it{{addr}, {nullptr}, 0};
 	auto result = to_pointer_contiguous(it);
 	static_assert(std::is_same<int *, decltype(result)>(), "?");
 	EXPECT_EQ(addr, result);
