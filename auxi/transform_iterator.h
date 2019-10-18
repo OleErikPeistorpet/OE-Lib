@@ -6,37 +6,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "type_traits.h"
+#include "compress_empty.h"
 
 
 namespace oel
 {
-namespace _detail
-{
-	template< typename I, typename F,
-		bool = std::is_empty<F>::value >
-	struct TightPair
-	{
-		I inner;
-		F _fun;
-
-		OEL_ALWAYS_INLINE const F & Func() const noexcept { return _fun; }
-	};
-
-	template<typename Iterator_MSVC_needs_unique_name, typename Empty_function_object_MSVC_name>
-	struct TightPair<Iterator_MSVC_needs_unique_name, Empty_function_object_MSVC_name, true>
-	 :	Empty_function_object_MSVC_name
-	{
-		Iterator_MSVC_needs_unique_name inner;
-
-		TightPair(Iterator_MSVC_needs_unique_name it, Empty_function_object_MSVC_name f)
-		 :	Empty_function_object_MSVC_name(f), inner(it) {
-		}
-
-		OEL_ALWAYS_INLINE const Empty_function_object_MSVC_name & Func() const noexcept { return *this; }
-	};
-}
-
 
 //! Similar to boost::transform_iterator
 template<typename UnaryFunc, typename Iterator>
@@ -52,7 +26,7 @@ public:
 	>::type;
 
 	using difference_type = iter_difference_t<Iterator>;
-	using reference       = decltype( _m.Func()(*_m.inner) );
+	using reference       = decltype( _m.second()(*_m.first) );
 	using pointer         = void;
 	using value_type      = typename std::decay<reference>::type;
 
@@ -68,36 +42,36 @@ public:
 	* Probably optimizes better than alternatives, but gives potential for surprises  */
 	transform_iterator & operator =(const transform_iterator & other) &
 	{
-		_m.inner = other._m.inner;
+		_m.first = other._m.first;
 		return *this;
 	}
 
 	reference operator*() const
 	{
-		return _m.Func()(*_m.inner);
+		return _m.second()(*_m.first);
 	}
 
 	transform_iterator & operator++()  OEL_ALWAYS_INLINE
 	{	// preincrement
-		++_m.inner;
+		++_m.first;
 		return *this;
 	}
 
 	transform_iterator operator++(int) &
 	{	// postincrement
 		auto tmp = *this;
-		++_m.inner;
+		++_m.first;
 		return tmp;
 	}
 
 	bool operator==(const transform_iterator & right) const
 	{
-		return _m.inner == right._m.inner;
+		return _m.first == right._m.first;
 	}
 
 	bool operator!=(const transform_iterator & right) const
 	{
-		return _m.inner != right._m.inner;
+		return _m.first != right._m.first;
 	}
 };
 

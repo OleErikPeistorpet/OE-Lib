@@ -6,7 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "contiguous_iterator_to_ptr.h"
+#include "compress_empty.h"
+#include "algo_detail.h" // for Throw
 
 #include <cstdint> // for uintptr_t
 
@@ -41,7 +42,7 @@ namespace _detail
 		static constexpr size_t sizeForHeader = 0;
 	#endif
 
-		static Ptr Allocate(Alloc & a, size_t n)
+		static Ptr allocate(Alloc & a, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			n += sizeForHeader;
@@ -58,7 +59,7 @@ namespace _detail
 		#endif
 		}
 
-		static void Deallocate(Alloc & a, Ptr p, size_t n)
+		static void deallocate(Alloc & a, Ptr p, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			OEL_DEBUG_HEADER_OF(p)->id = 0;
@@ -91,11 +92,62 @@ namespace _detail
 ////////////////////////////////////////////////////////////////////////////////
 
 	template<typename Ptr>
+	struct DynarrValue
+	{
+		Ptr data;   // owning
+		Ptr end;    // pointer to one past the back object
+		Ptr capEnd; // pointer to end of allocated memory
+
+		void stealBuf(DynarrValue & src) noexcept
+		{
+			*this = src;
+			src.capEnd = src.end = src.data = nullptr;
+		}
+	};
+
+	template<typename Alloc>
 	struct DynarrBase
 	{
-		Ptr data;
-		Ptr end;
-		Ptr reservEnd;
+		using AllocTrait = std::allocator_traits<Alloc>;
+		using pointer = typename AllocTrait::pointer;
+		using Values = DynarrValue<pointer>;
+		using AllocateWrap = DebugAllocateWrapper<Alloc, pointer>;
+
+		TightPair<Values, Alloc> m;
+
+		static constexpr auto lenErrorMsg = "Going over dynarray max_size";
+
+		pointer allocateExact(size_t const n)
+		{
+			if (n <= AllocTrait::max_size(m.second()) - AllocateWrap::sizeForHeader)
+				return AllocateWrap::allocate(m.second(), n);
+			else
+				Throw::LengthError(lenErrorMsg);
+		}
+
+		void deallocate()
+		{
+			if (m.first.data)
+				AllocateWrap::deallocate(m.second(), m.first.data, m.first.capEnd - m.first.data);
+		}
+
+		constexpr DynarrBase(const Alloc & a)
+		 :	m{{}, a} {
+		}
+		DynarrBase(const Alloc & a, size_t const capacity)
+		 :	m{{}, a}
+		{
+			m.first.end = m.first.data = allocateExact(capacity);
+			m.first.capEnd = m.first.data + capacity;
+		}
+
+		DynarrBase(DynarrBase && other) noexcept
+		 :	m{std::move(other.m)}
+		{
+			other.m.first.capEnd = other.m.first.end = other.m.first.data = nullptr;
+		}
+
+		~DynarrBase() { deallocate(); }
 	};
 }
 
