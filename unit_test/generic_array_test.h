@@ -351,22 +351,22 @@ void testInsertR()
 	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
 }
 
-template<typename ArrayMoveOnly>
+template<typename ArrayTrivialReloc>
 void testInsert()
 {
 	TrivialRelocat::ClearCount();
 	{
-		ArrayMoveOnly up;
+		ArrayTrivialReloc up;
 
 		double const VALUES[] = {-1.1, 0.4, 1.3, 2.2};
 
-		auto & ptr = *up.insert(begin(up), TrivialRelocat{VALUES[2]});
+		auto & ptr = *up.emplace(begin(up), VALUES[2]);
 		EXPECT_EQ(VALUES[2], *ptr);
 		ASSERT_EQ(1U, up.size());
 
 	OEL_WHEN_EXCEPTIONS_ON(
 		TrivialRelocat::countToThrowOn = 0;
-		EXPECT_THROW( up.emplace(begin(up)), TestException );
+		EXPECT_THROW( up.insert(begin(up), TrivialRelocat{0.0}), TestException );
 		ASSERT_EQ(1U, up.size());
 	)
 		up.insert(begin(up), TrivialRelocat{VALUES[0]});
@@ -374,7 +374,7 @@ void testInsert()
 
 	OEL_WHEN_EXCEPTIONS_ON(
 		TrivialRelocat::countToThrowOn = 0;
-		EXPECT_THROW( up.emplace(begin(up) + 1), TestException );
+		EXPECT_THROW( up.insert(begin(up) + 1, TrivialRelocat{0.0}), TestException );
 		ASSERT_EQ(2U, up.size());
 	)
 		up.insert(end(up), TrivialRelocat{VALUES[3]});
@@ -415,12 +415,12 @@ void internalTestErase()
 	ret = d.erase(ret);
 	EXPECT_EQ(begin(d) + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
-	EXPECT_EQ(5, static_cast<int>(d.back()));
+	EXPECT_EQ(5, static_cast<double>(d.back()));
 
 	ret = d.erase(end(d) - 1);
 	EXPECT_EQ(end(d), ret);
 	ASSERT_EQ(s - 3, d.size());
-	EXPECT_EQ(1, static_cast<int>(d.front()));
+	EXPECT_EQ(1, static_cast<double>(d.front()));
 }
 
 template<typename ArrayInt, typename ArrayMoveOnly>

@@ -1,5 +1,6 @@
-#include "fixcap_array.h"
 #include "generic_array_test.h"
+#include "fixcap_array.h"
+#include "range_algo.h"
 
 using oel::fixcap_array;
 

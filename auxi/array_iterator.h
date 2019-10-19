@@ -22,8 +22,7 @@ class array_iterator
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	// Test for iterator pair pointing to same container
-	#define OEL_ITER_CHECK_COMPATIBLE(other)  \
-		OEL_ASSERT(_container == other._container)
+	#define OEL_ITER_CHECK_COMPATIBLE(other)  OEL_ASSERT(_container == other._container)
 #else
 	#define OEL_ITER_CHECK_COMPATIBLE(other)
 #endif
@@ -100,16 +99,14 @@ public:
 		return it += offset;
 	}
 
-	array_iterator operator +(difference_type offset) const
+	friend array_iterator operator +(array_iterator it, difference_type offset)
 	{
-		auto tmp = *this;
-		return tmp += offset;
+		return it += offset;
 	}
 
-	array_iterator operator -(difference_type offset) const
-	{	// this - integer
-		auto tmp = *this;
-		return tmp -= offset;
+	friend array_iterator operator -(array_iterator it, difference_type offset)
+	{
+		return it -= offset;
 	}
 
 	difference_type operator -(const const_iterator & right) const
@@ -181,10 +178,9 @@ public:
 
 //! To raw pointer (unchecked)
 template<typename Ptr, typename C>  inline
-typename std::pointer_traits<Ptr>::element_type *
-	to_pointer_contiguous(const array_iterator<Ptr, C> & it) noexcept
+auto to_pointer_contiguous(const array_iterator<Ptr, C> & it) noexcept
 {
-	return _detail::ToAddress(it._pElem);
+	return (typename std::pointer_traits<Ptr>::element_type *)it._pElem;
 }
 
 

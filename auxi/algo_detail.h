@@ -182,11 +182,11 @@ namespace _detail
 
 	struct UninitFillA
 	{
-		template<typename T, typename... Arg>
-		void operator()(T *const first, T *const last, const Arg &... arg) const
+		template<typename T, typename... Args>
+		void operator()(T *const first, T *const last, const Args &... args) const
 		{
 			struct A {} a;
-			UninitFill<A>{}(first, last, a, arg...);
+			UninitFill<A>{}(first, last, a, args...);
 		}
 	};
 

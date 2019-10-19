@@ -55,6 +55,7 @@ add_executable(oel-test
 	range_algo_gtest.cpp
 	util_gtest.cpp
 	incl_dynarray.cpp
+	incl_fixcap_array.cpp
 	incl_make_unique.cpp
 	incl_range_algo.cpp
 	incl_range_view.cpp
