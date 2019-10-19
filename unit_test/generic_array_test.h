@@ -167,8 +167,8 @@ void testAssign()
 		dest = {TrivialRelocat{-1.0}};
 		EXPECT_EQ(1U, dest.size());
 		dest = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
-		EXPECT_EQ(1.0, *dest.at(0));
-		EXPECT_EQ(2.0, *dest.at(1));
+		EXPECT_EQ(1.0, *dest[0]);
+		EXPECT_EQ(2.0, *dest[1]);
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(dest), TrivialRelocat::nDestruct);
 		OEL_WHEN_EXCEPTIONS_ON(
 		{
@@ -177,7 +177,7 @@ void testAssign()
 			EXPECT_THROW(
 				dest.assign(view::subrange(&obj, &obj + 1)),
 				TestException );
-			EXPECT_TRUE(dest.empty() or *dest.at(1) == 2.0);
+			EXPECT_TRUE(dest.empty() or *dest[1] == 2.0);
 		} )
 		{
 			dest.clear();
@@ -212,11 +212,11 @@ void testAssignStringStream()
 
 	EXPECT_EQ(5U, das.size());
 
-	EXPECT_EQ("My", das.at(0));
-	EXPECT_EQ("computer", das.at(1));
-	EXPECT_EQ("emits", das.at(2));
-	EXPECT_EQ("Hawking", das.at(3));
-	EXPECT_EQ("radiation", das.at(4));
+	EXPECT_EQ("My", das[0]);
+	EXPECT_EQ("computer", das[1]);
+	EXPECT_EQ("emits", das[2]);
+	EXPECT_EQ("Hawking", das[3]);
+	EXPECT_EQ("radiation", das[4]);
 
 	ArrayString copyDest;
 
@@ -238,10 +238,10 @@ void testAssignStringStream()
 	EXPECT_EQ(das[4], copyDest[2]);
 
 	copyDest = {std::string()};
-	EXPECT_EQ("", copyDest.at(0));
+	EXPECT_EQ("", copyDest[0]);
 	copyDest = {das[0], das[4]};
 	EXPECT_EQ(2U, copyDest.size());
-	EXPECT_EQ(das[4], copyDest.at(1));
+	EXPECT_EQ(das[4], copyDest[1]);
 
 	copyDest = std::initializer_list<std::string>{};
 	EXPECT_TRUE(copyDest.empty());

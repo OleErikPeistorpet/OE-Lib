@@ -189,9 +189,6 @@ public:
 	reference       back() noexcept(nodebug)         { return operator[](_size - 1); }
 	const_reference back() const noexcept(nodebug)   { return operator[](_size - 1); }
 
-	reference       at(size_type index);
-	const_reference at(size_type index) const;
-
 	reference       operator[](size_type index) noexcept(nodebug);
 	const_reference operator[](size_type index) const noexcept(nodebug);
 
@@ -637,22 +634,6 @@ void fixcap_array<T, Capacity, Size>::erase_to_end(iterator newEnd) noexcept(nod
 	_size = first - data();
 }
 
-
-template<typename T, size_t Capacity, typename Size>
-OEL_ALWAYS_INLINE inline T & fixcap_array<T, Capacity, Size>::at(size_type index)
-{
-	const auto & cSelf = *this;
-	return const_cast<reference>(cSelf.at(index));
-}
-
-template<typename T, size_t Capacity, typename Size>
-const T & fixcap_array<T, Capacity, Size>::at(size_type index) const
-{
-	if (static_cast<size_t>(index) < static_cast<size_t>(_size))
-		return data()[index];
-	else
-		_detail::Throw::OutOfRange("Bad index fixcap_array::at");
-}
 
 template<typename T, size_t Capacity, typename Size>
 inline T & fixcap_array<T, Capacity, Size>::operator[](size_type index) noexcept(nodebug)

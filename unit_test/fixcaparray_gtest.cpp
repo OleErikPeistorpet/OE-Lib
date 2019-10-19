@@ -157,9 +157,6 @@ TEST_F(fixcap_arrayTest, misc)
 	daSrc.insert(begin(daSrc) + 1, 1);
 	ASSERT_EQ(3U, daSrc.size());
 
-	ASSERT_NO_THROW(daSrc.at(2));
-	ASSERT_THROW(daSrc.at(3), std::out_of_range);
-
 	std::deque<size_t> dequeSrc;
 	dequeSrc.push_back(4);
 	dequeSrc.push_back(5);
