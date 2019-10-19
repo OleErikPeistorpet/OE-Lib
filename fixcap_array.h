@@ -257,7 +257,10 @@ private:
 	template<typename Range>
 	static size_t _count(const Range & r, long)
 	{
-		return std::distance(oel::adl_begin(r), oel::adl_end(r));
+		auto first = oel::adl_begin(r);
+		static_assert(std::is_base_of< std::forward_iterator_tag, iter_category<decltype(first)> >::value,
+		              "insert_r requires that begin(source) is a ForwardIterator (multi-pass)");
+		return std::distance(first, oel::adl_end(r));
 	}
 
 
@@ -556,15 +559,12 @@ template<typename T, size_t Capacity, typename Size> template<typename ForwardRa
 typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
 	insert_r(const_iterator pos, const ForwardRange & src) &
 {
-	auto first = oel::adl_begin(src);
-
-	static_assert(std::is_base_of< forward_traversal_tag, iter_traversal_t<decltype(first)> >::value,
-	              "insert_r requires that begin(source) is a ForwardIterator (multi-pass)");
-
 	(void) _detail::AssertTrivialRelocate<T>{};
 	OEL_ASSERT(begin() <= pos and pos <= end());
 
+	auto first = oel::adl_begin(src);
 	using CanMemmove = can_memmove_with<T *, decltype(first)>;
+
 	size_type const n = _count(src, int{});
 	if (_unusedCapacity() >= n)
 	{

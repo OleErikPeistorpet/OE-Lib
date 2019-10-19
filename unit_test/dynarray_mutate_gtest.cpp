@@ -683,13 +683,15 @@ TEST_F(dynarrayTest, eraseUnstable)
 
 TEST_F(dynarrayTest, overAligned)
 {
-	static unsigned int const testAlignment = 32;
+	static unsigned int const testAlignment = 64;
 	struct Type
 	{	oel::aligned_storage_t<testAlignment, testAlignment> a;
 	};
-	dynarray<Type> special(oel::reserve, 3);
+	dynarray<Type> special(oel::reserve, 1);
 
 	special.insert(special.begin(), Type());
+	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(special.data()) % testAlignment);
+
 	special.emplace(special.begin());
 	special.emplace(special.begin() + 1);
 	EXPECT_EQ(3U, special.size());

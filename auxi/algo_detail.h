@@ -65,27 +65,27 @@ namespace _detail
 
 
 	template<typename T, typename Alloc, bool B, typename... Args>
-	inline auto ConstructImpl(bool_constant<B>, Alloc & a, T *__restrict p, Args &&... args)
+	inline auto doConstruct(bool_constant<B>, Alloc & a, T *__restrict p, Args &&... args)
 	->	decltype( a.construct(p, static_cast<Args &&>(args)...) )
 		        { a.construct(p, static_cast<Args &&>(args)...); }
 	// void * worse match than T *
 	template<typename T, typename Alloc, typename... Args>
-	inline void ConstructImpl(std::true_type, Alloc &, void *__restrict p, Args &&... args)
+	inline void doConstruct(std::true_type, Alloc &, void *__restrict p, Args &&... args)
 	{	// T constructible from Args
 		::new(p) T(static_cast<Args &&>(args)...);
 	}
-	// list-initialization
+
 	template<typename T, typename Alloc, typename... Args>
-	inline void ConstructImpl(std::false_type, Alloc &, void *__restrict p, Args &&... args)
+	inline void doConstruct(std::false_type, Alloc &, void *__restrict p, Args &&... args)
 	{
-		::new(p) T{static_cast<Args &&>(args)...};
+		::new(p) T{static_cast<Args &&>(args)...}; // list-initialization
 	}
 
 	template<typename Alloc, typename T, typename... Args>
 	OEL_ALWAYS_INLINE inline void Construct(Alloc & a, T *__restrict p, Args &&... args)
 	{
-		ConstructImpl<T>(std::is_constructible<T, Args...>(),
-		                 a, p, static_cast<Args &&>(args)...);
+		doConstruct<T>(std::is_constructible<T, Args...>(),
+		               a, p, static_cast<Args &&>(args)...);
 	}
 
 	template<typename T, typename... Args>
@@ -116,14 +116,14 @@ namespace _detail
 
 	template<typename Alloc, typename InputIter, typename T,
 	         enable_if< not can_memmove_with<T *, InputIter>::value > = 0>
-	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc)
+	InputIter UninitCopy(InputIter src, T *__restrict dest, T *const dLast, Alloc & allo)
 	{
 		T *const dFirst = dest;
 		OEL_TRY_
 		{
 			while (dest != dLast)
 			{
-				_detail::Construct(alloc, dest, *src);
+				_detail::Construct(allo, dest, *src);
 				++src; ++dest;
 			}
 		}
@@ -145,13 +145,13 @@ namespace _detail
 
 		template<typename T, typename... Args,
 		         enable_if< !IsByte<T>::value > = 0>
-		void operator()(T * first, T *const last, Alloc & alloc, const Args &... args) const
+		void operator()(T *__restrict first, T *const last, Alloc & allo, const Args &... args) const
 		{
 			T *const init = first;
 			OEL_TRY_
 			{
 				for (; first != last; ++first)
-					_detail::Construct(alloc, first, args...);
+					_detail::Construct(allo, first, args...);
 			}
 			OEL_CATCH_ALL
 			{
@@ -200,11 +200,11 @@ namespace _detail
 
 
 	template<typename Range, typename IterTrav> // pass dummy int to prefer this overload
-	auto SizeOrEndImpl(const Range & r, IterTrav, int)
+	auto doSizeOrEnd(const Range & r, IterTrav, int)
 	->	decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
 
 	template<typename Range>
-	size_t SizeOrEndImpl(const Range & r, forward_traversal_tag, long)
+	size_t doSizeOrEnd(const Range & r, std::forward_iterator_tag, long)
 	{
 		size_t n = 0;
 		auto it = begin(r);  auto const last = end(r);
@@ -214,14 +214,14 @@ namespace _detail
 	}
 
 	template<typename Range>
-	auto SizeOrEndImpl(const Range & r, single_pass_traversal_tag, long) { return end(r); }
+	auto doSizeOrEnd(const Range & r, std::input_iterator_tag, long) { return end(r); }
 
 	// If r is sized or multi-pass, returns element count as size_t, else end(r)
 	template<typename Range>
 	auto SizeOrEnd(const Range & r)
 	{
 		using It = decltype(begin(r));
-		return _detail::SizeOrEndImpl(r, iter_traversal_t<It>(), 0);
+		return _detail::doSizeOrEnd(r, iter_category<It>(), 0);
 	}
 }
 

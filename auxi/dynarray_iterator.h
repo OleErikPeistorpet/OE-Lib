@@ -30,12 +30,11 @@ template<typename Ptr, typename ValT>
 class dynarray_iterator
 {
 #define OEL_ITER_VALIDATE_DEREF  \
-	OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex<value_type>(_pElem, *_header) )
+	OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex(static_cast<const ValT *>(_pElem), *_header) )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	// Test for iterator pair pointing to same container
-	#define OEL_ITER_CHECK_COMPATIBLE(other)  \
-		OEL_ASSERT(_allocationId == other._allocationId)
+	#define OEL_ITER_CHECK_COMPATIBLE(other)  OEL_ASSERT(_allocationId == other._allocationId)
 #else
 	#define OEL_ITER_CHECK_COMPATIBLE(other)
 #endif
@@ -193,10 +192,9 @@ public:
 
 //! To raw pointer (unchecked)
 template<typename Ptr, typename T>  inline
-typename std::pointer_traits<Ptr>::element_type *
-	to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
+auto to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 {
-	return _detail::ToAddress(it._pElem);
+	return (typename std::pointer_traits<Ptr>::element_type *)it._pElem;
 }
 
 
@@ -208,11 +206,11 @@ typename std::pointer_traits<Ptr>::element_type *
 namespace _detail
 {
 	template<typename T, typename Ptr>
-	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr pos, T * block, const void * parent)
+	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr const pos, T *const block, const void * parent) noexcept
 	{
 		if (block)
 		{
-			const auto *const h = OEL_DEBUG_HEADER_OF(block);
+			const auto * h = OEL_DEBUG_HEADER_OF(block);
 			return {pos, h, h->id};
 		}
 		else

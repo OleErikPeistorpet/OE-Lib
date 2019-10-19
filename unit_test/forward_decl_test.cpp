@@ -26,7 +26,7 @@ class ContainSelf
 	oel::dynarray<ForwDeclared> test2;
 };
 
-class ForwDeclared { char a; };
+class ForwDeclared {};
 
 namespace {
 ContainSelf instance{};
