@@ -46,13 +46,13 @@ public:
 
 	reference operator*() const
 	{
-		OEL_ASSERT(_container->DerefValid(_pElem));
+		OEL_ASSERT(_container->derefValid(_pElem));
 		return *_pElem;
 	}
 
 	pointer operator->() const
 	{
-		OEL_ASSERT(_container->DerefValid(_pElem));
+		OEL_ASSERT(_container->derefValid(_pElem));
 		return _pElem;
 	}
 
@@ -190,9 +190,6 @@ auto to_pointer_contiguous(const array_iterator<Ptr, C> & it) noexcept
 
 namespace _detail
 {
-	template<typename, typename> struct FcaProxy;
-
-
 	template<typename Iterator>
 #if OEL_MEM_BOUND_DEBUG_LVL
 	using ArrayIteratorMaker = Iterator;

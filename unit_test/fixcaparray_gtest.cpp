@@ -4,12 +4,16 @@
 
 using oel::fixcap_array;
 
-using FcaString       = fixcap_array<std::string, 1>;
-using FcaMoveMayThrow = fixcap_array<NontrivialConstruct, 1>;
+using FcaString   = fixcap_array<std::string, 1>;
+using FcaMayThrow = fixcap_array<NontrivialConstruct, 1>;
 
+static_assert( std::is_nothrow_default_constructible<FcaMayThrow>{}, "?");
 static_assert(    std::is_nothrow_move_constructible<FcaString>{}, "?");
-static_assert(not std::is_nothrow_move_constructible<FcaMoveMayThrow >{}, "?");
-static_assert(not std::is_nothrow_move_assignable<FcaMoveMayThrow>{}, "?");
+static_assert(not std::is_nothrow_move_constructible<FcaMayThrow>{}, "?");
+static_assert(not std::is_nothrow_move_assignable<FcaMayThrow>{}, "?");
+
+static_assert(    oel::is_trivially_copyable< fixcap_array<int, 1> >{}, "?");
+static_assert(not oel::is_trivially_copyable< FcaString >{}, "?");
 
 // The fixture for testing fixcap_array.
 class fixcap_arrayTest : public ::testing::Test
