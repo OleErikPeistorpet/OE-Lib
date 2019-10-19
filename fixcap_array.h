@@ -87,7 +87,8 @@ public:
 
 	fixcap_array(std::initializer_list<T> init)   : _size() { append<>(init); }
 
-	fixcap_array(fixcap_array && other);
+	fixcap_array(fixcap_array && other)
+		noexcept(std::is_nothrow_move_constructible<T>::value or is_trivially_relocatable<T>::value);
 	fixcap_array(const fixcap_array & other);
 
 	~fixcap_array() noexcept   { _detail::Destroy(data(), data() + _size); }
@@ -468,6 +469,7 @@ inline fixcap_array<T, Capacity, Size>::fixcap_array(const fixcap_array & other)
 
 template<typename T, size_t Capacity, typename Size>
 inline fixcap_array<T, Capacity, Size>::fixcap_array(fixcap_array && other)
+	noexcept(std::is_nothrow_move_constructible<T>::value or is_trivially_relocatable<T>::value)
  :	_size()
 {
 	_appendImpl(std::make_move_iterator(other.data()), other._size, is_trivially_relocatable<T>());

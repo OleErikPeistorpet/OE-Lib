@@ -4,6 +4,13 @@
 
 using oel::fixcap_array;
 
+using FcaString       = fixcap_array<std::string, 1>;
+using FcaMoveMayThrow = fixcap_array<NontrivialConstruct, 1>;
+
+static_assert(    std::is_nothrow_move_constructible<FcaString>{}, "?");
+static_assert(not std::is_nothrow_move_constructible<FcaMoveMayThrow >{}, "?");
+static_assert(not std::is_nothrow_move_assignable<FcaMoveMayThrow>{}, "?");
+
 // The fixture for testing fixcap_array.
 class fixcap_arrayTest : public ::testing::Test
 {
