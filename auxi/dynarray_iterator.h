@@ -202,7 +202,6 @@ auto to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 ////////////////////////////////////////////////////////////////////////////////
 
 
-
 namespace _detail
 {
 	template<typename T, typename Ptr>

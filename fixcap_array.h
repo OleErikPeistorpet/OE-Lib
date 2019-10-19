@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -88,7 +88,7 @@ public:
 	fixcap_array(std::initializer_list<T> init)   : _size() { append<>(init); }
 
 	fixcap_array(fixcap_array && other);
-	fixcap_array(const fixcap_array & other)  { _uninitCopyFrom<is_trivially_copyable<T>::value>(other); }
+	fixcap_array(const fixcap_array & other);
 
 	~fixcap_array() noexcept   { _detail::Destroy(data(), data() + _size); }
 
@@ -269,37 +269,16 @@ private:
 		return Capacity - _size;
 	}
 
+	void _setEmptyIf(true_type) { _size = 0; }
+
+	OEL_ALWAYS_INLINE void _setEmptyIf(false_type) {}
+
 #ifdef __GNUC__
 	#pragma GCC diagnostic push
 	#if __GNUC__ >= 8
 	#pragma GCC diagnostic ignored "-Wclass-memaccess"
 	#endif
 #endif
-
-	template<typename InputIter>
-	static void _uninitCopy(false_type, InputIter first, size_type, T * dest, T * destEnd)
-	{
-		struct {} a;
-		_detail::UninitCopy(first, dest, destEnd, a);
-	}
-
-	template<typename CntigusIter>
-	static void _uninitCopy(true_type, CntigusIter first, size_type n, T * dest, T *)
-	{
-		_detail::MemcpyCheck(first, n, dest);
-	}
-
-	template<bool Trivial>
-	void _uninitCopyFrom(const fixcap_array & src)
-	{
-		_size = src._size;
-		_uninitCopy(bool_constant<Trivial>(), src.data(), src._size, data(), data() + _size);
-	}
-
-	void _setEmptyIf(true_type) { _size = 0; }
-
-	OEL_ALWAYS_INLINE void _setEmptyIf(false_type) {}
-
 
 	void _eraseUnorder(iterator pos, false_type) // non-trivial relocation
 	{
@@ -323,7 +302,7 @@ private:
 
 		ptr-> ~T();
 		T *const next = ptr + 1;
-		size_type const nAfter = (data() + _size) - next;
+		size_t const nAfter = _size - (next - data());
 		std::memmove(ptr, next, sizeof(T) * nAfter); // move [pos + 1, _end) to [pos, _end - 1)
 		--_size;
 	}
@@ -337,7 +316,7 @@ private:
 
 
 	template<typename UninitFillFunc>
-	void _resizeImpl(size_type newSize, UninitFillFunc initNewElems)
+	void _resizeImpl(size_type newSize, UninitFillFunc initAdded)
 	{
 		if (Capacity < newSize)
 			_throwLackCap();
@@ -345,15 +324,15 @@ private:
 		T *const oldEnd = data() + _size;
 		T *const newEnd = data() + newSize;
 		if (oldEnd < newEnd) // then construct new
-			initNewElems(oldEnd, newEnd);
+			initAdded(oldEnd, newEnd);
 		else // destroy old
 			_detail::Destroy(newEnd, oldEnd);
 
 		_size = newSize;
 	}
 
-	template<typename CntigusIter>
-	CntigusIter _assignImpl(std::true_type, CntigusIter first, size_type const count)
+	template<typename ContiguousIter>
+	ContiguousIter _assignImpl(ContiguousIter first, size_type const count, true_type)
 	{	// fastest assign
 		_size = count;
 		// Not portable for self assignment. Use memmove?
@@ -363,7 +342,7 @@ private:
 	}
 
 	template<typename InputIter>
-	InputIter _assignImpl(std::false_type, InputIter src, size_type const count)
+	InputIter _assignImpl(InputIter src, size_type const count, false_type)
 	{	// cannot use memcpy
 		auto copy = [](InputIter src_, T * dest, T * dLast)
 		{
@@ -399,7 +378,7 @@ private:
 		if (Capacity >= count)
 		{
 			auto first = oel::adl_begin(src);
-			return _assignImpl(can_memmove_with<T *, decltype(first)>(), first, count);
+			return _assignImpl(first, count, can_memmove_with<T *, decltype(first)>());
 		}
 		_throwLackCap();
 	}
@@ -411,8 +390,8 @@ private:
 		return append<>(src);
 	}
 
-	template<typename CntigusIter>
-	CntigusIter _appendImpl(std::true_type, CntigusIter first, size_type const count)
+	template<typename ContiguousIter>
+	ContiguousIter _appendImpl(ContiguousIter first, size_type const count, std::true_type)
 	{	// use memcpy
 		_detail::MemcpyCheck(first, count, data() + _size);
 		_size += count;
@@ -421,7 +400,7 @@ private:
 	}
 
 	template<typename InputIter>
-	InputIter _appendImpl(std::false_type, InputIter src, size_type const count)
+	InputIter _appendImpl(InputIter src, size_type const count, std::false_type)
 	{	// slower copy
 		size_type newSize = _size + count;
 		struct {} a;
@@ -436,7 +415,7 @@ private:
 		if (_unusedCapacity() >= count)
 		{
 			auto first = oel::adl_begin(src);
-			return _appendImpl(can_memmove_with<T *, decltype(first)>(), first, count);
+			return _appendImpl(first, count, can_memmove_with<T *, decltype(first)>());
 		}
 		_throwLackCap();
 	}
@@ -483,26 +462,35 @@ fixcap_array<T, Capacity, Size>::fixcap_array(size_type size, const T & val)
 }
 
 template<typename T, size_t Capacity, typename Size>
-inline fixcap_array<T, Capacity, Size>::fixcap_array(fixcap_array && other)
+inline fixcap_array<T, Capacity, Size>::fixcap_array(const fixcap_array & other)
+ :	_size(other._size)
 {
-	_uninitCopyFrom<is_trivially_relocatable<T>::value>(other);
+	struct {} a;
+	_detail::UninitCopy(other.data(), data(), data() + _size, a);
+}
+
+template<typename T, size_t Capacity, typename Size>
+inline fixcap_array<T, Capacity, Size>::fixcap_array(fixcap_array && other)
+ :	_size()
+{
+	_appendImpl(std::make_move_iterator(other.data()), other._size, is_trivially_relocatable<T>());
 	other._setEmptyIf(is_trivially_relocatable<T>());
 }
 
 template<typename T, size_t Capacity, typename Size>
 fixcap_array<T, Capacity, Size> &  fixcap_array<T, Capacity, Size>::
-	operator =(const fixcap_array & other) &
-{	// Bypassing Capacity check in _assign
-	_assignImpl(is_trivially_copyable<T>(), other.data(), other._size);
+	operator =(fixcap_array && other) &
+{
+	_assignImpl(std::make_move_iterator(other.data()), other._size, is_trivially_relocatable<T>());
+	other._setEmptyIf(is_trivially_relocatable<T>());
 	return *this;
 }
 
 template<typename T, size_t Capacity, typename Size>
 inline fixcap_array<T, Capacity, Size> &  fixcap_array<T, Capacity, Size>::
-	operator =(fixcap_array && other) &
-{
-	_assignImpl(is_trivially_relocatable<T>(), other.data(), other._size);
-	other._setEmptyIf(is_trivially_relocatable<T>());
+	operator =(const fixcap_array & other) &
+{	// Bypassing Capacity check in _assign
+	_assignImpl(other.data(), other._size, is_trivially_copyable<T>());
 	return *this;
 }
 
@@ -540,11 +528,11 @@ typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Si
 	if (Capacity > _size)
 	{
 		auto const pPos = const_cast<T *>(to_pointer_contiguous(pos));
-		size_type const nAfterPos = (data() + _size) - pPos;
+		size_t const nAfterPos = _size - (pPos - data());
 		// Temporary in case constructor throws or source is an element of this array at pos or after
 		aligned_union_t<T> tmp;
 		_detail::ConstructA(reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
-		// Move [pos, end) to [pos + 1, end + 1), conceptually destroying element at pos
+		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_size;
 
@@ -565,20 +553,21 @@ typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Si
 	auto first = oel::adl_begin(src);
 	using CanMemmove = can_memmove_with<T *, decltype(first)>;
 
-	size_type const n = _count(src, int{});
+	size_t const n = _count(src, int{});
 	if (_unusedCapacity() >= n)
 	{
 		auto const pPos = const_cast<T *>(to_pointer_contiguous(pos));
 		size_t const bytesAfterPos = sizeof(T) * ( _size - (pPos - data()) );
 		T *const dLast = pPos + n;
-		// Relocate elements to make space, conceptually destroying [pos, pos + n)
+		// Relocate elements to make space, leaving [pos, pos + n) uninitialized (conceptually)
 		std::memmove(dLast, pPos, bytesAfterPos);
 
 		_size += n;
 		// Construct new
 		OEL_CONST_COND if (CanMemmove::value)
 		{
-			_uninitCopy(CanMemmove(), first, n, pPos, dLast);
+			struct {} a;
+			_detail::UninitCopy(first, pPos, dLast, a);
 		}
 		else
 		{
@@ -627,7 +616,7 @@ typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Si
 	if (0 < nErase)
 	{
 		_detail::Destroy(pFirst, pLast);
-		size_type const nAfterLast = (data() + _size) - pLast;
+		size_t const nAfterLast = _size - (pLast - data());
 		// move [last, _end) to [first, first + nAfterLast)
 		std::memmove(pFirst, pLast, sizeof(T) * nAfterLast);
 		_size -= nErase;

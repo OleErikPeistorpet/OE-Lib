@@ -18,11 +18,11 @@
 
 	<Type Name="oel::fixcap_array&lt;*&gt;">
 		<DisplayString Condition="_size == 0">{{size=0 }}</DisplayString>
-		<DisplayString>{{size={_size} back={(($T1*)_data)[_size - 1]}}}</DisplayString>
+		<DisplayString>{{size={_size} back={(($T1 *)_data)[_size - 1]}}}</DisplayString>
 		<Expand>
 			<ArrayItems>
 				<Size>_size</Size>
-				<ValuePointer>($T1*)_data</ValuePointer>
+				<ValuePointer>($T1 *)_data</ValuePointer>
 			</ArrayItems>
 		</Expand>
 	</Type>
