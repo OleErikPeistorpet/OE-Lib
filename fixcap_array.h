@@ -49,6 +49,8 @@ typename fixcap_array<T, C, S>::iterator
 template<typename T, size_t Capacity, typename Size/* = size_t*/>
 class fixcap_array   : private _detail::FixcapArrSpecial<T, Capacity, Size>
 {
+	static_assert(Capacity <= std::numeric_limits<Size>::max(), "Capacity does not fit in type Size");
+
 	using _base = typename fixcap_array::FixcapArrBase;
 
 public:
