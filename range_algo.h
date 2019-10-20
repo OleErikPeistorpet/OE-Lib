@@ -153,7 +153,7 @@ namespace _detail
 ////////////////////////////////////////////////////////////////////////////////
 
 	template<typename ContiguousIter, typename ContiguousIter2>
-	ContiguousIter CopyUnsf(ContiguousIter const src, std::ptrdiff_t const n, ContiguousIter2 const dest, true_type)
+	ContiguousIter CopyUnsf(ContiguousIter const src, ptrdiff_t const n, ContiguousIter2 const dest, true_type)
 	{	// can use memcpy
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != n)

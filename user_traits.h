@@ -56,6 +56,7 @@ namespace oel
 {
 
 using std::size_t;
+using std::ptrdiff_t;
 
 
 template<typename T> struct allocator;  // forward declare

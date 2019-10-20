@@ -110,7 +110,7 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 	using pointer         = typename _allocTrait::pointer;
-	using difference_type = std::ptrdiff_t;
+	using difference_type = ptrdiff_t;
 	using size_type       = size_t;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
