@@ -100,9 +100,6 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 template<typename Range>  OEL_ALWAYS_INLINE inline
 auto adl_begin(Range & r) -> decltype(begin(r)) { return begin(r); }
 
-template<typename Range>  OEL_ALWAYS_INLINE inline
-auto adl_end(Range & r) -> decltype(end(r)) { return end(r); }
-
 
 namespace _detail
 {

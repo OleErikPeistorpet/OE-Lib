@@ -79,14 +79,6 @@ inline namespace debug
 {
 #endif
 
-#ifdef OEL_HAS_DEDUCTION_GUIDES
-template<typename InputRange,
-         typename Alloc = allocator<iter_value_t< iterator_t<InputRange> >>
-        >
-explicit dynarray(const InputRange &, Alloc = Alloc{})
-->	dynarray<iter_value_t< iterator_t<InputRange> >, Alloc>;
-#endif
-
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but faster in many cases.
 *
@@ -140,25 +132,26 @@ public:
 
 	/** @brief Equivalent to `std::vector(begin(r), end(r), a)`, where `end(r)` is not needed if r.size() exists
 	*
-	* To move instead of copy, wrap r with view::move (the same applies for all functions taking a range template) <br>
+	* To move instead of copy, wrap r with view::move (The same applies for all functions taking a range template)
+	*
 	* Example, construct from a standard istream with formatting (using Boost):
 	@code
 	#include <boost/range/istream_range.hpp>
-	// ...
-	auto result = dynarray<int>(boost::range::istream_range<int>(someStream));
+	// Template argument for dynarray can be omitted with C++17 as shown (there exists a deduction guide)
+	auto result = dynarray(boost::range::istream_range<int>(someStream));
 	@endcode  */
 	template< typename InputRange,
 	          typename /*EnableIfRange*/ = iterator_t<InputRange> >
-	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})  : _m(a) { append(r); }
+	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})   : _m(a) { append(r); }
 
-	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})  : _m(a, il.size())
-	                                                                  { _initPostAllocate(il.begin()); }
+	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})   : _m(a, il.size())
+	                                                                   { _initReserved(il.begin()); }
 	dynarray(dynarray && other) noexcept                : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, const Alloc & a);
 	dynarray(const dynarray & other)                    : dynarray(other,
 	                                                     _allocTrait::select_on_container_copy_construction(other._m)) {}
 	dynarray(const dynarray & other, const Alloc & a)   : _m(a, other.size())
-	                                                    { _initPostAllocate(other.data()); }
+	                                                    { _initReserved(other.data()); }
 	~dynarray() noexcept;
 
 	dynarray & operator =(dynarray && other) &
@@ -259,7 +252,7 @@ public:
 	//! How much smaller capacity is than the number passed to allocator_type::allocate
 	static constexpr size_type allocate_size_overhead()  { return _allocateWrap::sizeForHeader; }
 
-	allocator_type get_allocator() const noexcept  { return _m; }
+	allocator_type get_allocator() const noexcept   { return _m; }
 
 	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIter(_m.data); }
 	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const T *>(_m.data); }
@@ -269,11 +262,11 @@ public:
 	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const T *>(_m.end); }
 	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
 
-	reverse_iterator       rbegin() noexcept         OEL_ALWAYS_INLINE { return reverse_iterator{end()}; }
-	const_reverse_iterator rbegin() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
+	reverse_iterator       rbegin() noexcept        OEL_ALWAYS_INLINE { return reverse_iterator{end()}; }
+	const_reverse_iterator rbegin() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
 
-	reverse_iterator       rend() noexcept         OEL_ALWAYS_INLINE { return reverse_iterator{begin()}; }
-	const_reverse_iterator rend() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
+	reverse_iterator       rend() noexcept        OEL_ALWAYS_INLINE { return reverse_iterator{begin()}; }
+	const_reverse_iterator rend() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
 
 	T *             data() noexcept         OEL_ALWAYS_INLINE { return _m.data; }
 	const T *       data() const noexcept   OEL_ALWAYS_INLINE { return _m.data; }
@@ -430,7 +423,7 @@ private:
 	}
 
 
-	void _initPostAllocate(const T * src)
+	void _initReserved(const T * src)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -1068,6 +1061,15 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 	else
 		_detail::Throw::OutOfRange("Bad index dynarray::at");
 }
+
+
+#ifdef OEL_HAS_DEDUCTION_GUIDES
+template<typename InputRange,
+         typename Alloc = allocator<iter_value_t< iterator_t<InputRange> >>
+        >
+explicit dynarray(const InputRange &, Alloc = {})
+->	dynarray<iter_value_t< iterator_t<InputRange> >, Alloc>;
+#endif
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
 }
