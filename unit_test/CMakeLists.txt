@@ -66,7 +66,7 @@ target_include_directories(oel-test PRIVATE
 )
 
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-	target_compile_options(oel-test PRIVATE -Wall -Wextra)
+	target_compile_options(oel-test PRIVATE -fstrict-aliasing -Wall -Wextra)
 endif()
 
 target_link_libraries(oel-test gtest_main)
