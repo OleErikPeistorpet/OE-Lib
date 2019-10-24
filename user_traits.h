@@ -88,7 +88,7 @@ using std::false_type;
 * must not need to update external state during move construction. (The same recursively for sub-objects)
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
+* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1144r4.html
 *
 * Already true for trivially copyable types. For others, declare a function in the namespace of the type like this:
 @code

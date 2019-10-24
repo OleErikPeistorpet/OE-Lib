@@ -43,7 +43,7 @@ namespace pmr
 #endif
 }
 
-//! dynarray<dynarray<T>> is efficient
+//! dynarray is trivially relocatable if Alloc is
 template<typename T, typename Alloc>
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
