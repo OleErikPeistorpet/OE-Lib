@@ -24,14 +24,14 @@ namespace _detail
 
 	#define OEL_DEBUG_HEADER_OF(ptr) ((DebugAllocationHeader *)static_cast<void *>(ptr) - 1)
 
-	template<typename T>
+	template< typename T >
 	inline bool HasValidIndex(const T * arrayElem, const DebugAllocationHeader & h)
 	{
 		size_t index = arrayElem - reinterpret_cast<const T *>(&h + 1);
 		return index < h.nObjects;
 	}
 
-	template<typename Alloc, typename Ptr>
+	template< typename Alloc, typename Ptr >
 	struct DebugAllocateWrapper
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
@@ -69,7 +69,7 @@ namespace _detail
 		}
 	};
 
-	template<typename ContainerBase>
+	template< typename ContainerBase >
 	struct DebugSizeInHeaderUpdater
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL == 0
@@ -90,7 +90,7 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename Ptr>
+	template< typename Ptr >
 	struct DynarrBase
 	{
 		Ptr data;

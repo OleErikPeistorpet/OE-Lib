@@ -23,7 +23,7 @@ namespace oel
 /** @brief An allocator which aligns the memory to alignof(T)
 *
 * Wraps operator new without overhead when possible. */
-template<typename T>
+template< typename T >
 struct allocator
 {
 	using value_type = T;
@@ -36,19 +36,19 @@ struct allocator
 	static constexpr size_t max_size()   { return (size_t)-1 / sizeof(T); }
 
 	allocator() = default;
-	template<typename U>  OEL_ALWAYS_INLINE
+	template< typename U >  OEL_ALWAYS_INLINE
 	constexpr allocator(const allocator<U> &) noexcept {}
 
-	template<typename U>
+	template< typename U >
 	friend bool operator==(allocator, allocator<U>) noexcept { return true; }
-	template<typename U>
+	template< typename U >
 	friend bool operator!=(allocator, allocator<U>) noexcept { return false; }
 };
 
 
 
 //! Similar to std::aligned_storage_t, but supports any alignment the compiler can provide
-template<size_t Size, size_t Align>
+template< size_t Size, size_t Align >
 struct
 #ifdef __GNUC__
 	__attribute__(( aligned(Align), may_alias ))
@@ -60,7 +60,7 @@ struct
 	unsigned char as_bytes[Size];
 };
 //! A trivial type of same size and alignment as type T, suitable for use as uninitialized storage for an object
-template<typename T>
+template< typename T >
 using aligned_union_t = aligned_storage_t<sizeof(T), alignof(T)>;
 
 
@@ -72,7 +72,7 @@ using aligned_union_t = aligned_storage_t<sizeof(T), alignof(T)>;
 
 namespace _detail
 {
-	template<size_t Align>
+	template< size_t Align >
 	using CanDefaultNew = bool_constant<
 		#if defined __STDCPP_DEFAULT_NEW_ALIGNMENT__
 			Align <= __STDCPP_DEFAULT_NEW_ALIGNMENT__
@@ -83,7 +83,7 @@ namespace _detail
 		#endif
 		>;
 
-	template<size_t>
+	template< size_t >
 	inline void * OpNew(size_t size, true_type)
 	{
 		return ::operator new(size);
@@ -95,7 +95,7 @@ namespace _detail
 	}
 
 #if __cpp_aligned_new >= 201606
-	template<size_t Align>
+	template< size_t Align >
 	inline void * OpNew(size_t size, false_type)
 	{
 		return ::operator new(size, std::align_val_t{Align});
@@ -114,7 +114,7 @@ namespace _detail
 		}
 	};
 
-	template<size_t Align>
+	template< size_t Align >
 	void * AlignAndStore(void *const orig) noexcept
 	{
 		auto i = reinterpret_cast<std::uintptr_t>(orig) + Align;
@@ -125,7 +125,7 @@ namespace _detail
 		return p;
 	}
 
-	template<size_t Align>
+	template< size_t Align >
 	void * OpNew(size_t const size, false_type)
 	{
 		if (size <= (size_t)-1 - Align) // then size + Align doesn't overflow
@@ -146,7 +146,7 @@ namespace _detail
 #endif
 }
 
-template<typename T>
+template< typename T >
 T * allocator<T>::allocate(size_t nElems)
 {
 	void * p = _detail::OpNew<alignof(T)>
@@ -154,7 +154,7 @@ T * allocator<T>::allocate(size_t nElems)
 	return static_cast<T *>(p);
 }
 
-template<typename T>
+template< typename T >
 OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept(nodebug)
 {
 	_detail::OpDelete(ptr, alignof(T), _detail::CanDefaultNew<alignof(T)>());

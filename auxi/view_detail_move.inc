@@ -4,12 +4,12 @@
 
 namespace _detail
 {
-	template<typename SizedRange>
+	template< typename SizedRange >
 	auto Move(SizedRange & r, int)
 	->	decltype( view::counted(std::make_move_iterator(begin(r)), oel::ssize(r)) )
 		 { return view::counted(std::make_move_iterator(begin(r)), oel::ssize(r)); }
 
-	template<typename InputRange>
+	template< typename InputRange >
 	OEL_ALWAYS_INLINE inline auto Move(InputRange & r, long)
 	{
 		return view::move(begin(r), end(r));

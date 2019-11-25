@@ -38,35 +38,35 @@ namespace pmr
 	using boost::container::pmr::polymorphic_allocator;
 	#endif
 
-	template<typename T>
+	template< typename T >
 	using dynarray = oel::dynarray< T, polymorphic_allocator<T> >;
 #endif
 }
 
 //! dynarray is trivially relocatable if Alloc is
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
-template<typename T, typename A>  OEL_ALWAYS_INLINE inline
+template< typename T, typename A >  OEL_ALWAYS_INLINE inline
 void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept( noexcept(a.swap(b)) )  { a.swap(b); }
 
 //! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
-template<typename T, typename A>  inline
+template< typename T, typename A >  inline
 void erase_unstable(dynarray<T, A> & d, typename dynarray<T, A>::size_type index)  { d.erase_unstable(d.begin() + index); }
 
 //! @name GenericContainerInsert
 //!@{
 // Overloads of generic functions for inserting into container (in range_algo.h)
-template<typename T, typename A, typename InputRange>  inline
+template< typename T, typename A, typename InputRange >  inline
 void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(source); }
 
-template<typename T, typename A, typename InputRange>  inline
+template< typename T, typename A, typename InputRange >  inline
 void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
 
-template<typename T, typename A>  inline
+template< typename T, typename A >  inline
 void append(dynarray<T, A> & dest, typename dynarray<T, A>::size_type n, const T & val)  { dest.append(n, val); }
 
-template<typename T, typename A, typename ForwardRange>  inline
+template< typename T, typename A, typename ForwardRange >  inline
 typename dynarray<T, A>::iterator
 	insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, const ForwardRange & source)
 	{
@@ -91,7 +91,7 @@ inline namespace debug
 * emplace, insert, insert_r and `erase(first, last)`
 *
 * The default allocator supports over-aligned types (e.g. __m256)  */
-template<typename T, typename Alloc/* = oel::allocator */>
+template< typename T, typename Alloc/* = oel::allocator*/ >
 class dynarray
 {
 	using _allocTrait = std::allocator_traits<Alloc>;
@@ -170,7 +170,7 @@ public:
 	* @return iterator `begin(source)` incremented by the number of elements in source
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
-	template<typename InputRange>
+	template< typename InputRange >
 	auto assign(const InputRange & source) -> iterator_t<InputRange const>;
 
 	void assign(size_type count, const T & val)   { clear(); append(count, val); }
@@ -184,7 +184,7 @@ public:
 	*
 	* Passing references to this dynarray is supported. The function is otherwise equivalent to
 	* `std::vector::insert(end(), begin(source), end(source))`, where `end(source)` is not needed if source.size() exists. */
-	template<typename InputRange>
+	template< typename InputRange >
 	auto append(const InputRange & source) -> iterator_t<InputRange const>;
 	//! Equivalent to `std::vector::insert(end(), il)`
 	void append(std::initializer_list<T> il)    { append<>(il); }
@@ -200,7 +200,7 @@ public:
 
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if source.size() exists
-	template<typename ForwardRange>
+	template< typename ForwardRange >
 	iterator  insert_r(const_iterator pos, const ForwardRange & source) &;
 
 	iterator  insert(const_iterator pos, std::initializer_list<T> il) &  { return insert_r(pos, il); }
@@ -209,11 +209,11 @@ public:
 	iterator  insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
 
 	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
-	template<typename... Args>
+	template< typename... Args >
 	iterator  emplace(const_iterator pos, Args &&... elemInitArgs) &;
 
 	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
-	template<typename... Args>
+	template< typename... Args >
 	reference emplace_back(Args &&... args) &;
 
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
@@ -310,7 +310,7 @@ private:
 	using _internBase = _detail::DynarrBase<pointer>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 
-	template<typename> // template to allow constexpr constructor when Alloc copy constructor is not constexpr
+	template< typename > // template to allow constexpr constructor when Alloc copy constructor is not constexpr
 	struct _memOwner : public _internBase, public Alloc
 	{
 		using _internBase::data;   // Owning pointer to beginning of data buffer
@@ -385,7 +385,7 @@ private:
 			_detail::Throw::LengthError("Going over dynarray max_size");
 	}
 
-	template<typename Ptr>
+	template< typename Ptr >
 	OEL_ALWAYS_INLINE auto _makeIter(Ptr pos) const noexcept
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
@@ -495,7 +495,7 @@ private:
 		newBuf.Swap(_m);
 	}
 
-	template<typename UninitFillFunc>
+	template< typename UninitFillFunc >
 	void _resizeImpl(size_type const newSize, UninitFillFunc initAdded)
 	{	// note: initAdded cannot hold a reference to element of this
 		_debugSizeUpdater guard{_m};
@@ -575,7 +575,7 @@ private:
 	}
 
 
-	template<typename ContiguousIter>
+	template< typename ContiguousIter >
 	ContiguousIter _assignImpl(ContiguousIter const first, size_type const count, true_type /*trivialCopy*/)
 	{
 		_debugSizeUpdater guard{_m};
@@ -595,7 +595,7 @@ private:
 		return first + count;
 	}
 
-	template<typename InputIter>
+	template< typename InputIter >
 	InputIter _assignImpl(InputIter src, size_type const count, false_type)
 	{
 		_debugSizeUpdater guard{_m};
@@ -639,7 +639,7 @@ private:
 		return src;
 	}
 
-	template<typename InputIter, typename Sentinel>
+	template< typename InputIter, typename Sentinel >
 	InputIter _assignImpl(InputIter first, Sentinel const last, false_type)
 	{	// single pass iterator, no size available
 		clear();
@@ -649,7 +649,7 @@ private:
 		return first;
 	}
 
-	template<typename InputIter, typename Sentinel>
+	template< typename InputIter, typename Sentinel >
 	InputIter _append(InputIter first, Sentinel const last, false_type)
 	{	// single pass iterator, no size available
 		size_type const oldSize = size();
@@ -666,7 +666,7 @@ private:
 		return first;
 	}
 
-	template<typename InputIter>
+	template< typename InputIter >
 	InputIter _append(InputIter src, size_type const n, false_type)
 	{	// cannot use memcpy
 		_appendImpl( n,
@@ -677,7 +677,7 @@ private:
 		return src;
 	}
 
-	template<typename ContiguousIter>
+	template< typename ContiguousIter >
 	ContiguousIter _append(ContiguousIter const first, size_type const n, true_type)
 	{
 		ContiguousIter last = first + n;
@@ -689,7 +689,7 @@ private:
 		return last; // has been invalidated in the case of append self and reallocation
 	}
 
-	template<typename MakeFuncAppend>
+	template< typename MakeFuncAppend >
 	void _appendImpl(size_type const count, MakeFuncAppend const makeNew)
 	{
 		_debugSizeUpdater guard{_m};
@@ -702,7 +702,7 @@ private:
 		_m.end += count;
 	}
 
-	template<typename MakeFuncAppend>
+	template< typename MakeFuncAppend >
 #ifdef _MSC_VER
 	__declspec(noinline) // to get the compiler to inline calling function
 #else
@@ -721,7 +721,7 @@ private:
 		newBuf.Swap(_m);
 	}
 
-	template<typename... Args>
+	template< typename... Args >
 	void _emplaceBackRealloc(Args &&... args)
 	{
 		_scopedPtr newBuf{_m, _calcCapAddOne()};
@@ -760,7 +760,7 @@ private:
 
 	struct _emplaceMakeElem
 	{
-		template<typename... Args>
+		template< typename... Args >
 		T * operator()(T *const newPos, size_type, Alloc & a, Args &&... args) const
 		{
 			_detail::Construct(a, newPos, static_cast<Args &&>(args)...);
@@ -769,7 +769,7 @@ private:
 	};
 };
 
-template<typename T, typename Alloc> template<typename... Args>
+template< typename T, typename Alloc > template< typename... Args >
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args) &
 {
@@ -801,7 +801,7 @@ typename dynarray<T, Alloc>::iterator
 	return _makeIter(pPos);
 }
 
-template<typename T, typename Alloc> template<typename ForwardRange>
+template< typename T, typename Alloc > template< typename ForwardRange >
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src) &
 {
@@ -857,7 +857,7 @@ typename dynarray<T, Alloc>::iterator
 	return _makeIter(pPos);
 }
 
-template<typename T, typename Alloc> template<typename... Args>
+template< typename T, typename Alloc > template< typename... Args >
 inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 {
 	_debugSizeUpdater guard{_m};
@@ -874,7 +874,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 }
 
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
@@ -884,7 +884,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
 		_moveInternBase(other._m);
 }
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	noexcept(_allocTrait::propagate_on_container_move_assignment::value or is_always_equal<Alloc>::value)
 {
@@ -906,7 +906,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	return *this;
 }
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(size_type n, default_init_t, const Alloc & a)
  :	_m(a, n)
 {
@@ -916,7 +916,7 @@ dynarray<T, Alloc>::dynarray(size_type n, default_init_t, const Alloc & a)
 	_detail::UninitDefaultConstruct<Alloc>(_m.data, _m.end, _m);
 }
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
  :	_m(a, n)
 {
@@ -926,7 +926,7 @@ dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
 	_uninitFill{}(_m.data, _m.end, _m);
 }
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(size_type n, const T & val, const Alloc & a)
  :	_m(a, n)
 {
@@ -936,13 +936,13 @@ dynarray<T, Alloc>::dynarray(size_type n, const T & val, const Alloc & a)
 	_uninitFill{}(_m.data, _m.end, _m, val);
 }
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 dynarray<T, Alloc>::~dynarray() noexcept
 {
 	_detail::Destroy(_m.data, _m.end);
 }
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 void dynarray<T, Alloc>::swap(dynarray & other)
 	noexcept(_allocTrait::propagate_on_container_swap::value or is_always_equal<Alloc>::value)
 {
@@ -953,7 +953,7 @@ void dynarray<T, Alloc>::swap(dynarray & other)
 }
 
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 void dynarray<T, Alloc>::shrink_to_fit()
 {
 	_debugSizeUpdater guard{_m};
@@ -973,7 +973,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 }
 
 
-template<typename T, typename Alloc> template<typename InputRange>
+template< typename T, typename Alloc > template< typename InputRange >
 auto dynarray<T, Alloc>::assign(const InputRange & src) -> iterator_t<InputRange const>
 {
 	return _assignImpl(
@@ -982,7 +982,7 @@ auto dynarray<T, Alloc>::assign(const InputRange & src) -> iterator_t<InputRange
 		can_memmove_with< T *, iterator_t<InputRange const> >() );
 }
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 {
 	_appendImpl( n,
@@ -992,7 +992,7 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 		} );
 }
 
-template<typename T, typename Alloc> template<typename InputRange>
+template< typename T, typename Alloc > template< typename InputRange >
 inline auto dynarray<T, Alloc>::append(const InputRange & src) -> iterator_t<InputRange const>
 {
 	return _append(oel::adl_begin(src),
@@ -1001,7 +1001,7 @@ inline auto dynarray<T, Alloc>::append(const InputRange & src) -> iterator_t<Inp
 }
 
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::pop_back() noexcept(nodebug)
 {
 	OEL_ASSERT(_m.data < _m.end);
@@ -1011,7 +1011,7 @@ inline void dynarray<T, Alloc>::pop_back() noexcept(nodebug)
 	(*_m.end).~T();
 }
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 {
 	_debugSizeUpdater guard{_m};
@@ -1022,7 +1022,7 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 	_m.end = newEnd;
 }
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
@@ -1047,13 +1047,13 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 #pragma GCC diagnostic pop
 #endif
 
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 OEL_ALWAYS_INLINE inline T & dynarray<T, Alloc>::at(size_type i)
 {
 	const auto & cSelf = *this;
 	return const_cast<reference>(cSelf.at(i));
 }
-template<typename T, typename Alloc>
+template< typename T, typename Alloc >
 const T & dynarray<T, Alloc>::at(size_type i) const
 {
 	if (i < size()) // would be unsafe with signed size_type
@@ -1064,11 +1064,15 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 
 
 #ifdef OEL_HAS_DEDUCTION_GUIDES
-template<typename InputRange,
-         typename Alloc = allocator<iter_value_t< iterator_t<InputRange> >>
-        >
+template<
+	typename InputRange,
+	typename Alloc = allocator<
+		iter_value_t< iterator_t<InputRange> >
+      > >
 explicit dynarray(const InputRange &, Alloc = {})
-->	dynarray<iter_value_t< iterator_t<InputRange> >, Alloc>;
+->	dynarray<
+		iter_value_t< iterator_t<InputRange> >,
+		Alloc >;
 #endif
 
 #ifdef OEL_DYNARRAY_IN_DEBUG

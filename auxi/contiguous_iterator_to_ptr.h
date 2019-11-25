@@ -16,35 +16,35 @@ namespace oel
 namespace _detail
 {
 	// Part of pointer_traits for C++17
-	template<typename PtrLike>
+	template< typename PtrLike >
 	OEL_ALWAYS_INLINE constexpr typename std::pointer_traits<PtrLike>::element_type * ToAddress(PtrLike p)
 	{
 		return p.operator->();
 	}
 
-	template<typename T>
+	template< typename T >
 	OEL_ALWAYS_INLINE constexpr T * ToAddress(T * p) { return p; }
 }
 
 
 //! If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a true_type, else false_type
-template<typename IteratorDest, typename IteratorSource>
+template< typename IteratorDest, typename IteratorSource >
 struct can_memmove_with;
 
 
 //! Convert iterator to pointer. This should be overloaded for each class of contiguous iterator (C++17 concept)
-template<typename T>
+template< typename T >
 constexpr T * to_pointer_contiguous(T * it) noexcept { return it; }
 
 #ifdef __GLIBCXX__
-	template<typename Ptr, typename C>
+	template< typename Ptr, typename C >
 	constexpr typename std::pointer_traits<Ptr>::element_type *
 		to_pointer_contiguous(__gnu_cxx::__normal_iterator<Ptr, C> it) noexcept
 	{
 		return _detail::ToAddress(it.base());
 	}
 #elif _LIBCPP_VERSION
-	template<typename T>
+	template< typename T >
 	constexpr T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return it.base(); }
 
 #elif _CPPLIB_VER
@@ -65,7 +65,7 @@ constexpr T * to_pointer_contiguous(T * it) noexcept { return it; }
 	#undef OEL_UNWRAP
 #endif
 
-template<typename Iterator>
+template< typename Iterator >
 auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
 ->	decltype( to_pointer_contiguous(it.base()) )
 	 { return to_pointer_contiguous(it.base()); }
@@ -78,10 +78,10 @@ auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
 
 namespace _detail
 {
-	template<typename T>
+	template< typename T >
 	is_trivially_copyable<T> CanMemmoveArrays(T * /*dest*/, const T *);
 
-	template<typename IteratorDest, typename IterSource>
+	template< typename IteratorDest, typename IterSource >
 	auto CanMemmoveWith(IteratorDest dest, IterSource src)
 	->	decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
 
@@ -92,7 +92,7 @@ namespace _detail
 } // namespace oel
 
 //! @cond FALSE
-template<typename IteratorDest, typename IteratorSource>
+template< typename IteratorDest, typename IteratorSource >
 struct oel::can_memmove_with :
 	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
 	                                  std::declval<IteratorSource>()) ) {};

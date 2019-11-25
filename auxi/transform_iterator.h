@@ -14,7 +14,7 @@ namespace oel
 namespace _detail
 {
 	template< typename I, typename F,
-		bool = std::is_empty<F>::value >
+	          bool = std::is_empty<F>::value >
 	struct TightPair
 	{
 		I inner;
@@ -23,8 +23,8 @@ namespace _detail
 		OEL_ALWAYS_INLINE const F & Func() const noexcept { return _fun; }
 	};
 
-	template<typename Iterator_MSVC_needs_unique_name, typename Empty_function_object_MSVC_name>
-	struct TightPair<Iterator_MSVC_needs_unique_name, Empty_function_object_MSVC_name, true>
+	template< typename Iterator_MSVC_needs_unique_name, typename Empty_function_object_MSVC_name >
+	struct TightPair< Iterator_MSVC_needs_unique_name, Empty_function_object_MSVC_name, true >
 	 :	Empty_function_object_MSVC_name
 	{
 		Iterator_MSVC_needs_unique_name inner;
@@ -39,7 +39,7 @@ namespace _detail
 
 
 //! Similar to boost::transform_iterator
-template<typename UnaryFunc, typename Iterator>
+template< typename UnaryFunc, typename Iterator >
 class transform_iterator
 {
 	_detail::TightPair<Iterator, UnaryFunc> _m;

@@ -26,7 +26,7 @@ inline namespace debug
 /** @brief Checked iterator, for container with contiguous, dynamically allocated memory
 *
 * Note: a pair of value-initialized iterators count as an empty range (C++14 requirement)  */
-template<typename Ptr, typename ValT>
+template< typename Ptr, typename ValT >
 class dynarray_iterator
 {
 #define OEL_ITER_VALIDATE_DEREF  \
@@ -134,41 +134,41 @@ public:
 		return *tmp;
 	}
 
-	template<typename Ptr1>
+	template< typename Ptr1 >
 	bool operator==(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem == right._pElem;
 	}
 
-	template<typename Ptr1>
+	template< typename Ptr1 >
 	bool operator!=(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem != right._pElem;
 	}
 
-	template<typename Ptr1>
+	template< typename Ptr1 >
 	bool operator <(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem < right._pElem;
 	}
 
-	template<typename Ptr1>
+	template< typename Ptr1 >
 	bool operator >(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem > right._pElem;
 	}
 
-	template<typename Ptr1>
+	template< typename Ptr1 >
 	bool operator<=(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		return !(*this > right);
 	}
 
-	template<typename Ptr1>
+	template< typename Ptr1 >
 	bool operator>=(const dynarray_iterator<Ptr1, ValT> & right) const
 	{
 		return !(*this < right);
@@ -191,7 +191,7 @@ public:
 } // namespace debug
 
 //! To raw pointer (unchecked)
-template<typename Ptr, typename T>  inline
+template< typename Ptr, typename T >  inline
 auto to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 {
 	return (typename std::pointer_traits<Ptr>::element_type *)it._pElem;
@@ -205,7 +205,7 @@ auto to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 
 namespace _detail
 {
-	template<typename T, typename Ptr>
+	template< typename T, typename Ptr >
 	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr const pos, T *const block, const void * parent) noexcept
 	{
 		if (block)

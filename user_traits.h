@@ -55,7 +55,7 @@
 namespace oel
 {
 
-template<typename T> struct allocator;  // forward declare
+template< typename T > struct allocator;  // forward declare
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
 inline namespace debug
@@ -65,7 +65,7 @@ inline namespace debug
 {
 #endif
 
-template<typename T, typename Alloc = allocator<T> >
+template< typename T, typename Alloc = allocator<T> >
 class dynarray;
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
@@ -74,7 +74,7 @@ class dynarray;
 
 
 
-template<bool Val>
+template< bool Val >
 using bool_constant = std::integral_constant<bool, Val>;
 
 using std::true_type; // equals bool_constant<true>
@@ -108,7 +108,7 @@ class Outer {
 	friend oel::true_type specify_trivial_relocate(Inner &&);
 };
 @endcode  */
-template<typename T>
+template< typename T >
 bool_constant<
 	#if defined __GLIBCXX__ and __GNUC__ == 4
 		__has_trivial_copy(T) and __has_trivial_destructor(T)
@@ -120,7 +120,7 @@ bool_constant<
 /** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
 *
 * Many external classes are declared trivially relocatable, see `optimize_ext` folder. */
-template<typename T>
+template< typename T >
 struct is_trivially_relocatable;
 
 } // namespace oel
