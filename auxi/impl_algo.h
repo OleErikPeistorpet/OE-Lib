@@ -178,7 +178,7 @@ namespace _detail
 	template< typename Alloc, typename T >
 	inline void UninitDefaultConstruct(T *const first, T *const last, Alloc & a)
 	{
-		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
+		OEL_CONST_COND if (!std::is_trivially_default_constructible<T>::value)
 			UninitFill<Alloc>{}(first, last, a);
 	}
 
