@@ -109,8 +109,8 @@ struct TrivialDefaultConstruct
 	TrivialDefaultConstruct() = default;
 	TrivialDefaultConstruct(const TrivialDefaultConstruct &) {}
 };
-static_assert(oel::is_trivially_default_constructible<TrivialDefaultConstruct>::value, "?");
-static_assert( !oel::is_trivially_copyable<TrivialDefaultConstruct>::value, "?" );
+static_assert(std::is_trivially_default_constructible<TrivialDefaultConstruct>::value, "?");
+static_assert( !std::is_trivially_copyable<TrivialDefaultConstruct>::value, "?" );
 
 struct NontrivialConstruct : MyCounter
 {
@@ -124,7 +124,7 @@ struct NontrivialConstruct : MyCounter
 
 	~NontrivialConstruct() { ++nDestruct; }
 };
-static_assert( !oel::is_trivially_default_constructible<NontrivialConstruct>::value, "?" );
+static_assert( !std::is_trivially_default_constructible<NontrivialConstruct>::value, "?" );
 
 
 struct AllocCounter

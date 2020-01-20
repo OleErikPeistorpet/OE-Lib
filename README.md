@@ -10,7 +10,7 @@ The library is distributed under the Boost Software License, and is header only,
 
 Supported compilers:
 * Visual Studio 2015 and later
-* GCC 4.8 (with `-std=c++1y`) and later
+* GCC 5 and later
 * Clang is tested regularly (Travis CI), but minimum version is unknown
 
 ### Visual Studio specific

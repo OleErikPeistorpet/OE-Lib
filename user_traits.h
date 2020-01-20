@@ -109,13 +109,8 @@ class Outer {
 };
 @endcode  */
 template< typename T >
-bool_constant<
-	#if defined __GLIBCXX__ and __GNUC__ == 4
-		__has_trivial_copy(T) and __has_trivial_destructor(T)
-	#else
-		std::is_trivially_move_constructible<T>::value and std::is_trivially_destructible<T>::value
-	#endif
->	specify_trivial_relocate(T &&);
+bool_constant< std::is_trivially_move_constructible<T>::value and std::is_trivially_destructible<T>::value >
+	specify_trivial_relocate(T &&);
 
 /** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
 *

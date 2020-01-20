@@ -94,7 +94,7 @@ namespace _detail
 	template< typename T >
 	void Destroy(T * first, const T * last) noexcept
 	{	// first > last is OK, does nothing
-		OEL_CONST_COND if (!std::is_trivially_destructible<T>::value) // for speed with non-optimized builds
+		if (!std::is_trivially_destructible<T>::value) // for speed with non-optimized builds
 		{
 			for (; first < last; ++first)
 				first-> ~T();
@@ -178,7 +178,7 @@ namespace _detail
 	template< typename Alloc, typename T >
 	inline void UninitDefaultConstruct(T *const first, T *const last, Alloc & a)
 	{
-		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
+		if (!std::is_trivially_default_constructible<T>::value)
 			UninitFill<Alloc>{}(first, last, a);
 	}
 

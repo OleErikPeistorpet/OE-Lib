@@ -15,14 +15,14 @@ branches:
 jobs:
   include:
     - os: linux
-      dist: trusty
+      dist: xenial
       env:
-        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Release
+        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Debug
     - os: linux
       arch:
         - arm64
       env:
-        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Release
+        - MY_BUILD_TYPE=Release
     - os: linux
       dist: bionic
       env:

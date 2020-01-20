@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -79,40 +79,12 @@ using enable_if = typename std::enable_if<Condition, int>::type;
 template< typename... Ts >
 using common_type = typename std::common_type<Ts...>::type;
 
-
-#if defined __GLIBCXX__ and __GNUC__ == 4
-	template< typename T >
-	using is_trivially_copyable =
-		bool_constant< __has_trivial_copy(T) and __has_trivial_assign(T) and __has_trivial_destructor(T) >;
-
-	template< typename T >
-	using is_trivially_default_constructible = bool_constant<__has_trivial_constructor(T)>;
-#else
-	using std::is_trivially_copyable;
-	using std::is_trivially_default_constructible;
-#endif
+} // namespace oel
 
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-
-namespace _detail
-{
-	template< typename Alloc, typename Arg >
-	decltype( std::declval<Alloc &>().construct( std::declval<typename Alloc::value_type *>(), std::declval<Arg>() ),
-		true_type() )
-		HasConstructTest(int);
-
-	template< typename, typename >
-	false_type HasConstructTest(long);
-
-	template< typename Alloc, typename Arg >
-	using AllocHasConstruct = decltype( HasConstructTest<Alloc, Arg>(0) );
-}
-
-} // namespace oel
 
 
 template< typename T >
