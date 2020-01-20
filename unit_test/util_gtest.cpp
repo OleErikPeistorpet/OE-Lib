@@ -25,8 +25,8 @@ namespace
 	{
 		~NonTrivialDestruct() { ; }
 	};
-	static_assert( !oel::is_trivially_copyable<NonTrivialAssign>::value, "?" );
-	static_assert( !oel::is_trivially_copyable<NonTrivialDestruct>::value, "?" );
+	static_assert( !std::is_trivially_copyable<NonTrivialAssign>::value, "?" );
+	static_assert( !std::is_trivially_copyable<NonTrivialDestruct>::value, "?" );
 
 	static_assert( !oel::is_trivially_relocatable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
 
@@ -159,8 +159,8 @@ struct PointerLike
 	T * operator->() const { return p; }
 	T & operator *() const { return *p; }
 };
-static_assert(oel::is_trivially_default_constructible< PointerLike<bool> >::value, "?");
-static_assert(oel::is_trivially_copyable< PointerLike<bool> >::value, "?");
+static_assert(std::is_trivially_default_constructible< PointerLike<bool> >::value, "?");
+static_assert(std::is_trivially_copyable< PointerLike<bool> >::value, "?");
 
 TEST(utilTest, toPointerContiguous)
 {

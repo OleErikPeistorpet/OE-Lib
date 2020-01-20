@@ -15,7 +15,7 @@ branches:
 matrix:
   include:
     - os: linux
-      dist: trusty
+      dist: xenial
     - os: linux
       env: CC="gcc-9" CXX="g++-9"
       addons:

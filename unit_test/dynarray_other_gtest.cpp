@@ -34,8 +34,7 @@ namespace
 	static_assert(oel::can_memmove_with< float *, std::move_iterator<Iter> >::value, "?");
 	static_assert( !oel::can_memmove_with<int *, Iter>::value, "?" );
 
-	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
-	static_assert(oel::is_trivially_copyable<ConstIter>::value, "?");
+	static_assert(std::is_trivially_copyable<Iter>::value, "?");
 	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
 	static_assert( !std::is_convertible<ConstIter, Iter>::value, "?" );
 
@@ -104,7 +103,7 @@ TEST(dynarrayOtherTest, aggregate)
 }
 
 using MyAllocStr = oel::allocator<std::string>;
-static_assert(oel::is_trivially_copyable<MyAllocStr>::value, "?");
+static_assert(std::is_trivially_copyable<MyAllocStr>::value, "?");
 
 #if _MSC_VER or __GNUC__ >= 5
 

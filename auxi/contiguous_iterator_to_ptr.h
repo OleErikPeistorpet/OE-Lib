@@ -79,7 +79,7 @@ auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
 namespace _detail
 {
 	template< typename T >
-	is_trivially_copyable<T> CanMemmoveArrays(T * /*dest*/, const T *);
+	std::is_trivially_copyable<T> CanMemmoveArrays(T * /*dest*/, const T *);
 
 	template< typename IteratorDest, typename IterSource >
 	auto CanMemmoveWith(IteratorDest dest, IterSource src)
