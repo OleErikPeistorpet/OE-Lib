@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -78,19 +78,6 @@ using enable_if = typename std::enable_if<Condition, int>::type;
 
 template< typename... Ts >
 using common_type = typename std::common_type<Ts...>::type;
-
-
-#if defined __GLIBCXX__ and __GNUC__ == 4
-	template< typename T >
-	using is_trivially_copyable =
-		bool_constant< __has_trivial_copy(T) and __has_trivial_assign(T) and __has_trivial_destructor(T) >;
-
-	template< typename T >
-	using is_trivially_default_constructible = bool_constant<__has_trivial_constructor(T)>;
-#else
-	using std::is_trivially_copyable;
-	using std::is_trivially_default_constructible;
-#endif
 
 
 

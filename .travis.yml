@@ -15,9 +15,9 @@ branches:
 jobs:
   include:
     - os: linux
-      dist: trusty
+      dist: xenial
       env:
-        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Release
+        - MY_BUILD_TYPE=Release
     - os: linux
       arch:
         - arm64
@@ -26,7 +26,7 @@ jobs:
     - os: linux
       dist: bionic
       env:
-        - CC=gcc-10 CXX=g++-10  MY_BUILD_TYPE=Release
+        - CC=gcc-10 CXX=g++-10  CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=1" MY_BUILD_TYPE=Release
       addons:
         apt:
           sources:
