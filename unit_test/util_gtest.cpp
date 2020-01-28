@@ -8,6 +8,9 @@
 #include <list>
 #include <set>
 #include <array>
+#if HAS_STD_PMR
+#include <memory_resource>
+#endif
 
 
 namespace
@@ -97,8 +100,8 @@ TEST(utilTest, ForwardT)
 	static_assert(std::is_same< ForwardT<A &>, A & >::value, "?");
 #endif
 
-#ifdef OEL_HAS_STD_PMR
-	using Alloc = oel::pmr::polymorphic_allocator<int>;
+#if HAS_STD_PMR
+	using Alloc = std::pmr::polymorphic_allocator<int>;
 	static_assert(std::is_same< ForwardT<Alloc>, Alloc >::value, "?");
 	static_assert(std::is_same< ForwardT<Alloc &&>, Alloc >::value, "?");
 	static_assert(std::is_same< ForwardT<const Alloc &>, Alloc >::value, "?");

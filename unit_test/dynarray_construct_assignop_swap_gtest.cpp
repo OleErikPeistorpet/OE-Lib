@@ -519,11 +519,16 @@ TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
 	testAssignMoveElements<TrivialRelocat>();
 }
 
-#ifdef OEL_HAS_STD_PMR
+#if HAS_STD_PMR
+
+#include <memory_resource>
+
+template< typename T >
+using PmrDynarray = dynarray< T, std::pmr::polymorphic_allocator<T> >;
 
 TEST_F(dynarrayConstructTest, moveAssignPolymorphicAlloc)
 {
-	using Nested = pmr::dynarray< pmr::dynarray<int> >;
+	using Nested = PmrDynarray< PmrDynarray<int> >;
 	std::pmr::monotonic_buffer_resource bufRes{};
 	auto a = Nested(1);
 	auto b = Nested(1, &bufRes);

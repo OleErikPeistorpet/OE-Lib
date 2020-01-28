@@ -10,6 +10,15 @@
 #include <unordered_map>
 
 
+#ifndef HAS_STD_PMR
+	#if __has_include(<memory_resource>) and (__cplusplus > 201500 or _HAS_CXX17)
+	#define HAS_STD_PMR  1
+	#else
+	#define HAS_STD_PMR  0
+	#endif
+#endif
+
+
 class MemoryLeakDetector;
 
 extern MemoryLeakDetector* leakDetector;

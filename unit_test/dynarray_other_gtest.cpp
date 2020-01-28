@@ -8,8 +8,12 @@
 #include "gtest/gtest.h"
 #include <deque>
 
-#if defined OEL_HAS_STD_PMR
-	static_assert(oel::is_trivially_relocatable< std::pmr::polymorphic_allocator<int> >::value, "?");
+#if HAS_STD_PMR
+
+#include <memory_resource>
+
+static_assert(oel::is_trivially_relocatable< std::pmr::polymorphic_allocator<int> >::value, "?");
+
 #endif
 
 using oel::dynarray;

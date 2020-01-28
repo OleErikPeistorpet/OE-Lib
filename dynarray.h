@@ -15,32 +15,11 @@
 
 #include <algorithm>
 
-#if __has_include(<memory_resource>) and (__cplusplus > 201500 or _HAS_CXX17)
-#include <memory_resource>
-
-#define OEL_HAS_STD_PMR  1
-#endif
-
 /** @file
 */
 
 namespace oel
 {
-
-//! Mirroring std::pmr and boost::container::pmr
-namespace pmr
-{
-#if defined OEL_HAS_STD_PMR or !defined OEL_NO_BOOST
-	#ifdef OEL_HAS_STD_PMR
-	using std::pmr::polymorphic_allocator;
-	#else
-	using boost::container::pmr::polymorphic_allocator;
-	#endif
-
-	template< typename T >
-	using dynarray = oel::dynarray< T, polymorphic_allocator<T> >;
-#endif
-}
 
 //! dynarray is trivially relocatable if Alloc is
 template< typename T, typename Alloc >
