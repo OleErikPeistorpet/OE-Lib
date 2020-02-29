@@ -48,10 +48,10 @@ void erase_adjacent_dup(Container & c);
 
 
 
-template< typename IteratorSource >
-struct copy_unsafe_return
+template< typename Iterator >
+struct copy_return
 {
-	IteratorSource source_last;
+	Iterator source_last;
 };
 /**
 * @brief Copies the elements in source into the range beginning at dest
@@ -59,32 +59,26 @@ struct copy_unsafe_return
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
 * Requires that source has size() member or is an array, and that dest models RandomAccessIterator.
-* To move instead of copy, pass `view::move(source)`. To mimic std::copy_n, use view::counted  */
+* To move instead of copy, pass `view::move(source)`. To mimic std::copy_n, use view::counted.
+* (Views can be used for all functions taking a range as source)  */
 template< typename SizedInputRange, typename RandomAccessIter >
 auto copy_unsafe(const SizedInputRange & source, RandomAccessIter dest)
-->	copy_unsafe_return<decltype(begin(source))>;
-
-template< typename IteratorSource, typename IteratorDest >
-struct last_iterators
-{
-	IteratorSource source_last;
-	IteratorDest   dest_last;
-};
+->	copy_return<decltype(begin(source))>;
 /**
 * @brief Copies the elements in source range into dest range, throws std::out_of_range if dest is smaller than source
-* @return struct containing `begin(source)` and `begin(dest)`, both incremented by the number of elements in source
+* @return `begin(source)` incremented by the number of elements in source
 * @pre The ranges shall not overlap, except if `begin(source)` equals `begin(dest)` (then elements are self assigned)
 *
-* Requires that dest is a random_access_range (C++20 concept) to compile.
-* To move instead of copy, wrap source with view::move  */
-template< typename InputRange, typename RandomAccessRange >
-auto copy(const InputRange & source, RandomAccessRange && dest)
-->	last_iterators<decltype(begin(source)), decltype(begin(dest))>;
+* Requires that source has size() member or is an array, and dest is a random_access_range (C++20 concept)  */
+template< typename SizedInputRange, typename RandomAccessRange >
+auto copy(const SizedInputRange & source, RandomAccessRange && dest)
+->	copy_return<decltype(begin(source))>;
 /**
 * @brief Copies as many elements from source as will fit in dest
 * @return true if all elements were copied, false means truncation happened
+* @pre The ranges shall not overlap, except if `begin(source)` equals `begin(dest)` (then elements are self assigned)
 *
-* Otherwise same as copy(const InputRange &, RandomAccessRange &)  */
+* Requires that dest is a random_access_range (otherwise compilation will fail)  */
 template< typename InputRange, typename RandomAccessRange >
 bool copy_fit(const InputRange & source, RandomAccessRange && dest);
 
@@ -178,66 +172,28 @@ namespace _detail
 	}
 
 
-	constexpr auto * errorCopyMsg = "Too small dest oel::copy";
-
-	template< typename InputRange, typename OutputRange, typename FuncItersParam, typename FuncNoParam >
-	auto CopyImpl(const InputRange & from, OutputRange & to, FuncItersParam succeed, FuncNoParam fail)
+	template< typename InputRange, typename OutputRange >
+	bool CopyFit(const InputRange & src, OutputRange & dest, long)
 	{
-		auto src = begin(from); auto const sLast = end(from);
-		auto dest = begin(to);  auto const dLast = end(to);
-		while (src != sLast)
+		auto it = begin(src);  auto const last = end(src);
+		auto di = begin(dest);  auto const dl = end(dest);
+		while (it != last)
 		{
-			if (dest != dLast)
+			if (di != dl)
 			{
-				*dest = *src;
-				++dest; ++src;
+				*di = *it;
+				++di; ++it;
 			}
 			else
-			{	return fail();
+			{	return false;
 			}
 		}
-		return succeed(src, dest);
-	}
-
-	template< typename Ret, typename IterSource, typename IteratorDest, typename InputRange, typename OutputRange >
-	inline Ret Copy(const InputRange & src, OutputRange & dest, long)
-	{
-		return _detail::CopyImpl
-			(	src, dest,
-				[](IterSource si, IteratorDest di) { return Ret{si, di}; },
-				[]() -> Ret { Throw::OutOfRange(errorCopyMsg); }
-			);
-	}
-
-	template< typename Ret, typename, typename, typename SizedRange, typename RandomAccessRange >
-	Ret Copy(const SizedRange & src, RandomAccessRange & dest,
-	         decltype( oel::ssize(src), int() )) // best match for int if ssize(src) is well-formed (SFINAE)
-	{
-		auto const n = oel::ssize(src);
-		if (n <= oel::ssize(dest))
-		{
-			auto sLast = oel::copy_unsafe(src, begin(dest)).source_last;
-			return {sLast, begin(dest) + n};
-		}
-		else
-		{	Throw::OutOfRange(errorCopyMsg);
-		}
-	}
-
-	template< typename InputRange, typename OutputRange >
-	inline bool CopyFit(const InputRange & src, OutputRange & dest, long)
-	{
-		using IterSrc  = decltype(begin(src));
-		using IterDest = decltype(begin(dest));
-		return _detail::CopyImpl
-			(	src, dest,
-				[](IterSrc, IterDest) { return true; },
-				[]() { return false; }
-			);
+		return true;
 	}
 
 	template< typename SizedRange, typename RandomAccessRange >
-	bool CopyFit(const SizedRange & src, RandomAccessRange & dest, decltype( oel::ssize(src), int() ))
+	bool CopyFit(const SizedRange & src, RandomAccessRange & dest,
+	             decltype( oel::ssize(src), int() )) // best match for int if ssize(src) is well-formed (SFINAE)
 	{
 		auto const destSize = oel::ssize(dest);
 		auto n = oel::ssize(src);
@@ -254,7 +210,7 @@ namespace _detail
 
 template< typename SizedInputRange, typename RandomAccessIter >
 inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
-->	copy_unsafe_return<decltype(begin(src))>
+->	copy_return<decltype(begin(src))>
 {
 	using InIter = decltype(begin(src));
 	return {
@@ -263,14 +219,14 @@ inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
 			can_memmove_with<RandomAccessIter, InIter>() )};
 }
 
-template< typename InputRange, typename RandomAccessRange >
-inline auto oel::copy(const InputRange & src, RandomAccessRange && dest)
-->	last_iterators<decltype(begin(src)), decltype(begin(dest))>
+template< typename SizedInputRange, typename RandomAccessRange >
+auto oel::copy(const SizedInputRange & src, RandomAccessRange && dest)
+->	copy_return<decltype(begin(src))>
 {
-	using IterSrc  = decltype(begin(src));
-	using IterDest = decltype(begin(dest));
-	return _detail::Copy< last_iterators<IterSrc, IterDest>, IterSrc, IterDest >
-			(src, dest, int{});
+	if (oel::ssize(src) <= oel::ssize(dest))
+		return oel::copy_unsafe(src, begin(dest));
+	else
+		_detail::Throw::OutOfRange("Too small dest oel::copy");
 }
 
 template< typename InputRange, typename RandomAccessRange >

@@ -157,11 +157,11 @@ OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_FALSE(success);
 
 	ASSERT_EQ(4, test[N]);
-	auto l = oel::copy(test2, test).dest_last;
+	auto l = oel::copy(test2, test).source_last;
 	EXPECT_EQ(-7, test[N]);
-	EXPECT_TRUE(end(test) == l);
+	EXPECT_TRUE(std::end(test2) == l);
 	{
-		std::forward_list<std::string> li{"aa", "bb"};
+		std::list<std::string> li{"aa", "bb"};
 		std::array<std::string, 2> strDest;
 		auto sLast = oel::copy(view::move(li), strDest).source_last;
 		EXPECT_EQ("aa", strDest[0]);
