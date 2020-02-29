@@ -29,20 +29,23 @@
 
 
 #ifndef OEL_ABORT
-	/** @brief If exceptions are disabled, used anywhere that would normally throw. If predefined, used by OEL_ASSERT
+/** @brief If exceptions are disabled, used anywhere that would normally throw. Also used by OEL_ASSERT
+*
+* Can be defined to something else, but note that it must never return.
+* Moreover, don't expect to catch what it throws, because it's used in noexcept functions through OEL_ASSERT. */
+#define OEL_ABORT(message) (std::abort(), (void) message)
+#endif
+
+#if OEL_MEM_BOUND_DEBUG_LVL == 0
+	#undef OEL_ASSERT
+	#define OEL_ASSERT(cond) ((void) 0)
+#elif !defined OEL_ASSERT
+	/** @brief Used for checking preconditions. Can be defined to your own
 	*
-	* Users may define this to call a function that never returns or to throw an exception.
-	* Example: @code
-	#define OEL_ABORT(errorMessage)  throw std::logic_error(errorMessage "; in " __FILE__)
-	@endcode  */
-	#define OEL_ABORT(msg) (std::abort(), (void) msg)
-
-	#if !defined OEL_ASSERT and !defined NDEBUG
-	#include <cassert>
-
-	//! Can be defined to your own or changed right here.
-	#define OEL_ASSERT  assert
-	#endif
+	* Used in noexcept functions, so don't expect to catch anything thrown.
+	* OEL_ASSERT itself should probably be noexcept for optimal performance. */
+	#define OEL_ASSERT(cond)  \
+		((cond) or (OEL_ABORT("Failed precond: " #cond), false))
 #endif
 
 
@@ -128,15 +131,6 @@ struct is_trivially_relocatable;
 
 
 //! @cond INTERNAL
-
-#if OEL_MEM_BOUND_DEBUG_LVL == 0
-	#undef OEL_ASSERT
-	#define OEL_ASSERT(expr) ((void) 0)
-#elif !defined OEL_ASSERT
-	#define OEL_ASSERT(expr)  \
-		((expr) or (OEL_ABORT("Failed assert(" #expr ")"), false))
-#endif
-
 
 #ifdef __GNUC__
 	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
