@@ -31,16 +31,16 @@
 #ifndef OEL_ABORT
 	/** @brief If exceptions are disabled, used anywhere that would normally throw. If predefined, used by OEL_ASSERT
 	*
-	* Users may define this to call a function that never returns or to throw an exception.
-	* Example: @code
-	#define OEL_ABORT(errorMessage)  throw std::logic_error(errorMessage "; in " __FILE__)
-	@endcode  */
-	#define OEL_ABORT(msg) (std::abort(), (void) msg)
+	* Users may define this to call a function that never returns. Used in noexcept functions, so should not throw.
+	* This could be useful for printing the message or a stack trace before aborting. */
+	#define OEL_ABORT(message) (std::abort(), (void) message)
 
 	#if !defined OEL_ASSERT and !defined NDEBUG
 	#include <cassert>
 
-	//! Can be defined to your own or changed right here.
+	/** @brief Used for checking preconditions. Can be defined to your own
+	*
+	* Used in noexcept functions, so should not throw. */
 	#define OEL_ASSERT  assert
 	#endif
 #endif
@@ -131,10 +131,10 @@ struct is_trivially_relocatable;
 
 #if OEL_MEM_BOUND_DEBUG_LVL == 0
 	#undef OEL_ASSERT
-	#define OEL_ASSERT(expr) ((void) 0)
+	#define OEL_ASSERT(cond) ((void) 0)
 #elif !defined OEL_ASSERT
-	#define OEL_ASSERT(expr)  \
-		((expr) or (OEL_ABORT("Failed assert " #expr), false))
+	#define OEL_ASSERT(cond)  \
+		((cond) or (OEL_ABORT("Failed precond: " #cond), false))
 #endif
 
 

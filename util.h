@@ -86,10 +86,6 @@ constexpr default_init_t for_overwrite;  //!< An instance of default_init_t for 
 [[deprecated]] constexpr default_init_t default_init;
 
 
-//! Functions marked with `noexcept(nodebug)` will only throw exceptions from OEL_ASSERT (none by default)
-constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //
