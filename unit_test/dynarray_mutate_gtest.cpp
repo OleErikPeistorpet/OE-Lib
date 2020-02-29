@@ -1,9 +1,8 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "throw_from_assert.h"
 #include "test_classes.h"
-
+#include "mem_leak_detector.h"
 #include "range_view.h"
 #include "dynarray.h"
 
@@ -717,15 +716,17 @@ TEST_F(dynarrayTest, eraseToEnd)
 #if OEL_MEM_BOUND_DEBUG_LVL
 TEST_F(dynarrayTest, erasePrecondCheck)
 {
-	dynarray<int> di{-2};
+	leakDetector->enabled = false;
 
-	OEL_WHEN_EXCEPTIONS_ON(
-		EXPECT_THROW(di.erase_unstable(di.end()), std::logic_error);
-	)
-	OEL_WHEN_EXCEPTIONS_ON(
-		auto copy = di;
-		EXPECT_THROW(copy.erase(di.begin()), std::logic_error);
-	)
+	dynarray<int> di{-2};
+	auto copy = di;
+	ASSERT_DEATH( copy.erase(di.begin()), "" );
+}
+
+TEST_F(dynarrayTest, unorderErasePrecondCheck)
+{
+	dynarray<int> di{1};
+	ASSERT_DEATH( di.erase_unstable(di.end()), "" );
 }
 #endif
 

@@ -161,9 +161,8 @@ public:
 		}
 	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
-	void        swap(dynarray & other)
-		noexcept(_allocTrait::propagate_on_container_swap::value or is_always_equal<Alloc>::value);
-	friend void swap(dynarray & a, dynarray & b) noexcept(noexcept( a.swap(b) ))  OEL_ALWAYS_INLINE { a.swap(b); }
+	void        swap(dynarray & other) noexcept;
+	friend void swap(dynarray & a, dynarray & b) noexcept   OEL_ALWAYS_INLINE { a.swap(b); }
 
 	/**
 	* @brief Replace the contents with source range
@@ -224,7 +223,7 @@ public:
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
 	void      push_back(const T & val)  { emplace_back(val); }
 
-	void      pop_back() noexcept(nodebug);
+	void      pop_back() noexcept;
 
 	/**
 	* @brief Erase the element at pos without maintaining order of elements after pos.
@@ -237,7 +236,7 @@ public:
 
 	iterator  erase(iterator first, const_iterator last) &;
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require assignable T
-	void      erase_to_end(iterator first) noexcept(nodebug);
+	void      erase_to_end(iterator first) noexcept;
 
 	void      clear() noexcept         { erase_to_end(begin()); }
 
@@ -276,19 +275,18 @@ public:
 	T *             data() noexcept         OEL_ALWAYS_INLINE { return _m.data; }
 	const T *       data() const noexcept   OEL_ALWAYS_INLINE { return _m.data; }
 
-	reference       front() noexcept(nodebug)        { return *begin(); }
-	const_reference front() const noexcept(nodebug)  { return *begin(); }
+	reference       front() noexcept        { return *begin(); }
+	const_reference front() const noexcept  { return *begin(); }
 
-	reference       back() noexcept(nodebug)         { return *_makeIter(_m.end - 1); }
-	const_reference back() const noexcept(nodebug)   { return *_makeIter<const T *>(_m.end - 1); }
+	reference       back() noexcept         { return *_makeIter(_m.end - 1); }
+	const_reference back() const noexcept   { return *_makeIter<const T *>(_m.end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
 
-	reference       operator[](size_type index) noexcept(nodebug)        { OEL_ASSERT(index < size());
-	                                                                       return _m.data[index]; }
-	const_reference operator[](size_type index) const noexcept(nodebug)  { OEL_ASSERT(index < size());
-	                                                                       return _m.data[index]; }
+	reference       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
+	const_reference operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
+
 	friend bool operator==(const dynarray & left, const dynarray & right)
 		{
 			return left.size() == right.size() and
@@ -464,7 +462,7 @@ private:
 		swap(static_cast<Alloc &>(_m), a);
 	}
 
-	void _swapAlloc(std::false_type, Alloc & a)
+	void _swapAlloc(std::false_type, Alloc & a) noexcept
 	{	// propagate_on_container_swap false, standard says this is undefined if allocators compare unequal
 		OEL_ASSERT(static_cast<Alloc &>(_m) == a);
 		(void) a;
@@ -921,8 +919,7 @@ dynarray<T, Alloc>::~dynarray() noexcept
 }
 
 template< typename T, typename Alloc >
-void dynarray<T, Alloc>::swap(dynarray & other)
-	noexcept(_allocTrait::propagate_on_container_swap::value or is_always_equal<Alloc>::value)
+void dynarray<T, Alloc>::swap(dynarray & other) noexcept
 {
 	_internBase & a = _m;
 	_internBase & b = other._m;
@@ -964,7 +961,7 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 
 
 template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::pop_back() noexcept(nodebug)
+inline void dynarray<T, Alloc>::pop_back() noexcept
 {
 	OEL_ASSERT(_m.data < _m.end);
 	_debugSizeUpdater guard{_m};
@@ -974,7 +971,7 @@ inline void dynarray<T, Alloc>::pop_back() noexcept(nodebug)
 }
 
 template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
+inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 {
 	_debugSizeUpdater guard{_m};
 
