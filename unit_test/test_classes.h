@@ -3,12 +3,16 @@
 
 #pragma once
 
-#include "throw_from_assert.h"
 #include "align_allocator.h"
 
 #include "gtest/gtest.h"
 #include <memory>
 #include <unordered_map>
+
+
+class MemoryLeakDetector;
+
+extern MemoryLeakDetector* leakDetector;
 
 
 #if __cpp_lib_ranges >= 201911

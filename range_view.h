@@ -86,7 +86,7 @@ public:
 			++_begin; --_size;
 		}
 	//! Modify this view to exclude last element
-	constexpr void      drop_back()
+	constexpr void      drop_back() noexcept
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 			OEL_ASSERT(_size > 0);
