@@ -78,7 +78,7 @@ struct last_iterators
 * Requires that dest is a random_access_range (C++20 concept) to compile.
 * To move instead of copy, wrap source with view::move  */
 template<typename InputRange, typename RandomAccessRange>
-auto copy(const InputRange & source, RandomAccessRange & dest)
+auto copy(const InputRange & source, RandomAccessRange && dest)
 ->	last_iterators<decltype(begin(source)), decltype(begin(dest))>;
 /**
 * @brief Copies as many elements from source as will fit in dest
@@ -86,7 +86,7 @@ auto copy(const InputRange & source, RandomAccessRange & dest)
 *
 * Otherwise same as copy(const InputRange &, RandomAccessRange &)  */
 template<typename InputRange, typename RandomAccessRange>
-bool copy_fit(const InputRange & source, RandomAccessRange & dest);
+bool copy_fit(const InputRange & source, RandomAccessRange && dest);
 
 
 
@@ -264,7 +264,7 @@ inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
 }
 
 template<typename InputRange, typename RandomAccessRange>
-inline auto oel::copy(const InputRange & src, RandomAccessRange & dest)
+inline auto oel::copy(const InputRange & src, RandomAccessRange && dest)
 ->	last_iterators<decltype(begin(src)), decltype(begin(dest))>
 {
 	using IterSrc  = decltype(begin(src));
@@ -274,7 +274,7 @@ inline auto oel::copy(const InputRange & src, RandomAccessRange & dest)
 }
 
 template<typename InputRange, typename RandomAccessRange>
-inline bool oel::copy_fit(const InputRange & src, RandomAccessRange & dest)
+inline bool oel::copy_fit(const InputRange & src, RandomAccessRange && dest)
 {
 	return _detail::CopyFit(src, dest, int{});
 }

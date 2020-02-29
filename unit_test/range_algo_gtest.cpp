@@ -145,20 +145,20 @@ TEST(rangeTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
-	test2[4] = -7;
-	auto fitInto = view::counted(std::begin(test2), 4);
+	constexpr int N = 4;
+	test2[N] = -7;
 
 OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
+	EXPECT_THROW(oel::copy(test, view::counted(std::begin(test2), N)), std::out_of_range);
 )
-	auto success = oel::copy_fit(test, fitInto);
-	EXPECT_TRUE(std::equal(begin(test), begin(test) + 4, test2));
-	EXPECT_EQ(-7, test2[4]);
+	auto success = oel::copy_fit(test, view::counted(std::begin(test2), N));
+	EXPECT_TRUE(std::equal(begin(test), begin(test) + N, test2));
+	EXPECT_EQ(-7, test2[N]);
 	EXPECT_FALSE(success);
 
-	ASSERT_EQ(4, test[4]);
+	ASSERT_EQ(4, test[N]);
 	auto l = oel::copy(test2, test).dest_last;
-	EXPECT_EQ(-7, test[4]);
+	EXPECT_EQ(-7, test[N]);
 	EXPECT_TRUE(end(test) == l);
 	{
 		std::forward_list<std::string> li{"aa", "bb"};
