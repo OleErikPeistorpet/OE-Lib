@@ -70,7 +70,7 @@ public:
 	//! Increment begin, decrementing size
 	void      drop_front();
 	//! Decrement size (and end)
-	void      drop_back();
+	void      drop_back() noexcept;
 
 protected:
 	Iterator       _begin;
@@ -180,7 +180,7 @@ void counted_view<Iterator, B>::drop_front()
 }
 
 template< typename Iterator, bool B >
-void counted_view<Iterator, B>::drop_back()
+void counted_view<Iterator, B>::drop_back() noexcept
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	OEL_ASSERT(_size > 0);

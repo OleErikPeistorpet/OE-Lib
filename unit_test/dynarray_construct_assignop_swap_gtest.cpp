@@ -1,10 +1,9 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "throw_from_assert.h"
-
-#include "dynarray.h"
 #include "test_classes.h"
+#include "mem_leak_detector.h"
+#include "dynarray.h"
 
 #include <array>
 #include <string>
@@ -646,13 +645,11 @@ TEST_F(dynarrayConstructTest, swap)
 
 TEST_F(dynarrayConstructTest, swapUnequal)
 {
+	leakDetector->enabled = false;
+
 	using Al = StatefulAllocator<int>;
 	dynarray< int, Al > one(Al(1));
 	dynarray< int, Al > two(Al(2));
-#if defined _CPPUNWIND or defined __EXCEPTIONS
-	EXPECT_THROW( swap(one, two), std::logic_error );
-#else
 	ASSERT_DEATH( swap(one, two), "" );
-#endif
 }
 #endif
