@@ -390,7 +390,7 @@ TEST_F(dynarrayTest, insertRTrivial)
 				dest.emplace_back(1);
 				dest.emplace_back(2);
 
-				dest.insert(dest.begin() + insertOffset, toInsert);
+				dest.insert_r(dest.begin() + insertOffset, toInsert);
 
 				EXPECT_TRUE(dest.size() == initSize + toInsert.size());
 				for (size_t i = 0; i < toInsert.size(); ++i)
