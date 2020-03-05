@@ -209,8 +209,6 @@ public:
 	template< typename ForwardRange >
 	iterator  insert_r(const_iterator pos, const ForwardRange & source) &;
 
-	iterator  insert(const_iterator pos, std::initializer_list<T> il) &  { return insert_r(pos, il); }
-
 	iterator  insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
 	iterator  insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
 
