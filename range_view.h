@@ -7,6 +7,7 @@
 
 
 #include "util.h"
+#include "auxi/counted_iterator.h"
 #include "auxi/transform_iterator.h"
 
 
@@ -22,72 +23,52 @@ namespace oel
 {
 
 //! A minimal substitute for boost::iterator_range and std::ranges::subrange (C++20)
-template< typename Iterator, typename Sentinel = Iterator >
+template< typename Iterator, typename Sentinel = Iterator,
+          bool = iter_is_random_access<Iterator>::value >
 class basic_view  : protected _detail::ViewBase<Iterator>
 {
 	using _base = _detail::ViewBase<Iterator>;
 
 public:
-	constexpr basic_view(Iterator f, Sentinel l)   : _base{std::move(f)}, _end(l) {}
+	using value_type      = iter_value_t<Iterator>;
+	using difference_type = iter_difference_t<Iterator>;
+	using size_type       = typename std::make_unsigned<difference_type>::type;
+
+	/** @code
+	basic_view<int *> a;   // Unspecified value, must assign to before use (default-initialized)
+	basic_view<int *> b{}; // Empty (value-initialized)
+	@endcode  */
+	constexpr basic_view() = default;
+	explicit  basic_view(Iterator f)     : _base{std::move(f)}, _end{} {}
+	basic_view(Iterator f, Sentinel l)   : _base{std::move(f)}, _end(l) {}
+	//! Construct from array or container with matching iterator type
+	template< typename Range,
+		enable_if< !std::is_base_of<basic_view, Range>::value > = 0 // avoid being selected for copy
+	>
+	constexpr basic_view(Range & r)   : _base{oel::adl_begin(r)}, _end(oel::adl_end(r)) {}
 
 	using _base::begin;
 
 	constexpr Sentinel end() const   OEL_ALWAYS_INLINE { return _end; }
 
+	constexpr bool     empty() const noexcept   { return this->first == _end; }
+
+	//! Increment begin, decrementing size
+	constexpr void     drop_front();
+	//! Decrement end and size
+	constexpr void     drop_back();
+
 protected:
 	Sentinel _end;
 };
 
-template< typename Iterator,
-          enable_if< iter_is_random_access<Iterator>::value > = 0
->
-iter_difference_t<Iterator> ssize(const basic_view<Iterator> & r)   { return r.end() - r.begin(); }
-
-
-//! Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
-template< typename Iterator, bool = iter_is_random_access<Iterator>::value >
-class counted_view  : protected _detail::ViewBase<Iterator>
-{
-	using _base = _detail::ViewBase<Iterator>;
-
-public:
-	using iterator        = Iterator;
-	using value_type      = iter_value_t<Iterator>;
-	using difference_type = iter_difference_t<Iterator>;
-	using size_type       = typename std::make_unsigned<difference_type>::type;
-
-	//! Initialize to empty
-	constexpr counted_view() noexcept                      : _size() {}
-	constexpr counted_view(Iterator f, difference_type n);
-	//! Construct from array or container with matching iterator type
-	template< typename SizedRange,
-		enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0 // avoid being selected for copy
-	>
-	constexpr counted_view(SizedRange & r)   : _base{oel::adl_begin(r)}, _size{oel::ssize(r)} {}
-
-	using _base::begin;
-
-	constexpr size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
-
-	constexpr bool      empty() const noexcept   { return 0 == _size; }
-
-	//! Increment begin, decrementing size
-	void      drop_front();
-	//! Decrement size (and end)
-	void      drop_back();
-
-protected:
-	difference_type _size;
-};
-
 //! Specialization for random-access Iterator
 template< typename Iterator >
-class counted_view<Iterator, true> : public counted_view<Iterator, false>
+class basic_view<Iterator, Iterator, true> : public basic_view<Iterator, Iterator, false>
 {
-	using _base = counted_view<Iterator, false>;
+	using _base = basic_view<Iterator, Iterator, false>;
 
 public:
-	using typename _base::iterator;
 	using typename _base::value_type;
 	using typename _base::difference_type;
 	using typename _base::size_type;
@@ -95,9 +76,9 @@ public:
 
 	using _base::_base;
 
-	constexpr iterator  end() const   OEL_ALWAYS_INLINE { return this->first + this->_size; }
+	constexpr size_type size() const noexcept   { return this->_end - this->first; }
 
-	constexpr reference back() const                 { return this->first[this->_size - 1]; }
+	constexpr reference back() const            { return this->_end[-1]; }
 
 	constexpr reference operator[](difference_type index) const   OEL_ALWAYS_INLINE { return this->first[index]; }
 
@@ -105,6 +86,23 @@ public:
 	template< typename It = Iterator >
 	auto data() const noexcept
 	->	decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->first); }
+};
+
+template< typename Iterator >
+class counted_view : public basic_view< counted_iterator<Iterator>, counted_sentinel >
+{
+	using _base = basic_view< counted_iterator<Iterator>, counted_sentinel >;
+
+public:
+	using typename _base::value_type;
+	using typename _base::difference_type;
+	using typename _base::size_type;
+
+	constexpr counted_view() = default;
+	//! Construct from array or container with matching iterator type
+	template< typename Range >
+	constexpr counted_view(Range & r)
+	 :	basic_view< counted_iterator<Iterator>, counted_sentinel >({oel::adl_begin(r), oel::ssize(r)}, {}) {}
 };
 
 
@@ -119,7 +117,8 @@ constexpr basic_view<Iterator, Sentinel>  subrange(Iterator first, Sentinel last
 
 //! Create a counted_view from iterator and count, with type deduced from first
 template< typename Iterator >
-constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Iterator> n)  { return {std::move(first), n}; }
+constexpr basic_view< counted_iterator<Iterator>, counted_sentinel >
+	counted(Iterator first, iter_difference_t<Iterator> n)   { return{ {std::move(first), n}, {} }; }
 
 
 //! Create a basic_view of std::move_iterator from two iterators
@@ -160,32 +159,22 @@ auto transform(Range & r, UnaryFunc f)     { return _detail::Transform(r, std::m
 // Implementation only in rest of the file
 
 
-template< typename Iterator, bool B >
-constexpr counted_view<Iterator, B>::counted_view(Iterator f, difference_type n)
- :	_base{std::move(f)}, _size{n}
-{
-#if __cplusplus >= 201402 or defined _MSC_VER
-	OEL_ASSERT(n >= 0);
-#endif
-}
-
-template< typename Iterator, bool B >
-void counted_view<Iterator, B>::drop_front()
+template< typename Iterator, typename Sentinel, bool B >
+constexpr void basic_view<Iterator, Sentinel, B>::drop_front()
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	OEL_ASSERT(_size > 0);
+	OEL_ASSERT(this->first != _end);
 #endif
 	++this->first;
-	--_size;
 }
 
-template< typename Iterator, bool B >
-void counted_view<Iterator, B>::drop_back()
+template< typename Iterator, typename Sentinel, bool B >
+constexpr void basic_view<Iterator, Sentinel, B>::drop_back()
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	OEL_ASSERT(_size > 0);
+	OEL_ASSERT(this->first != _end);
 #endif
-	--_size;
+	--_end;
 }
 
 } // namespace oel
