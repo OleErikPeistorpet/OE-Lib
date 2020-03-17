@@ -97,8 +97,8 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 
 
 // Cannot do ADL `begin(r)` in implementation of class with begin member
-template< typename Range >  OEL_ALWAYS_INLINE inline
-auto adl_begin(Range & r) -> decltype(begin(r)) { return begin(r); }
+template< typename Range >  OEL_ALWAYS_INLINE
+constexpr auto adl_begin(Range & r) -> decltype(begin(r)) { return begin(r); }
 
 
 namespace _detail
