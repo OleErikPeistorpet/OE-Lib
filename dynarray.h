@@ -412,7 +412,7 @@ private:
 		_detail::Throw::LengthError(_lenErrorMsg);
 	}
 
-	_span _allocateAddOne(size_type = 0, size_type = 0)
+	_span _allocateAddOne()
 	{
 		constexpr auto startBytesGood = oel_max(3 * sizeof(void *), 4 * sizeof(int));
 		constexpr auto minGrow = (startBytesGood - 1) / sizeof(T) + 1;
@@ -486,13 +486,13 @@ private:
 	#endif
 #endif
 
-	T * _relocateImpl(T *__restrict dest, size_type, false_type) const noexcept
+	T * _relocateImpl(T *__restrict dest, size_type, false_type) const
 	{
 		OEL_WHEN_EXCEPTIONS_ON(
 			static_assert(std::is_nothrow_move_constructible<T>::value,
 				"Reallocation in dynarray requires that T is noexcept move constructible or trivially relocatable");
 		)
-		T *__restrict src = _m.data;
+		T * src = _m.data;
 		while (src != _m.end)
 		{
 			::new(static_cast<void *>(dest)) T(std::move(*src));
@@ -502,14 +502,14 @@ private:
 		return dest;
 	}
 
-	T * _relocateImpl(T *const dest, size_type const n, true_type) const noexcept
+	T * _relocateImpl(T *const dest, size_type const n, true_type) const
 	{
 		T * dLast = dest + n;
 		_detail::MemcpyCheck(_m.data, n, dest);
 		return dLast;
 	}
 	// Returns destination end
-	OEL_ALWAYS_INLINE T * _relocateData(T * dest, size_type n)
+	OEL_ALWAYS_INLINE T * _relocateData(T *__restrict dest, size_type n)
 	{
 		return _relocateImpl(dest, n, is_trivially_relocatable<T>());
 	}
@@ -764,17 +764,14 @@ private:
 	}
 
 
-	template< _span(dynarray::*AllocFunc)(size_t, size_t),
-		typename MakeFuncInsert, typename... Args >
-	T * _insertRealloc(
-		T *const pos, size_type const nAfterPos, size_type const nToAdd,
-		MakeFuncInsert const makeNew, Args &&... args)
+	template<typename InsertHelper, typename... Args>
+	T * _insertRealloc(T *const pos, size_type const nAfterPos, InsertHelper const helper, Args &&... args)
 	{
-		_scopedPtr newBuf{_m, (this->*AllocFunc)(nToAdd, size())};
+		_scopedPtr newBuf{_m, helper.allocate(*this)};
 
 		size_type const nBefore = pos - data();
 		T *const newPos = newBuf.data + nBefore;
-		T *const afterAdded = makeNew(newPos, nToAdd, _m, static_cast<Args &&>(args)...);
+		T *const afterAdded = helper.construct(newPos, _m, static_cast<Args &&>(args)...);
 		// Exception free from here
 		if (_m.data)
 		{
@@ -787,14 +784,35 @@ private:
 		return newPos;
 	}
 
-	struct _emplaceMakeElem
+	struct _emplaceHelper
 	{
+		_span allocate(dynarray & self) const { return self._allocateAddOne(); }
+
 		template<typename... Args>
-		T * operator()(T *const newPos, size_type, Alloc & a, Args &&... args) const
+		T * construct(T *const newPos, Alloc & a, Args &&... args) const
 		{
 			_detail::Construct(a, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
 		}
+	};
+
+	template<typename InputIter>
+	struct _insertRHelper
+	{
+		InputIter first;
+		size_type count;
+
+		_span allocate(dynarray & self) const
+		{
+			return self._allocateAdd(count, self.size());
+		}
+
+		T * construct(T *const newPos, Alloc & a) const
+		{
+			T *const dLast = newPos + count;
+			_detail::UninitCopy(first, newPos, dLast, a);
+			return dLast;
+		};
 	};
 };
 
@@ -824,8 +842,7 @@ typename dynarray<T, Alloc>::iterator
 		std::memcpy(pPos, &tmp, sizeof(T)); // relocate the new element to pos
 	}
 	else
-	{	pPos = _insertRealloc< &dynarray::_allocateAddOne >
-			(pPos, nAfterPos, {}, _emplaceMakeElem{}, static_cast<Args &&>(args)...);
+	{	pPos = _insertRealloc(pPos, nAfterPos, _emplaceHelper{}, static_cast<Args &&>(args)...);
 	}
 	return _makeIter(pPos);
 }
@@ -872,15 +889,10 @@ typename dynarray<T, Alloc>::iterator
 			}
 		}
 	}
-	else // not enough room
-	{
-		auto make = [first](T *const newPos, size_type count_, Alloc & a)
-		{
-			T *const dLast = newPos + count_;
-			_detail::UninitCopy(first, newPos, dLast, a);
-			return dLast;
-		};
-		pPos = _insertRealloc< &dynarray::_allocateAdd >(pPos, nAfterPos, count, make);
+	else
+	{	pPos = _insertRealloc(
+			pPos, nAfterPos,
+			_insertRHelper<decltype(first)>{first, count} );
 	}
 	return _makeIter(pPos);
 }
