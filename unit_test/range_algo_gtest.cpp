@@ -80,19 +80,32 @@ TEST(rangeTest, countedView)
 	EXPECT_TRUE(test.end() == i.end());
 }
 
-TEST(rangeTest, viewTransform)
+TEST(rangeTest, viewTransformBasics)
 {
-	{
-		using Elem = oel::dynarray<int>;
-		Elem r[1];
-		auto v = view::transform(r, [](const Elem & c) { return c.size(); });
-		static_assert( std::is_same< decltype(v.begin())::iterator_category, std::forward_iterator_tag >{},
-			"Wrong for current implementation" );
-		static_assert( sizeof v.begin() == sizeof(Elem *),
-			"Not critical, this assert can be removed" );
-	}
+	using Elem = oel::dynarray<int>;
+	Elem r[1];
+	auto v = view::transform(r, [](const Elem & c) { return c.size(); });
+	static_assert( std::is_same< decltype(v.begin())::iterator_category, std::forward_iterator_tag >{},
+		"Wrong for current implementation" );
+	static_assert( sizeof v.begin() == sizeof(Elem *),
+		"Not critical, this assert can be removed" );
 
-	int src[] { 2, 3 };
+	EXPECT_TRUE( v.begin() == r + 0 );
+	EXPECT_FALSE( r + 1 == v.begin() );
+	EXPECT_FALSE( v.begin() != r + 0 );
+	EXPECT_TRUE( r + 1 != v.begin() );
+}
+
+TEST(rangeTest, viewTransformSizedAndNonSizedRange)
+{
+	int src[] {1, 2};
+	auto r = view::subrange(std::begin(src), std::end(src));
+	oel::dynarray<int> test( view::transform(r, [](int & i) { return i++; }) );
+	EXPECT_EQ(2U, test.size());
+	EXPECT_EQ(1, test[0]);
+	EXPECT_EQ(2, test[1]);
+	EXPECT_EQ(2, src[0]);
+	EXPECT_EQ(3, src[1]);
 
 	struct Square
 	{	int operator()(int i) const
@@ -100,18 +113,11 @@ TEST(rangeTest, viewTransform)
 			return i * i;
 		}
 	};
-	auto r = view::subrange(std::begin(src), std::end(src));
-	oel::dynarray<int> test( view::transform(r, Square{}) );
-	EXPECT_EQ(2U, test.size());
-	EXPECT_EQ(4, test[0]);
-	EXPECT_EQ(9, test[1]);
-
-	test.append( view::transform(src, [](int & i) { return i++; }) );
+	std::forward_list<int> const li{-2, -3};
+	test.append( view::transform(li, Square{}) );
 	EXPECT_EQ(4U, test.size());
-	EXPECT_EQ(2, test[2]);
-	EXPECT_EQ(3, test[3]);
-	EXPECT_EQ(3, src[0]);
-	EXPECT_EQ(4, src[1]);
+	EXPECT_EQ(4, test[2]);
+	EXPECT_EQ(9, test[3]);
 }
 
 TEST(rangeTest, viewTransformAsOutput)
