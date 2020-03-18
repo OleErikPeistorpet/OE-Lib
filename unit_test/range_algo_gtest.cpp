@@ -92,26 +92,26 @@ TEST(rangeTest, viewTransform)
 			"Not critical, this assert can be removed" );
 	}
 
-	int src[] { 2, 3 };
-
 	struct Square
 	{	int operator()(int i) const
 		{
 			return i * i;
 		}
 	};
+	int src[] {2, 3};
 	auto r = view::subrange(std::begin(src), std::end(src));
 	oel::dynarray<int> test( view::transform(r, Square{}) );
 	EXPECT_EQ(2U, test.size());
 	EXPECT_EQ(4, test[0]);
 	EXPECT_EQ(9, test[1]);
 
-	test.append( view::transform(src, [](int & i) { return i++; }) );
+	std::forward_list<int> li{ 1, 2 };
+	test.append( view::transform(li, [](int & i) { return i++; }) );
 	EXPECT_EQ(4U, test.size());
-	EXPECT_EQ(2, test[2]);
-	EXPECT_EQ(3, test[3]);
-	EXPECT_EQ(3, src[0]);
-	EXPECT_EQ(4, src[1]);
+	EXPECT_EQ(1, test[2]);
+	EXPECT_EQ(2, test[3]);
+	EXPECT_EQ(2, src[0]);
+	EXPECT_EQ(3, src[1]);
 }
 
 TEST(rangeTest, viewTransformAsOutput)
