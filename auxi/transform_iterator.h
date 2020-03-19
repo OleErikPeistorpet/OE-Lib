@@ -59,6 +59,8 @@ public:
 	using pointer         = void;
 	using value_type      = typename std::decay<reference>::type;
 
+	Iterator base() const  { return _m.inner; }
+
 	transform_iterator(UnaryFunc f, Iterator it)
 	 :	_m{it, f} {
 	}
@@ -89,8 +91,14 @@ public:
 		return tmp;
 	}
 
-	bool operator==(Iterator right) const  OEL_ALWAYS_INLINE { return _m.inner == right; }
-	bool operator!=(Iterator right) const  OEL_ALWAYS_INLINE { return _m.inner != right; }
+	OEL_ALWAYS_INLINE
+	friend bool operator==(const transform_iterator & left, Iterator right)  { return left._m.inner == right; }
+	OEL_ALWAYS_INLINE
+	friend bool operator!=(const transform_iterator & left, Iterator right)  { return left._m.inner != right; }
+	OEL_ALWAYS_INLINE
+	friend bool operator==(Iterator left, const transform_iterator & right)  { return left == right._m.inner; }
+	OEL_ALWAYS_INLINE
+	friend bool operator!=(Iterator left, const transform_iterator & right)  { return left != right._m.inner; }
 };
 
 } // namespace oel

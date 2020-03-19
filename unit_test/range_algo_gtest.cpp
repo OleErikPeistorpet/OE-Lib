@@ -80,18 +80,24 @@ TEST(rangeTest, countedView)
 	EXPECT_TRUE(test.end() == i.end());
 }
 
-TEST(rangeTest, viewTransform)
+TEST(rangeTest, viewTransformBasics)
 {
-	{
-		using Elem = oel::dynarray<int>;
-		Elem r[1];
-		auto v = view::transform(r, [](const Elem & c) { return c.size(); });
-		static_assert( std::is_same< decltype(v.begin())::iterator_category, std::forward_iterator_tag >{},
-			"Wrong for current implementation" );
-		static_assert( sizeof v.begin() == sizeof(Elem *),
-			"Not critical, this assert can be removed" );
-	}
+	using Elem = oel::dynarray<int>;
+	Elem r[1];
+	auto v = view::transform(r, [](const Elem & c) { return c.size(); });
+	static_assert( std::is_same< decltype(v.begin())::iterator_category, std::forward_iterator_tag >{},
+		"Wrong for current implementation" );
+	static_assert( sizeof v.begin() == sizeof(Elem *),
+		"Not critical, this assert can be removed" );
 
+	EXPECT_TRUE( v.begin() == r + 0 );
+	EXPECT_TRUE( r + 0 == v.begin() );
+	EXPECT_TRUE( v.begin() != r + 1 );
+	EXPECT_TRUE( r + 1 != v.begin() );
+}
+
+TEST(rangeTest, viewTransformSizedAndNonSizedRange)
+{
 	struct Square
 	{	int operator()(int i) const
 		{
