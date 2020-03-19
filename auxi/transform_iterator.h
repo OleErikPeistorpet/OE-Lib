@@ -59,6 +59,8 @@ public:
 	using pointer         = void;
 	using value_type      = typename std::decay<reference>::type;
 
+	Iterator base() const  { return _m.inner; }
+
 	transform_iterator(UnaryFunc f, Iterator it)
 	 :	_m{it, f} {
 	}
