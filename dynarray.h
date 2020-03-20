@@ -55,17 +55,17 @@ void erase_unstable(dynarray<T, A> & d, size_t index)  { d.erase_unstable(d.begi
 //!@{
 // Overloads of generic functions for inserting into container (in range_algo.h)
 template< typename T, typename A, typename InputRange >  inline
-void assign(dynarray<T, A> & dest, const InputRange & source)  { dest.assign(source); }
+void assign(dynarray<T, A> & dest, InputRange && source)  { dest.assign(source); }
 
 template< typename T, typename A, typename InputRange >  inline
-void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
+void append(dynarray<T, A> & dest, InputRange && source)  { dest.append(source); }
 
 template< typename T, typename A >  inline
 void append(dynarray<T, A> & dest, size_t n, const T & val)  { dest.append(n, val); }
 
 template< typename T, typename A, typename ForwardRange >  inline
 typename dynarray<T, A>::iterator
-	insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, const ForwardRange & source)
+	insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, ForwardRange && source)
 	{
 		return dest.insert_r(pos, source);
 	}
@@ -139,7 +139,7 @@ public:
 	@endcode  */
 	template< typename InputRange,
 	          typename /*EnableIfRange*/ = iterator_t<InputRange> >
-	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})   : _m(a) { append(r); }
+	explicit dynarray(InputRange && r, const Alloc & a = Alloc{})   : _m(a) { append(r); }
 
 	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})   : _m(a, il.size())
 	                                                                   { _initReserved(il.begin()); }
@@ -170,7 +170,7 @@ public:
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template< typename InputRange >
-	auto assign(const InputRange & source) -> iterator_t<InputRange const>;
+	auto assign(InputRange && source) -> iterator_t<InputRange>;
 
 	void assign(size_type count, const T & val)   { clear(); append(count, val); }
 
@@ -184,7 +184,7 @@ public:
 	* Passing references to this dynarray is supported. The function is otherwise equivalent to
 	* `std::vector::insert(end(), begin(source), end(source))`, where `end(source)` is not needed if source.size() exists. */
 	template< typename InputRange >
-	auto append(const InputRange & source) -> iterator_t<InputRange const>;
+	auto append(InputRange && source) -> iterator_t<InputRange>;
 	//! Equivalent to `std::vector::insert(end(), il)`
 	void append(std::initializer_list<T> il)    { append<>(il); }
 	//! Equivalent to `std::vector::insert(end(), count, val)`
@@ -201,7 +201,7 @@ public:
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if source.size() exists
 	template< typename ForwardRange >
-	iterator  insert_r(const_iterator pos, const ForwardRange & source) &;
+	iterator  insert_r(const_iterator pos, ForwardRange && source) &;
 
 	iterator  insert(const_iterator pos, std::initializer_list<T> il) &  { return insert_r(pos, il); }
 
@@ -643,11 +643,11 @@ private:
 		{	newEnd = _m.data + count;
 			if (newEnd < _m.end)
 			{	// downsizing, assign new and destroy rest
-				src = copy(src, _m.data, newEnd);
+				src = copy(std::move(src), _m.data, newEnd);
 				erase_to_end(_makeIter(newEnd));
 			}
 			else // assign to old elements as far as we can
-			{	src = copy(src, _m.data, _m.end);
+			{	src = copy(std::move(src), _m.data, _m.end);
 			}
 		}
 		while (_m.end < newEnd)
@@ -691,7 +691,7 @@ private:
 		_appendImpl( n,
 			[&src](T * dest, size_type n_, Alloc & a)
 			{
-				src = _detail::UninitCopy(src, dest, dest + n_, a);
+				src = _detail::UninitCopy(std::move(src), dest, dest + n_, a);
 			} );
 		return src;
 	}
@@ -839,10 +839,10 @@ typename dynarray<T, Alloc>::iterator
 template< typename T, typename Alloc >
 template< typename ForwardRange >
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src) &
+	dynarray<T, Alloc>::insert_r(const_iterator pos, ForwardRange && src) &
 {
 	auto first = oel::adl_begin(src);
-	auto const count = _detail::SizeOrEnd(src);
+	auto const count = _detail::CountOrEnd(src);
 
 	static_assert( std::is_same<decltype(count), size_t const>::value,
 			"insert_r requires that begin(source) is a ForwardIterator (multi-pass)" );
@@ -1009,12 +1009,12 @@ void dynarray<T, Alloc>::shrink_to_fit()
 
 template< typename T, typename Alloc >
 template< typename InputRange >
-auto dynarray<T, Alloc>::assign(const InputRange & src) -> iterator_t<InputRange const>
+auto dynarray<T, Alloc>::assign(InputRange && src) -> iterator_t<InputRange>
 {
 	return _assignImpl(
 		oel::adl_begin(src),
-		_detail::SizeOrEnd(src),
-		can_memmove_with< T *, iterator_t<InputRange const> >() );
+		_detail::CountOrEnd(src),
+		can_memmove_with< T *, iterator_t<InputRange> >() );
 }
 
 template< typename T, typename Alloc >
@@ -1029,11 +1029,11 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 
 template< typename T, typename Alloc >
 template< typename InputRange >
-inline auto dynarray<T, Alloc>::append(const InputRange & src) -> iterator_t<InputRange const>
+inline auto dynarray<T, Alloc>::append(InputRange && src) -> iterator_t<InputRange>
 {
 	return _append(oel::adl_begin(src),
-	               _detail::SizeOrEnd(src),
-	               can_memmove_with< T *, iterator_t<InputRange const> >());
+	               _detail::CountOrEnd(src),
+	               can_memmove_with< T *, iterator_t<InputRange> >());
 }
 
 
@@ -1105,7 +1105,7 @@ template<
 	typename Alloc = allocator<
 		iter_value_t< iterator_t<InputRange> >
       > >
-explicit dynarray(const InputRange &, Alloc = {})
+explicit dynarray(InputRange &&, Alloc = {})
 ->	dynarray<
 		iter_value_t< iterator_t<InputRange> >,
 		Alloc >;
