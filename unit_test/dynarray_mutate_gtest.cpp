@@ -526,9 +526,30 @@ TEST_F(dynarrayTest, mutableBeginSizeRange)
 
 	dest.append(v);
 	EXPECT_EQ(3u, dest.size());
-
 }
 
+#ifndef NO_VIEWS_ISTREAM
+
+TEST_F(dynarrayTest, moveOnlyIterator)
+{
+	dynarray<int> dest;
+	{
+		std::istringstream ss{"1 2 3"};
+		dest.append(std::views::istream<int>(ss));
+		EXPECT_EQ(3u, dest.size());
+		EXPECT_EQ(1, dest[0]);
+		EXPECT_EQ(2, dest[1]);
+		EXPECT_EQ(3, dest[2]);
+	}
+	{
+		std::istringstream ss{"2 1"};
+		dest.assign(std::views::istream<int>(ss));
+		EXPECT_EQ(2u, dest.size());
+		EXPECT_EQ(2, dest[0]);
+		EXPECT_EQ(1, dest[1]);
+	}
+}
+#endif
 
 TEST_F(dynarrayTest, resize)
 {

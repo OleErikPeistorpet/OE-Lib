@@ -11,7 +11,7 @@
 #include <unordered_map>
 
 
-#if __cpp_lib_ranges
+#if __cpp_lib_ranges >= 201911
 
 #include <ranges>
 
@@ -23,6 +23,8 @@ inline auto ToMutableBeginSizeView(const int(& arr)[1])
 }
 
 #else
+
+#define NO_VIEWS_ISTREAM  1
 
 struct MutableBeginSizeView
 {

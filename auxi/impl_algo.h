@@ -33,7 +33,7 @@ namespace _detail
 
 	template< typename T >
 	struct Construct
-	{	// Must always call operator() with T * (other type will compile but bypass Alloc)
+	{	// Must always call with T * (other type will compile but bypass Alloc)
 
 		template< typename Alloc, typename... Args >
 		static auto Call(Alloc & a, T *__restrict p, Args &&... args)
@@ -208,30 +208,34 @@ namespace _detail
 
 
 
-	template< typename Range, typename ITrav > // pass dummy int to prefer this overload
-	auto doCountOrEnd(Range & r, ITrav, int)
-	->	decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
-
-	template< typename Range >
-	size_t doCountOrEnd(Range & r, std::forward_iterator_tag, long)
+	template< typename Range,
+		enable_if<
+			iter_is_forward< iterator_t<Range> >::value
+		> = 0 >
+	size_t CountOrEndNoSize(Range & r, int)
 	{
 		size_t n = 0;
-		auto it = begin(r);  auto const last = end(r);
-		while (it != last)
-		{ ++n; ++it; }
+		auto it = begin(r);
+		auto const last = end(r);
+		while (it != last) { ++it; ++n; }
+
 		return n;
 	}
 
 	template< typename Range >
-	auto doCountOrEnd(Range & r, std::input_iterator_tag, long) { return end(r); }
+	auto CountOrEndNoSize(Range & r, long) { return end(r); }
 
 	// If r is sized or multi-pass, returns element count as size_t, else end(r)
+	template< typename Range, typename... None >
+	inline auto CountOrEnd(Range & r, None...)
+	{
+		return _detail::CountOrEndNoSize(r, 0);
+	}
+
 	template< typename Range >
 	auto CountOrEnd(Range & r)
-	{
-		using I = decltype(begin(r));
-		return _detail::doCountOrEnd(r, iter_category<I>(), 0);
-	}
+	->	decltype( size_t(oel::ssize(r)) )
+	{	return    size_t(oel::ssize(r)); }
 }
 
 } // namespace oel

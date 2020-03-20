@@ -314,6 +314,18 @@ TEST_F(dynarrayConstructTest, constructRangeMutableBeginSize)
 	EXPECT_EQ(1u, d.size());
 }
 
+#ifndef NO_VIEWS_ISTREAM
+
+TEST_F(dynarrayConstructTest, constructMoveOnlyIterator)
+{
+	std::istringstream words{"Falling Anywhere"};
+	auto d = dynarray(std::views::istream<std::string>(words));
+	EXPECT_EQ(2u, d.size());
+	EXPECT_EQ("Falling", d[0]);
+	EXPECT_EQ("Anywhere", d[1]);
+}
+#endif
+
 
 template<typename Alloc>
 void testMoveConstruct(Alloc a0, Alloc a1)

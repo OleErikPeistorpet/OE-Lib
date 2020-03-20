@@ -49,9 +49,9 @@ class transform_iterator
 
 public:
 	using iterator_category = std::conditional_t<
-			std::is_base_of< std::forward_iterator_tag, iter_category<Iterator> >::value,
+			iter_is_forward<Iterator>::value,
 			std::forward_iterator_tag,
-			iter_category<Iterator>
+			std::input_iterator_tag
 		>;
 	using difference_type = iter_difference_t<Iterator>;
 	using reference       = decltype( _m.Func()(*_m.inner) );

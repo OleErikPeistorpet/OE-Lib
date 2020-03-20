@@ -26,6 +26,27 @@ namespace _detail
 
 	template< typename T >
 	std::is_empty<T> IsAlwaysEqual(long);
+
+
+
+	template< typename Iter >
+	typename std::iterator_traits<Iter>::iterator_category IterCat(int);
+
+	template< typename > void IterCat(long);
+
+
+	template< typename Iter >
+	typename Iter::iterator_concept IterConcept(int);
+
+	template< typename > void IterConcept(long);
+
+
+	template< typename Iter, typename Tag >
+	constexpr bool IterCatIs()
+	{
+		return std::is_base_of< Tag, decltype(_detail::IterCat<Iter>(0)) >::value
+		    or std::is_base_of< Tag, decltype(_detail::IterConcept<Iter>(0)) >::value;
+	}
 }
 
 
@@ -59,18 +80,30 @@ using std::begin;  using std::end;
 template< typename Range >
 using iterator_t = decltype( begin(std::declval<Range &>()) );
 
-template< typename Iterator >
-using iter_difference_t = typename std::iterator_traits<Iterator>::difference_type;
+#if __cpp_lib_concepts < 201907
+	template< typename Iterator >
+	using iter_difference_t = typename std::iterator_traits<Iterator>::difference_type;
+#else
+	using std::iter_difference_t;
+#endif
+
+#if __cpp_lib_concepts < 201907
+	template< typename Iterator >
+	using iter_value_t = typename std::iterator_traits<Iterator>::value_type;
+#else
+	using std::iter_value_t;
+#endif
 
 template< typename Iterator >
-using iter_value_t = typename std::iterator_traits<Iterator>::value_type;
-
+using iter_is_forward = bool_constant<
+		_detail::IterCatIs<Iterator, std::forward_iterator_tag>()
+		and std::is_copy_constructible<Iterator>::value
+	>;
 template< typename Iterator >
-using iter_category = typename std::iterator_traits<Iterator>::iterator_category;
-
-template< typename Iterator >
-using iter_is_random_access = std::is_base_of< std::random_access_iterator_tag, iter_category<Iterator> >;
-
+using iter_is_random_access = bool_constant<
+		_detail::IterCatIs<Iterator, std::random_access_iterator_tag>()
+		and std::is_copy_constructible<Iterator>::value
+	>;
 /**
 * @brief Partial emulation of std::sized_sentinel_for (C++20)
 *
