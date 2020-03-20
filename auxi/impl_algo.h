@@ -184,12 +184,12 @@ namespace _detail
 
 
 
-	template< typename Range, typename IterTrav > // pass dummy int to prefer this overload
-	auto doSizeOrEnd(const Range & r, IterTrav, int)
+	template< typename Range, typename IT > // pass dummy int to prefer this overload
+	auto doSizeOrEnd(Range & r, IT, int)
 	->	decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
 
 	template< typename Range >
-	size_t doSizeOrEnd(const Range & r, std::forward_iterator_tag, long)
+	size_t doSizeOrEnd(Range & r, std::forward_iterator_tag, long)
 	{
 		size_t n = 0;
 		auto it = begin(r);  auto const last = end(r);
@@ -199,11 +199,11 @@ namespace _detail
 	}
 
 	template< typename Range >
-	auto doSizeOrEnd(const Range & r, std::input_iterator_tag, long) { return end(r); }
+	auto doSizeOrEnd(Range & r, std::input_iterator_tag, long) { return end(r); }
 
 	// If r is sized or multi-pass, returns element count as size_t, else end(r)
 	template< typename Range >
-	auto SizeOrEnd(const Range & r)
+	auto CountOrEnd(Range && r)
 	{
 		using It = decltype(begin(r));
 		return _detail::doSizeOrEnd(r, iter_category<It>(), 0);
