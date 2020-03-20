@@ -74,7 +74,7 @@ namespace _detail
 
 
 	template< typename InputRange, typename OutputRange, typename... None >
-	bool CopyFit(const InputRange & src, OutputRange & dest, None...)
+	bool CopyFit(InputRange & src, OutputRange & dest, None...)
 	{
 		auto it = begin(src);  auto const last = end(src);
 		auto di = begin(dest);  auto const dl = end(dest);
@@ -93,7 +93,7 @@ namespace _detail
 	}
 
 	template< typename SizedRange, typename RandomAccessRange >
-	auto CopyFit(const SizedRange & src, RandomAccessRange & dest)
+	auto CopyFit(SizedRange & src, RandomAccessRange & dest)
 	->	decltype( oel::ssize(src), bool() ) // better match if ssize(src) is well-formed (SFINAE)
 	{
 		auto const destSize = oel::ssize(dest);
