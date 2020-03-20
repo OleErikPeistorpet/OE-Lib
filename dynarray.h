@@ -809,7 +809,8 @@ private:
 	};
 };
 
-template< typename T, typename Alloc > template< typename... Args >
+template< typename T, typename Alloc >
+template< typename... Args >
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args) &
 {
@@ -840,7 +841,8 @@ typename dynarray<T, Alloc>::iterator
 	return _makeIter(pPos);
 }
 
-template< typename T, typename Alloc > template< typename ForwardRange >
+template< typename T, typename Alloc >
+template< typename ForwardRange >
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src) &
 {
@@ -890,7 +892,8 @@ typename dynarray<T, Alloc>::iterator
 	return _makeIter(pPos);
 }
 
-template< typename T, typename Alloc > template< typename... Args >
+template< typename T, typename Alloc >
+template< typename... Args >
 inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 {
 	_debugSizeUpdater guard{_m};
@@ -1006,7 +1009,8 @@ void dynarray<T, Alloc>::shrink_to_fit()
 }
 
 
-template< typename T, typename Alloc > template< typename InputRange >
+template< typename T, typename Alloc >
+template< typename InputRange >
 auto dynarray<T, Alloc>::assign(const InputRange & src) -> iterator_t<InputRange const>
 {
 	return _assignImpl(
@@ -1025,7 +1029,8 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 		} );
 }
 
-template< typename T, typename Alloc > template< typename InputRange >
+template< typename T, typename Alloc >
+template< typename InputRange >
 inline auto dynarray<T, Alloc>::append(const InputRange & src) -> iterator_t<InputRange const>
 {
 	return _append(oel::adl_begin(src),
