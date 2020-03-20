@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -26,6 +26,7 @@ template< typename Iterator, typename Sentinel = Iterator >
 class basic_view
 {
 public:
+	basic_view() = default;
 	basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
 
 	Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
@@ -52,10 +53,9 @@ public:
 	using difference_type = iter_difference_t<Iterator>;
 	using size_type       = typename std::make_unsigned<difference_type>::type;
 
-	//! Initialize to empty
-	constexpr counted_view() noexcept                      : _size() {}
+	counted_view() = default;
 	constexpr counted_view(Iterator f, difference_type n);
-	//! Construct from array or container with matching iterator type
+	//! Construct from range (lvalue, that knows its size) with matching iterator type
 	template< typename SizedRange,
 		enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0 // avoid being selected for copy
 	>
