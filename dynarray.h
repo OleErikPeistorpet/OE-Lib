@@ -580,11 +580,11 @@ private:
 		{	newEnd = _m.data + count;
 			if (newEnd < _m.end)
 			{	// downsizing, assign new and destroy rest
-				src = copy(src, _m.data, newEnd);
+				src = copy(std::move(src), _m.data, newEnd);
 				erase_to_end(_makeIter(newEnd));
 			}
 			else // assign to old elements as far as we can
-			{	src = copy(src, _m.data, _m.end);
+			{	src = copy(std::move(src), _m.data, _m.end);
 			}
 		}
 		while (_m.end < newEnd)
@@ -628,7 +628,7 @@ private:
 		_appendImpl(
 			[&src](T * dest, size_type n_, decltype(_m) & alloc)
 			{
-				src = _detail::UninitCopy(src, dest, dest + n_, alloc);
+				src = _detail::UninitCopy(std::move(src), dest, dest + n_, alloc);
 			},
 			n );
 		return src;
@@ -694,7 +694,7 @@ private:
 
 
 	template< typename InsertHelper, typename... Args >
-	T * _insertRealloc(T *const pos, size_type const nAfterPos, InsertHelper const helper, Args &&... args)
+	T * _insertRealloc(T *const pos, size_type const nAfterPos, InsertHelper helper, Args &&... args)
 	{
 	#if defined _MSC_VER and _MSC_VER < 1927
 		(void) helper; // C4100	unreferenced formal parameter
@@ -728,17 +728,17 @@ private:
 	struct _insertRHelper
 	{
 		InputIter first;
-		size_type count;
+		size_type const count;
 
 		_span allocate(dynarray & self) const
 		{
 			return self._allocateAdd(count, self.size());
 		}
 
-		T * construct(decltype(_m) & alloc, T *const newPos) const
+		T * construct(decltype(_m) & alloc, T *const newPos)
 		{
 			T *const dLast = newPos + count;
-			_detail::UninitCopy(first, newPos, dLast, alloc);
+			_detail::UninitCopy(std::move(first), newPos, dLast, alloc);
 			return dLast;
 		}
 	};
@@ -831,7 +831,7 @@ typename dynarray<T, Alloc>::iterator
 	else
 	{	pPos = _insertRealloc(
 			pPos, nAfterPos,
-			_insertRHelper<decltype(first)>{first, count} );
+			_insertRHelper<decltype(first)>{std::move(first), count} );
 	}
 	return _makeIter(pPos);
 }
