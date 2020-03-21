@@ -720,9 +720,16 @@ TEST_F(dynarrayTest, overAligned)
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 
 OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(special.reserve(special.max_size()), std::bad_alloc); )
+	try
+	{	special.reserve(special.max_size());
+		EXPECT_FALSE(true);
+	}
+	catch(const std::bad_alloc &) {}
+	catch(const std::length_error &) {}
+)
 OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(special.reserve(special.max_size() - 1), std::bad_alloc); )
+	EXPECT_ANY_THROW( special.reserve(special.max_size() - 1) );
+)
 }
 
 #if defined _CPPUNWIND or defined __EXCEPTIONS

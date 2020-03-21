@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "util.h"
+#include "auxi/algo_detail.h"
 
 #if __cpp_aligned_new < 201606
 #include <cstdint> // for uintptr_t
@@ -106,14 +106,6 @@ namespace _detail
 		::operator delete(p, std::align_val_t{aligned});
 	}
 #else
-	struct BadAlloc
-	{
-		[[noreturn]] static void Throw()
-		{
-			OEL_THROW(std::bad_alloc{}, "Too large size in oel::allocator");
-		}
-	};
-
 	template< size_t Align >
 	void * AlignAndStore(void *const orig) noexcept
 	{
@@ -133,7 +125,7 @@ namespace _detail
 			void * p = ::operator new(size + Align);
 			return AlignAndStore<Align>(p);
 		}
-		BadAlloc::Throw();
+		Throw::LengthError("Too large size in oel::allocator");
 	}
 
 	inline void OpDelete(void * p, size_t, false_type)
