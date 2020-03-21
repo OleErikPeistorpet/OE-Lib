@@ -114,6 +114,27 @@ TEST(rangeTest, viewTransform)
 	EXPECT_EQ(3, src[1]);
 }
 
+TEST(rangeTest, viewTransformMutableFunction)
+{
+	struct iota
+	{
+		int i;
+
+		int operator()(int)
+		{
+			return i++;
+		}
+	};
+
+	int dummy[3];
+	oel::dynarray<int> test(oel::reserve, 3);
+	test.resize(1);
+	test.assign( view::transform(dummy, iota{1}) );
+	EXPECT_EQ(1, test[0]);
+	EXPECT_EQ(2, test[1]);
+	EXPECT_EQ(3, test[2]);
+}
+
 TEST(rangeTest, viewTransformAsOutput)
 {
 	using Pair = std::pair<int, int>;
