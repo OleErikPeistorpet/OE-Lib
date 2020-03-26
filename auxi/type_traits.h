@@ -48,7 +48,11 @@ struct all_   : std::is_same< bool_pack_t<true, BoolConstants::value...>,
                               bool_pack_t<BoolConstants::value..., true> > {};
 
 
+using std::size_t;
+
+
 using std::begin;  using std::end;
+
 
 //! Type returned by begin function (found by ADL)
 template< typename Range >
@@ -90,10 +94,6 @@ using common_type = typename std::common_type<Ts...>::type;
 
 
 
-using std::size_t;
-
-
-
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -101,7 +101,7 @@ using std::size_t;
 namespace _detail
 {
 	template< typename Alloc, typename Arg >
-	decltype( std::declval<Alloc &>().construct( (typename Alloc::value_type *)0, std::declval<Arg>() ),
+	decltype( std::declval<Alloc &>().construct( std::declval<typename Alloc::value_type *>(), std::declval<Arg>() ),
 		true_type() )
 		HasConstructTest(int);
 
