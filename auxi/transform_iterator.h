@@ -14,7 +14,7 @@ namespace oel
 namespace _detail
 {
 	template< typename I, typename F,
-		bool = std::is_empty<F>::value >
+	          bool = std::is_empty<F>::value >
 	struct TightPair
 	{
 		I inner;
@@ -23,34 +23,32 @@ namespace _detail
 		OEL_ALWAYS_INLINE const F & Func() const noexcept { return _fun; }
 	};
 
-	template<typename I, typename F>
-	struct TightPair<I, F, true>
-	 :	F
+	template< typename Iterator_MSVC_needs_unique_name, typename Empty_function_object_MSVC_name >
+	struct TightPair< Iterator_MSVC_needs_unique_name, Empty_function_object_MSVC_name, true >
+	 :	Empty_function_object_MSVC_name
 	{
-		I inner;
+		Iterator_MSVC_needs_unique_name inner;
 
-		TightPair(I iter, F func)
-		 :	F(func), inner(iter) {
+		TightPair(Iterator_MSVC_needs_unique_name it, Empty_function_object_MSVC_name f)
+		 :	Empty_function_object_MSVC_name(f), inner(it) {
 		}
 
-		OEL_ALWAYS_INLINE const F & Func() const noexcept { return *this; }
+		OEL_ALWAYS_INLINE const Empty_function_object_MSVC_name & Func() const noexcept { return *this; }
 	};
 }
 
 
 //! Similar to boost::transform_iterator
-template<typename UnaryFunc, typename Iterator>
+template< typename UnaryFunc, typename Iterator >
 class transform_iterator
 {
 	_detail::TightPair<Iterator, UnaryFunc> _m;
 
-	using _baseCategory = typename std::iterator_traits<Iterator>::iterator_category;
-
 public:
 	using iterator_category = typename std::conditional
-	<	std::is_base_of< std::forward_iterator_tag, _baseCategory >::value,
+	<	std::is_base_of< std::forward_iterator_tag, iter_category<Iterator> >::value,
 		std::forward_iterator_tag,
-		_baseCategory
+		iter_category<Iterator>
 	>::type;
 
 	using difference_type = iter_difference_t<Iterator>;

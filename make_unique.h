@@ -22,17 +22,22 @@ namespace oel
 *
 * (Works for aggregates.) http://open-std.org/JTC1/SC22/WG21/docs/papers/2015/n4462.html  */
 template< typename T, typename... Args,
-          typename = enable_if<!std::is_array<T>::value> >
+          typename = enable_if< !std::is_array<T>::value >
+>
 std::unique_ptr<T> make_unique(Args &&... args);
 
 //! Equivalent to std::make_unique (array version).
-template< typename T, typename = enable_if<std::is_array<T>::value> >
+template< typename T,
+          typename = enable_if< std::is_array<T>::value >
+>
 std::unique_ptr<T> make_unique(size_t arraySize);
 /**
 * @brief Array is default-initialized, can be significantly faster if T is non-class or has trivial default constructor
 *
 * Non-class elements get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-template< typename T, typename = enable_if<std::is_array<T>::value> >
+template< typename T,
+          typename = enable_if< std::is_array<T>::value >
+>
 std::unique_ptr<T> make_unique_default_init(size_t arraySize);
 
 
@@ -44,13 +49,13 @@ std::unique_ptr<T> make_unique_default_init(size_t arraySize);
 
 namespace _detail
 {
-	template<typename T, typename... Args>
+	template< typename T, typename... Args >
 	inline T * New(std::true_type, Args &&... args)
 	{
 		return new T(static_cast<Args &&>(args)...);
 	}
 
-	template<typename T, typename... Args>
+	template< typename T, typename... Args >
 	inline T * New(std::false_type, Args &&... args)
 	{
 		return new T{static_cast<Args &&>(args)...};
@@ -59,7 +64,7 @@ namespace _detail
 
 } // namespace oel
 
-template<typename T, typename... Args, typename>
+template< typename T, typename... Args, typename >
 inline std::unique_ptr<T>  oel::make_unique(Args &&... args)
 {
 	T * p = _detail::New<T>(std::is_constructible<T, Args...>(), static_cast<Args &&>(args)...);
@@ -71,13 +76,13 @@ inline std::unique_ptr<T>  oel::make_unique(Args &&... args)
 	using Elem = typename std::remove_extent<T>::type;  \
 	return std::unique_ptr<T>(newExpr)
 
-template<typename T, typename>
+template< typename T, typename >
 inline std::unique_ptr<T>  oel::make_unique(size_t size)
 {
 	OEL_MAKE_UNIQUE_A( new Elem[size]() ); // value-initialize
 }
 
-template<typename T, typename>
+template< typename T, typename >
 inline std::unique_ptr<T>  oel::make_unique_default_init(size_t size)
 {
 	OEL_MAKE_UNIQUE_A(new Elem[size]);

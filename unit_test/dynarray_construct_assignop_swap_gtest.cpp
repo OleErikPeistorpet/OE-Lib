@@ -8,7 +8,7 @@
 
 #include <array>
 #include <string>
-
+#include <forward_list>
 
 int MyCounter::nConstructions;
 int MyCounter::nDestruct;
@@ -203,7 +203,7 @@ TEST_F(dynarrayConstructTest, constructNFillTrivial)
 	testFillTrivial(true);
 	testFillTrivial<char>(97);
 	testFillTrivial<int>(97);
-#if __cpp_lib_byte or _HAS_STD_BYTE or (OEL_GCC_VERSION >= 701 and __cplusplus > 201500)
+#if __cpp_lib_byte or _HAS_STD_BYTE or (__GNUC__ >= 7 and __cplusplus > 201500)
 	testFillTrivial(std::byte{97});
 #endif
 }
@@ -292,15 +292,30 @@ TEST_F(dynarrayConstructTest, constructRangeNoCopyAssign)
 	EXPECT_TRUE(test.size() == 2);
 }
 
+TEST_F(dynarrayConstructTest, constructForwardRangeNoSize)
+{
+	for (size_t const n : {0, 1, 59})
+	{
+		std::forward_list<int> li(n, -6);
+		dynarray<int> d(li);
+		EXPECT_EQ(n, d.size());
+		if (0 != n)
+		{
+			EXPECT_EQ(-6, d.front());
+			EXPECT_EQ(-6, d.back());
+		}
+	}
+}
+
 
 template<typename Alloc>
 void testMoveConstruct(Alloc a0, Alloc a1)
 {
-	for (auto const nl : {0, 1, 80})
+	for (auto const nr : {0, 2})
 	{
 		dynarray<MoveOnly, Alloc> right(a0);
 
-		for (int i = 0; i < 9; ++i)
+		for (int i = 0; i < nr; ++i)
 			right.emplace_back(0.5);
 
 		auto const nAllocBefore = AllocCounter::nAllocations;
@@ -312,14 +327,11 @@ void testMoveConstruct(Alloc a0, Alloc a1)
 		EXPECT_TRUE(left.get_allocator() == a1);
 
 		EXPECT_EQ(nAllocBefore, AllocCounter::nAllocations);
-		EXPECT_EQ(9, MoveOnly::nConstructions - MoveOnly::nDestruct);
+		EXPECT_EQ(nr, MoveOnly::nConstructions - MoveOnly::nDestruct);
 
-		if (0 == nl)
-		{
-			ASSERT_TRUE(right.empty());
-			EXPECT_EQ(0U, right.capacity());
-		}
-		ASSERT_EQ(9U, left.size());
+		EXPECT_TRUE(right.empty());
+		EXPECT_EQ(0U, right.capacity());
+		ASSERT_EQ(nr, ssize(left));
 		EXPECT_EQ(ptr, left.data());
 	}
 	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);

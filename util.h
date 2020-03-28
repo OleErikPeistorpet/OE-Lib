@@ -19,24 +19,24 @@ namespace oel
 {
 
 //! Passed val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
-template<typename T>  OEL_ALWAYS_INLINE
+template< typename T >  OEL_ALWAYS_INLINE
 constexpr typename std::make_signed<T>::type
 	as_signed(T val) noexcept                  { return (typename std::make_signed<T>::type) val; }
 //! Passed val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
-template<typename T>  OEL_ALWAYS_INLINE
+template< typename T >  OEL_ALWAYS_INLINE
 constexpr typename std::make_unsigned<T>::type
 	as_unsigned(T val) noexcept                { return (typename std::make_unsigned<T>::type) val; }
 
 
 //! Returns r.size() as signed type (same as std::ssize in C++20)
-template<typename SizedRange>  OEL_ALWAYS_INLINE
+template< typename SizedRange >  OEL_ALWAYS_INLINE
 constexpr auto ssize(const SizedRange & r)
 ->	common_type<std::ptrdiff_t, decltype( as_signed(r.size()) )>
 	{
 		return static_cast< common_type<std::ptrdiff_t, decltype( as_signed(r.size()) )> >(r.size());
 	}
 //! Returns number of elements in array as signed type
-template<typename T, std::ptrdiff_t Size>  OEL_ALWAYS_INLINE
+template< typename T, std::ptrdiff_t Size >  OEL_ALWAYS_INLINE
 constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
@@ -45,7 +45,7 @@ constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 * Negative index should give false result. However, this is not always ensured if the number of
 * elements in r is greater than half the maximum value of its unsigned type and that type holds
 * more bits than `int`. This should not be a concern in practice. */
-template<typename Integral, typename SizedRange>
+template< typename Integral, typename SizedRange >
 constexpr bool index_valid(const SizedRange & r, Integral index);
 
 
@@ -55,14 +55,14 @@ constexpr bool index_valid(const SizedRange & r, Integral index);
 * Example, sort pointers by pointed-to values, not addresses:
 @code
 oel::dynarray< std::unique_ptr<double> > d;
-std::sort(d.begin(), d.end(), deref_args<std::less<>>{}); // std::less<double> before C++14
+std::sort(d.begin(), d.end(), deref_args< std::less<> >{}); // std::less<double> before C++14
 @endcode  */
-template<typename Func>
+template< typename Func >
 struct deref_args
 {
 	Func wrapped;
 
-	template<typename... Ts>
+	template< typename... Ts >
 	auto operator()(Ts &&... args) const -> decltype( wrapped(*std::forward<Ts>(args)...) )
 	                                         { return wrapped(*std::forward<Ts>(args)...); }
 
@@ -97,11 +97,8 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 
 
 // Cannot do ADL `begin(r)` in implementation of class with begin member
-template<typename Range>  OEL_ALWAYS_INLINE inline
-auto adl_begin(Range & r) -> decltype(begin(r)) { return begin(r); }
-
-template<typename Range>  OEL_ALWAYS_INLINE inline
-auto adl_end(Range & r) -> decltype(end(r)) { return end(r); }
+template< typename Range >  OEL_ALWAYS_INLINE
+constexpr auto adl_begin(Range & r) -> decltype(begin(r)) { return begin(r); }
 
 
 namespace _detail
@@ -114,13 +111,13 @@ namespace _detail
 		T & Get() noexcept { return _ref; }
 	};
 
-	template<typename T>
-	struct RefOptimizeEmpty<T, true>
-	 :	protected T
+	template< typename Type_needs_unique_name_for_MSVC >
+	struct RefOptimizeEmpty< Type_needs_unique_name_for_MSVC, true >
+	 :	protected Type_needs_unique_name_for_MSVC
 	{
-		RefOptimizeEmpty(T & ob) : T(ob) {}
+		RefOptimizeEmpty(Type_needs_unique_name_for_MSVC & o) : Type_needs_unique_name_for_MSVC(o) {}
 
-		T & Get() noexcept { return *this; }
+		Type_needs_unique_name_for_MSVC & Get() noexcept { return *this; }
 	};
 
 
@@ -132,13 +129,13 @@ namespace _detail
 		unsigned long long;
 	#endif
 
-	template<typename Unsigned>
+	template< typename Unsigned >
 	constexpr bool IndexValid(Unsigned size, BigUint i, false_type)
 	{
 		return i < size;
 	}
 
-	template<typename Unsigned, typename Integral>
+	template< typename Unsigned, typename Integral >
 	constexpr bool IndexValid(Unsigned size, Integral i, true_type)
 	{	// casting to uint64_t when both types are smaller and using just 'i < size' was found to be slower
 		return (0 <= i) & (as_unsigned(i) < size);
@@ -147,7 +144,7 @@ namespace _detail
 
 } // namespace oel
 
-template<typename Integral, typename SizedRange>
+template< typename Integral, typename SizedRange >
 constexpr bool oel::index_valid(const SizedRange & r, Integral index)
 {
 	using T = decltype(oel::ssize(r));

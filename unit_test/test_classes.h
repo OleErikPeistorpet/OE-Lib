@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "throw_from_assert.h"
 #include "align_allocator.h"
 
 #include "gtest/gtest.h"

@@ -2,8 +2,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "throw_from_assert.h"
-
 #include "test_classes.h"
+
 #include "range_view.h"
 #include "dynarray.h"
 
@@ -317,6 +317,21 @@ TEST_F(dynarrayTest, append)
 	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
 }
 
+#if defined _CPPUNWIND or defined __EXCEPTIONS
+TEST_F(dynarrayTest, appendSizeOverflow)
+{
+	dynarray<char> c(1);
+	try
+	{	c.append((size_t)-1, '\0');
+		EXPECT_TRUE(false);
+	}
+	catch (std::bad_alloc &)
+	{}
+	catch (std::length_error &)
+	{}
+}
+#endif
+
 #if !defined __GLIBCXX__ or defined __EXCEPTIONS
 TEST_F(dynarrayTest, appendNonForwardRange)
 {
@@ -325,13 +340,13 @@ TEST_F(dynarrayTest, appendNonForwardRange)
 
 		dynarrayTrackingAlloc<int> dest;
 
-		std::istream_iterator<int> it(ss);
+		std::istream_iterator<int> it(ss), end{};
 
 		it = dest.append(view::counted(it, 2));
 
-		dest.append(view::counted(it, 2));
+		dest.append(view::subrange(it, end));
 
-		for (int i = 0; i < ssize(dest); ++i)
+		for (int i = 0; i < 5; ++i)
 			EXPECT_EQ(i + 1, dest[i]);
 	}
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
@@ -642,9 +657,9 @@ TEST_F(dynarrayTest, eraseToEnd)
 	EXPECT_EQ(4U, li.size());
 }
 
-TEST_F(dynarrayTest, eraseUnstable)
-{
 #if OEL_MEM_BOUND_DEBUG_LVL
+TEST_F(dynarrayTest, erasePrecondCheck)
+{
 	dynarray<int> di{-2};
 
 	OEL_WHEN_EXCEPTIONS_ON(
@@ -652,9 +667,13 @@ TEST_F(dynarrayTest, eraseUnstable)
 	)
 	OEL_WHEN_EXCEPTIONS_ON(
 		auto copy = di;
-		EXPECT_THROW(copy.erase_unstable(di.begin()), std::logic_error);
+		EXPECT_THROW(copy.erase(di.begin()), std::logic_error);
 	)
+}
 #endif
+
+TEST_F(dynarrayTest, eraseUnstable)
+{
 	{
 		dynarray<MoveOnly> d;
 		d.emplace_back(1);
@@ -677,16 +696,17 @@ TEST_F(dynarrayTest, eraseUnstable)
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
-#if __cpp_aligned_new >= 201606 or !defined(OEL_NO_BOOST)
 TEST_F(dynarrayTest, overAligned)
 {
-	static unsigned int const testAlignment = 32;
+	static unsigned int const testAlignment = 64;
 	struct Type
 	{	oel::aligned_storage_t<testAlignment, testAlignment> a;
 	};
-	dynarray<Type> special(oel::reserve, 3);
+	dynarray<Type> special(oel::reserve, 1);
 
 	special.insert(special.begin(), Type());
+	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(special.data()) % testAlignment);
+
 	special.emplace(special.begin());
 	special.emplace(special.begin() + 1);
 	EXPECT_EQ(3U, special.size());
@@ -701,8 +721,9 @@ TEST_F(dynarrayTest, overAligned)
 
 OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_THROW(special.reserve(special.max_size()), std::bad_alloc); )
+OEL_WHEN_EXCEPTIONS_ON(
+	EXPECT_THROW(special.reserve(special.max_size() - 1), std::bad_alloc); )
 }
-#endif
 
 #if defined _CPPUNWIND or defined __EXCEPTIONS
 TEST_F(dynarrayTest, greaterThanMax)

@@ -1,8 +1,8 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "dynarray.h"
 #include "test_classes.h"
+#include "dynarray.h"
 
 #include "gtest/gtest.h"
 #include <list>
@@ -12,7 +12,9 @@
 
 namespace
 {
+	static_assert(oel::is_trivially_relocatable< std::pair<int *, std::unique_ptr<int>> >(), "?");
 	static_assert(oel::is_trivially_relocatable< std::tuple<std::unique_ptr<double>> >(), "?");
+	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value, "?");
 
 	struct NonTrivialAssign
 	{
@@ -25,14 +27,11 @@ namespace
 	static_assert( !oel::is_trivially_copyable<NonTrivialAssign>::value, "?" );
 	static_assert( !oel::is_trivially_copyable<NonTrivialDestruct>::value, "?" );
 
-	static_assert(oel::is_trivially_copyable< std::pair<long *, std::array<int, 6>> >(), "?");
-	static_assert(oel::is_trivially_copyable< std::tuple<> >::value, "?");
-	static_assert( !oel::is_trivially_copyable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
-
-	static_assert(alignof(oel::aligned_storage_t<32, 16>) == 16, "?");
+	static_assert( !oel::is_trivially_relocatable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
 
 	struct alignas(32) Foo { int a[24]; };
 	static_assert(alignof(oel::aligned_union_t<Foo>) == 32, "?");
+	static_assert(sizeof(oel::aligned_union_t<Foo>) == sizeof(Foo), "?");
 
 	static_assert(!oel::can_memmove_with< int *, float * >::value, "?");
 	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >(), "?");
@@ -154,6 +153,8 @@ struct PointerLike
 
 	T * p;
 
+	explicit operator T *() const { return p; }
+
 	T * operator->() const { return p; }
 	T & operator *() const { return *p; }
 };
@@ -192,5 +193,6 @@ TEST(utilTest, toPointerContiguous)
 	};
 	static_assert(std::is_same<PointerLike<int>, Iter::pointer>{}, "?");
 	auto result = to_pointer_contiguous(it);
+	static_assert(std::is_same<int *, decltype(result)>(), "?");
 	EXPECT_EQ(addr, result);
 }

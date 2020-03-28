@@ -1,8 +1,12 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "dynarray.h"
+#ifdef _MSC_VER
+#define _SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING
+#endif
+
 #include "test_classes.h"
+#include "dynarray.h"
 #include "range_view.h"
 
 #include "gtest/gtest.h"
@@ -188,7 +192,7 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 
 	TEST(dynarrayOtherTest, stdVariant)
 	{
-		using Inner = std::conditional_t< oel::is_trivially_relocatable<std::string>::value, std::string, dynarray<char> >;
+		using Inner = std::conditional_t< oel::is_trivially_relocatable<std::string>{}, std::string, dynarray<char> >;
 		using V = std::variant<std::unique_ptr<double>, Inner>;
 		static_assert(oel::is_trivially_relocatable<V>());
 

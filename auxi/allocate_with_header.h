@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h"
+#include "contiguous_iterator_to_ptr.h"
 
 #include <cstdint> // for uintptr_t
 
@@ -23,16 +23,18 @@ namespace _detail
 	constexpr DebugAllocationHeader headerNoAllocation{0, 0};
 
 	#define OEL_DEBUG_HEADER_OF(ptr)  \
-		(reinterpret_cast<_detail::DebugAllocationHeader *>(_detail::ToAddress(ptr)) - 1)
+		(reinterpret_cast<DebugAllocationHeader *>(_detail::ToAddress(ptr)) - 1)
+	#define OEL_DEBUG_HEADER_OF_CONST(ptr)  \
+		(reinterpret_cast<const DebugAllocationHeader *>(_detail::ToAddress(ptr)) - 1)
 
-	template<typename T, typename Ptr>
-	inline bool HasValidIndex(Ptr arrayElem, const DebugAllocationHeader & h)
+	template< typename T, typename ConstPtr >
+	inline bool HasValidIndex(ConstPtr arrayElem, const DebugAllocationHeader & h)
 	{
-		size_t index = arrayElem - reinterpret_cast<const T *>(&h + 1);
+		size_t index = arrayElem - ConstPtr{reinterpret_cast<const T *>(&h + 1)};
 		return index < h.nObjects;
 	}
 
-	template<typename Alloc, typename Ptr>
+	template< typename Alloc, typename Ptr >
 	struct DebugAllocateWrapper
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
@@ -50,7 +52,7 @@ namespace _detail
 			p += sizeForHeader;
 
 			auto const h = OEL_DEBUG_HEADER_OF(p);
-			constexpr auto maxMinBits = ~((std::uintptr_t)-1 >> 1) | 1U;
+			constexpr auto maxMinBits = ~((std::uintptr_t)-1 >> 1) | 1u;
 			new(h) DebugAllocationHeader{reinterpret_cast<std::uintptr_t>(&a) | maxMinBits, 0};
 
 			return p;
@@ -59,7 +61,7 @@ namespace _detail
 		#endif
 		}
 
-		static void Deallocate(Alloc & a, Ptr p, size_t n) noexcept
+		static void Deallocate(Alloc & a, Ptr p, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			OEL_DEBUG_HEADER_OF(p)->id = 0;
@@ -70,7 +72,7 @@ namespace _detail
 		}
 	};
 
-	template<typename ContainerBase>
+	template< typename ContainerBase >
 	struct DebugSizeInHeaderUpdater
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL == 0
@@ -91,12 +93,12 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename Pointer>
+	template< typename Ptr >
 	struct DynarrBase
 	{
-		Pointer data;
-		size_t  size;
-		size_t  capacity;
+		Ptr    data;
+		size_t size;
+		size_t capacity;
 	};
 }
 

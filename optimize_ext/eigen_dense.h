@@ -12,16 +12,16 @@
 namespace oel
 {
 
-template<typename S, int R, int C, int O, int MR, int MC>
+template< typename S, int R, int C, int O, int MR, int MC >
 struct is_trivially_relocatable< Eigen::Matrix<S, R, C, O, MR, MC> > : true_type {};
 
-template<typename S, int O>
+template< typename S, int O >
 struct is_trivially_relocatable< Eigen::Quaternion<S, O> > : true_type {};
 
-template<typename S, int D, int M, int O>
+template< typename S, int D, int M, int O >
 struct is_trivially_relocatable< Eigen::Transform<S, D, M, O> > : true_type {};
 
-template<typename S>
+template< typename S >
 struct is_trivially_relocatable< Eigen::AngleAxis<S> > : true_type {};
 
 }

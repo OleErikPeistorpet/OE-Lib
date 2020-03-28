@@ -16,13 +16,6 @@
 * Notably provides a forward declaration of dynarray
 */
 
-#ifdef __has_include
-	#if !__has_include(<boost/config.hpp>)
-	#define OEL_NO_BOOST  1
-	#endif
-#endif
-
-
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
 /** @brief 0: no iterator and precondition checks. 1: most checks. 2: all checks.
 *
@@ -62,7 +55,7 @@
 namespace oel
 {
 
-template<typename T> struct allocator;  // forward declare
+template< typename T > struct allocator;  // forward declare
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
 inline namespace debug
@@ -72,7 +65,7 @@ inline namespace debug
 {
 #endif
 
-template<typename T, typename Alloc = allocator<T> >
+template< typename T, typename Alloc = allocator<T> >
 class dynarray;
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
@@ -81,7 +74,7 @@ class dynarray;
 
 
 
-template<bool Val>
+template< bool Val >
 using bool_constant = std::integral_constant<bool, Val>;
 
 using std::true_type; // equals bool_constant<true>
@@ -91,11 +84,11 @@ using std::false_type;
 /**
 * @brief Function declaration to specify that T objects can transparently be relocated in memory.
 *
-* This means that T cannot have a member that is a pointer to any of its non-static members
-* (including inherited), and must not need to update external state during move construction.
+* This means that T cannot have a member that is a pointer to any of its non-static members, and
+* must not need to update external state during move construction. (The same recursively for sub-objects)
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
+* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1144r4.html
 *
 * Already true for trivially copyable types. For others, declare a function in the namespace of the type like this:
 @code
@@ -115,7 +108,7 @@ class Outer {
 	friend oel::true_type specify_trivial_relocate(Inner &&);
 };
 @endcode  */
-template<typename T>
+template< typename T >
 bool_constant<
 	#if defined __GLIBCXX__ and __GNUC__ == 4
 		__has_trivial_copy(T) and __has_trivial_destructor(T)
@@ -127,7 +120,7 @@ bool_constant<
 /** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
 *
 * Many external classes are declared trivially relocatable, see `optimize_ext` folder. */
-template<typename T>
+template< typename T >
 struct is_trivially_relocatable;
 
 } // namespace oel
@@ -151,12 +144,8 @@ struct is_trivially_relocatable;
 
 
 #ifdef __GNUC__
-	#define OEL_GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
-
 	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
 #else
-	#define OEL_GCC_VERSION  0
-
 	#define OEL_ALWAYS_INLINE
 #endif
 

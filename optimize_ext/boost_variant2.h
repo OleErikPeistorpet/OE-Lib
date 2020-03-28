@@ -5,18 +5,18 @@
 
 
 /** @file
-* @brief Must be included manually in user code
+* @brief Variant2 was introduced in Boost 1.71
 */
 
 #include "../auxi/type_traits.h"
 
-#include <variant>
+#include <boost/variant2/variant.hpp>
 
 namespace oel
 {
 
 template< typename... Ts >
-struct is_trivially_relocatable< std::variant<Ts...> >
+struct is_trivially_relocatable< boost::variant2::variant<Ts...> >
  :	all_< is_trivially_relocatable<Ts>... > {};
 
 }
