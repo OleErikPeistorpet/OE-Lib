@@ -449,7 +449,7 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		_m.size = _m.capacity;
-		_detail::UninitCopy<Alloc>(src, data(), data() + _m.size, _m);
+		_detail::UninitCopy<Alloc>(src, _m.size, data(), _m);
 	}
 
 
@@ -524,11 +524,10 @@ private:
 			_growTo(_calcCap(newSize));
 
 		T *const oldEnd = data() + _m.size;
-		T *const newEnd = data() + newSize;
 		if (_m.size < newSize)
-			initAdded(oldEnd, newEnd, _m);
+			initAdded(oldEnd, newSize - _m.size, _m);
 		else
-			_detail::Destroy(newEnd, oldEnd);
+			_detail::Destroy(data() + newSize, oldEnd);
 
 		_m.size = newSize;
 	}
@@ -717,7 +716,7 @@ private:
 		_appendImpl( n,
 			[&src](T * dest, size_type n_, Alloc & a)
 			{
-				src = _detail::UninitCopy(src, dest, dest + n_, a);
+				src = _detail::UninitCopy(src, n_, dest, a);
 			} );
 		return src;
 	}
@@ -787,12 +786,12 @@ private:
 
 		size_type const nBefore = pos - data();
 		T *const newPos = newBuf.data + nBefore;
-		T *const afterAdded = makeNew(newPos, nToAdd, _m, static_cast<Args &&>(args)...);
+		makeNew(newPos, nToAdd, _m, static_cast<Args &&>(args)...);
 		// Exception free from here
 		if (_m.data)
 		{
 			std::memcpy(_detail::ToAddress(newBuf.data), data(), sizeof(T) * nBefore); // relocate prefix
-			std::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);   // relocate suffix
+			std::memcpy(newPos + nToAdd, pos, sizeof(T) * nAfterPos);   // relocate suffix
 		}
 		newBuf.Swap(_m);
 
@@ -802,10 +801,9 @@ private:
 	struct _emplaceMakeElem
 	{
 		template<typename... Args>
-		T * operator()(T *const newPos, size_type, Alloc & a, Args &&... args) const
+		void operator()(T *const newPos, size_type, Alloc & a, Args &&... args) const
 		{
 			_construct{}(a, newPos, static_cast<Args &&>(args)...);
-			return newPos + 1;
 		}
 	};
 };
@@ -836,7 +834,7 @@ typename dynarray<T, Alloc>::iterator
 	}
 	else
 	{	pPos = _insertRealloc<&dynarray::_calcCapAddOne>
-			(pPos, nAfterPos, {}, _emplaceMakeElem{}, static_cast<Args &&>(args)...);
+			(pPos, nAfterPos, 1, _emplaceMakeElem{}, static_cast<Args &&>(args)...);
 	}
 	++_m.size;
 
@@ -864,7 +862,7 @@ typename dynarray<T, Alloc>::iterator
 		// Construct new
 		OEL_CONST_COND if (can_memmove_with<T *, decltype(first)>::value)
 		{
-			_detail::UninitCopy<Alloc>(first, pPos, dLast, _m);
+			_detail::UninitCopy<Alloc>(first, count, pPos, _m);
 		}
 		else
 		{	T * dest = pPos;
@@ -889,9 +887,7 @@ typename dynarray<T, Alloc>::iterator
 			(	pPos, nAfterPos, count,
 				[first](T * newPos, size_type count_, Alloc & a)
 				{
-					T *const dLast = newPos + count_;
-					_detail::UninitCopy(first, newPos, dLast, a);
-					return dLast;
+					_detail::UninitCopy(first, count_, newPos, a);
 				}
 			);
 	}
@@ -956,7 +952,7 @@ dynarray<T, Alloc>::dynarray(size_type n, default_init_t, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.size = _m.capacity;
-	_detail::UninitDefaultConstruct<Alloc>(data(), data() + _m.size, _m);
+	_detail::UninitDefaultConstruct<Alloc>(data(), _m.size, _m);
 }
 
 template<typename T, typename Alloc>
@@ -966,7 +962,7 @@ dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.size = _m.capacity;
-	_uninitFill{}(data(), data() + _m.size, _m);
+	_uninitFill{}(data(), _m.size, _m);
 }
 
 template<typename T, typename Alloc>
@@ -976,7 +972,7 @@ dynarray<T, Alloc>::dynarray(size_type n, const T & val, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.size = _m.capacity;
-	_uninitFill{}(data(), data() + _m.size, _m, val);
+	_uninitFill{}(data(), _m.size, _m, val);
 }
 
 template<typename T, typename Alloc>
@@ -1031,7 +1027,7 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 	_appendImpl( n,
 		[&val](T * dest, size_type n_, Alloc & a)
 		{
-			_uninitFill{}(dest, dest + n_, a, val);
+			_uninitFill{}(dest, n_, a, val);
 		} );
 }
 

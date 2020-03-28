@@ -104,18 +104,19 @@ namespace _detail
 
 	template<typename Alloc, typename ContiguousIter, typename T,
 	         enable_if< can_memmove_with<T *, ContiguousIter>::value > = 0>
-	inline void UninitCopy(ContiguousIter src, T * dFirst, T * dLast, Alloc &)
+	inline void UninitCopy(ContiguousIter src, size_t count, T * dest, Alloc &)
 	{
-		_detail::MemcpyCheck(src, dLast - dFirst, dFirst);
+		_detail::MemcpyCheck(src, count, dest);
 	}
 
 	template<typename Alloc, typename InputIter, typename T,
 	         enable_if< !can_memmove_with<T *, InputIter>::value > = 0>
-	InputIter UninitCopy(InputIter src, T * dest, T *const dLast, Alloc & alloc)
+	InputIter UninitCopy(InputIter src, size_t const count, T * dest, Alloc & alloc)
 	{
 		T *const dFirst = dest;
 		OEL_TRY_
 		{
+			const T * dLast = dest + count;
 			while (dest != dLast)
 			{
 				Construct<Alloc, T>{}(alloc, dest, *src);
@@ -140,12 +141,12 @@ namespace _detail
 
 		template<typename T, typename... Args,
 		         enable_if< !IsByte<T>::value > = 0>
-		void operator()(T * first, T *const last, Alloc & alloc, const Args &... args) const
+		void operator()(T * first, size_t const count, Alloc & alloc, const Args &... args) const
 		{
 			T *const init = first;
 			OEL_TRY_
 			{
-				for (; first != last; ++first)
+				for (const T * last = first + count; first != last; ++first)
 					Construct<Alloc, T>{}(alloc, first, args...);
 			}
 			OEL_CATCH_ALL
@@ -156,23 +157,23 @@ namespace _detail
 		}
 
 		template<typename T, enable_if< IsByte<T>::value > = 0>
-		void operator()(T * first, T * last, Alloc &, T val) const
+		void operator()(T * first, size_t count, Alloc &, T val) const
 		{
-			std::memset(first, static_cast<int>(val), last - first);
+			std::memset(first, static_cast<int>(val), count);
 		}
 
 		template<typename T, enable_if< std::is_trivial<T>::value > = 0>
-		void operator()(T * first, T * last, Alloc &) const
+		void operator()(T * first, size_t count, Alloc &) const
 		{
-			std::memset(first, 0, sizeof(T) * (last - first));
+			std::memset(first, 0, sizeof(T) * count);
 		}
 	};
 
 	template<typename Alloc, typename T>
-	inline void UninitDefaultConstruct(T *const first, T *const last, Alloc & a)
+	inline void UninitDefaultConstruct(T *const first, size_t const count, Alloc & a)
 	{
 		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
-			UninitFill<Alloc>{}(first, last, a);
+			UninitFill<Alloc>{}(first, count, a);
 	}
 }
 
