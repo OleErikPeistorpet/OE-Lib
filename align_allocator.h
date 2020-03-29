@@ -31,7 +31,7 @@ struct allocator
 	using propagate_on_container_move_assignment = std::true_type;
 
 	T *  allocate(size_t nElems);
-	void deallocate(T * ptr, size_t) noexcept(nodebug);
+	void deallocate(T * ptr, size_t) noexcept;
 
 	static constexpr size_t max_size()   { return (size_t)-1 / sizeof(T); }
 
@@ -89,7 +89,7 @@ namespace _detail
 		return ::operator new(size);
 	}
 
-	inline void OpDelete(void * p, size_t, true_type) noexcept
+	OEL_ALWAYS_INLINE inline void OpDelete(void * p, size_t, true_type) noexcept
 	{
 		::operator delete(p);
 	}
@@ -147,7 +147,7 @@ T * allocator<T>::allocate(size_t nElems)
 }
 
 template< typename T >
-OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept(nodebug)
+inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 {
 	_detail::OpDelete(ptr, alignof(T), _detail::CanDefaultNew<alignof(T)>());
 }

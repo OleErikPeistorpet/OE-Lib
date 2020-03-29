@@ -58,7 +58,7 @@ namespace _detail
 		#endif
 		}
 
-		static void Deallocate(Alloc & a, Ptr p, size_t n)
+		static void Deallocate(Alloc & a, Ptr p, size_t n) noexcept(noexcept( a.deallocate(p, n) ))
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			OEL_DEBUG_HEADER_OF(p)->id = 0;
