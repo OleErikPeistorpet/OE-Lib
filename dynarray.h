@@ -47,12 +47,9 @@ namespace pmr
 template< typename T, typename Alloc >
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
-template< typename T, typename A >  OEL_ALWAYS_INLINE inline
-void swap(dynarray<T, A> & a, dynarray<T, A> & b) noexcept( noexcept(a.swap(b)) )  { a.swap(b); }
-
 //! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
 template< typename T, typename A >  inline
-void erase_unstable(dynarray<T, A> & d, typename dynarray<T, A>::size_type index)  { d.erase_unstable(d.begin() + index); }
+void erase_unstable(dynarray<T, A> & d, size_t index)  { d.erase_unstable(d.begin() + index); }
 
 //! @name GenericContainerInsert
 //!@{
@@ -64,7 +61,7 @@ template< typename T, typename A, typename InputRange >  inline
 void append(dynarray<T, A> & dest, const InputRange & source)  { dest.append(source); }
 
 template< typename T, typename A >  inline
-void append(dynarray<T, A> & dest, typename dynarray<T, A>::size_type n, const T & val)  { dest.append(n, val); }
+void append(dynarray<T, A> & dest, size_t n, const T & val)  { dest.append(n, val); }
 
 template< typename T, typename A, typename ForwardRange >  inline
 typename dynarray<T, A>::iterator
@@ -161,8 +158,10 @@ public:
 
 	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
-	void       swap(dynarray & other)
+	void        swap(dynarray & other)
 		noexcept(_allocTrait::propagate_on_container_swap::value or is_always_equal<Alloc>::value);
+	friend void swap(dynarray & a, dynarray & b) noexcept(noexcept( a.swap(b) ))  OEL_ALWAYS_INLINE { a.swap(b); }
+
 	/**
 	* @brief Replace the contents with source range
 	* @param source an array, STL container, iterator_range, gsl::span or such.
