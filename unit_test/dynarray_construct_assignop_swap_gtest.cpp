@@ -92,7 +92,7 @@ TEST_F(dynarrayConstructTest, greaterThanMax)
 		size_t n = std::numeric_limits<size_t>::max() / 2 + 1;
 
 	EXPECT_THROW(Dynarr d(reserve, n), std::length_error);
-	EXPECT_THROW(Dynarr d(n, default_init), std::length_error);
+	EXPECT_THROW(Dynarr d(n, for_overwrite), std::length_error);
 	EXPECT_THROW(Dynarr d(n), std::length_error);
 	EXPECT_THROW(Dynarr d(n, Size2{{}}), std::length_error);
 }
@@ -123,7 +123,7 @@ TEST_F(dynarrayConstructTest, constructNDefaultTrivial)
 	{
 		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
 
-		dynarrayTrackingAlloc<TrivialDefaultConstruct> a(n, default_init);
+		dynarrayTrackingAlloc<TrivialDefaultConstruct> a(n, for_overwrite);
 
 		ASSERT_EQ(a.size(), n);
 
@@ -144,7 +144,7 @@ TEST_F(dynarrayConstructTest, constructNDefault)
 
 		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
 		{
-			dynarrayTrackingAlloc<NontrivialConstruct> a(n, default_init);
+			dynarrayTrackingAlloc<NontrivialConstruct> a(n, for_overwrite);
 
 			ASSERT_EQ(as_signed(n), AllocCounter::nConstructCalls);
 			ASSERT_EQ(as_signed(n), NontrivialConstruct::nConstructions);
@@ -585,7 +585,7 @@ OEL_WHEN_EXCEPTIONS_ON(
 
 TEST_F(dynarrayConstructTest, constructNDefaultThrowing)
 {
-	testConstructNThrowing<NontrivialConstruct>(default_init);
+	testConstructNThrowing<NontrivialConstruct>(for_overwrite);
 }
 
 TEST_F(dynarrayConstructTest, constructNThrowing)
