@@ -26,19 +26,20 @@ template< typename T, typename... Args,
 >
 std::unique_ptr<T> make_unique(Args &&... args);
 
-//! Equivalent to std::make_unique (array version).
+//! Equivalent to std::make_unique (array version)
 template< typename T,
           typename = enable_if< std::is_array<T>::value >
 >
 std::unique_ptr<T> make_unique(size_t arraySize);
-/**
-* @brief Array is default-initialized, can be significantly faster if T is non-class or has trivial default constructor
-*
-* Non-class elements get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
+
+//! Equivalent to std::make_unique_for_overwrite (C++20)
 template< typename T,
           typename = enable_if< std::is_array<T>::value >
 >
-std::unique_ptr<T> make_unique_default_init(size_t arraySize);
+std::unique_ptr<T> make_unique_for_overwrite(size_t arraySize);
+
+template< typename T > [[deprecated]]
+auto make_unique_default_init(size_t arraySize) { return make_unique_for_overwrite<T>(arraySize); }
 
 
 
@@ -83,7 +84,7 @@ inline std::unique_ptr<T>  oel::make_unique(size_t size)
 }
 
 template< typename T, typename >
-inline std::unique_ptr<T>  oel::make_unique_default_init(size_t size)
+inline std::unique_ptr<T>  oel::make_unique_for_overwrite(size_t size)
 {
 	OEL_MAKE_UNIQUE_A(new Elem[size]);
 }

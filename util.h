@@ -83,7 +83,8 @@ struct default_init_t
 {
 	explicit constexpr default_init_t() {}
 };
-constexpr default_init_t default_init; //!< An instance of default_init_t for convenience
+constexpr default_init_t for_overwrite;  //!< An instance of default_init_t for convenience
+[[deprecated]] constexpr default_init_t default_init;
 
 
 //! Functions marked with `noexcept(nodebug)` will only throw exceptions from OEL_ASSERT (none by default)
