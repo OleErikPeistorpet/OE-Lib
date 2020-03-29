@@ -121,7 +121,7 @@ public:
 
 	/** @brief Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
 	*
-	* @copydetails resize_default_init(size_type)  */
+	* @copydetails resize_for_overwrite(size_type)  */
 	dynarray(size_type size, default_init_t, const Alloc & a = Alloc{});
 	//! (Value-initializes elements, same as std::vector)
 	explicit dynarray(size_type size, const Alloc & a = Alloc{});
@@ -192,12 +192,13 @@ public:
 	//! Equivalent to `std::vector::insert(end(), count, val)`
 	void append(size_type count, const T & val);
 
+	[[deprecated]] void resize_default_init(size_type n) { resize_for_overwrite(n); }
 	/**
 	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void resize_default_init(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<decltype(_m), T>); }
-	void resize(size_type n)                { _resizeImpl(n, _uninitFill{}); }
+	void resize_for_overwrite(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<decltype(_m), T>); }
+	void resize(size_type n)                 { _resizeImpl(n, _uninitFill{}); }
 
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if source.size() exists

@@ -80,7 +80,7 @@ TEST_F(dynarrayTest, pushBack)
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 
 	dynarray< dynarray<int> > nested;
-	nested.emplace_back(3, oel::default_init);
+	nested.emplace_back(3, oel::for_overwrite);
 	EXPECT_EQ(3U, nested.back().size());
 	auto & ret = nested.emplace_back(std::initializer_list<int>{1, 2});
 	EXPECT_EQ(2U, nested.back().size());
@@ -498,7 +498,7 @@ TEST_F(dynarrayTest, resize)
 	ASSERT_EQ(S1, d.size());
 
 OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(d.resize_default_init(d.max_size()), std::bad_alloc);
+	EXPECT_THROW(d.resize_for_overwrite(d.max_size()), std::bad_alloc);
 	EXPECT_EQ(S1, d.size());
 )
 	for (const auto & e : d)
@@ -741,7 +741,7 @@ TEST_F(dynarrayTest, greaterThanMax)
 	EXPECT_THROW(d.reserve((size_t) -1), std::length_error);
 	EXPECT_THROW(d.reserve(n), std::length_error);
 	EXPECT_THROW(d.resize(n), std::length_error);
-	EXPECT_THROW(d.resize_default_init(n), std::length_error);
+	EXPECT_THROW(d.resize_for_overwrite(n), std::length_error);
 	ASSERT_TRUE(d.empty());
 	EXPECT_THROW(d.append(n, Size2{{}}), std::length_error);
 }
