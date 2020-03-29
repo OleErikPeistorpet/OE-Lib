@@ -102,7 +102,7 @@ struct OneSizeT
 
 TEST(utilTest, makeUnique)
 {
-	auto ps = oel::make_unique_default_init<std::string[]>(2);
+	auto ps = oel::make_unique_for_overwrite<std::string[]>(2);
 	EXPECT_TRUE(ps[0].empty());
 	EXPECT_TRUE(ps[1].empty());
 

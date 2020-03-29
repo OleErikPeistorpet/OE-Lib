@@ -79,11 +79,12 @@ struct reserve_tag
 constexpr reserve_tag reserve; //!< An instance of reserve_tag for convenience
 
 //! Tag to specify default initialization
-struct default_init_t
+struct for_overwrite_t
 {
-	explicit constexpr default_init_t() {}
+	explicit constexpr for_overwrite_t() {}
 };
-constexpr default_init_t default_init; //!< An instance of default_init_t for convenience
+constexpr for_overwrite_t for_overwrite;  //!< An instance of for_overwrite_t for convenience
+[[deprecated]] constexpr for_overwrite_t default_init;
 
 
 //! Functions marked with `noexcept(nodebug)` will only throw exceptions from OEL_ASSERT (none by default)
