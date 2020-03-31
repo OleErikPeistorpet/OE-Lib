@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -26,10 +26,11 @@ template< typename Iterator, typename Sentinel = Iterator >
 class basic_view
 {
 public:
-	basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
+	constexpr basic_view(Iterator f, Sentinel l)  : _begin(std::move(f)), _end(l) {}
 
-	Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
-	Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
+	          Iterator begin()       OEL_ALWAYS_INLINE { return std::move(_begin); }
+	constexpr Iterator begin() const                   { return _begin; }
+	constexpr Sentinel end() const   OEL_ALWAYS_INLINE { return _end; }
 
 protected:
 	Iterator _begin;
@@ -59,9 +60,10 @@ public:
 	template< typename SizedRange,
 		enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0 // avoid being selected for copy
 	>
-	constexpr counted_view(SizedRange & r)   : _begin(oel::adl_begin(r)), _size(oel::ssize(r)) {}
+	constexpr counted_view(SizedRange & r)   : _begin(oel::adl_begin(r)), _size{oel::ssize(r)} {}
 
-	constexpr iterator  begin() const   OEL_ALWAYS_INLINE { return _begin; }
+	          iterator  begin()       OEL_ALWAYS_INLINE { return std::move(_begin); }
+	constexpr iterator  begin() const                   { return _begin; }
 
 	constexpr size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
 
@@ -110,13 +112,13 @@ namespace view
 {
 
 //! Create a basic_view from two iterators, with type deduced from arguments
-template< typename Iterator, typename Sentinel >  inline
-basic_view<Iterator, Sentinel>  subrange(Iterator first, Sentinel last)  { return {first, last}; }
+template< typename Iterator, typename Sentinel >
+constexpr basic_view<Iterator, Sentinel>  subrange(Iterator first, Sentinel last)  { return {std::move(first), last}; }
 
 
 //! Create a counted_view from iterator and count, with type deduced from first
 template< typename Iterator >
-constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Iterator> count)  { return {first, count}; }
+constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Iterator> n)  { return {std::move(first), n}; }
 
 
 //! Create a basic_view of std::move_iterator from two iterators
@@ -159,7 +161,7 @@ auto transform(Range & r, UnaryFunc f)     { return _detail::Transform(r, f, int
 
 template< typename Iterator, bool B >
 constexpr counted_view<Iterator, B>::counted_view(Iterator f, difference_type n)
- :	_begin(f), _size(n)
+ :	_begin(std::move(f)), _size{n}
 {
 #if __cplusplus >= 201402 or defined _MSC_VER
 	OEL_ASSERT(n >= 0);
