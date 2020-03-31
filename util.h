@@ -103,6 +103,24 @@ constexpr auto adl_begin(Range && r) -> decltype(begin(r)) { return begin(r); }
 
 namespace _detail
 {
+	template< typename Iter, bool = std::is_copy_constructible<Iter>::value >
+	struct ViewBase
+	{
+		Iter first;
+
+		constexpr Iter begin() const { return first; }
+	};
+
+	template< typename Iter >
+	struct ViewBase<Iter, false>
+	{
+		Iter first;
+
+		Iter begin() { return std::move(first); }
+	};
+
+
+
 	template< typename T, bool = std::is_empty<T>::value >
 	struct RefOptimizeEmpty
 	{
