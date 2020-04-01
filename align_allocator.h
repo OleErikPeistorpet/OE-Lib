@@ -117,7 +117,7 @@ namespace _detail
 			void * p = ::operator new(size + Align);
 			return AlignAndStore<Align>(p);
 		}
-		Throw::LengthError("Too large size in oel::allocator");
+		Throw::lengthError("Too large size in oel::allocator");
 	}
 
 	inline void OpDelete(void * p, size_t, false_type)
