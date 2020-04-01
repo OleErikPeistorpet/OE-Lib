@@ -114,7 +114,7 @@ TEST(dynarrayOtherTest, stdDequeWithOelAlloc)
 
 TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 {
-	MoveOnly::ClearCount();
+	MoveOnly::clearCount();
 	{
 		dynarray< MoveOnly, std::allocator<MoveOnly> > v;
 
