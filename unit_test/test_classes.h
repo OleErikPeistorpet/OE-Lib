@@ -49,13 +49,13 @@ struct MyCounter
 	static int nDestruct;
 	static int countToThrowOn;
 
-	static void ClearCount()
+	static void clearCount()
 	{
 		nConstructions = nDestruct = 0;
 		countToThrowOn = -1;
 	}
 
-	void ConditionalThrow()
+	void conditionalThrow()
 	{
 		if (0 <= countToThrowOn)
 		{
@@ -72,14 +72,14 @@ class MoveOnly : public MyCounter
 
 public:
 	MoveOnly()
-	{	ConditionalThrow();
+	{	conditionalThrow();
 		++nConstructions;
 	}
 	explicit MoveOnly(double v)
 	 :	pVal(&val),
 		val(v)
 	{
-		ConditionalThrow();
+		conditionalThrow();
 		++nConstructions;
 	}
 
@@ -119,7 +119,7 @@ class TrivialRelocat : public MyCounter
 
 public:
 	TrivialRelocat()
-	{	ConditionalThrow();
+	{	conditionalThrow();
 		++nConstructions;
 	}
 	explicit TrivialRelocat(double v) noexcept
@@ -129,14 +129,14 @@ public:
 
 	TrivialRelocat(const TrivialRelocat & other)
 	{
-		ConditionalThrow();
+		conditionalThrow();
 		val.reset(new double{*other.val});
 		++nConstructions;
 	}
 
 	TrivialRelocat & operator =(const TrivialRelocat & other)
 	{
-		ConditionalThrow();
+		conditionalThrow();
 		val.reset(new double{*other.val});
 		return *this;
 	}
@@ -164,7 +164,7 @@ struct NontrivialConstruct : MyCounter
 
 	NontrivialConstruct()
 	{
-		ConditionalThrow();
+		conditionalThrow();
 		++nConstructions;
 	}
 
@@ -181,7 +181,7 @@ struct AllocCounter
 
 	static std::unordered_map<void *, std::size_t> sizeFromPtr;
 
-	static void ClearAll()
+	static void clearAll()
 	{
 		nAllocations = 0;
 		nDeallocations = 0;

@@ -40,8 +40,8 @@ class dynarrayTest : public ::testing::Test
 protected:
 	dynarrayTest()
 	{
-		AllocCounter::ClearAll();
-		MyCounter::ClearCount();
+		AllocCounter::clearAll();
+		MyCounter::clearCount();
 	}
 
 	// Objects declared here can be used by all tests.
@@ -50,7 +50,7 @@ protected:
 template< typename T >
 void testPushBack1()
 {
-	T::ClearCount();
+	T::clearCount();
 	{
 		dynarray<T> da;
 
@@ -105,7 +105,7 @@ TEST_F(dynarrayTest, emplaceBackNested)
 template< typename T >
 void testPushBack2()
 {
-	T::ClearCount();
+	T::clearCount();
 	{
 		dynarray<T> da;
 
@@ -179,7 +179,7 @@ TEST_F(dynarrayTest, pushBackCase2)
 
 TEST_F(dynarrayTest, assign)
 {
-	MoveOnly::ClearCount();
+	MoveOnly::clearCount();
 	{
 		double const VALUES[] = {-1.1, 0.4};
 		MoveOnly src[] { MoveOnly{VALUES[0]},
@@ -197,7 +197,7 @@ TEST_F(dynarrayTest, assign)
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 
-	TrivialRelocat::ClearCount();
+	TrivialRelocat::clearCount();
 	{
 		dynarray<TrivialRelocat> dest;
 		OEL_WHEN_EXCEPTIONS_ON(
@@ -617,7 +617,7 @@ struct StaticBufAlloc
 	value_type * allocate(size_t n)
 	{
 		if (n > size)
-			oel::_detail::Throw::LengthError("StaticBufAlloc::allocate n > size");
+			oel::_detail::Throw::lengthError("StaticBufAlloc::allocate n > size");
 
 		size = 0;
 		return buff;
@@ -642,7 +642,7 @@ TEST_F(dynarrayTest, statefulAlwaysEqualDefaultConstructibleAlloc)
 			std::fill(std::begin(postfix.data), std::end(postfix.data), testValue);
 		}
 
-		static bool IsValid(const NonPowerOfTwo & padding)
+		static bool isValid(const NonPowerOfTwo & padding)
 		{
 			for (auto e : padding.data)
 			{
@@ -658,8 +658,8 @@ TEST_F(dynarrayTest, statefulAlwaysEqualDefaultConstructibleAlloc)
 	dynarray<NonPowerOfTwo, StaticBufAlloc> d(a);
 	d.resize(d.max_size());
 
-	EXPECT_TRUE(Mem::IsValid(mem.prefix));
-	EXPECT_TRUE(Mem::IsValid(mem.postfix));
+	EXPECT_TRUE(Mem::isValid(mem.prefix));
+	EXPECT_TRUE(Mem::isValid(mem.postfix));
 }
 
 template<typename T>
@@ -687,11 +687,11 @@ TEST_F(dynarrayTest, eraseSingle)
 {
 	testEraseOne<int>();
 
-	TrivialRelocat::ClearCount();
+	TrivialRelocat::clearCount();
 	testEraseOne<TrivialRelocat>();
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 
-	MoveOnly::ClearCount();
+	MoveOnly::clearCount();
 	testEraseOne<MoveOnly>();
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
@@ -717,11 +717,11 @@ TEST_F(dynarrayTest, eraseRange)
 {
 	testErase<int>();
 
-	TrivialRelocat::ClearCount();
+	TrivialRelocat::clearCount();
 	testErase<TrivialRelocat>();
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 
-	MoveOnly::ClearCount();
+	MoveOnly::clearCount();
 	testErase<MoveOnly>();
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
@@ -751,7 +751,7 @@ TEST_F(dynarrayTest, erasePrecondCheck)
 template< typename T >
 void testEraseUnstable()
 {
-	T::ClearCount();
+	T::clearCount();
 	{
 		dynarray<T> d;
 		d.emplace_back(1);

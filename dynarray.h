@@ -340,7 +340,7 @@ private:
 		~_memOwner()
 		{
 			if (data)
-				_allocateWrap::Deallocate(*this, data, reservEnd - data);
+				_allocateWrap::dealloc(*this, data, reservEnd - data);
 		}
 	};
 	_memOwner<Alloc> _m; // the only non-static data member
@@ -368,7 +368,7 @@ private:
 		~_scopedPtr()
 		{
 			if (data)
-				_allocateWrap::Deallocate(*this, data, bufEnd - data);
+				_allocateWrap::dealloc(*this, data, bufEnd - data);
 		}
 	};
 
@@ -379,7 +379,7 @@ private:
 	void _resetData(T *const newData)
 	{
 		if (_m.data)
-			_allocateWrap::Deallocate(_m, _m.data, capacity());
+			_allocateWrap::dealloc(_m, _m.data, capacity());
 
 		_m.data = newData;
 	}
@@ -397,9 +397,9 @@ private:
 	static pointer _allocateExact(Alloc & a, size_type const n)
 	{
 		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeForHeader)
-			return _allocateWrap::Allocate(a, n);
+			return _allocateWrap::allocate(a, n);
 		else
-			_detail::Throw::LengthError(_lenErrorMsg);
+			_detail::Throw::lengthError(_lenErrorMsg);
 	}
 
 	_span _allocateAdd(size_type const nAdd, size_type const oldSize)
@@ -407,9 +407,9 @@ private:
 		if (nAdd <= SIZE_MAX / 2 / sizeof(T)) // assumes that allocating greater than SIZE_MAX / 2 always fails
 		{
 			size_type newCap = _calcNewCap(oldSize + nAdd);
-			return {_allocateWrap::Allocate(_m, newCap), newCap};
+			return {_allocateWrap::allocate(_m, newCap), newCap};
 		}
-		_detail::Throw::LengthError(_lenErrorMsg);
+		_detail::Throw::lengthError(_lenErrorMsg);
 	}
 
 	_span _allocateAddOne()
@@ -419,7 +419,7 @@ private:
 		size_type c = capacity();
 		c += std::max(c, minGrow); // growth factor is 2
 
-		return {_allocateWrap::Allocate(_m, c), c};
+		return {_allocateWrap::allocate(_m, c), c};
 	}
 
 	size_type _calcNewCap(size_type const newSize) const
@@ -499,7 +499,7 @@ private:
 
 		T *const newEnd = _m.data + newSize;
 		if (_m.end < newEnd)
-			UninitFiller::Call(_m.end, newEnd, _m);
+			UninitFiller::call(_m.end, newEnd, _m);
 		else
 			_detail::Destroy(newEnd, _m.end);
 
@@ -530,7 +530,7 @@ private:
 
 
 	template< typename ContiguousIter,
-	          enable_if< can_memmove_with< T *, ContiguousIter >::value > = 0
+	          enable_if< can_memmove_with<T *, ContiguousIter>::value > = 0
 	>
 	ContiguousIter _doAssign(ContiguousIter const first, size_type const count)
 	{
@@ -589,7 +589,7 @@ private:
 		}
 		while (_m.end < newEnd)
 		{	// each iteration updates _m.end for exception safety
-			_construct::Call(_m, _m.end, *src);
+			_construct::call(_m, _m.end, *src);
 			++src; ++_m.end;
 		}
 		return src;
@@ -635,7 +635,7 @@ private:
 	}
 
 	template< typename ContiguousIter,
-	          enable_if< can_memmove_with< T *, ContiguousIter >::value > = 0
+	          enable_if< can_memmove_with<T *, ContiguousIter>::value > = 0
 	>
 	ContiguousIter _append(ContiguousIter const first, size_type const n)
 	{
@@ -685,7 +685,7 @@ private:
 		_scopedPtr newBuf{_m, _allocateAddOne()};
 
 		T *const pos = newBuf.data + size();
-		_construct::Call(_m, pos, static_cast<Args &&>(args)...);
+		_construct::call(_m, pos, static_cast<Args &&>(args)...);
 		_detail::Relocate(_m.data, size(), newBuf.data);
 
 		_m.end = pos;
@@ -719,7 +719,7 @@ private:
 		template< typename... Args >
 		static T * construct(decltype(_m) & alloc, T *const newPos, Args &&... args)
 		{
-			_construct::Call(alloc, newPos, static_cast<Args &&>(args)...);
+			_construct::call(alloc, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
 		}
 	};
@@ -764,7 +764,7 @@ typename dynarray<T, Alloc>::iterator
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
-		_construct::Call(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+		_construct::call(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(
 			static_cast<void *>(pPos + 1),
@@ -813,7 +813,7 @@ typename dynarray<T, Alloc>::iterator
 			{
 				while (dest != dLast)
 				{
-					_construct::Call(_m, dest, *first);
+					_construct::call(_m, dest, *first);
 					++first; ++dest;
 				}
 			}
@@ -843,7 +843,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	_debugSizeUpdater guard{_m};
 
 	if (_m.end < _m.reservEnd)
-		_construct::Call(_m, _m.end, static_cast<Args &&>(args)...);
+		_construct::call(_m, _m.end, static_cast<Args &&>(args)...);
 	else
 		_emplaceBackRealloc(static_cast<Args &&>(args)...);
 
@@ -875,7 +875,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 		if (_m.data)
 		{
 			_detail::Destroy(_m.data, _m.end);
-			_allocateWrap::Deallocate(_m, _m.data, capacity());
+			_allocateWrap::dealloc(_m, _m.data, capacity());
 		}
 		_moveInternBase(other._m);
 		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment{}, other._m);
@@ -890,7 +890,7 @@ dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.end = _m.reservEnd;
-	_detail::UninitDefaultConstruct::Call(_m.data, _m.reservEnd, _m);
+	_detail::UninitDefaultConstruct::call(_m.data, _m.reservEnd, _m);
 }
 
 template< typename T, typename Alloc >
@@ -900,7 +900,7 @@ dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.end = _m.reservEnd;
-	_uninitFill::Call(_m.data, _m.reservEnd, _m);
+	_uninitFill::call(_m.data, _m.reservEnd, _m);
 }
 
 template< typename T, typename Alloc >
@@ -910,7 +910,7 @@ dynarray<T, Alloc>::dynarray(size_type n, const T & val, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.end = _m.reservEnd;
-	_uninitFill::Call(_m.data, _m.reservEnd, _m, val);
+	_uninitFill::call(_m.data, _m.reservEnd, _m, val);
 }
 
 template< typename T, typename Alloc >
@@ -939,7 +939,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	T * newData;
 	if (0 < used)
 	{
-		newData = _allocateWrap::Allocate(_m, used);
+		newData = _allocateWrap::allocate(_m, used);
 		_m.end = _detail::Relocate(_m.data, used, newData);
 	}
 	else
@@ -956,7 +956,7 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 	_appendImpl(
 		[&val](T * dest, size_type n_, decltype(_m) & alloc)
 		{
-			_uninitFill::Call(dest, dest + n_, alloc, val);
+			_uninitFill::call(dest, dest + n_, alloc, val);
 		},
 		n );
 }
@@ -1047,7 +1047,7 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 	if (i < size()) // would be unsafe with signed size_type
 		return _m.data[i];
 	else
-		_detail::Throw::OutOfRange("Bad index dynarray::at");
+		_detail::Throw::outOfRange("Bad index dynarray::at");
 }
 
 

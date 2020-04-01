@@ -20,7 +20,7 @@ namespace _detail
 		I inner;
 		F _fun;
 
-		OEL_ALWAYS_INLINE const F & Func() const noexcept { return _fun; }
+		OEL_ALWAYS_INLINE const F & func() const noexcept { return _fun; }
 	};
 
 	template< typename Iterator_MSVC_needs_unique_name, typename Empty_function_object_MSVC_name >
@@ -33,7 +33,7 @@ namespace _detail
 		 :	Empty_function_object_MSVC_name(f), inner(it) {
 		}
 
-		OEL_ALWAYS_INLINE const Empty_function_object_MSVC_name & Func() const noexcept { return *this; }
+		OEL_ALWAYS_INLINE const Empty_function_object_MSVC_name & func() const noexcept { return *this; }
 	};
 }
 
@@ -54,7 +54,7 @@ public:
 			std::input_iterator_tag
 		>;
 	using difference_type = iter_difference_t<Iterator>;
-	using reference       = decltype( _m.Func()(*_m.inner) );
+	using reference       = decltype( _m.func()(*_m.inner) );
 	using pointer         = void;
 	using value_type      = std::decay_t<reference>;
 
@@ -75,7 +75,7 @@ public:
 
 	reference operator*() const
 	{
-		return _m.Func()(*_m.inner);
+		return _m.func()(*_m.inner);
 	}
 
 	transform_iterator & operator++()  OEL_ALWAYS_INLINE
