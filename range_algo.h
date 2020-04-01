@@ -119,5 +119,5 @@ auto oel::copy(SizedInputRange && src, RandomAccessRange && dest)
 	if (oel::ssize(src) <= oel::ssize(dest))
 		return oel::copy_unsafe(src, begin(dest));
 	else
-		_detail::Throw::OutOfRange("Too small dest oel::copy");
+		_detail::Throw::outOfRange("Too small dest oel::copy");
 }

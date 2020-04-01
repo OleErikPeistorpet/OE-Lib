@@ -337,7 +337,7 @@ private:
 		~_memOwner()
 		{
 			if (data)
-				_allocateWrap::Deallocate(*this, data, reservEnd - data);
+				_allocateWrap::deallocate(*this, data, reservEnd - data);
 		}
 	};
 	_memOwner<Alloc> _m; // the only data member
@@ -365,10 +365,10 @@ private:
 		~_scopedPtr()
 		{
 			if (data)
-				_allocateWrap::Deallocate(this->Get(), data, bufEnd - data);
+				_allocateWrap::deallocate(this->get(), data, bufEnd - data);
 		}
 
-		void Swap(_internBase & other)
+		void swap(_internBase & other)
 		{
 			using std::swap;
 			swap(other.data, data);
@@ -384,7 +384,7 @@ private:
 	void _resetData(T *const newData)
 	{
 		if (_m.data)
-			_allocateWrap::Deallocate(_m, _m.data, capacity());
+			_allocateWrap::deallocate(_m, _m.data, capacity());
 
 		_m.data = newData;
 	}
@@ -394,9 +394,9 @@ private:
 	static pointer _allocateExact(Alloc & a, size_type const n)
 	{
 		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeForHeader)
-			return _allocateWrap::Allocate(a, n);
+			return _allocateWrap::allocate(a, n);
 		else
-			_detail::Throw::LengthError(_lenErrorMsg);
+			_detail::Throw::lengthError(_lenErrorMsg);
 	}
 
 	_span _allocateAdd(size_type const nAdd, size_type const oldSize)
@@ -404,9 +404,9 @@ private:
 		if (nAdd <= std::numeric_limits<size_type>::max() / sizeof(T) / 2)
 		{
 			size_type newCap = _calcNewCap(oldSize + nAdd);
-			return {_allocateWrap::Allocate(_m, newCap), newCap};
+			return {_allocateWrap::allocate(_m, newCap), newCap};
 		}
-		_detail::Throw::LengthError(_lenErrorMsg);
+		_detail::Throw::lengthError(_lenErrorMsg);
 	}
 
 	_span _allocateAddOne()
@@ -416,7 +416,7 @@ private:
 		size_type c = capacity();
 		c += oel_max(c, minGrow); // growth factor is 2
 
-		return {_allocateWrap::Allocate(_m, c), c};
+		return {_allocateWrap::allocate(_m, c), c};
 	}
 
 	size_type _calcNewCap(size_type const newSize) const
@@ -517,7 +517,7 @@ private:
 
 		_scopedPtr newBuf{_m, {_allocateExact(_m, newCap), newCap}};
 		_m.end = _relocateData(newBuf.data, size());
-		newBuf.Swap(_m);
+		newBuf.swap(_m);
 	}
 
 	template< typename UninitFillFunc >
@@ -705,7 +705,7 @@ private:
 		_relocateData(newBuf.data, oldSize);
 
 		_m.end = pos;
-		newBuf.Swap(_m);
+		newBuf.swap(_m);
 	}
 
 	template< typename... Args >
@@ -718,7 +718,7 @@ private:
 		_relocateData(newBuf.data, size());
 
 		_m.end = pos;
-		newBuf.Swap(_m);
+		newBuf.swap(_m);
 	}
 
 
@@ -737,7 +737,7 @@ private:
 			std::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);  // relocate suffix
 		}
 		_m.end = afterAdded + nAfterPos;
-		newBuf.Swap(_m);
+		newBuf.swap(_m);
 
 		return newPos;
 	}
@@ -896,7 +896,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 		if (_m.data)
 		{
 			_detail::Destroy(_m.data, _m.end);
-			_allocateWrap::Deallocate(_m, _m.data, capacity());
+			_allocateWrap::deallocate(_m, _m.data, capacity());
 		}
 		_moveInternBase(other._m);
 		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment{}, other._m);
@@ -960,7 +960,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	T * newData;
 	if (0 < used)
 	{
-		newData = _allocateWrap::Allocate(_m, used);
+		newData = _allocateWrap::allocate(_m, used);
 		_m.end = _relocateData(newData, used);
 	}
 	else
@@ -1061,7 +1061,7 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 	if (i < size()) // would be unsafe with signed size_type
 		return _m.data[i];
 	else
-		_detail::Throw::OutOfRange("Bad index dynarray::at");
+		_detail::Throw::outOfRange("Bad index dynarray::at");
 }
 
 
