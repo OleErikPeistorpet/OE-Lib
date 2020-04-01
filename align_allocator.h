@@ -129,7 +129,7 @@ namespace _detail
 			void * p = ::operator new(size + Align);
 			return AlignAndStore<Align>(p);
 		}
-		Throw::LengthError("Too large size in oel::allocator");
+		Throw::lengthError("Too large size in oel::allocator");
 	}
 
 	inline void OpDelete(void *const p, size_t const size, size_t const align, false_type)
