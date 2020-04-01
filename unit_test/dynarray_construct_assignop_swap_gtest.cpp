@@ -28,8 +28,8 @@ protected:
 
 	dynarrayConstructTest()
 	{
-		AllocCounter::ClearAll();
-		MyCounter::ClearCount();
+		AllocCounter::clearAll();
+		MyCounter::clearCount();
 
 		sizes = {{0, 1, 200}};
 	}
@@ -140,7 +140,7 @@ TEST_F(dynarrayConstructTest, constructNDefault)
 	for (auto const n : sizes)
 	{
 		AllocCounter::nConstructCalls = 0;
-		NontrivialConstruct::ClearCount();
+		NontrivialConstruct::clearCount();
 
 		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
 		{
@@ -366,8 +366,8 @@ TEST_F(dynarrayConstructTest, moveConstructNonAssignable)
 template<typename T>
 void testConstructMoveElements()
 {
-	AllocCounter::ClearAll();
-	T::ClearCount();
+	AllocCounter::clearAll();
+	T::clearCount();
 	// not propagating, not equal, cannot steal the memory
 	for (auto const na : {0, 1, 101})
 	{
@@ -457,8 +457,8 @@ TEST_F(dynarrayConstructTest, moveAssign)
 template<typename T>
 void testAssignMoveElements()
 {
-	AllocCounter::ClearAll();
-	T::ClearCount();
+	AllocCounter::clearAll();
+	T::clearCount();
 	// not propagating, not equal, cannot steal the memory
 	for (auto const na : {0, 1, 101})
 	{
@@ -573,7 +573,7 @@ OEL_WHEN_EXCEPTIONS_ON(
 	for (auto i : {0, 1, 99})
 	{
 		AllocCounter::nConstructCalls = 0;
-		T::ClearCount();
+		T::clearCount();
 		T::countToThrowOn = i;
 
 		ASSERT_THROW(
@@ -614,7 +614,7 @@ TEST_F(dynarrayConstructTest, copyConstructThrowing)
 	for (auto i : {0, 1, 99})
 	{
 		AllocCounter::nConstructCalls = 0;
-		TrivialRelocat::ClearCount();
+		TrivialRelocat::clearCount();
 		TrivialRelocat::countToThrowOn = i;
 
 		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
