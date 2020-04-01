@@ -26,12 +26,12 @@ namespace _detail
 {
 	struct Throw
 	{	// Exception throwing has been split out from templates to avoid bloat
-		[[noreturn]] static void OutOfRange(const char * what)
+		[[noreturn]] static void outOfRange(const char * what)
 		{
 			OEL_THROW(std::out_of_range(what), what);
 		}
 
-		[[noreturn]] static void LengthError(const char * what)
+		[[noreturn]] static void lengthError(const char * what)
 		{
 			OEL_THROW(std::length_error(what), what);
 		}

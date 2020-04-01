@@ -41,7 +41,7 @@ namespace _detail
 		static constexpr size_t sizeForHeader = 0;
 	#endif
 
-		static Ptr Allocate(Alloc & a, size_t n)
+		static Ptr allocate(Alloc & a, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			n += sizeForHeader;
@@ -58,7 +58,7 @@ namespace _detail
 		#endif
 		}
 
-		static void Deallocate(Alloc & a, Ptr p, size_t n) noexcept(noexcept( a.deallocate(p, n) ))
+		static void deallocate(Alloc & a, Ptr p, size_t n) noexcept(noexcept( a.deallocate(p, n) ))
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			OEL_DEBUG_HEADER_OF(p)->id = 0;
