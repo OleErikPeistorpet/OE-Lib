@@ -561,7 +561,7 @@ struct StaticBufAlloc
 	value_type * allocate(size_t n)
 	{
 		if (n > size)
-			oel::_detail::Throw::LengthError("StaticBufAlloc::allocate n > size");
+			oel::_detail::Throw::lengthError("StaticBufAlloc::allocate n > size");
 
 		size = 0;
 		return buf;

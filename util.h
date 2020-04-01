@@ -108,7 +108,7 @@ namespace _detail
 	{
 		T & _ref;
 
-		T & Get() noexcept { return _ref; }
+		T & get() noexcept { return _ref; }
 	};
 
 	template< typename Type_needs_unique_name_for_MSVC >
@@ -117,7 +117,7 @@ namespace _detail
 	{
 		RefOptimizeEmpty(Type_needs_unique_name_for_MSVC & o) : Type_needs_unique_name_for_MSVC(o) {}
 
-		Type_needs_unique_name_for_MSVC & Get() noexcept { return *this; }
+		Type_needs_unique_name_for_MSVC & get() noexcept { return *this; }
 	};
 
 
