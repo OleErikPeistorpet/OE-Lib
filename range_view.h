@@ -23,17 +23,18 @@ namespace oel
 
 //! A minimal substitute for boost::iterator_range and std::ranges::subrange (C++20)
 template< typename Iterator, typename Sentinel = Iterator >
-class basic_view
+class basic_view  : protected _detail::ViewBase<Iterator>
 {
-public:
-	constexpr basic_view(Iterator f, Sentinel l)  : _begin(std::move(f)), _end(l) {}
+	using _base = _detail::ViewBase<Iterator>;
 
-	          Iterator begin()       OEL_ALWAYS_INLINE { return std::move(_begin); }
-	constexpr Iterator begin() const                   { return _begin; }
+public:
+	constexpr basic_view(Iterator f, Sentinel l)   : _base{std::move(f)}, _end(l) {}
+
+	using _base::begin;
+
 	constexpr Sentinel end() const   OEL_ALWAYS_INLINE { return _end; }
 
 protected:
-	Iterator _begin;
 	Sentinel _end;
 };
 
@@ -45,8 +46,10 @@ iter_difference_t<Iterator> ssize(const basic_view<Iterator> & r)   { return r.e
 
 //! Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
 template< typename Iterator, bool = iter_is_random_access<Iterator>::value >
-class counted_view
+class counted_view  : protected _detail::ViewBase<Iterator>
 {
+	using _base = _detail::ViewBase<Iterator>;
+
 public:
 	using iterator        = Iterator;
 	using value_type      = iter_value_t<Iterator>;
@@ -60,10 +63,9 @@ public:
 	template< typename SizedRange,
 		enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0 // avoid being selected for copy
 	>
-	constexpr counted_view(SizedRange & r)   : _begin(oel::adl_begin(r)), _size{oel::ssize(r)} {}
+	constexpr counted_view(SizedRange & r)   : _base{oel::adl_begin(r)}, _size{oel::ssize(r)} {}
 
-	          iterator  begin()       OEL_ALWAYS_INLINE { return std::move(_begin); }
-	constexpr iterator  begin() const                   { return _begin; }
+	using _base::begin;
 
 	constexpr size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
 
@@ -75,7 +77,6 @@ public:
 	void      drop_back();
 
 protected:
-	Iterator       _begin;
 	difference_type _size;
 };
 
@@ -94,16 +95,16 @@ public:
 
 	using _base::_base;
 
-	constexpr iterator  end() const   OEL_ALWAYS_INLINE { return this->_begin + this->_size; }
+	constexpr iterator  end() const   OEL_ALWAYS_INLINE { return this->first + this->_size; }
 
-	constexpr reference back() const                 { return this->_begin[this->_size - 1]; }
+	constexpr reference back() const                 { return this->first[this->_size - 1]; }
 
-	constexpr reference operator[](difference_type index) const   OEL_ALWAYS_INLINE { return this->_begin[index]; }
+	constexpr reference operator[](difference_type index) const   OEL_ALWAYS_INLINE { return this->first[index]; }
 
 	//! Get raw pointer to underlying array. The function will exist only if `to_pointer_contiguous(begin())` is valid
 	template< typename It = Iterator >
 	auto data() const noexcept
-	->	decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
+	->	decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->first); }
 };
 
 
@@ -161,7 +162,7 @@ auto transform(Range & r, UnaryFunc f)     { return _detail::Transform(r, std::m
 
 template< typename Iterator, bool B >
 constexpr counted_view<Iterator, B>::counted_view(Iterator f, difference_type n)
- :	_begin(std::move(f)), _size{n}
+ :	_base{std::move(f)}, _size{n}
 {
 #if __cplusplus >= 201402 or defined _MSC_VER
 	OEL_ASSERT(n >= 0);
@@ -174,7 +175,8 @@ void counted_view<Iterator, B>::drop_front()
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	OEL_ASSERT(_size > 0);
 #endif
-	++_begin; --_size;
+	++this->first;
+	--_size;
 }
 
 template< typename Iterator, bool B >
