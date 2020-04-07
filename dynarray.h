@@ -185,7 +185,7 @@ public:
 	/**
 	* @brief Add at end the elements from source range
 	* @param source An array, STL container, iterator_range, gsl::span or such.
-	* @pre source shall not refer to any elements in this dynarray (same as std::vector::insert)
+	* @pre source shall not refer to any elements in this dynarray, unless `capacity() - size() >= source.size()`
 	* @return Iterator `begin(source)` incremented by the number of elements in source
 	*
 	* Otherwise equivalent to `std::vector::insert(end(), begin(source), end(source))`,
@@ -258,7 +258,7 @@ public:
 	//! How much smaller capacity is than the number passed to allocator_type::allocate
 	static constexpr size_type allocate_size_overhead()  { return _allocateWrap::sizeForHeader; }
 
-	allocator_type get_allocator() const noexcept  { return _m; }
+	allocator_type get_allocator() const noexcept   { return _m; }
 
 	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIter(_m.data); }
 	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const T *>(_m.data); }
@@ -342,7 +342,7 @@ private:
 		~_memOwner()
 		{
 			if (data)
-				_allocateWrap::Deallocate(*this, data, reservEnd - data);
+				_allocateWrap::Dealloc(*this, data, reservEnd - data);
 		}
 	};
 	_memOwner<Alloc> _m; // the only data member
@@ -364,7 +364,7 @@ private:
 		~_scopedPtr()
 		{
 			if (data)
-				_allocateWrap::Deallocate(this->Get(), data, allocEnd - data);
+				_allocateWrap::Dealloc(this->Get(), data, allocEnd - data);
 		}
 
 		void Swap(_internBase & other)
@@ -378,17 +378,19 @@ private:
 	void _resetData(T *const newData)
 	{
 		if (_m.data)
-			_allocateWrap::Deallocate(_m, _m.data, capacity());
+			_allocateWrap::Dealloc(_m, _m.data, capacity());
 
 		_m.data = newData;
 	}
+
+	static constexpr auto lenErrorMsg = "Going over dynarray max_size";
 
 	static pointer _allocateExact(Alloc & a, size_type const n)
 	{
 		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeForHeader)
 			return _allocateWrap::Allocate(a, n);
 		else
-			_detail::Throw::LengthError("Going over dynarray max_size");
+			_detail::Throw::LengthError(lenErrorMsg);
 	}
 
 	template<typename Ptr>
@@ -486,24 +488,42 @@ private:
 		return dLast;
 	}
 
-	template<typename AW = _allocateWrap>
-	void _realloc( size_type const newCap, size_type const oldSize,
-		decltype(AW::Realloc(_m, _m.data, newCap), int()) )
+	void _reallocImpl(size_type const newCap, size_type const oldSize, true_type)
 	{
-		pointer const p = AW::Realloc(_m, _m.data, newCap);
+		pointer const p = _allocateWrap::Realloc(_m, _m.data, newCap);
 		_m.data = p;
 		_m.end = p + oldSize;
 		_m.reservEnd = p + newCap;
 	}
 
-	void _realloc(size_type const newCap, size_type const oldSize, long)
+	void _reallocImpl(size_type const newCap, size_type const oldSize, false_type)
 	{
 		pointer const newData = _allocateWrap::Allocate(_m, newCap);
 		_m.end = _relocateData(newData, oldSize, is_trivially_relocatable<T>());
-		_m.data = newData;
+		_resetData(newData);
 		_m.reservEnd = newData + newCap;
 	}
 
+	OEL_ALWAYS_INLINE void _realloc(size_type const newCap, size_type const oldSize)
+	{
+		_reallocImpl(
+			newCap, oldSize,
+			bool_constant< is_trivially_relocatable<T>::value and _detail::AllocHasReallocate<Alloc>::value >() );
+	}
+
+
+	void _growTo(size_type const newCap)
+	{
+		if (newCap <= max_size())
+			_realloc(newCap, size());
+		else
+			_detail::Throw::LengthError(lenErrorMsg);
+	}
+
+	void _resizeRealloc(size_type const newSize)
+	{
+		_growTo(_calcCap(newSize));
+	}
 
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type const newSize, UninitFillFunc initAdded)
@@ -511,7 +531,7 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		if (capacity() < newSize)
-			_realloc(_calcCap(newSize), size(), int{});
+			_resizeRealloc(newSize);
 
 		T *const newEnd = _m.data + newSize;
 		if (_m.end < newEnd)
@@ -599,7 +619,7 @@ private:
 		else
 		{	_m.end = _m.data + count;
 		}
-		// Not portable. Check for self assignment or use memmove?
+		// UB for self assign, but found to work. Add check in operator = or use memmove?
 		_detail::MemcpyCheck(first, count, _m.data);
 
 		return first + count;
@@ -704,26 +724,29 @@ private:
 	{
 		_debugSizeUpdater guard{_m};
 
-		if (_unusedCapacity() >= count)
-			makeNew(_m.end, count, _m);
-		else
-			_appendRealloc(count, makeNew);
+		if (_unusedCapacity() < count)
+			_appendRealloc(count);
 
+		makeNew(_m.end, count, _m);
 		_m.end += count;
 	}
 
-	template<typename MakeFuncAppend>
 #ifdef _MSC_VER
 	__declspec(noinline) // to get the compiler to inline calling function
 #else
 	__attribute__((noinline))
 #endif
-	void _appendRealloc(size_type const count, MakeFuncAppend const makeNew)
+	void _appendRealloc(size_type const count)
 	{
-		size_type const oldSize = size();
-		size_type newCap = _calcCap(oldSize + count);
-		_realloc(newCap, oldSize, int{});
-		makeNew(_m.end, count, _m);
+		if (count <= std::numeric_limits<size_type>::max() / sizeof(T) / 2)
+		{
+			size_type const oldSize = size();
+			size_type newCap = _calcCap(oldSize + count);
+			_realloc(newCap, oldSize);
+		}
+		else
+		{	_detail::Throw::LengthError(lenErrorMsg);
+		}
 	}
 
 	template<typename... Args>
@@ -903,7 +926,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 		if (_m.data)
 		{
 			_detail::Destroy(_m.data, _m.end);
-			_allocateWrap::Deallocate(_m, _m.data, capacity());
+			_allocateWrap::Dealloc(_m, _m.data, capacity());
 		}
 		_moveInternBase(other._m);
 		_moveAssignAlloc(typename _allocTrait::propagate_on_container_move_assignment{}, other._m);
@@ -965,7 +988,7 @@ void dynarray<T, Alloc>::reserve(size_type minCap)
 	{
 		_debugSizeUpdater guard{_m};
 
-		_realloc(minCap, size(), int{});
+		_growTo(minCap);
 	}
 }
 
@@ -977,7 +1000,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	size_type const used = size();
 	if (0 < used)
 	{
-		_realloc(used, used, int{});
+		_realloc(used, used);
 	}
 	else
 	{	_resetData(nullptr);
@@ -1039,11 +1062,11 @@ template<typename T, typename Alloc>
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
-
 	_debugSizeUpdater guard{_m};
 
 	T *const      pFirst = to_pointer_contiguous(first);
 	const T *const pLast = to_pointer_contiguous(last);
+
 	OEL_ASSERT(_m.data <= pFirst and pFirst <= pLast and pLast <= _m.end);
 	if (pFirst < pLast)
 	{

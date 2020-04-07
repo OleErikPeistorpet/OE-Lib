@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -33,12 +33,13 @@ struct allocator
 
 	using propagate_on_container_move_assignment = std::true_type;
 
+	//! count greater than max_size() causes overflow and undefined behavior
 	T *  allocate(size_t count);
-	template< typename T_ = T, typename = enable_if<is_trivially_relocatable<T_>::value> >
+	//! newCount greater than max_size() causes overflow and undefined behavior
 	T *  reallocate(T * ptr, size_t newCount);
 	void deallocate(T * ptr, size_t) noexcept;
 
-	static constexpr size_t max_size()   { return (size_t)-1 / sizeof(T); }
+	static constexpr size_t max_size();
 
 	allocator() = default;
 	template<typename U>  OEL_ALWAYS_INLINE
@@ -98,23 +99,6 @@ namespace _detail
 		}
 	};
 
-	template<size_t>
-	inline void * Malloc(size_t nBytes, true_type) noexcept
-	{
-		return std::malloc(nBytes);
-	}
-
-	template<size_t>
-	inline void * Realloc(void * p, size_t nBytes, true_type) noexcept
-	{
-		return std::realloc(p, nBytes);
-	}
-
-	inline void Free(void * p, true_type) noexcept
-	{
-		std::free(p);
-	}
-
 	template<size_t Align>
 	void * AlignAndStore(void *const orig) noexcept
 	{
@@ -132,36 +116,69 @@ namespace _detail
 		}
 	}
 
-	template<size_t Align>
-	void * Malloc(size_t nBytes, false_type) noexcept
+	template< size_t Align, bool = CanDefaultAlloc<Align>::value >
+	struct Malloc
 	{
-		void * p = std::malloc(nBytes + Align);
-		return AlignAndStore<Align>(p);
-	}
+		void * operator()(size_t nBytes) const
+		{
+			void * p = std::malloc(nBytes + Align);
+			return AlignAndStore<Align>(p);
+		}
+	};
+
+	template< size_t Align, bool = CanDefaultAlloc<Align>::value >
+	struct Realloc
+	{
+		void * old;
+
+		void * operator()(size_t nBytes) const
+		{
+			void * p = old ?
+				static_cast<void **>(old)[-1] :
+				old;
+			p = std::realloc(p, nBytes + Align);
+			return AlignAndStore<Align>(p);
+		}
+	};
 
 	template<size_t Align>
-	inline void * Realloc(void * old, size_t nBytes, false_type) noexcept
+	struct Malloc<Align, true>
 	{
-		if (old)
-			old = static_cast<void **>(old)[-1];
+		void * operator()(size_t nBytes) const
+		{
+			return std::malloc(nBytes);
+		}
+	};
 
-		void * p = std::realloc(old, nBytes + Align);
-		return AlignAndStore<Align>(p);
-	}
+	template<size_t Align>
+	struct Realloc<Align, true>
+	{
+		void * old;
+
+		void * operator()(size_t nBytes) const
+		{
+			return std::realloc(old, nBytes);
+		}
+	};
 
 	inline void Free(void * p, false_type) noexcept
 	{
-		if (p)
+		if (p) // replace with assert for malloc known to return non-null for 0 size?
 		{
 			p = static_cast<void **>(p)[-1];
 			std::free(p);
 		}
 	}
 
-	template<typename AllocFunc>
-	void * AllocAndHandleFail(size_t nBytes, AllocFunc doAlloc)
+	inline void Free(void * p, true_type) noexcept
 	{
-		if (nBytes > 0) // could be removed for known malloc implementations?
+		std::free(p);
+	}
+
+	template<typename AllocFunc>
+	void * AllocAndHandleFail(size_t const nBytes, AllocFunc doAlloc)
+	{
+		if (nBytes > 0) // could be removed for implementations known not to return null
 		{
 		#if OEL_NEW_HANDLER
 			for (;;)
@@ -193,31 +210,36 @@ namespace _detail
 template<typename T>
 inline T * allocator<T>::allocate(size_t count)
 {
-	auto f = [](size_t nBytes)
-	{
-		return _detail::Malloc<alignof(T)>
-			(nBytes, _detail::CanDefaultAlloc<alignof(T)>());
-	};
-	void * p = _detail::AllocAndHandleFail(sizeof(T) * count, f);
-	return static_cast<T *>(p);
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	OEL_ASSERT(count <= max_size());
+#endif
+	_detail::Malloc<alignof(T)> fn;
+	return static_cast<T *>(_detail::AllocAndHandleFail(sizeof(T) * count, fn));
 }
 
-template<typename T> template<typename, typename>
-inline T * allocator<T>::reallocate(T * old, size_t count)
+template<typename T>
+inline T * allocator<T>::reallocate(T * ptr, size_t count)
 {
-	auto f = [old](size_t nBytes)
-	{
-		return _detail::Realloc<alignof(T)>
-			(old, nBytes, _detail::CanDefaultAlloc<alignof(T)>());
-	};
-	void * p = _detail::AllocAndHandleFail(sizeof(T) * count, f);
-	return static_cast<T *>(p);
+	_detail::AssertTrivialRelocate<T>{};
+#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+	OEL_ASSERT(count <= max_size());
+#endif
+	_detail::Realloc<alignof(T)> fn{ptr};
+	return static_cast<T *>(_detail::AllocAndHandleFail(sizeof(T) * count, fn));
 }
 
 template<typename T>
 OEL_ALWAYS_INLINE inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 {
 	_detail::Free(ptr, _detail::CanDefaultAlloc<alignof(T)>());
+}
+
+template<typename T>
+constexpr size_t allocator<T>::max_size()
+{
+	return ( size_t(-1)
+	       - (_detail::CanDefaultAlloc<alignof(T)>::value ? 0 : alignof(T)) )
+	     / sizeof(T);
 }
 
 } // namespace oel

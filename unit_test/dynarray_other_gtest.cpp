@@ -48,6 +48,8 @@ namespace
 
 	static_assert(oel::_detail::AllocHasConstruct< TrackingAllocator<double>, int >::value, "?");
 	static_assert( !oel::_detail::AllocHasConstruct< oel::allocator<double>, int >::value, "?" );
+
+	static_assert(oel::_detail::AllocHasReallocate< oel::allocator<double> >::value, "?");
 }
 
 TEST(dynarrayOtherTest, zeroBitRepresentation)

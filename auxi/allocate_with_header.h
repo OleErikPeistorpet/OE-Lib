@@ -14,6 +14,31 @@ namespace oel
 {
 namespace _detail
 {
+	template<typename Alloc, typename Arg>
+	decltype( std::declval<Alloc &>().construct((typename Alloc::value_type *)0, std::declval<Arg>()),
+		true_type() )
+		HasConstructTest(int);
+
+	template<typename, typename>
+	false_type HasConstructTest(long);
+
+	template<typename Alloc, typename Arg>
+	using AllocHasConstruct = decltype( HasConstructTest<Alloc, Arg>(0) );
+
+
+	template<typename Alloc>
+	decltype( std::declval<Alloc &>().reallocate((typename Alloc::value_type *)0, size_t{}),
+		true_type() )
+		HasReallocTest(int);
+
+	template<typename>
+	false_type HasReallocTest(long);
+
+	template<typename Alloc>
+	using AllocHasReallocate = decltype( HasReallocTest<Alloc>(0) );
+
+
+
 	struct DebugAllocationHeader
 	{
 		std::uintptr_t id;
@@ -46,7 +71,7 @@ namespace _detail
 			p += sizeForHeader;
 
 			auto const h = OEL_DEBUG_HEADER_OF(p);
-			constexpr auto maxMinBits = ~((std::uintptr_t)-1 >> 1) | 1u;
+			constexpr auto maxMinBits = ~(std::uintptr_t(-1) >> 1) | 1u;
 			new(h) DebugAllocationHeader{reinterpret_cast<std::uintptr_t>(&a) | maxMinBits, 0};
 
 			return p;
@@ -63,9 +88,7 @@ namespace _detail
 		#endif
 		}
 
-		template<typename Alloc_ = Alloc>
-		static auto Realloc(Alloc_ & a, Ptr p, size_t n)
-		->	decltype(a.reallocate(p, n))
+		static Ptr Realloc(Alloc & a, Ptr p, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			if (p)
@@ -81,7 +104,7 @@ namespace _detail
 		#endif
 		}
 
-		static void Deallocate(Alloc & a, Ptr p, size_t n) noexcept
+		static void Dealloc(Alloc & a, Ptr p, size_t n) noexcept
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			OEL_DEBUG_HEADER_OF(p)->id = 0;

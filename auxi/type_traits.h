@@ -92,27 +92,12 @@ using common_type = typename std::common_type<Ts...>::type;
 
 using std::size_t;
 
+} // namespace oel
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-
-namespace _detail
-{
-	template<typename Alloc, typename Arg>
-	decltype( std::declval<Alloc &>().construct( (typename Alloc::value_type *)0, std::declval<Arg>() ),
-		true_type() )
-		HasConstructTest(int);
-
-	template<typename, typename>
-	false_type HasConstructTest(long);
-
-	template<typename Alloc, typename Arg>
-	using AllocHasConstruct = decltype( HasConstructTest<Alloc, Arg>(0) );
-}
-
-} // namespace oel
 
 
 template<typename T>

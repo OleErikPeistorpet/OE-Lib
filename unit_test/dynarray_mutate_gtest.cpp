@@ -38,7 +38,7 @@ static_assert( !oel::is_always_equal<throwingAlloc<int>>::value, "?" );
 class dynarrayTest : public ::testing::Test
 {
 protected:
-	dynarrayTest()
+	~dynarrayTest()
 	{
 		AllocCounter::ClearAll();
 		MyCounter::ClearCount();
@@ -86,7 +86,7 @@ TEST_F(dynarrayTest, pushBack)
 	EXPECT_EQ(2U, nested.back().size());
 }
 
-TEST_F(dynarrayTest, pushBackNonTrivialReloc)
+TEST_F(dynarrayTest, pushBack2)
 {
 	{
 		dynarray<TrivialRelocat> da;
@@ -151,7 +151,6 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 
 TEST_F(dynarrayTest, assign)
 {
-	MoveOnly::ClearCount();
 	{
 		double const VALUES[] = {-1.1, 0.4};
 		MoveOnly src[] { MoveOnly{VALUES[0]},
@@ -168,8 +167,10 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
+}
 
-	TrivialRelocat::ClearCount();
+TEST_F(dynarrayTest, assign2)
+{
 	{
 		dynarray<TrivialRelocat> dest;
 		OEL_WHEN_EXCEPTIONS_ON(
@@ -217,6 +218,7 @@ TEST_F(dynarrayTest, assign)
 }
 
 // std::stringstream doesn't seem to work using libstdc++ with -fno-exceptions
+// Probably needs a -fno-exceptions build of libstdc++
 #if !defined __GLIBCXX__ or defined __EXCEPTIONS
 TEST_F(dynarrayTest, assignNonForwardRange)
 {
@@ -285,6 +287,7 @@ TEST_F(dynarrayTest, append)
 
 		double const TEST_VAL = 6.6;
 		dest.append(2, TEST_VAL);
+		dest.reserve(2 * dest.size());
 		dest.append( view::subrange(dest.begin(), dest.end()) );
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
@@ -614,7 +617,6 @@ TEST_F(dynarrayTest, eraseSingle)
 {
 	testErase<int>();
 
-	MoveOnly::ClearCount();
 	testErase<MoveOnly>();
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
