@@ -548,11 +548,11 @@ TEST_F(dynarrayConstructTest, selfCopyAssign)
 	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 
+#ifdef OEL_HAS_EXCEPTIONS
 
 template<typename T, typename... Arg>
 void testConstructNThrowing(const Arg &... arg)
 {
-OEL_WHEN_EXCEPTIONS_ON(
 	for (auto i : {0, 1, 99})
 	{
 		AllocCounter::nConstructCalls = 0;
@@ -569,10 +569,7 @@ OEL_WHEN_EXCEPTIONS_ON(
 
 		ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 	}
-)
 }
-
-OEL_WHEN_EXCEPTIONS_ON(
 
 TEST_F(dynarrayConstructTest, constructNDefaultThrowing)
 {
@@ -614,7 +611,7 @@ TEST_F(dynarrayConstructTest, copyConstructThrowing)
 		ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 	}
 }
-) // OEL_WHEN_EXCEPTIONS_ON
+#endif
 
 TEST_F(dynarrayConstructTest, swap)
 {
@@ -640,7 +637,7 @@ TEST_F(dynarrayConstructTest, swapUnequal)
 	using Al = StatefulAllocator<int>;
 	dynarray< int, Al > one(Al(1));
 	dynarray< int, Al > two(Al(2));
-#if defined _CPPUNWIND or defined __EXCEPTIONS
+#ifdef OEL_HAS_EXCEPTIONS
 	EXPECT_THROW( swap(one, two), std::logic_error );
 #else
 	ASSERT_DEATH( swap(one, two), "" );

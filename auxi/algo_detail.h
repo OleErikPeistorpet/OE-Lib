@@ -123,7 +123,7 @@ namespace _detail
 		OEL_CATCH_ALL
 		{
 			_detail::Destroy(dFirst, dest);
-			OEL_WHEN_EXCEPTIONS_ON(throw);
+			OEL_RETHROW;
 		}
 		return src;
 	}
@@ -149,7 +149,7 @@ namespace _detail
 			OEL_CATCH_ALL
 			{
 				_detail::Destroy(init, first);
-				OEL_WHEN_EXCEPTIONS_ON(throw);
+				OEL_RETHROW;
 			}
 		}
 

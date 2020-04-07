@@ -467,10 +467,10 @@ private:
 
 	T * _relocateData(T *__restrict dest, size_type, false_type) const noexcept
 	{
-		OEL_WHEN_EXCEPTIONS_ON(
-			static_assert(std::is_nothrow_move_constructible<T>::value,
-				"Reallocation in dynarray requires that T is noexcept move constructible or trivially relocatable");
-		)
+	#ifdef OEL_HAS_EXCEPTIONS
+		static_assert( std::is_nothrow_move_constructible<T>::value,
+			"Reallocation in dynarray requires that T is noexcept move constructible or trivially relocatable" );
+	#endif
 		T *__restrict src = _m.data;
 		while (src != _m.end)
 		{
@@ -691,7 +691,7 @@ private:
 		OEL_CATCH_ALL
 		{
 			erase_to_end(begin() + oldSize);
-			OEL_WHEN_EXCEPTIONS_ON(throw);
+			OEL_RETHROW;
 		}
 		return first;
 	}
@@ -776,7 +776,7 @@ private:
 			OEL_CATCH_ALL
 			{
 				reinterpret_cast<T &>(tmp).~T();
-				OEL_WHEN_EXCEPTIONS_ON(throw);
+				OEL_RETHROW;
 			}
 			std::memcpy(_m.end, &tmp, sizeof(T));
 		}
@@ -897,7 +897,7 @@ typename dynarray<T, Alloc>::iterator
 			{	// relocate back to fill hole
 				std::memmove(dest, dLast, sizeof(T) * nAfterPos);
 				_m.end -= (dLast - dest);
-				OEL_WHEN_EXCEPTIONS_ON(throw);
+				OEL_RETHROW;
 			}
 		}
 	}
