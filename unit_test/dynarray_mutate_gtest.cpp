@@ -82,8 +82,9 @@ TEST_F(dynarrayTest, pushBack)
 	dynarray< dynarray<int> > nested;
 	nested.emplace_back(3, oel::default_init);
 	EXPECT_EQ(3U, nested.back().size());
-	nested.emplace_back(std::initializer_list<int>{1, 2});
+	auto & ret = nested.emplace_back(std::initializer_list<int>{1, 2});
 	EXPECT_EQ(2U, nested.back().size());
+	EXPECT_TRUE(ret == nested.back());
 }
 
 TEST_F(dynarrayTest, pushBackNonTrivialReloc)
@@ -99,8 +100,9 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		ASSERT_EQ(1U, da.size());
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 
-		da.emplace_back(VALUES[1]);
+		auto & ret = da.emplace_back(VALUES[1]);
 		expected.emplace_back(VALUES[1]);
+		ASSERT_EQ(&da.back(), &ret);
 		ASSERT_EQ(2U, da.size());
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 

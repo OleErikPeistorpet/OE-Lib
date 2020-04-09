@@ -900,10 +900,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	else
 		_emplaceBackRealloc(static_cast<Args &&>(args)...);
 
-	T *const pos = _m.end;
-	++_m.end;
-
-	return *pos;
+	return *(_m.end++);
 }
 
 
