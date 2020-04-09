@@ -726,8 +726,6 @@ private:
 	template< typename MakeFuncAppend >
 #ifdef _MSC_VER
 	__declspec(noinline) // to get the compiler to inline calling function
-#else
-	__attribute__((noinline))
 #endif
 	void _appendRealloc(size_type const count, MakeFuncAppend const makeNew)
 	{
