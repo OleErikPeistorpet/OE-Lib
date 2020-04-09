@@ -146,9 +146,11 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template< typename ContiguousIter, typename ContiguousIter2 >
-	ContiguousIter CopyUnsf(ContiguousIter const src, std::ptrdiff_t const n, ContiguousIter2 const dest, true_type)
-	{	// can use memcpy
+	template< typename ContiguousIter, typename ContiguousIter2,
+	          enable_if< can_memmove_with<ContiguousIter2, ContiguousIter>::value > = 0
+	>
+	ContiguousIter CopyUnsf(ContiguousIter const src, std::ptrdiff_t const n, ContiguousIter2 const dest)
+	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != n)
 		{	// Dereference to detect out of range errors if the iterator has internal check
@@ -160,8 +162,8 @@ namespace _detail
 		return src + n;
 	}
 
-	template< typename InputIter, typename Integral, typename RandomAccessIter >
-	InputIter CopyUnsf(InputIter src, Integral const n, RandomAccessIter const dest, false_type)
+	template< typename InputIter, typename Integral, typename RandomAccessIter, typename... None >
+	InputIter CopyUnsf(InputIter src, Integral const n, RandomAccessIter const dest, None...)
 	{
 		for (Integral i = 0; i < n; ++i)
 		{
@@ -172,8 +174,8 @@ namespace _detail
 	}
 
 
-	template< typename InputRange, typename OutputRange >
-	bool CopyFit(const InputRange & src, OutputRange & dest, long)
+	template< typename InputRange, typename OutputRange, typename... None >
+	bool CopyFit(const InputRange & src, OutputRange & dest, None...)
 	{
 		auto it = begin(src);  auto const last = end(src);
 		auto di = begin(dest);  auto const dl = end(dest);
@@ -192,8 +194,8 @@ namespace _detail
 	}
 
 	template< typename SizedRange, typename RandomAccessRange >
-	bool CopyFit(const SizedRange & src, RandomAccessRange & dest,
-	             decltype( oel::ssize(src), int() )) // best match for int if ssize(src) is well-formed (SFINAE)
+	auto CopyFit(const SizedRange & src, RandomAccessRange & dest)
+	->	decltype( oel::ssize(src), bool() ) // better match if ssize(src) is well-formed (SFINAE)
 	{
 		auto const destSize = oel::ssize(dest);
 		auto n = oel::ssize(src);
@@ -212,11 +214,7 @@ template< typename SizedInputRange, typename RandomAccessIter >
 inline auto oel::copy_unsafe(const SizedInputRange & src, RandomAccessIter dest)
 ->	copy_return<decltype(begin(src))>
 {
-	using InIter = decltype(begin(src));
-	return {
-		_detail::CopyUnsf(
-			begin(src), oel::ssize(src), dest,
-			can_memmove_with<RandomAccessIter, InIter>() )};
+	return {_detail::CopyUnsf(begin(src), oel::ssize(src), dest)};
 }
 
 template< typename SizedInputRange, typename RandomAccessRange >
@@ -232,7 +230,7 @@ auto oel::copy(const SizedInputRange & src, RandomAccessRange && dest)
 template< typename InputRange, typename RandomAccessRange >
 inline bool oel::copy_fit(const InputRange & src, RandomAccessRange && dest)
 {
-	return _detail::CopyFit(src, dest, int{});
+	return _detail::CopyFit(src, dest);
 }
 
 
