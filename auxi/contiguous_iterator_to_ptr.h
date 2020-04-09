@@ -92,6 +92,7 @@ namespace _detail
 } // namespace oel
 
 //! @cond FALSE
+
 template< typename IteratorDest, typename IteratorSource >
 struct oel::can_memmove_with :
 	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),

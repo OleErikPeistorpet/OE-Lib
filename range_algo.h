@@ -67,7 +67,7 @@ auto copy_unsafe(const SizedInputRange & source, RandomAccessIter dest)
 /**
 * @brief Copies the elements in source range into dest range, throws std::out_of_range if dest is smaller than source
 * @return `begin(source)` incremented by the number of elements in source
-* @pre The ranges shall not overlap, except if `begin(source)` equals `begin(dest)` (then elements are self assigned)
+* @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
 * Requires that source has size() member or is an array, and dest is a random_access_range (C++20 concept)  */
 template< typename SizedInputRange, typename RandomAccessRange >
@@ -76,7 +76,7 @@ auto copy(const SizedInputRange & source, RandomAccessRange && dest)
 /**
 * @brief Copies as many elements from source as will fit in dest
 * @return true if all elements were copied, false means truncation happened
-* @pre The ranges shall not overlap, except if `begin(source)` equals `begin(dest)` (then elements are self assigned)
+* @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
 * Requires that dest is a random_access_range (otherwise compilation will fail)  */
 template< typename InputRange, typename RandomAccessRange >
