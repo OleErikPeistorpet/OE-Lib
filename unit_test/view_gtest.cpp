@@ -9,13 +9,14 @@
 #include <functional>
 
 namespace view = oel::view;
-using oel::basic_view;
-using oel::counted_view;
 
-auto transformIterFromIntPtr(int * p)
+constexpr auto transformIterFromIntPtr(const int * p)
 {
-	auto f = [](int i) { return i; };
-	return oel::transform_iterator<decltype(f), int *>{f, p};
+	struct F
+	{
+		auto operator()(int i) const { return i; }
+	};
+	return oel::transform_iterator<F, const int *>{F{}, p};
 }
 
 TEST(viewTest, basicView)
@@ -27,19 +28,19 @@ TEST(viewTest, basicView)
 	static_assert(std::ranges::view<BV>);
 	static_assert(std::ranges::borrowed_range<BV>);
 #endif
-	int src[3]{};
+	static constexpr int src[3]{};
 	{
-		basic_view<const int *> v{std::begin(src), std::end(src)};
-		EXPECT_EQ(3, ssize(v));
+		constexpr auto v = view::subrange(src + 1, src + 3);
+		EXPECT_EQ(2, ssize(v));
 	}
-	auto it = transformIterFromIntPtr(src);
-	basic_view<decltype(it), int *> v{it, std::end(src)};
+	constexpr auto it = transformIterFromIntPtr(src);
+	constexpr auto v = view::subrange(it, src + 3);
 	EXPECT_EQ(3, ssize(v));
 }
 
 TEST(viewTest, countedView)
 {
-	using CV = counted_view<int *>;
+	using CV = oel::counted_view<int *>;
 
 	static_assert(std::is_trivially_constructible<CV, CV &>::value, "?");
 
@@ -50,7 +51,7 @@ TEST(viewTest, countedView)
 #endif
 	{
 		oel::dynarray<int> i{1, 2};
-		counted_view<oel::dynarray<int>::const_iterator> test = i;
+		oel::counted_view<oel::dynarray<int>::const_iterator> test = i;
 		EXPECT_EQ(i.size(), test.size());
 		EXPECT_EQ(1, test[0]);
 		EXPECT_EQ(2, test[1]);
@@ -59,9 +60,9 @@ TEST(viewTest, countedView)
 		EXPECT_EQ(2, test.back());
 		EXPECT_TRUE(test.end() == i.end());
 	}
-	int src[1]{};
-	auto it = transformIterFromIntPtr(src);
-	counted_view<decltype(it)> v{it, 1};
+	static constexpr int src[1]{};
+	constexpr auto it = transformIterFromIntPtr(src);
+	constexpr auto v = view::counted(it, 1);
 	EXPECT_EQ(std::end(src), v.end());
 }
 

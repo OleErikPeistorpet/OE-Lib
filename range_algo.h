@@ -23,7 +23,7 @@ namespace oel
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template< typename RandomAccessContainer >
-void erase_unstable(RandomAccessContainer & c, typename RandomAccessContainer::size_type index)
+constexpr void erase_unstable(RandomAccessContainer & c, typename RandomAccessContainer::size_type index)
 {
 	c[index] = std::move(c.back());
 	c.pop_back();
@@ -34,14 +34,14 @@ void erase_unstable(RandomAccessContainer & c, typename RandomAccessContainer::s
 *
 * This mimics `std::erase_if` (C++20) for sequence containers  */
 template< typename Container, typename UnaryPredicate >
-void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c, p, int{}); }
+constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c, p, int{}); }
 /**
 * @brief Erase consecutive duplicate elements in container
 *
 * Calls Container::unique if available (with fallback std::unique).
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
 template< typename Container >
-void erase_adjacent_dup(Container & c)   { _detail::Unique(c, int{}); }
+constexpr void erase_adjacent_dup(Container & c)   { _detail::Unique(c, int{}); }
 
 
 
@@ -85,20 +85,20 @@ bool copy_fit(InputRange && source, RandomAccessRange && dest)   { return _detai
 /** @name GenericContainerInsert
 * @brief For generic code that may use either dynarray or std library container (overloaded in dynarray.h)  */
 //!@{
-template< typename Container, typename InputRange >  inline
-void assign(Container & dest, InputRange && source)  { dest.assign(begin(source), end(source)); }
+template< typename Container, typename InputRange >
+constexpr void assign(Container & dest, InputRange && source)  { dest.assign(begin(source), end(source)); }
 
-template< typename Container, typename InputRange >  inline
-void append(Container & dest, InputRange && source)  { dest.insert(dest.end(), begin(source), end(source)); }
+template< typename Container, typename InputRange >
+constexpr void append(Container & dest, InputRange && source)  { dest.insert(dest.end(), begin(source), end(source)); }
 
-template< typename Container, typename T >  inline
-void append(Container & dest, typename Container::size_type count, const T & val)
+template< typename Container, typename T >
+constexpr void append(Container & dest, typename Container::size_type count, const T & val)
 {
 	dest.resize(dest.size() + count, val);
 }
 
-template< typename Container, typename ContainerIterator, typename InputRange >  inline
-auto insert(Container & dest, ContainerIterator pos, InputRange && source)
+template< typename Container, typename ContainerIterator, typename InputRange >
+constexpr auto insert(Container & dest, ContainerIterator pos, InputRange && source)
 {
 	return dest.insert(pos, begin(source), end(source));
 }

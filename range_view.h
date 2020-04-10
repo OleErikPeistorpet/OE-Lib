@@ -40,10 +40,10 @@ public:
 	using difference_type = iter_difference_t<Iterator>;
 
 	basic_view() = default;
-	basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
+	constexpr basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
 
-	Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
-	Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
+	constexpr Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
+	constexpr Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
 
 protected:
 	Iterator _begin;
@@ -61,7 +61,7 @@ public:
 	using size_type       = std::make_unsigned_t<difference_type>;
 
 	counted_view() = default;
-	constexpr counted_view(Iterator f, difference_type n)  : _begin(f), _size(n)  { OEL_ASSERT(n >= 0); }
+	constexpr counted_view(Iterator f, difference_type n)   : _begin(f), _size(n) {}
 	//! Construct from range (lvalue) that knows its size, with matching iterator type
 	template< typename SizedRange,
 		enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0 // avoid being selected for copy
@@ -79,21 +79,9 @@ public:
 	constexpr bool      empty() const noexcept  OEL_ALWAYS_INLINE { return 0 == _size; }
 
 	//! Modify this view to exclude first element
-	constexpr void      drop_front()
-		{
-		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-			OEL_ASSERT(_size > 0);
-		#endif
-			++_begin; --_size;
-		}
+	constexpr void      drop_front()          { ++_begin; --_size; }
 	//! Modify this view to exclude last element
-	constexpr void      drop_back() noexcept
-		{
-		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-			OEL_ASSERT(_size > 0);
-		#endif
-			--_size;
-		}
+	constexpr void      drop_back() noexcept   { --_size; }
 
 protected:
 	Iterator       _begin;
@@ -125,8 +113,8 @@ namespace view
 {
 
 //! Create a basic_view from iterator pair, or iterator and sentinel
-template< typename Iterator, typename Sentinel >  inline
-basic_view<Iterator, Sentinel> subrange(Iterator first, Sentinel last)  { return {first, last}; }
+template< typename Iterator, typename Sentinel >
+constexpr basic_view<Iterator, Sentinel> subrange(Iterator first, Sentinel last)  { return {first, last}; }
 
 
 //! Create a counted_view from iterator and count, with type deduced from first
@@ -138,7 +126,7 @@ constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Itera
 
 //! Create a basic_view of std::move_iterator from two iterators
 template< typename InputIterator >
-basic_view< std::move_iterator<InputIterator> >
+constexpr basic_view< std::move_iterator<InputIterator> >
 	move(InputIterator first, InputIterator last)   { using MI = std::move_iterator<InputIterator>;
 	                                                  return{ MI{first}, MI{last} }; }
 /**
@@ -148,8 +136,8 @@ basic_view< std::move_iterator<InputIterator> >
 *
 * Note that passing an rvalue range is meant to give a compile error. Use a named variable. */
 template< typename InputRange >
-auto move(InputRange & r)     { using MI = std::move_iterator<decltype( begin(r) )>;
-                                return _detail::all<MI>(r); }
+constexpr auto move(InputRange & r)   { using MI = std::move_iterator<decltype( begin(r) )>;
+                                        return _detail::all<MI>(r); }
 
 /**
 * @brief Create a view with transform_iterator from a range
@@ -163,7 +151,7 @@ result.append( view::transform(arr, [](const auto & bs) { return bs.to_string();
 * trivially destructible). Moreover, UnaryFunc can have non-const operator() (such as mutable lambda). <br>
 * Note that passing an rvalue range is meant to give a compile error. Use a named variable. */
 template< typename UnaryFunc, typename Range >
-auto transform(Range & r, UnaryFunc f)
+constexpr auto transform(Range & r, UnaryFunc f)
 	{
 		using I = decltype(begin(r));
 		return _detail::Transf<UnaryFunc, I>::call(_detail::all<I>(r), f);

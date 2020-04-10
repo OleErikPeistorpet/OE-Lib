@@ -20,8 +20,8 @@ namespace _detail
 		T inner;
 		U _sec;
 
-		OEL_ALWAYS_INLINE const U & func() const noexcept { return _sec; }
-		OEL_ALWAYS_INLINE       U & func() noexcept       { return _sec; }
+		OEL_ALWAYS_INLINE constexpr const U & func() const { return _sec; }
+		OEL_ALWAYS_INLINE constexpr       U & func()       { return _sec; }
 	};
 
 	template< typename Type_unique_name_for_MSVC, typename Empty_type_MSVC_unique_name >
@@ -31,12 +31,12 @@ namespace _detail
 		Type_unique_name_for_MSVC inner;
 
 		TightPair() = default;
-		TightPair(Type_unique_name_for_MSVC i, Empty_type_MSVC_unique_name f)
+		constexpr TightPair(Type_unique_name_for_MSVC i, Empty_type_MSVC_unique_name f)
 		 :	Empty_type_MSVC_unique_name{f}, inner{std::move(i)}
 		{}
 
-		OEL_ALWAYS_INLINE const Empty_type_MSVC_unique_name & func() const noexcept { return *this; }
-		OEL_ALWAYS_INLINE       Empty_type_MSVC_unique_name & func() noexcept       { return *this; }
+		OEL_ALWAYS_INLINE constexpr const Empty_type_MSVC_unique_name & func() const { return *this; }
+		OEL_ALWAYS_INLINE constexpr       Empty_type_MSVC_unique_name & func()       { return *this; }
 	};
 
 
@@ -48,7 +48,7 @@ namespace _detail
 				std::is_trivially_destructible<Type_unique_name_for_MSVC>::value,
 			"transform_iterator requires move assignable or trivially destructible UnaryFunc");
 
-		AssignableBox(const Type_unique_name_for_MSVC & src) noexcept
+		constexpr AssignableBox(const Type_unique_name_for_MSVC & src) noexcept
 		 :	Type_unique_name_for_MSVC(src) {}
 
 		AssignableBox() = default;
@@ -77,7 +77,7 @@ class transform_iterator
 	template< typename IterCat,
 		enable_if< std::is_base_of<std::forward_iterator_tag, IterCat>::value > = 0
 	>
-	transform_iterator _postIncrement()
+	constexpr transform_iterator _postIncrement()
 	{
 		auto tmp = *this;
 		++_m.inner;
@@ -85,7 +85,7 @@ class transform_iterator
 	}
 
 	template< typename, typename... None >
-	void _postIncrement(None...)
+	constexpr void _postIncrement(None...)
 	{
 		++_m.inner;
 	}
@@ -102,55 +102,57 @@ public:
 	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
 
 	transform_iterator() = default;
-	transform_iterator(UnaryFunc f, Iterator it)  : _m{std::move(it), std::move(f)} {}
+	constexpr transform_iterator(UnaryFunc f, Iterator it)  : _m{std::move(it), std::move(f)} {}
 
-	Iterator         base() &&       OEL_ALWAYS_INLINE { return std::move(_m.inner); }
-	const Iterator & base() const &  OEL_ALWAYS_INLINE { return _m.inner; }
+	constexpr Iterator         base() &&       OEL_ALWAYS_INLINE { return std::move(_m.inner); }
+	constexpr const Iterator & base() const &  OEL_ALWAYS_INLINE { return _m.inner; }
 
-	reference operator*() const
+	constexpr reference operator*() const
 		OEL_REQUIRES(std::invocable< UnaryFunc const, decltype(*_m.inner) >)
 	{
 		return static_cast<const UnaryFunc &>(_m.func())(*_m.inner);
 	}
-	reference operator*()
+	constexpr reference operator*()
 	{
 		return static_cast<UnaryFunc &>(_m.func())(*_m.inner);
 	}
 
-	transform_iterator & operator++()  OEL_ALWAYS_INLINE
+	constexpr transform_iterator & operator++()  OEL_ALWAYS_INLINE
 	{
 		++_m.inner;
 		return *this;
 	}
 	//! Return type is transform_iterator if iterator_category is forward_iterator_tag, else void
-	auto operator++(int) &  OEL_ALWAYS_INLINE
+	constexpr auto operator++(int) &  OEL_ALWAYS_INLINE
 	{
 		return _postIncrement<iterator_category>();
 	}
 
-	difference_type operator -(const transform_iterator & right) const              { return _m.inner - right._m.inner; }
+	constexpr difference_type operator -(const transform_iterator & right) const  { return _m.inner - right._m.inner; }
 	template< typename Sentinel >
-	friend difference_type operator -(const transform_iterator & left, Sentinel right)  { return left._m.inner - right; }
+	friend constexpr difference_type
+		operator -(const transform_iterator & left, Sentinel right)   { return left._m.inner - right; }
 	template< typename Sentinel >
-	friend difference_type operator -(Sentinel left, const transform_iterator & right)  { return left - right._m.inner; }
+	friend constexpr difference_type
+		operator -(Sentinel left, const transform_iterator & right)   { return left - right._m.inner; }
 
-	bool        operator==(const transform_iterator & right) const       { return _m.inner == right._m.inner; }
-	bool        operator!=(const transform_iterator & right) const       { return _m.inner != right._m.inner; }
+	constexpr bool        operator==(const transform_iterator & right) const       { return _m.inner == right._m.inner; }
+	constexpr bool        operator!=(const transform_iterator & right) const       { return _m.inner != right._m.inner; }
 	template< typename Sentinel >
-	friend bool operator==(const transform_iterator & left, Sentinel right)  { return left._m.inner == right; }
+	friend constexpr bool operator==(const transform_iterator & left, Sentinel right)  { return left._m.inner == right; }
 	template< typename Sentinel >
-	friend bool operator==(Sentinel left, const transform_iterator & right)  { return right._m.inner == left; }
+	friend constexpr bool operator==(Sentinel left, const transform_iterator & right)  { return right._m.inner == left; }
 	template< typename Sentinel >
-	friend bool operator!=(const transform_iterator & left, Sentinel right)  { return left._m.inner != right; }
+	friend constexpr bool operator!=(const transform_iterator & left, Sentinel right)  { return left._m.inner != right; }
 	template< typename Sentinel >
-	friend bool operator!=(Sentinel left, const transform_iterator & right)  { return right._m.inner != left; }
+	friend constexpr bool operator!=(Sentinel left, const transform_iterator & right)  { return right._m.inner != left; }
 };
 
 
 namespace _detail
 {
 	template< typename F, typename RandomAccessIter >
-	auto SentinelAt(const transform_iterator<F, RandomAccessIter> & it, iter_difference_t<RandomAccessIter> n)
+	constexpr auto SentinelAt(const transform_iterator<F, RandomAccessIter> & it, iter_difference_t<RandomAccessIter> n)
 	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},
 		          it.base() + n )
 		 { return it.base() + n; }
