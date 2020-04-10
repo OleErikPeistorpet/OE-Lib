@@ -51,10 +51,10 @@ public:
 	using iterator        = Iterator;
 	using value_type      = iter_value_t<Iterator>;
 	using difference_type = iter_difference_t<Iterator>;
-	using size_type       = typename std::make_unsigned<difference_type>::type;
+	using size_type       = std::make_unsigned_t<difference_type>;
 
 	counted_view() = default;
-	constexpr counted_view(Iterator f, difference_type n);
+	constexpr counted_view(Iterator f, difference_type n)   : _begin(f), _size(n) { OEL_ASSERT(n >= 0); }
 	//! Construct from range (lvalue, that knows its size) with matching iterator type
 	template< typename SizedRange,
 		enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0 // avoid being selected for copy
@@ -160,15 +160,6 @@ auto transform(Range & r, UnaryFunc f)
 //
 // Implementation only in rest of the file
 
-
-template< typename Iterator, bool B >
-constexpr counted_view<Iterator, B>::counted_view(Iterator f, difference_type n)
- :	_begin(f), _size(n)
-{
-#if __cplusplus >= 201402 or defined _MSC_VER
-	OEL_ASSERT(n >= 0);
-#endif
-}
 
 template< typename Iterator, bool B >
 void counted_view<Iterator, B>::drop_front()
