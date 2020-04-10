@@ -113,8 +113,8 @@ public:
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 
-	constexpr dynarray() noexcept                : _m(Alloc{}) {}
-	explicit dynarray(const Alloc & a) noexcept  : _m(a) {}
+	constexpr dynarray() noexcept(noexcept(Alloc{}))       : _m(Alloc{}) {}
+	constexpr explicit dynarray(const Alloc & a) noexcept  : _m(a) {}
 
 	//! Construct empty dynarray with space reserved for at least minCap elements
 	dynarray(reserve_tag, size_type minCap, const Alloc & a = Alloc{})   : _m(a, minCap) {}
@@ -248,10 +248,10 @@ public:
 
 	size_type capacity() const noexcept   { return _m.reservEnd - _m.data; }
 
-	size_type max_size() const noexcept   { return _allocTrait::max_size(_m) - _allocateWrap::sizeForHeader; }
+	constexpr size_type max_size() const noexcept   { return _allocTrait::max_size(_m) - _allocateWrap::sizeForHeader; }
 
 	//! How much smaller capacity is than the number passed to allocator_type::allocate
-	static constexpr size_type allocate_size_overhead()  { return _allocateWrap::sizeForHeader; }
+	static constexpr size_type allocate_size_overhead() noexcept  { return _allocateWrap::sizeForHeader; }
 
 	allocator_type get_allocator() const noexcept   { return _m; }
 
