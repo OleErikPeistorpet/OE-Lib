@@ -12,14 +12,6 @@
 #include <stdexcept>
 
 
-// std::max not constexpr for GCC 4
-template< typename T >
-constexpr T oel_max(const T & a, const T & b)
-{
-	return a < b ? b : a;
-}
-
-
 namespace oel
 {
 namespace _detail
@@ -37,7 +29,7 @@ namespace _detail
 		}
 	};
 
-
+////////////////////////////////////////////////////////////////////////////////
 
 	template< typename T > struct AssertTrivialRelocate
 	{
