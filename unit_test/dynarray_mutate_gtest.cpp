@@ -701,9 +701,8 @@ TEST_F(dynarrayTest, eraseUnstable)
 TEST_F(dynarrayTest, overAligned)
 {
 	static unsigned int const testAlignment = 64;
-	struct Type
-	{	oel::aligned_storage_t<testAlignment, testAlignment> a;
-	};
+	struct alignas(testAlignment) Type {};
+
 	dynarray<Type> special(oel::reserve, 1);
 
 	special.insert(special.begin(), Type());

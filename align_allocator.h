@@ -47,27 +47,21 @@ struct allocator
 
 
 
-//! Similar to std::aligned_storage_t, but supports any alignment the compiler can provide
-template< size_t Size, size_t Align >
-struct
-#ifdef __GNUC__
-	__attribute__(( aligned(Align), may_alias ))
-#else
-	alignas(Align)
-#endif
-	aligned_storage_t
-{
-	unsigned char as_bytes[Size];
-};
-//! A trivial type of same size and alignment as type T, suitable for use as uninitialized storage for an object
-template< typename T >
-using aligned_union_t = aligned_storage_t<sizeof(T), alignof(T)>;
-
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Implementation only in rest of the file
+// The rest of the file is not for users (implementation)
+
+
+// Assignable, and supports alignment above that of max_align_t (if the compiler/linker provides it)
+template< typename T >
+struct
+#ifdef __GNUC__
+	__attribute__((may_alias))
+#endif
+	aligned_union_t
+{
+	alignas(T) unsigned char as_bytes[sizeof(T)];
+};
 
 
 namespace _detail
