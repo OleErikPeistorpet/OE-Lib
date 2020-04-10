@@ -75,10 +75,6 @@ using iter_is_random_access = std::is_base_of< std::random_access_iterator_tag, 
 template< bool Condition >
 using enable_if = typename std::enable_if<Condition, int>::type;
 
-
-template< typename... Ts >
-using common_type = typename std::common_type<Ts...>::type;
-
 } // namespace oel
 
 

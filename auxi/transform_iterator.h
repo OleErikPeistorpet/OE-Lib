@@ -48,16 +48,15 @@ class transform_iterator
 	_detail::TightPair<Iterator, UnaryFunc> _m;
 
 public:
-	using iterator_category = typename std::conditional<
+	using iterator_category = std::conditional_t<
 			std::is_base_of< std::forward_iterator_tag, iter_category<Iterator> >::value,
 			std::forward_iterator_tag,
 			iter_category<Iterator>
-		>::type;
-
+		>;
 	using difference_type = iter_difference_t<Iterator>;
 	using reference       = decltype( _m.func()(*_m.inner) );
 	using pointer         = void;
-	using value_type      = typename std::decay<reference>::type;
+	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
 
 	Iterator base() const  { return _m.inner; }
 
