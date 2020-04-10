@@ -415,17 +415,17 @@ private:
 
 	_span _allocateAddOne()
 	{
-		constexpr auto startBytesGood = oel_max(3 * sizeof(void *), 4 * sizeof(int));
+		constexpr auto startBytesGood = std::max(3 * sizeof(void *), 4 * sizeof(int));
 		constexpr auto minGrow = (startBytesGood - 1) / sizeof(T) + 1;
 		size_type c = capacity();
-		c += oel_max(c, minGrow); // growth factor is 2
+		c += std::max(c, minGrow); // growth factor is 2
 
 		return {_allocateWrap::Allocate(_m, c), c};
 	}
 
 	size_type _calcNewCap(size_type const newSize) const
 	{
-		return oel_max(2 * capacity(), newSize);
+		return std::max(2 * capacity(), newSize);
 	}
 
 	size_type _unusedCapacity() const

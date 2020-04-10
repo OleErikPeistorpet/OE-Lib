@@ -88,10 +88,6 @@ struct maybe_sized_sentinel_for
 template< bool Condition >
 using enable_if = typename std::enable_if<Condition, int>::type;
 
-
-template< typename... Ts >
-using common_type = typename std::common_type<Ts...>::type;
-
 } // namespace oel
 
 
