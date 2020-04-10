@@ -20,22 +20,21 @@ namespace oel
 
 //! Passed val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
 template< typename T >  OEL_ALWAYS_INLINE
-constexpr typename std::make_signed<T>::type
-	as_signed(T val) noexcept                  { return (typename std::make_signed<T>::type) val; }
+constexpr std::make_signed_t<T>   as_signed(T val) noexcept    { return std::make_signed_t<T>(val); }
 //! Passed val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
 template< typename T >  OEL_ALWAYS_INLINE
-constexpr typename std::make_unsigned<T>::type
-	as_unsigned(T val) noexcept                { return (typename std::make_unsigned<T>::type) val; }
+constexpr std::make_unsigned_t<T> as_unsigned(T val) noexcept  { return std::make_unsigned_t<T>(val); }
 
 
-//! Returns r.size() as signed type (same as std::ssize in C++20)
-template< typename SizedRange >  OEL_ALWAYS_INLINE
+//! Equivalent to std::ssize (C++20)
+template< typename SizedRange >
 constexpr auto ssize(const SizedRange & r)
-->	common_type<ptrdiff_t, decltype( as_signed(r.size()) )>
+->	std::common_type_t< ptrdiff_t, std::make_signed_t<decltype(r.size())> >
 	{
-		return static_cast< common_type<ptrdiff_t, decltype( as_signed(r.size()) )> >(r.size());
+		using S = std::common_type_t< ptrdiff_t, std::make_signed_t<decltype(r.size())> >;
+		return static_cast<S>(r.size());
 	}
-//! Returns number of elements in array as signed type
+//! Equivalent to std::ssize, array overload
 template< typename T, ptrdiff_t Size >  OEL_ALWAYS_INLINE
 constexpr ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
@@ -55,7 +54,7 @@ constexpr bool index_valid(const SizedRange & r, Integral index);
 * Example, sort pointers by pointed-to values, not addresses:
 @code
 oel::dynarray< std::unique_ptr<double> > d;
-std::sort(d.begin(), d.end(), deref_args< std::less<> >{}); // std::less<double> before C++14
+std::sort(d.begin(), d.end(), deref_args< std::less<> >{});
 @endcode  */
 template< typename Func >
 struct deref_args

@@ -203,7 +203,7 @@ struct TrackingAllocator : TrackingAllocatorBase<T>
 };
 
 template<typename T, bool PropagateOnMoveAssign = false, bool UseConstruct = true>
-struct StatefulAllocator : std::conditional< UseConstruct, TrackingAllocator<T>, TrackingAllocatorBase<T> >::type
+struct StatefulAllocator : std::conditional_t< UseConstruct, TrackingAllocator<T>, TrackingAllocatorBase<T> >
 {
 	using propagate_on_container_move_assignment = oel::bool_constant<PropagateOnMoveAssign>;
 

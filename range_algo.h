@@ -98,7 +98,7 @@ void append(Container & dest, typename Container::size_type count, const T & val
 }
 
 template< typename Container, typename ContainerIterator, typename InputRange >  inline
-typename Container::iterator insert(Container & dest, ContainerIterator pos, const InputRange & source)
+auto insert(Container & dest, ContainerIterator pos, const InputRange & source)
 {
 	return dest.insert(pos, begin(source), end(source));
 }
