@@ -52,11 +52,11 @@ class counted_view
 public:
 	using value_type      = iter_value_t<Iterator>;
 	using difference_type = iter_difference_t<Iterator>;
-	using size_type       = typename std::make_unsigned<difference_type>::type;
+	using size_type       = std::make_unsigned_t<difference_type>;
 
 	//! Initialize to empty
 	constexpr counted_view() noexcept                      : _size() {}
-	constexpr counted_view(Iterator f, difference_type n);
+	constexpr counted_view(Iterator f, difference_type n)  : _begin(f), _size(n)  { OEL_ASSERT(n >= 0); }
 	//! Construct from range (lvalue) that knows its size, with matching iterator type
 	template< typename SizedRange,
 		enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0 // avoid being selected for copy
@@ -71,10 +71,22 @@ public:
 
 	constexpr bool      empty() const noexcept  OEL_ALWAYS_INLINE { return 0 == _size; }
 
-	//! Increment begin, decrementing size
-	void      drop_front();
-	//! Decrement size (and end)
-	void      drop_back();
+	//! Modify this view to exclude first element
+	void      drop_front()
+		{
+		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+			OEL_ASSERT(_size > 0);
+		#endif
+			++_begin; --_size;
+		}
+	//! Modify this view to exclude last element
+	void      drop_back()
+		{
+		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+			OEL_ASSERT(_size > 0);
+		#endif
+			--_size;
+		}
 
 protected:
 	Iterator       _begin;
@@ -148,40 +160,6 @@ auto transform(Range & r, UnaryFunc f)
 		using It = decltype(begin(r));
 		return _detail::all<It>(transform_iterator<UnaryFunc, It>{f, begin(r)}, r);
 	}
+} // view
+
 }
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Implementation only in rest of the file
-
-
-template< typename Iterator, bool B >
-constexpr counted_view<Iterator, B>::counted_view(Iterator f, difference_type n)
- :	_begin(f), _size(n)
-{
-#if __cplusplus >= 201402 or defined _MSC_VER
-	OEL_ASSERT(n >= 0);
-#endif
-}
-
-template< typename Iterator, bool B >
-void counted_view<Iterator, B>::drop_front()
-{
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	OEL_ASSERT(_size > 0);
-#endif
-	++_begin; --_size;
-}
-
-template< typename Iterator, bool B >
-void counted_view<Iterator, B>::drop_back()
-{
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	OEL_ASSERT(_size > 0);
-#endif
-	--_size;
-}
-
-} // namespace oel

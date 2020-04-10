@@ -8,10 +8,10 @@ Unlike the containers in many older standard library implementations, over-align
 
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
-Supported compilers:
+C++14 is required. Supported compilers:
 * Visual Studio 2015 and later
 * GCC 5 and later
-* Clang is tested regularly (Travis CI), but minimum version is unknown
+* Clang (tested regularly, but minimum version is unknown)
 
 ### Append
 

@@ -110,8 +110,6 @@ TEST(dynarrayOtherTest, aggregate)
 using MyAllocStr = oel::allocator<std::string>;
 static_assert(std::is_trivially_copyable<MyAllocStr>::value, "?");
 
-#if _MSC_VER or __GNUC__ >= 5
-
 TEST(dynarrayOtherTest, stdDequeWithOelAlloc)
 {
 	std::deque<std::string, MyAllocStr> v{"Test"};
@@ -148,7 +146,6 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
-#endif
 
 #ifdef __has_include
 #if __has_include(<variant>) and (__cplusplus > 201500 or _HAS_CXX17)
