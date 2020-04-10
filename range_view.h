@@ -51,7 +51,7 @@ public:
 	using iterator        = Iterator;
 	using value_type      = iter_value_t<Iterator>;
 	using difference_type = iter_difference_t<Iterator>;
-	using size_type       = typename std::make_unsigned<difference_type>::type;
+	using size_type       = std::make_unsigned_t<difference_type>;
 
 	counted_view() = default;
 	constexpr counted_view(Iterator f, difference_type n);
@@ -165,9 +165,7 @@ template< typename Iterator, bool B >
 constexpr counted_view<Iterator, B>::counted_view(Iterator f, difference_type n)
  :	_begin(f), _size(n)
 {
-#if __cplusplus >= 201402 or defined _MSC_VER
 	OEL_ASSERT(n >= 0);
-#endif
 }
 
 template< typename Iterator, bool B >

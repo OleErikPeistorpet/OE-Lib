@@ -74,7 +74,7 @@ inline std::unique_ptr<T>  oel::make_unique(Args &&... args)
 
 #define OEL_MAKE_UNIQUE_A(newExpr)  \
 	static_assert(std::extent<T>::value == 0, "make_unique forbids T[size]. Please use T[]");  \
-	using Elem = typename std::remove_extent<T>::type;  \
+	using Elem = std::remove_extent_t<T>;  \
 	return std::unique_ptr<T>(newExpr)
 
 template< typename T, typename >
