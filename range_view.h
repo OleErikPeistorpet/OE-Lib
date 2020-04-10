@@ -27,10 +27,10 @@ class basic_view
 {
 public:
 	basic_view() = default;
-	basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
+	constexpr basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
 
-	Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
-	Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
+	constexpr Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
+	constexpr Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
 
 protected:
 	Iterator _begin;
@@ -41,7 +41,7 @@ protected:
 template< typename Iterator, typename Sentinel,
           enable_if< maybe_sized_sentinel_for<Sentinel, Iterator>::value > = 0
 >
-auto ssize(const basic_view<Iterator, Sentinel> & v)
+constexpr auto ssize(const basic_view<Iterator, Sentinel> & v)
 ->	decltype( v.end() - v.begin() )
 	 { return v.end() - v.begin(); }
 
@@ -72,7 +72,7 @@ public:
 	constexpr bool      empty() const noexcept  OEL_ALWAYS_INLINE { return 0 == _size; }
 
 	//! Modify this view to exclude first element
-	void      drop_front()
+	constexpr void      drop_front()
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 			OEL_ASSERT(_size > 0);
@@ -80,7 +80,7 @@ public:
 			++_begin; --_size;
 		}
 	//! Modify this view to exclude last element
-	void      drop_back() noexcept
+	constexpr void      drop_back() noexcept
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 			OEL_ASSERT(_size > 0);
@@ -118,8 +118,8 @@ namespace view
 {
 
 //! Create a basic_view from iterator pair, or iterator and sentinel
-template< typename Iterator, typename Sentinel >  inline
-basic_view<Iterator, Sentinel> subrange(Iterator first, Sentinel last)  { return {first, last}; }
+template< typename Iterator, typename Sentinel >
+constexpr basic_view<Iterator, Sentinel> subrange(Iterator first, Sentinel last)  { return {first, last}; }
 
 
 //! Create a counted_view from iterator and count, with type deduced from first
@@ -131,7 +131,7 @@ constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Itera
 
 //! Create a basic_view of std::move_iterator from two iterators
 template< typename InputIterator >
-basic_view< std::move_iterator<InputIterator> >
+constexpr basic_view< std::move_iterator<InputIterator> >
 	move(InputIterator first, InputIterator last)   { using MovI = std::move_iterator<InputIterator>;
 	                                                  return {MovI{first}, MovI{last}}; }
 /**
@@ -141,8 +141,8 @@ basic_view< std::move_iterator<InputIterator> >
 *
 * Note that passing an rvalue range is meant to give a compile error. Use a named variable. */
 template< typename InputRange >
-auto move(InputRange & r)     { using MovI = std::move_iterator<decltype( begin(r) )>;
-                                return _detail::all<MovI>(MovI{begin(r)}, r); }
+constexpr auto move(InputRange & r)   { using MovI = std::move_iterator<decltype( begin(r) )>;
+                                        return _detail::all<MovI>(MovI{begin(r)}, r); }
 
 /**
 * @brief Create a view with transform_iterator from a range
@@ -155,7 +155,7 @@ result.append( view::transform(arr, [](const auto & bs) { return bs.to_string();
 * because it stores just one copy of f and has no size overhead for empty UnaryFunc. <br>
 * Note that passing an rvalue range is meant to give a compile error. Use a named variable. */
 template< typename UnaryFunc, typename Range >
-auto transform(Range & r, UnaryFunc f)
+constexpr auto transform(Range & r, UnaryFunc f)
 	{
 		using It = decltype(begin(r));
 		return _detail::all<It>(transform_iterator<UnaryFunc, It>{f, begin(r)}, r);

@@ -20,7 +20,7 @@ namespace _detail
 		I inner;
 		F _fun;
 
-		OEL_ALWAYS_INLINE const F & func() const noexcept { return _fun; }
+		OEL_ALWAYS_INLINE constexpr const F & func() const { return _fun; }
 	};
 
 	template< typename Iterator_MSVC_needs_unique_name, typename Empty_function_object_MSVC_name >
@@ -29,11 +29,11 @@ namespace _detail
 	{
 		Iterator_MSVC_needs_unique_name inner;
 
-		TightPair(Iterator_MSVC_needs_unique_name it, Empty_function_object_MSVC_name f)
+		constexpr TightPair(Iterator_MSVC_needs_unique_name it, Empty_function_object_MSVC_name f)
 		 :	Empty_function_object_MSVC_name(f), inner(it) {
 		}
 
-		OEL_ALWAYS_INLINE const Empty_function_object_MSVC_name & func() const noexcept { return *this; }
+		OEL_ALWAYS_INLINE constexpr const Empty_function_object_MSVC_name & func() const { return *this; }
 	};
 }
 
@@ -58,53 +58,55 @@ public:
 	using pointer         = void;
 	using value_type      = std::decay_t<reference>;
 
-	Iterator base() const  OEL_ALWAYS_INLINE { return _m.inner; }
+	constexpr Iterator base() const  OEL_ALWAYS_INLINE { return _m.inner; }
 
-	transform_iterator(UnaryFunc f, Iterator it)
+	constexpr transform_iterator(UnaryFunc f, Iterator it)
 	 :	_m{it, f} {
 	}
 
 	transform_iterator(const transform_iterator &) = default;
 
-	transform_iterator & operator =(const transform_iterator & other) &
+	constexpr transform_iterator & operator =(const transform_iterator & other) &
 		noexcept(noexcept( _m.inner = other._m.inner ))
 	{
 		_m.inner = other._m.inner;
 		return *this;
 	}
 
-	reference operator*() const
+	constexpr reference operator*() const
 	{
 		return _m.func()(*_m.inner);
 	}
 
-	transform_iterator & operator++()  OEL_ALWAYS_INLINE
-	{	// preincrement
+	constexpr transform_iterator & operator++()  OEL_ALWAYS_INLINE
+	{	// pre-increment
 		++_m.inner;
 		return *this;
 	}
 
-	transform_iterator operator++(int) &
-	{	// postincrement
+	constexpr transform_iterator operator++(int) &
+	{	// post-increment
 		auto tmp = *this;
 		++_m.inner;
 		return tmp;
 	}
 
-	friend difference_type operator -(const transform_iterator & left, Iterator right)  { return left._m.inner - right; }
-	friend difference_type operator -(Iterator left, const transform_iterator & right)  { return left - right._m.inner; }
+	friend constexpr difference_type
+		operator -(const transform_iterator & left, Iterator right)  { return left._m.inner - right; }
+	friend constexpr difference_type
+		operator -(Iterator left, const transform_iterator & right)  { return left - right._m.inner; }
 
-	friend bool operator==(const transform_iterator & left, Iterator right)  { return left._m.inner == right; }
-	friend bool operator==(Iterator left, const transform_iterator & right)  { return left == right._m.inner; }
-	friend bool operator!=(const transform_iterator & left, Iterator right)  { return left._m.inner != right; }
-	friend bool operator!=(Iterator left, const transform_iterator & right)  { return left != right._m.inner; }
+	friend constexpr bool operator==(const transform_iterator & left, Iterator right)  { return left._m.inner == right; }
+	friend constexpr bool operator==(Iterator left, const transform_iterator & right)  { return left == right._m.inner; }
+	friend constexpr bool operator!=(const transform_iterator & left, Iterator right)  { return left._m.inner != right; }
+	friend constexpr bool operator!=(Iterator left, const transform_iterator & right)  { return left != right._m.inner; }
 };
 
 
 namespace _detail
 {
 	template< typename F, typename RandomAccessIter >
-	auto SentinelAt(const transform_iterator<F, RandomAccessIter> & it, iter_difference_t<RandomAccessIter> n)
+	constexpr auto SentinelAt(const transform_iterator<F, RandomAccessIter> & it, iter_difference_t<RandomAccessIter> n)
 	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},
 		          it.base() + n )
 		 { return it.base() + n; }
