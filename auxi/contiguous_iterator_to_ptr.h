@@ -66,7 +66,7 @@ constexpr T * to_pointer_contiguous(T * it) noexcept { return it; }
 #endif
 
 template< typename Iterator >
-auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
+constexpr auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
 ->	decltype( to_pointer_contiguous(it.base()) )
 	 { return to_pointer_contiguous(it.base()); }
 

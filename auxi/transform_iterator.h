@@ -20,7 +20,7 @@ namespace _detail
 		I inner;
 		F _fun;
 
-		OEL_ALWAYS_INLINE const F & func() const noexcept { return _fun; }
+		OEL_ALWAYS_INLINE constexpr const F & func() const { return _fun; }
 	};
 
 	template< typename Iterator_MSVC_needs_unique_name, typename Empty_function_object_MSVC_name >
@@ -33,7 +33,7 @@ namespace _detail
 		 :	Empty_function_object_MSVC_name(f), inner(it) {
 		}
 
-		OEL_ALWAYS_INLINE const Empty_function_object_MSVC_name & func() const noexcept { return *this; }
+		OEL_ALWAYS_INLINE constexpr const Empty_function_object_MSVC_name & func() const { return *this; }
 	};
 }
 
@@ -59,47 +59,47 @@ public:
 	using pointer         = void;
 	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
 
-	Iterator base() const  { return _m.inner; }
+	constexpr Iterator base() const  { return _m.inner; }
 
-	transform_iterator(UnaryFunc f, Iterator it)
+	constexpr transform_iterator(UnaryFunc f, Iterator it)
 	 :	_m{it, f} {
 	}
 
 	transform_iterator(const transform_iterator &) = default;
 
-	transform_iterator & operator =(const transform_iterator & other) &
+	constexpr transform_iterator & operator =(const transform_iterator & other) &
 		noexcept(noexcept( _m.inner = other._m.inner ))
 	{
 		_m.inner = other._m.inner;
 		return *this;
 	}
 
-	reference operator*() const
+	constexpr reference operator*() const
 	{
 		return _m.func()(*_m.inner);
 	}
 
-	transform_iterator & operator++()  OEL_ALWAYS_INLINE
-	{	// preincrement
+	constexpr transform_iterator & operator++()  OEL_ALWAYS_INLINE
+	{	// pre-increment
 		++_m.inner;
 		return *this;
 	}
 
-	transform_iterator operator++(int) &
-	{	// postincrement
+	constexpr transform_iterator operator++(int) &
+	{	// post-increment
 		auto tmp = *this;
 		++_m.inner;
 		return tmp;
 	}
 
 	OEL_ALWAYS_INLINE
-	friend bool operator==(const transform_iterator & left, Iterator right)  { return left._m.inner == right; }
+	friend constexpr bool operator==(const transform_iterator & left, Iterator right)  { return left._m.inner == right; }
 	OEL_ALWAYS_INLINE
-	friend bool operator==(Iterator left, const transform_iterator & right)  { return left == right._m.inner; }
+	friend constexpr bool operator==(Iterator left, const transform_iterator & right)  { return left == right._m.inner; }
 	OEL_ALWAYS_INLINE
-	friend bool operator!=(const transform_iterator & left, Iterator right)  { return left._m.inner != right; }
+	friend constexpr bool operator!=(const transform_iterator & left, Iterator right)  { return left._m.inner != right; }
 	OEL_ALWAYS_INLINE
-	friend bool operator!=(Iterator left, const transform_iterator & right)  { return left != right._m.inner; }
+	friend constexpr bool operator!=(Iterator left, const transform_iterator & right)  { return left != right._m.inner; }
 };
 
 } // namespace oel
