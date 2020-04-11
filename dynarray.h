@@ -483,40 +483,12 @@ private:
 	#endif
 #endif
 
-	template< typename T_, typename... None >
-	T * _relocateData(T_ *__restrict dest, size_type, None...) const
-	{
-		OEL_WHEN_EXCEPTIONS_ON(
-			static_assert(std::is_nothrow_move_constructible<T>::value,
-				"Reallocation in dynarray requires that T is noexcept move constructible or trivially relocatable");
-		)
-		T * src = _m.data;
-		while (src != _m.end)
-		{
-			::new(static_cast<void *>(dest)) T(std::move(*src));
-			src-> ~T();
-			++src; ++dest;
-		}
-		return dest;
-	}
-
-	template< typename T_,
-	          enable_if< is_trivially_relocatable<T_>::value > = 0
-	>
-	T * _relocateData(T_ *__restrict dest, size_type const n) const
-	{
-		T *const dLast = dest + n;
-		_detail::MemcpyCheck(_m.data, n, dest);
-		return dLast;
-	}
-
-
 	void _growTo(size_type newCap)
 	{
 		_debugSizeUpdater guard{_m};
 
 		_scopedPtr newBuf{_m, {_allocateExact(_m, newCap), newCap}};
-		_m.end = _relocateData(newBuf.data, size());
+		_m.end = _detail::Relocate(_m.data, size(), newBuf.data);
 		newBuf.Swap(_m);
 	}
 
@@ -702,7 +674,7 @@ private:
 
 		T *const pos = newBuf.data + oldSize;
 		makeNew(pos, count, _m);
-		_relocateData(newBuf.data, oldSize);
+		_detail::Relocate(_m.data, oldSize, newBuf.data);
 
 		_m.end = pos;
 		newBuf.Swap(_m);
@@ -715,7 +687,7 @@ private:
 
 		T *const pos = newBuf.data + size();
 		_construct{}(_m, pos, static_cast<Args &&>(args)...);
-		_relocateData(newBuf.data, size());
+		_detail::Relocate(_m.data, size(), newBuf.data);
 
 		_m.end = pos;
 		newBuf.Swap(_m);
@@ -962,7 +934,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	if (0 < used)
 	{
 		newData = _allocateWrap::Allocate(_m, used);
-		_m.end = _relocateData(newData, used);
+		_m.end = _detail::Relocate(_m.data, used, newData);
 	}
 	else
 	{	_m.end = newData = nullptr;
