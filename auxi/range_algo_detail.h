@@ -64,7 +64,7 @@ namespace _detail
 	template< typename InputIter, typename Integral, typename RandomAccessIter, typename... None >
 	InputIter CopyUnsf(InputIter src, Integral const n, RandomAccessIter const dest, None...)
 	{
-		for (Integral i = 0; i < n; ++i)
+		for (Integral i{}; i < n; ++i)
 		{
 			dest[i] = *src;
 			++src;
