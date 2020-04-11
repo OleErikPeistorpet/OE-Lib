@@ -39,23 +39,6 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template< typename ContiguousIter >
-	inline void MemcpyCheck(ContiguousIter const src, size_t const nElems, void *const dest)
-	{	// memcpy(nullptr, nullptr, 0) is UB. The trouble is that checking can have significant performance hit.
-		// GCC known to need the check in some cases
-	#if !defined _MSC_VER or _MSC_VER >= 2000 or OEL_MEM_BOUND_DEBUG_LVL
-		if (nElems > 0)
-	#endif
-		{	// Dereference to detect out of range errors if the iterator has internal check
-		#if OEL_MEM_BOUND_DEBUG_LVL
-			(void) *src;
-			(void) *(src + (nElems - 1));
-		#endif
-			std::memcpy(dest, to_pointer_contiguous(src), sizeof(*src) * nElems);
-		}
-	}
-
-
 	template< typename T >
 	struct Construct
 	{
@@ -91,6 +74,49 @@ namespace _detail
 			for (; first < last; ++first)
 				first-> ~T();
 		}
+	}
+
+
+	template< typename ContiguousIter >
+	void MemcpyCheck(ContiguousIter const src, size_t const nElems, void *const dest)
+	{	// memcpy(nullptr, nullptr, 0) is UB. Unfortunately, checking can have significant performance hit,
+		// probably due to functions no longer being inlined. GCC known to need the check in some cases
+	#if !defined _MSC_VER or _MSC_VER >= 2000 or OEL_MEM_BOUND_DEBUG_LVL
+		if (nElems > 0)
+	#endif
+		{	// Dereference to detect out of range errors if the iterator has internal check
+		#if OEL_MEM_BOUND_DEBUG_LVL
+			(void) *src;
+			(void) *(src + (nElems - 1));
+		#endif
+			std::memcpy(dest, to_pointer_contiguous(src), sizeof(*src) * nElems);
+		}
+	}
+
+
+	template< typename T,
+		enable_if< is_trivially_relocatable<T>::value > = 0
+	>
+	inline T * Relocate(T *const src, size_t const n, T *const dest)
+	{
+		T * dLast = dest + n;
+		_detail::MemcpyCheck(src, n, dest);
+		return dLast;
+	}
+
+	template< typename T, typename... None >
+	T * Relocate(T *__restrict src, size_t const n, T *__restrict dest, None...)
+	{
+		OEL_WHEN_EXCEPTIONS_ON(
+			static_assert( std::is_nothrow_move_constructible<T>::value,
+				"dynarray requires that T is noexcept move constructible or trivially relocatable" );
+		)
+		for (size_t i = 0; i < n; ++i)
+		{
+			::new(static_cast<void *>(dest++)) T(std::move(src[i]));
+			src[i].~T();
+		}
+		return dest;
 	}
 
 
