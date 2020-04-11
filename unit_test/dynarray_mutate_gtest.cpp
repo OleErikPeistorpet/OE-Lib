@@ -420,6 +420,8 @@ TEST_F(dynarrayTest, insertR)
 {
 	size_t const initSize = 2;
 	std::array<TrivialRelocat, 2> const toInsert{TrivialRelocat{-1}, TrivialRelocat{-2}};
+	TrivialRelocat::ClearCount();
+
 	for (auto nReserve : {initSize, initSize + toInsert.size()})
 		for (size_t insertOffset = 0; insertOffset <= initSize; ++insertOffset)
 			for (unsigned countThrow = 0; countThrow <= toInsert.size(); ++countThrow)
@@ -461,55 +463,78 @@ TEST_F(dynarrayTest, insertR)
 						EXPECT_EQ(2, *dest.back());
 					}
 				}
-				EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct + oel::ssize(toInsert));
+				EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 			}
 }
 
-TEST_F(dynarrayTest, insert)
+double const testEmplaceVal = -4.4;
+
+template<typename T, typename Make>
+void testEmplace(Make arg)
 {
-	{
-		dynarray<TrivialRelocat> test;
+	T::ClearCount();
 
-		double const VALUES[] = {-1.1, 0.4, 1.3, 2.2};
+	size_t const initSize = 2;
+	for (auto nReserve : {initSize, initSize + 1})
+		for (size_t insertOffset = 0; insertOffset <= initSize; ++insertOffset)
+			for (int countThrow = 0; countThrow <= initSize + 1; ++countThrow)
+			{	{
+					dynarray<T> dest(oel::reserve, nReserve);
+					dest.emplace_back(1);
+					dest.emplace_back(2);
 
-		auto & ptr = *test.emplace(begin(test), VALUES[2]);
-		EXPECT_EQ(VALUES[2], *ptr);
-		ASSERT_EQ(1U, test.size());
+					T::countToThrowOn = countThrow;
+					OEL_TRY_
+					{
+						dest.emplace(dest.begin() + insertOffset, arg());
 
-	OEL_WHEN_EXCEPTIONS_ON(
-		TrivialRelocat::countToThrowOn = 0;
-		EXPECT_THROW( test.insert(begin(test), TrivialRelocat{0.0}), TestException );
-		ASSERT_EQ(1U, test.size());
-	)
-		test.insert(begin(test), TrivialRelocat{VALUES[0]});
-		ASSERT_EQ(2U, test.size());
+						EXPECT_EQ(initSize + 1, dest.size());
+						EXPECT_EQ(testEmplaceVal, static_cast<double>(dest[insertOffset]));
+						if (insertOffset == 0)
+						{
+							EXPECT_EQ(1, *dest[1]);
+							EXPECT_EQ(2, *dest[2]);
+						}
+						else if (insertOffset == 1)
+						{
+							EXPECT_EQ(1, *dest.front());
+							EXPECT_EQ(2, *dest.back());
+						}
+					}
+				OEL_WHEN_EXCEPTIONS_ON(
+					catch (const TestException &)
+					{
+						if (insertOffset == initSize)
+							EXPECT_EQ(initSize, dest.size());
+					}
+				)
+					if (insertOffset == initSize)
+					{
+						EXPECT_EQ(1, *dest[0]);
+						EXPECT_EQ(2, *dest[1]);
+					}
+				}
+				EXPECT_EQ(T::nConstructions, T::nDestruct);
+				T::countToThrowOn = -1;
+			}
+}
 
-	OEL_WHEN_EXCEPTIONS_ON(
-		TrivialRelocat::countToThrowOn = 0;
-		EXPECT_THROW( test.insert(begin(test) + 1, TrivialRelocat{0.0}), TestException );
-		ASSERT_EQ(2U, test.size());
-	)
-		test.emplace(end(test), VALUES[3]);
-		auto & p2 = *test.insert(begin(test) + 1, TrivialRelocat{VALUES[1]});
-		EXPECT_EQ(VALUES[1], *p2);
-		ASSERT_EQ(4U, test.size());
+TEST_F(dynarrayTest, emplace)
+{
+	testEmplace<MoveOnly>([] { return testEmplaceVal; });
+	testEmplace<TrivialRelocat>([] { return testEmplaceVal; });
+}
 
-		auto v = std::begin(VALUES);
-		for (const auto & p : test)
-		{
-			EXPECT_EQ(*v, *p);
-			++v;
-		}
+TEST_F(dynarrayTest, emplaceRvalue)
+{
+	testEmplace<MoveOnly>([] { return MoveOnly{testEmplaceVal}; });
+	testEmplace<TrivialRelocat>([] { return TrivialRelocat{testEmplaceVal}; });
+}
 
-		auto it = test.insert( begin(test) + 2, std::move(test[2]) );
-		EXPECT_EQ(&test[2], &*it);
-
-		auto const val = *test.back();
-		test.insert( end(test) - 1, std::move(test.back()) );
-		ASSERT_EQ(6U, test.size());
-		EXPECT_EQ(val, *end(test)[-2]);
-	}
-	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
+TEST_F(dynarrayTest, emplaceLvalue)
+{
+	TrivialRelocat lvalue{testEmplaceVal};
+	testEmplace<TrivialRelocat>([&] { return lvalue; });
 }
 
 TEST_F(dynarrayTest, resize)

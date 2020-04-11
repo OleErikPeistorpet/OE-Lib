@@ -79,13 +79,11 @@ inline namespace debug
 /**
 * @brief Resizable array, dynamically allocated. Very similar to std::vector, but faster in many cases.
 *
-* In general, only that which differs from std::vector is documented.
+* The documentation is meant to cover only that which differs from std::vector.
 *
 * There is a general requirement that template argument T is trivially relocatable or noexcept move
 * constructible (checked when compiling). Most types can be relocated trivially, but it often needs to be
 * declared manually. See specify_trivial_relocate(T &&). Performance is better if T is trivially relocatable.
-* Furthermore, a few functions require that T is trivially relocatable (noexcept movable is not enough):
-* emplace, insert, insert_r
 *
 * The default allocator supports over-aligned types (e.g. __m256)  */
 template< typename T, typename Alloc/* = oel::allocator*/ >
@@ -204,8 +202,10 @@ public:
 	void resize_for_overwrite(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<decltype(_m), T>); }
 	void resize(size_type n)                 { _resizeImpl(n, _uninitFill{}); }
 
-	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
-	//!	where `end(source)` is not needed if source.size() exists
+	/** @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
+	*	where `end(source)` is not needed if source.size() exists
+	*
+	* Requires that `is_trivially_relocatable<T>` is true  */
 	template< typename ForwardRange >
 	iterator  insert_r(const_iterator pos, const ForwardRange & source) &;
 
@@ -695,7 +695,7 @@ private:
 
 
 	template< typename InsertHelper, typename... Args >
-	T * _insertRealloc(T *const pos, size_type const nAfterPos, InsertHelper const helper, Args &&... args)
+	T * _insertRealloc(T *const pos, InsertHelper const helper, Args &&... args)
 	{
 	#if defined _MSC_VER and _MSC_VER < 1927
 		(void) helper; // C4100	unreferenced formal parameter
@@ -706,6 +706,7 @@ private:
 		T *const newPos = newBuf.data + nBefore;
 		T *const afterAdded = helper.construct(_m, newPos, static_cast<Args &&>(args)...);
 		// Exception free from here
+		size_t const nAfterPos = _m.end - pos;
 		_detail::Relocate(_m.data, nBefore, newBuf.data);  // prefix
 		_m.end = _detail::Relocate(pos, nAfterPos, afterAdded); // suffix
 		_swapBuf(newBuf);
@@ -750,32 +751,58 @@ template< typename... Args >
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args) &
 {
-#define OEL_DYNARR_INSERT_STEP1  \
-	static_assert(is_trivially_relocatable<T>::value,  \
-		"The function requires trivially relocatable T, see declaration of is_trivially_relocatable");  \
-	\
-	_debugSizeUpdater guard{_m};  \
-	\
-	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
-	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);  \
-	size_type const nAfterPos = _m.end - pPos;
+	_debugSizeUpdater guard{_m};
 
-	OEL_DYNARR_INSERT_STEP1
+	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));
+	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);
+
 	if (_m.end < _m.reservEnd)
 	{
-		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
-		aligned_union_t<T> tmp;
-		_construct{}(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
-		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
-		std::memmove(
-			static_cast<void *>(pPos + 1),
-			static_cast<const void *>(pPos),
-			sizeof(T) * nAfterPos );
-		++_m.end;
-		std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
+		if (is_trivially_relocatable<T>::value)
+		{
+			// Temporary in case constructor throws or source is an element of this dynarray at pos or after
+			aligned_union_t<T> tmp;
+			_construct{}(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+			// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
+			size_t nAfterPos = _m.end - pPos;
+			std::memmove(
+				static_cast<void *>(pPos + 1),
+				static_cast<const void *>(pPos),
+				sizeof(T) * nAfterPos );
+			++_m.end;
+			std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
+		}
+		else
+		{	if (pPos != _m.end)
+			{
+				struct Local
+				{
+					alignas(T) unsigned char storage[sizeof(T)];
+					bool live = false;
+
+					~Local()
+					{
+						if (live)
+							OEL_LAUNDER(reinterpret_cast<T *>(&storage))-> ~T();
+					}
+				} tmp;
+				_construct{}(_m, reinterpret_cast<T *>(&tmp.storage), static_cast<Args &&>(args)...);
+				tmp.live = true;
+
+				T *const oldEnd = _m.end;
+				::new(static_cast<void *>(oldEnd)) T(std::move(oldEnd[-1])); // move construct back element
+				++_m.end;
+				std::move_backward(pPos, oldEnd - 1, oldEnd);  // move assign rest of tail
+				*pPos = std::move(*OEL_LAUNDER( reinterpret_cast<T *>(&tmp.storage) )); // move assign from tmp
+			}
+			else
+			{	_construct{}(_m, _m.end, static_cast<Args &&>(args)...);
+				++_m.end;
+			}
+		}
 	}
 	else
-	{	pPos = _insertRealloc(pPos, nAfterPos, _emplaceHelper{}, static_cast<Args &&>(args)...);
+	{	pPos = _insertRealloc(pPos, _emplaceHelper{}, static_cast<Args &&>(args)...);
 	}
 	return _makeIter(pPos);
 }
@@ -785,23 +812,28 @@ template< typename ForwardRange >
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::insert_r(const_iterator pos, const ForwardRange & src) &
 {
+	_debugSizeUpdater guard{_m};
+
+	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));
+	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);
+
 	auto first = oel::adl_begin(src);
 	auto const count = _detail::SizeOrEnd(src);
 
 	static_assert( std::is_same<decltype(count), size_t const>::value,
-			"insert_r requires that begin(source) is a ForwardIterator (multi-pass)" );
-
-	OEL_DYNARR_INSERT_STEP1
-#undef OEL_DYNARR_INSERT_STEP1
+		"insert_r requires that begin(source) is a ForwardIterator (multi-pass)" );
+	static_assert( is_trivially_relocatable<T>::value,
+		"insert_r requires trivially relocatable T, see specify_trivial_relocate(T &&)" );
 
 	if (_unusedCapacity() >= count)
 	{
 		T *const dLast = pPos + count;
+		size_t const bytesAfter = sizeof(T) * (_m.end - pPos);
 		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
 		std::memmove(
 			static_cast<void *>(dLast),
 			static_cast<const void *>(pPos),
-			sizeof(T) * nAfterPos );
+			bytesAfter );
 		_m.end += count;
 		// Construct new
 		if (can_memmove_with<T *, decltype(first)>::value)
@@ -823,7 +855,7 @@ typename dynarray<T, Alloc>::iterator
 				std::memmove(
 					static_cast<void *>(dest),
 					static_cast<const void *>(dLast),
-					sizeof(T) * nAfterPos );
+					bytesAfter );
 				_m.end -= (dLast - dest);
 				OEL_WHEN_EXCEPTIONS_ON(throw);
 			}
@@ -831,7 +863,7 @@ typename dynarray<T, Alloc>::iterator
 	}
 	else
 	{	pPos = _insertRealloc(
-			pPos, nAfterPos,
+			pPos,
 			_insertRHelper<decltype(first)>{first, count} );
 	}
 	return _makeIter(pPos);
