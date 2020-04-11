@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/algo_detail.h"
 #include "auxi/dynarray_iterator.h"
+#include "auxi/impl_algo.h"
 #include "optimize_ext/default.h"
 #include "align_allocator.h"
 #include "range_view.h"

@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/algo_detail.h"
+#include "auxi/impl_algo.h"
 
 #if __cpp_aligned_new < 201606
 #include <cstdint> // for uintptr_t
