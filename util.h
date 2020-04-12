@@ -8,7 +8,6 @@
 
 #include "auxi/type_traits.h"
 #include "auxi/contiguous_iterator_to_ptr.h"
-#include "make_unique.h"
 
 
 /** @file
