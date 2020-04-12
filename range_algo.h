@@ -7,6 +7,7 @@
 
 
 #include "auxi/range_algo_detail.h"
+#include "util.h"
 
 
 /** @file
