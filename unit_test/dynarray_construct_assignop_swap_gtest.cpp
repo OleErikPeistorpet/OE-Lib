@@ -284,10 +284,17 @@ TEST_F(dynarrayConstructTest, constructContiguousRange)
 	EXPECT_TRUE( 0 == str.compare(0, 4, test.data(), test.size()) );
 }
 
-TEST_F(dynarrayConstructTest, constructRangeNoCopyAssign)
+struct NonAssignable
 {
-	auto il = { 1.2, 3.4 };
-	dynarray<MoveOnly> test(il);
+	NonAssignable() {}
+	NonAssignable(NonAssignable &&) = default;
+	void operator =(NonAssignable &&) = delete;
+};
+
+TEST_F(dynarrayConstructTest, constructRangeNoAssign)
+{
+	NonAssignable src[2]{};
+	dynarray<NonAssignable> test(view::move(src));
 	EXPECT_TRUE(test.size() == 2);
 }
 
@@ -343,12 +350,6 @@ TEST_F(dynarrayConstructTest, moveConstructWithAlloc)
 
 	testMoveConstruct< StatefulAllocator<MoveOnly, false> >({0}, {0});
 }
-
-struct NonAssignable
-{
-	NonAssignable(NonAssignable &&) = default;
-	void operator =(NonAssignable &&) = delete;
-};
 
 TEST_F(dynarrayConstructTest, moveConstructNonAssignable)
 {	// just to check that it compiles
