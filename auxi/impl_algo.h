@@ -107,6 +107,9 @@ namespace _detail
 	>
 	InputIter UninitCopy(InputIter src, T *__restrict dest, T *const dLast, Alloc & allo)
 	{
+		static_assert( std::is_convertible<decltype(*src), T>::value,
+			"Type of dereferencing the iterator of the source range should be implicitly convertible to T" );
+
 		T *const dFirst = dest;
 		OEL_TRY_
 		{
