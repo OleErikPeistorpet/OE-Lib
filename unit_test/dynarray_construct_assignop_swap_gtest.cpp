@@ -4,6 +4,7 @@
 #include "test_classes.h"
 #include "mem_leak_detector.h"
 #include "dynarray.h"
+#include "view/transform.h"
 
 #include <array>
 #include <string>
@@ -267,10 +268,17 @@ TEST_F(dynarrayConstructTest, constructContiguousRange)
 	EXPECT_TRUE( 0 == str.compare(0, 4, test.data(), test.size()) );
 }
 
-TEST_F(dynarrayConstructTest, constructRangeNoCopyAssign)
+struct NonAssignable
 {
-	auto il = { 1.2, 3.4 };
-	dynarray<MoveOnly> test(from_range, il);
+	NonAssignable() {}
+	NonAssignable(NonAssignable &&) = default;
+	void operator =(NonAssignable &&) = delete;
+};
+
+TEST_F(dynarrayConstructTest, constructRangeNoAssign)
+{
+	NonAssignable src[2]{};
+	dynarray<NonAssignable> test(from_range, view::move(src));
 	EXPECT_TRUE(test.size() == 2);
 }
 
@@ -368,12 +376,6 @@ TEST_F(dynarrayConstructTest, moveConstructWithStatefulAlloc)
 	using Al = StatefulAllocator<MoveOnly, false>;
 	testMoveConstruct(Al(0), Al(0));
 }
-
-struct NonAssignable
-{
-	NonAssignable(NonAssignable &&) = default;
-	void operator =(NonAssignable &&) = delete;
-};
 
 TEST_F(dynarrayConstructTest, moveConstructNonAssignable)
 {	// just to check that it compiles
@@ -600,12 +602,13 @@ TEST_F(dynarrayConstructTest, selfCopyAssign)
 
 TEST_F(dynarrayConstructTest, constructInputRangeThrowing)
 {
+	using I = std::istream_iterator<double>;
 	std::stringstream ss("1 2");
-	std::istream_iterator<double> f{ss}, l{};
+	auto v = view::subrange(I{ss}, I{});
 	MoveOnly::countToThrowOn = 1;
 
 	ASSERT_THROW(
-		dynarray<MoveOnly>(from_range, view::subrange(f, l)),
+		dynarray<MoveOnly>(from_range, v | view::transform([](auto d) { return MoveOnly{d}; })),
 		TestException );
 }
 

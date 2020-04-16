@@ -23,6 +23,15 @@ namespace oel::_detail
 		}
 	};
 
+
+	template< typename From, typename To >
+	struct AssertConvertible
+	{
+		static_assert( std::is_convertible_v<From, To>,
+			"Reference type of the iterator of the source range should be implicitly convertible to T."
+			" Consider view::transform" );
+	};
+
 ////////////////////////////////////////////////////////////////////////////////
 
 	struct DebugAllocationHeader

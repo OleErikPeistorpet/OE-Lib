@@ -493,6 +493,8 @@ private:
 				{	src = cpy(std::move(src), _m.data, _m.end);
 				}
 			}
+			(void) _detail::AssertConvertible<decltype(*src), T>{};
+
 			while (_m.end < newEnd)
 			{	// each iteration updates _m.end for exception safety
 				_alloTrait::construct(_m, _m.end, *src);
@@ -507,7 +509,7 @@ private:
 	{	// single-pass iterator and unknown count
 		clear();
 		for (; first != last; ++first)
-			emplace_back(*first);
+			push_back(*first);
 
 		return first;
 	}
@@ -519,7 +521,7 @@ private:
 		OEL_TRY_
 		{
 			for (; first != last; ++first)
-				emplace_back(*first);
+				push_back(*first);
 		}
 		OEL_CATCH_ALL
 		{
@@ -542,7 +544,9 @@ private:
 			_m.end += count;
 		}
 		else
-		{	T *__restrict dest = _m.end;
+		{	(void) _detail::AssertConvertible<decltype(*src), T>{};
+
+			T *__restrict dest = _m.end;
 			auto const   dLast = dest + count;
 			OEL_TRY_
 			{
@@ -674,7 +678,9 @@ typename dynarray<T, Alloc>::iterator
 		_detail::MemcpyCheck(first, count, pPos);
 	}
 	else
-	{	T *__restrict dest = pPos;
+	{	(void) _detail::AssertConvertible<decltype(*first), T>{};
+
+		T *__restrict dest = pPos;
 		OEL_TRY_
 		{
 			while (dest != dLast)
