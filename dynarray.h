@@ -598,7 +598,7 @@ private:
 	{	// single-pass iterator and unknown count
 		clear();
 		for (; first != last; ++first)
-			emplace_back(*first);
+			push_back(*first);
 
 		return first;
 	}
@@ -610,7 +610,7 @@ private:
 		OEL_TRY_
 		{
 			for (; first != last; ++first)
-				emplace_back(*first);
+				push_back(*first);
 		}
 		OEL_CATCH_ALL
 		{
