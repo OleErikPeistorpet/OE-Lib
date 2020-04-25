@@ -55,19 +55,7 @@ struct allocator
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// The rest of the file is not for users (implementation)
-
-
-// Assignable, and supports alignment above that of max_align_t (if the compiler/linker provides it)
-template< typename T >
-struct
-#ifdef __GNUC__
-	__attribute__((may_alias))
-#endif
-	aligned_union_t
-{
-	alignas(T) unsigned char as_bytes[sizeof(T)];
-};
+// Implementation only in rest of the file
 
 
 namespace _detail
