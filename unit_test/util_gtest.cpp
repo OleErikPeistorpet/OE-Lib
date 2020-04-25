@@ -131,31 +131,27 @@ TEST(utilTest, ssize)
 TEST(utilTest, indexValid)
 {
 	using namespace oel;
-	using _detail::BigUint;
-	using BigInt = std::make_signed<BigUint>::type;
 
-	DummyRange<unsigned> r1{1};
+	using BigInt  = long long;
+	using BigUint = unsigned long long;
 
-	EXPECT_TRUE(index_valid(r1, (std::ptrdiff_t) 0));
-	EXPECT_FALSE(index_valid(r1, (size_t) 1));
-	EXPECT_FALSE(index_valid(r1, -1));
-	EXPECT_FALSE(index_valid(r1, (size_t) -1));
+	DummyRange<int> r1{1};
+
+	EXPECT_TRUE(index_valid(r1, 0));
+	EXPECT_FALSE(index_valid(r1, BigUint{1}));
+	EXPECT_FALSE(index_valid(r1, BigInt{-1}));
 	{
-		auto const size = std::numeric_limits<unsigned>::max();
+		constexpr auto size = std::numeric_limits<unsigned>::max();
 		DummyRange<unsigned> r2{size};
 
-		EXPECT_FALSE(index_valid(r2, -2));
-		EXPECT_FALSE(index_valid(r2, (BigInt) -2));
-		EXPECT_FALSE(index_valid(r2, (unsigned) -1));
-		EXPECT_TRUE(index_valid(r2, size - 1));
-		EXPECT_TRUE(index_valid(r2, 0));
+		EXPECT_FALSE(index_valid(r2, BigInt{size}));
+		EXPECT_TRUE(index_valid(r2, BigUint{size - 1}));
 	}
 	{
-		auto const size = as_unsigned(std::numeric_limits<BigInt>::max());
-		DummyRange<BigUint> r2{size};
+		constexpr auto size = std::numeric_limits<BigInt>::max();
+		DummyRange<BigUint> r2{as_unsigned(size)};
 
-		EXPECT_FALSE(index_valid(r2, (BigUint) -2));
-		EXPECT_FALSE(index_valid(r2, (BigInt) -2));
+		EXPECT_FALSE(index_valid(r2, size));
 		EXPECT_TRUE(index_valid(r2, size - 1));
 	}
 }

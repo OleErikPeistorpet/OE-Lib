@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -26,7 +26,9 @@ template< typename T >  OEL_ALWAYS_INLINE
 constexpr std::make_unsigned_t<T> as_unsigned(T val) noexcept  { return std::make_unsigned_t<T>(val); }
 
 
-//! More generic than std::ssize, close to std::ranges::ssize
+/** @brief More generic than std::ssize, close to std::ranges::ssize
+*
+* Ill-formed if `r.size()` is ill-formed and `begin(r)` cannot be subtracted from `end(r)` (SFINAE-friendly) */
 template< typename SizedRangeLike >
 constexpr auto ssize(SizedRangeLike && r)
 ->	std::common_type_t< ptrdiff_t, decltype(as_signed( _detail::Size(r) )) >
@@ -35,14 +37,16 @@ constexpr auto ssize(SizedRangeLike && r)
 	}
 
 
-/** @brief Check if index is valid (can be used with operator[]) for sized_range (std concept) or similar
+/** @brief Check if index is valid (within bounds for operator[])
 *
-* Negative index should give false result. However, this is not ensured if the index type holds more
-* bits than `int`, yet the maximum value of index type is less than the number of elements in r.
-* This is not a concern in practice. */
-template< typename Integral, typename SizedRange >
-constexpr bool index_valid(const SizedRange & r, Integral index);
-
+* Requires that `r.size()` or `end(r) - begin(r)` is valid. */
+template< typename Integral, typename SizedRangeLike >
+constexpr bool index_valid(SizedRangeLike & r, Integral index)
+	{
+		static_assert( sizeof(Integral) >= sizeof _detail::Size(r) or std::is_unsigned<Integral>::value,
+			"Mismatched index type, please use a wider integer (or unsigned)" );
+		return as_unsigned(index) < as_unsigned(_detail::Size(r));
+	}
 
 
 //! Tag to select a constructor that allocates storage without filling it with objects
@@ -91,35 +95,6 @@ namespace _detail
 	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},
 		          it + n )
 		 { return it + n; }
-
-
-
-	using BigUint =
-	#if ULONG_MAX > UINT_MAX
-		unsigned long;
-	#else
-		unsigned long long;
-	#endif
-
-	template< typename Unsigned >
-	constexpr bool IndexValid(Unsigned size, BigUint i, false_type)
-	{
-		return i < size;
-	}
-
-	template< typename Unsigned, typename Integral >
-	constexpr bool IndexValid(Unsigned size, Integral i, true_type)
-	{	// casting to uint64_t when both types are smaller and using just 'i < size' was found to be slower
-		return (0 <= i) & (as_unsigned(i) < size);
-	}
 }
 
 } // namespace oel
-
-template< typename Integral, typename SizedRange >
-constexpr bool oel::index_valid(const SizedRange & r, Integral index)
-{
-	using T = decltype(_detail::Size(r));
-	using NeitherIsBig = bool_constant<sizeof(T) < sizeof(_detail::BigUint) and sizeof index < sizeof(_detail::BigUint)>;
-	return _detail::IndexValid(as_unsigned(_detail::Size(r)), index, NeitherIsBig{});
-}
