@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -44,12 +44,13 @@ constexpr std::make_unsigned_t<T> as_unsigned(T val) noexcept  { return std::mak
 
 /** @brief Check if index is valid (can be used with operator[]) for array or other container-like object
 *
-* Negative index should give false result. However, this is not ensured if the index type holds more
-* bits than `int`, yet the maximum value of index type is less than the number of elements in r.
-* This is not a concern in practice. */
+* Negative index should give false result, however this is not ensured if the maximum value of the index type is less
+* than the number of elements in r. But then you already have a problem, and should use a bigger or unsigned index type. */
 template< typename Integral, typename SizedRange >
-constexpr bool index_valid(const SizedRange & r, Integral index);
-
+constexpr bool index_valid(const SizedRange & r, Integral index)
+	{
+		return as_unsigned(index) < as_unsigned(oel::ssize(r));
+	}
 
 
 //! Tag to select a constructor that allocates storage without filling it with objects
@@ -124,35 +125,6 @@ namespace _detail
 	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},
 		          it + n )
 		 { return it + n; }
-
-
-
-	using BigUint =
-	#if ULONG_MAX > UINT_MAX
-		unsigned long;
-	#else
-		unsigned long long;
-	#endif
-
-	template< typename Unsigned >
-	constexpr bool IndexValid(Unsigned size, BigUint i, false_type)
-	{
-		return i < size;
-	}
-
-	template< typename Unsigned, typename Integral >
-	constexpr bool IndexValid(Unsigned size, Integral i, true_type)
-	{	// casting to uint64_t when both types are smaller and using just 'i < size' was found to be slower
-		return (0 <= i) & (as_unsigned(i) < size);
-	}
 }
 
 } // namespace oel
-
-template< typename Integral, typename SizedRange >
-constexpr bool oel::index_valid(const SizedRange & r, Integral index)
-{
-	using T = decltype(oel::ssize(r));
-	using NeitherIsBig = bool_constant<sizeof(T) < sizeof(_detail::BigUint) and sizeof index < sizeof(_detail::BigUint)>;
-	return _detail::IndexValid(as_unsigned(oel::ssize(r)), index, NeitherIsBig{});
-}
