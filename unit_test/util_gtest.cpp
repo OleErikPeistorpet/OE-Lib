@@ -37,8 +37,8 @@ namespace
 #endif
 
 	struct alignas(32) Foo { int a[24]; };
-	static_assert(alignof(oel::aligned_union_t<Foo>) == 32, "?");
-	static_assert(sizeof(oel::aligned_union_t<Foo>) == sizeof(Foo), "?");
+	static_assert(alignof(oel::storage_for<Foo>) == 32, "?");
+	static_assert(sizeof(oel::storage_for<Foo>) == sizeof(Foo), "?");
 
 	static_assert(!oel::can_memmove_with< int *, float * >::value, "?");
 	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >(), "?");

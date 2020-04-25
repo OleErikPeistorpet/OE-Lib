@@ -93,6 +93,18 @@ template< typename Range >  OEL_ALWAYS_INLINE
 constexpr auto adl_begin(Range && r) -> decltype(begin(r)) { return begin(r); }
 
 
+
+template< typename T >
+struct
+#ifdef __GNUC__
+	__attribute__((may_alias))
+#endif
+	storage_for
+{
+	alignas(T) unsigned char as_bytes[sizeof(T)];
+};
+
+
 namespace _detail
 {
 	template< typename RandomAccessIter >

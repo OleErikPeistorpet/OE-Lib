@@ -522,8 +522,8 @@ private:
 		T *const ptr = std::addressof(*pos);
 		ptr-> ~T();
 		--_m.end;
-		auto mem = reinterpret_cast<aligned_union_t<T> *>(ptr);
-		*mem = *reinterpret_cast<aligned_union_t<T> *>(_m.end); // relocate last element to pos
+		auto mem = reinterpret_cast<storage_for<T> *>(ptr);
+		*mem = *reinterpret_cast<storage_for<T> *>(_m.end); // relocate last element to pos
 	}
 
 
@@ -761,7 +761,7 @@ typename dynarray<T, Alloc>::iterator
 	if (_m.end < _m.reservEnd)
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
-		aligned_union_t<T> tmp;
+		storage_for<T> tmp;
 		_construct::call(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(
