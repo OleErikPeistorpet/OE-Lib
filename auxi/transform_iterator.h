@@ -91,8 +91,10 @@ public:
 		return tmp;
 	}
 
-	bool operator==(Iterator right) const  OEL_ALWAYS_INLINE { return _m.inner == right; }
-	bool operator!=(Iterator right) const  OEL_ALWAYS_INLINE { return _m.inner != right; }
+	template< typename Sentinel >  OEL_ALWAYS_INLINE
+	bool operator==(Sentinel right) const  { return _m.inner == right; }
+	template< typename Sentinel >  OEL_ALWAYS_INLINE
+	bool operator!=(Sentinel right) const  { return _m.inner != right; }
 };
 
 } // namespace oel
