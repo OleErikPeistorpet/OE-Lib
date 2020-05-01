@@ -70,6 +70,9 @@ using iter_category = typename std::iterator_traits<Iterator>::iterator_category
 template< typename Iterator >
 using iter_is_random_access = std::is_base_of< std::random_access_iterator_tag, iter_category<Iterator> >;
 
+template< typename Iterator >
+using iter_is_forward = std::is_base_of< std::forward_iterator_tag, iter_category<Iterator> >;
+
 
 //! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
 template< bool Condition >

@@ -17,84 +17,136 @@ namespace _detail
 	          bool = std::is_empty<F>::value >
 	struct TightPair
 	{
-		I inner;
+		I iter;
 		F _fun;
 
 		OEL_ALWAYS_INLINE const F & func() const noexcept { return _fun; }
+		OEL_ALWAYS_INLINE       F & func() noexcept       { return _fun; }
 	};
 
 	template< typename Iterator_MSVC_needs_unique_name, typename Empty_function_object_MSVC_name >
 	struct TightPair< Iterator_MSVC_needs_unique_name, Empty_function_object_MSVC_name, true >
 	 :	Empty_function_object_MSVC_name
 	{
-		Iterator_MSVC_needs_unique_name inner;
+		Iterator_MSVC_needs_unique_name iter;
 
-		TightPair(Iterator_MSVC_needs_unique_name it, Empty_function_object_MSVC_name f)
-		 :	Empty_function_object_MSVC_name(f), inner(it) {
+		TightPair(Iterator_MSVC_needs_unique_name i, Empty_function_object_MSVC_name f)
+		 :	Empty_function_object_MSVC_name(f), iter{std::move(i)} {
 		}
 
 		OEL_ALWAYS_INLINE const Empty_function_object_MSVC_name & func() const noexcept { return *this; }
+		OEL_ALWAYS_INLINE       Empty_function_object_MSVC_name & func() noexcept       { return *this; }
+	};
+
+
+	template< typename I, typename F,
+	          bool = std::is_move_assignable<F>::value >
+	struct TransformIterHelp
+	{
+		TightPair<I, F> pair;
+	};
+
+	template< typename I, typename F >
+	struct TransformIterHelp<I, F, false>
+	{
+		TightPair<I, F> pair;
+
+		TransformIterHelp(TightPair<I, F> && p)  : pair{std::move(p)} {}
+
+		TransformIterHelp(TransformIterHelp &&) = default;
+		TransformIterHelp(const TransformIterHelp &) = default;
+
+		static_assert( std::is_nothrow_copy_constructible<F>::value and std::is_trivially_destructible<F>::value,
+			"Move assignable, or noexcept copy constructible and trivially destructible UnaryFunc required" );
+
+		TransformIterHelp & operator =(TransformIterHelp && other) &
+			noexcept(std::is_nothrow_move_assignable<I>::value)
+		{
+			pair.iter = std::move(other.pair.iter);
+			// Lambdas generally not assignable, so using constructor
+			void * fun = &pair.func();
+			new(fun) F{other.pair.func()};
+
+			return *this;
+		}
+
+		TransformIterHelp & operator =(const TransformIterHelp & other) &
+		{
+			pair.iter = other.pair.iter;
+
+			void * fun = &pair.func();
+			new(fun) F{other.pair.func()};
+
+			return *this;
+		}
 	};
 }
 
 
 /** @brief Similar to boost::transform_iterator
 *
-* Note that the transform function is kept for the whole lifetime. It can only be set by
-* constructor, and is untouched on assignment. The reason is zero-overhead lambda support  */
+* Lambdas supported as long as they are not mutable and by-value captures are
+* nothrow copy constructible and trivially destructible. */
 template< typename UnaryFunc, typename Iterator >
-class transform_iterator
+class transform_iterator  : private _detail::TransformIterHelp<Iterator, UnaryFunc>
 {
-	_detail::TightPair<Iterator, UnaryFunc> _m;
+	using _help = _detail::TransformIterHelp<Iterator, UnaryFunc>;
+	using _help::pair;
 
 public:
-	using iterator_category = std::input_iterator_tag;
+	using iterator_category = std::conditional_t<
+			iter_is_forward<Iterator>::value and
+				std::is_copy_constructible<UnaryFunc>::value,
+			std::forward_iterator_tag,
+			std::input_iterator_tag >;
 
 	using difference_type = iter_difference_t<Iterator>;
-	using reference       = decltype( _m.func()(*_m.inner) );
+	using reference       = decltype( pair.func()(*pair.iter) );
 	using pointer         = void;
-	using value_type      = typename std::decay<reference>::type;
+	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
 
-	Iterator base() const  { return _m.inner; }
+	transform_iterator(UnaryFunc f, Iterator it)  : _help{{ std::move(it), std::move(f) }} {}
 
-	transform_iterator(UnaryFunc f, Iterator it)
-	 :	_m{it, f} {
-	}
-
-	transform_iterator(const transform_iterator &) = default;
-
-	transform_iterator & operator =(const transform_iterator & other) &
-	{
-		_m.inner = other._m.inner;
-		return *this;
-	}
+	const Iterator & base() const &  { return pair.iter; }
+	Iterator         base() &&       { return std::move(pair.iter); }
 
 	reference operator*() const
 	{
-		return _m.func()(*_m.inner);
+		return pair.func()(*pair.iter);
 	}
 
 	transform_iterator & operator++()  OEL_ALWAYS_INLINE
-	{	// preincrement
-		++_m.inner;
+	{	// pre-increment
+		++pair.iter;
 		return *this;
 	}
 
+	template< typename C = iterator_category,
+	          enable_if< ! std::is_same<C, std::input_iterator_tag>::value > = 0
+	>
 	transform_iterator operator++(int) &
-	{	// postincrement
+	{
 		auto tmp = *this;
-		++_m.inner;
+		++pair.iter;
 		return tmp;
 	}
 
+	template< typename C = iterator_category,
+	          enable_if< std::is_same<C, std::input_iterator_tag>::value > = 0
+	>
+	void operator++(int) &
+	{
+		++pair.iter;
+	}
+
 	template< typename Sentinel >  OEL_ALWAYS_INLINE
-	friend bool operator==(const transform_iterator & left, Sentinel right)  { return left._m.inner == right; }
+	friend bool operator==(const transform_iterator & left, Sentinel right)  { return left.pair.iter == right; }
 	template< typename Sentinel >  OEL_ALWAYS_INLINE
-	friend bool operator!=(const transform_iterator & left, Sentinel right)  { return left._m.inner != right; }
+	friend bool operator!=(const transform_iterator & left, Sentinel right)  { return left.pair.iter != right; }
 	template< typename Sentinel >  OEL_ALWAYS_INLINE
-	friend bool operator==(Sentinel left, const transform_iterator & right)  { return left == right._m.inner; }
+	friend bool operator==(Sentinel left, const transform_iterator & right)  { return left == right.pair.iter; }
 	template< typename Sentinel >  OEL_ALWAYS_INLINE
-	friend bool operator!=(Sentinel left, const transform_iterator & right)  { return left != right._m.inner; }
+	friend bool operator!=(Sentinel left, const transform_iterator & right)  { return left != right.pair.iter; }
 };
 
 } // namespace oel

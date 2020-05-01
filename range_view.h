@@ -149,7 +149,7 @@ result.append( view::transform(arr, [](const auto & bs) { return bs.to_string();
 * because it stores just one copy of f and has no size overhead for empty UnaryFunc. <br>
 * Note that passing an rvalue range should result in a compile error. Use a named variable. */
 template< typename UnaryFunc, typename Range >
-auto transform(Range & r, UnaryFunc f)     { return _detail::Transform(r, f, int{}); }
+auto transform(Range & r, UnaryFunc f)     { return _detail::Transform(r, std::move(f), int{}); }
 
 }
 
