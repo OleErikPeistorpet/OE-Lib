@@ -4,14 +4,34 @@
 
 namespace _detail
 {
-	template< typename Sentinel, typename Iterator, typename Range, typename... None >
-	basic_view<Iterator, Sentinel>  all(Iterator first, Range & r, None...)
+	template< typename SizedRange >
+	inline auto Move(
+		SizedRange & r,
+		decltype( oel::ssize(r), int() )) // best match for int if ssize(r) is well-formed (SFINAE)
 	{
-		return{ first, Sentinel{end(r)} };
+		return view::counted( std::make_move_iterator(begin(r)), oel::ssize(r) );
 	}
 
-	template< typename, typename Iterator, typename SizedRange >
-	auto all(Iterator first, SizedRange & r)
-	->	decltype( counted_view<Iterator>{first, oel::ssize(r)} )
-		 { return counted_view<Iterator>{first, oel::ssize(r)}; }
+	template< typename InputRange >
+	inline auto Move(InputRange & r, long)
+	{
+		return view::move(begin(r), end(r));
+	}
+
+
+	template< typename SizedRange, typename UnaryFunc >
+	auto Transform(
+		SizedRange & r, UnaryFunc f,
+		decltype(oel::ssize(r), int()) )
+	{
+		return counted_view< transform_iterator<UnaryFunc, decltype( begin(r) )> >
+			{ {f, begin(r)}, oel::ssize(r) };
+	}
+
+	template< typename Range, typename UnaryFunc >
+	inline auto Transform(Range & r, UnaryFunc f, long)
+	{
+		using TraI = transform_iterator<UnaryFunc, decltype( begin(r) )>;
+		return view::subrange( TraI{f, begin(r)}, end(r) );
+	}
 }

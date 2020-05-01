@@ -87,14 +87,14 @@ public:
 		return tmp;
 	}
 
-	OEL_ALWAYS_INLINE
-	friend bool operator==(const transform_iterator & left, Iterator right)  { return left._m.inner == right; }
-	OEL_ALWAYS_INLINE
-	friend bool operator!=(const transform_iterator & left, Iterator right)  { return left._m.inner != right; }
-	OEL_ALWAYS_INLINE
-	friend bool operator==(Iterator left, const transform_iterator & right)  { return left == right._m.inner; }
-	OEL_ALWAYS_INLINE
-	friend bool operator!=(Iterator left, const transform_iterator & right)  { return left != right._m.inner; }
+	template< typename Sentinel >  OEL_ALWAYS_INLINE
+	friend bool operator==(const transform_iterator & left, Sentinel right)  { return left._m.inner == right; }
+	template< typename Sentinel >  OEL_ALWAYS_INLINE
+	friend bool operator!=(const transform_iterator & left, Sentinel right)  { return left._m.inner != right; }
+	template< typename Sentinel >  OEL_ALWAYS_INLINE
+	friend bool operator==(Sentinel left, const transform_iterator & right)  { return left == right._m.inner; }
+	template< typename Sentinel >  OEL_ALWAYS_INLINE
+	friend bool operator!=(Sentinel left, const transform_iterator & right)  { return left != right._m.inner; }
 };
 
 } // namespace oel

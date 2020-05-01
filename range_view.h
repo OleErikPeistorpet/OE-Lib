@@ -110,8 +110,8 @@ namespace view
 {
 
 //! Create a basic_view from two iterators, with type deduced from arguments
-template< typename Iterator >  inline
-basic_view<Iterator> subrange(Iterator first, Iterator last)  { return {first, last}; }
+template< typename Iterator, typename Sentinel >  inline
+basic_view<Iterator, Sentinel>  subrange(Iterator first, Sentinel last)  { return {first, last}; }
 
 
 //! Create a counted_view from iterator and count, with type deduced from first
@@ -119,25 +119,24 @@ template< typename Iterator >
 constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Iterator> count)  { return {first, count}; }
 
 
-#include "auxi/view_detail.inc"
-
 //! Create a basic_view of std::move_iterator from two iterators
 template< typename InputIterator >
 basic_view< std::move_iterator<InputIterator> >
 	move(InputIterator first, InputIterator last)   { using MovI = std::move_iterator<InputIterator>;
 	                                                  return {MovI{first}, MovI{last}}; }
-/**
-* @brief Wrap a range such that the elements can be moved from when passed to a container or algorithm
+
+#include "auxi/view_detail.inc"
+
+/** @brief Wrap a range such that the elements can be moved from when passed to a container or algorithm
 * @return type `counted_view<std::move_iterator>` if r.size() exists or r is an array,
 *	else `basic_view<std::move_iterator>`
 *
 * Note that passing an rvalue range should result in a compile error. Use a named variable. */
 template< typename InputRange >
-auto move(InputRange & r)     { using MovI = std::move_iterator<decltype( begin(r) )>;
-                                return _detail::all<MovI>(MovI{begin(r)}, r); }
+auto move(InputRange & r)     { return _detail::Move(r, int{}); }
 
-/**
-* @brief Create a view with transform_iterator from a range
+
+/** @brief Create a view with transform_iterator from a range
 @code
 std::bitset<8> arr[] { 3, 5, 7, 11 };
 dynarray<std::string> result;
@@ -147,11 +146,8 @@ result.append( view::transform(arr, [](const auto & bs) { return bs.to_string();
 * because it stores just one copy of f and has no size overhead for empty UnaryFunc. <br>
 * Note that passing an rvalue range should result in a compile error. Use a named variable. */
 template< typename UnaryFunc, typename Range >
-auto transform(Range & r, UnaryFunc f)
-	{
-		using It = decltype(begin(r));
-		return _detail::all<It>(transform_iterator<UnaryFunc, It>{f, begin(r)}, r);
-	}
+auto transform(Range & r, UnaryFunc f)     { return _detail::Transform(r, f, int{}); }
+
 }
 
 
