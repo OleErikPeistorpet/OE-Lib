@@ -25,13 +25,13 @@ namespace _detail
 		decltype(oel::ssize(r), int()) )
 	{
 		return counted_view< transform_iterator<UnaryFunc, decltype( begin(r) )> >
-			{ {f, begin(r)}, oel::ssize(r) };
+			{ {std::move(f), begin(r)}, oel::ssize(r) };
 	}
 
 	template< typename Range, typename UnaryFunc >
 	inline auto Transform(Range & r, UnaryFunc f, long)
 	{
 		using TraI = transform_iterator<UnaryFunc, decltype( begin(r) )>;
-		return view::subrange( TraI{f, begin(r)}, end(r) );
+		return view::subrange( TraI{std::move(f), begin(r)}, end(r) );
 	}
 }
