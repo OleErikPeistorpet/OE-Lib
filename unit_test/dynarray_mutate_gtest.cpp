@@ -323,14 +323,9 @@ TEST_F(dynarrayTest, append)
 TEST_F(dynarrayTest, appendSizeOverflow)
 {
 	dynarray<char> c(1);
-	try
-	{	c.append((size_t)-1, '\0');
-		EXPECT_TRUE(false);
-	}
-	catch (std::bad_alloc &)
-	{}
-	catch (std::length_error &)
-	{}
+	EXPECT_THROW(
+		c.append((size_t)-1, '\0'),
+		std::length_error );
 }
 #endif
 
@@ -721,6 +716,7 @@ TEST_F(dynarrayTest, overAligned)
 	EXPECT_TRUE(special.capacity() < 3U);
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 
+#if !__cpp_aligned_new
 OEL_WHEN_EXCEPTIONS_ON(
 	try
 	{	special.reserve(special.max_size());
@@ -729,9 +725,7 @@ OEL_WHEN_EXCEPTIONS_ON(
 	catch(const std::bad_alloc &) {}
 	catch(const std::length_error &) {}
 )
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_ANY_THROW( special.reserve(special.max_size() - 1) );
-)
+#endif
 }
 
 #if defined _CPPUNWIND or defined __EXCEPTIONS

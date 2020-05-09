@@ -2,7 +2,7 @@ language: c++
 
 before_script: cd unit_test
 script:
-  - cmake .
+  - cmake -D CMAKE_BUILD_TYPE=$MY_BUILD_TYPE .
   - make
   - ./oel-test
 
@@ -16,14 +16,18 @@ matrix:
   include:
     - os: linux
       dist: trusty
+      env:
+        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Release
     - os: linux
-      env: CC="gcc-9" CXX="g++-9"
+      env:
+        - CC="gcc-9" CXX="g++-9" CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Release
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - gcc-9
             - g++-9
     - os: osx
       osx_image: xcode11.1
+      env:
+        - CXXFLAGS="-fsanitize=address -fsanitize=undefined -D OEL_MEM_BOUND_DEBUG_LVL=0" MY_BUILD_TYPE=""
