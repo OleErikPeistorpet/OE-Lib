@@ -32,9 +32,16 @@ template< typename IteratorDest, typename IteratorSource >
 struct can_memmove_with;
 
 
-//! Convert iterator to pointer. This should be overloaded for each class of contiguous iterator (C++17 concept)
+//! Convert iterator to pointer. This should be overloaded for each class of LegacyContiguousIterator (see cppreference)
 template< typename T >
 constexpr T * to_pointer_contiguous(T * it) noexcept { return it; }
+
+#if __cpp_concepts >= 201811
+
+template< std::contiguous_iterator T >
+constexpr auto to_pointer_contiguous(T it) noexcept  { return std::to_address(it); }
+
+#else
 
 #ifdef __GLIBCXX__
 	template< typename Ptr, typename C >
@@ -48,7 +55,7 @@ constexpr T * to_pointer_contiguous(T * it) noexcept { return it; }
 	constexpr T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return it.base(); }
 
 #elif _CPPLIB_VER
-	#if _MSVC_STL_UPDATE < 201805L
+	#if _MSVC_STL_UPDATE < 201805
 	#define OEL_UNWRAP(iter)  _Unchecked(iter)
 	#else
 	#define OEL_UNWRAP(iter)  iter._Unwrapped()
@@ -63,6 +70,8 @@ constexpr T * to_pointer_contiguous(T * it) noexcept { return it; }
 		return _detail::ToAddress(OEL_UNWRAP(it));
 	}
 	#undef OEL_UNWRAP
+#endif
+
 #endif
 
 template< typename Iterator >

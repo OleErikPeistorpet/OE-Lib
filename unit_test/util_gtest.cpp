@@ -145,22 +145,6 @@ TEST(utilTest, derefArgs)
 	EXPECT_EQ(3, last - d.begin());
 }
 
-template<typename T>
-struct PointerLike
-{
-	using difference_type = ptrdiff_t;
-	using element_type = T;
-
-	T * p;
-
-	explicit operator T *() const { return p; }
-
-	T * operator->() const { return p; }
-	T & operator *() const { return *p; }
-};
-static_assert(oel::is_trivially_default_constructible< PointerLike<bool> >::value, "?");
-static_assert(oel::is_trivially_copyable< PointerLike<bool> >::value, "?");
-
 TEST(utilTest, toPointerContiguous)
 {
 	using namespace oel;
@@ -184,9 +168,10 @@ TEST(utilTest, toPointerContiguous)
 	static_assert(std::is_same<P, int *>::value, "?");
 	static_assert(std::is_same<CP, const int *>::value, "?");
 
-	auto addr = &a[0];
-	dynarray_iterator<PointerLike<int>, int> it{{addr}, {nullptr}, 0};
-	auto result = to_pointer_contiguous(it);
-	static_assert(std::is_same<int *, decltype(result)>(), "?");
-	EXPECT_EQ(addr, result);
+#if __cpp_concepts >= 201811
+	oel::dynarray<bool> d(1);
+	auto p = std::to_address(d.cend());
+	static_assert(std::is_same_v< decltype(p), const bool *>);
+	EXPECT_EQ(d.data() + 1, p);
+#endif
 }

@@ -99,12 +99,12 @@ public:
 	using reference       = T &;
 	using const_reference = const T &;
 	using pointer         = typename _allocTrait::pointer;
-	using difference_type = std::ptrdiff_t;
+	using difference_type = ptrdiff_t;
 	using size_type       = size_t;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
-	using iterator       = debug::dynarray_iterator<T *, T>;
-	using const_iterator = debug::dynarray_iterator<const T *, T>;
+	using iterator       = debug::dynarray_iterator<T *>;
+	using const_iterator = debug::dynarray_iterator<const T *>;
 #else
 	using iterator       = T *;
 	using const_iterator = const T *;
