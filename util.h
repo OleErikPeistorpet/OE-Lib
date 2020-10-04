@@ -11,7 +11,7 @@
 
 
 /** @file
-* @brief Contains as_signed/as_unsigned, index_valid, ssize, deref_args and more
+* @brief Contains as_signed/as_unsigned, index_valid, ssize and more
 */
 
 namespace oel
@@ -46,27 +46,6 @@ constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 * This is not a concern in practice. */
 template< typename Integral, typename SizedRange >
 constexpr bool index_valid(const SizedRange & r, Integral index);
-
-
-
-/** @brief Calls operator * on arguments before passing them to Func
-*
-* Example, sort pointers by pointed-to values, not addresses:
-@code
-oel::dynarray< std::unique_ptr<double> > d;
-std::sort(d.begin(), d.end(), deref_args< std::less<> >{}); // std::less<double> before C++14
-@endcode  */
-template< typename Func >
-struct deref_args
-{
-	Func wrapped;
-
-	template< typename... Ts >
-	auto operator()(Ts &&... args) const -> decltype( wrapped(*std::forward<Ts>(args)...) )
-	                                         { return wrapped(*std::forward<Ts>(args)...); }
-
-	using is_transparent = void;
-};
 
 
 
