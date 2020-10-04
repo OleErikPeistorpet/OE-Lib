@@ -26,11 +26,11 @@ inline namespace debug
 /** @brief Checked iterator, for container with contiguous, dynamically allocated memory
 *
 * Note: a pair of value-initialized iterators count as an empty range (C++14 requirement)  */
-template< typename Ptr, typename ValT >
+template< typename Ptr >
 class dynarray_iterator
 {
 #define OEL_ITER_VALIDATE_DEREF  \
-	OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex(static_cast<const ValT *>(_pElem), *_header) )
+	OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex(_pElem, *_header) )
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	// Test for iterator pair pointing to same container
@@ -39,17 +39,21 @@ class dynarray_iterator
 	#define OEL_ITER_CHECK_COMPATIBLE(other)
 #endif
 
-	using _ptrTrait = std::pointer_traits<Ptr>;
-
 public:
 	using iterator_category = std::random_access_iterator_tag;
+#if __cpp_lib_concepts
+	using iterator_concept  = std::contiguous_iterator_tag;
 
-	using difference_type = typename _ptrTrait::difference_type;
-	using value_type      = ValT;
+#elif _CPPLIB_VER
+	using _Unchecked_type = Ptr; // to silence MS checked iterator warnings
+#endif
+
+	using difference_type = ptrdiff_t;
+	using value_type      = iter_value_t<Ptr>;
 	using pointer         = Ptr;
 	using reference       = decltype(*Ptr{});
 
-	using const_iterator = dynarray_iterator<typename _ptrTrait::template rebind<ValT const>, ValT>;
+	using const_iterator = dynarray_iterator<const value_type *>;
 
 	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
 	{
@@ -135,66 +139,76 @@ public:
 	}
 
 	template< typename Ptr1 >
-	bool operator==(const dynarray_iterator<Ptr1, ValT> & right) const
+	bool operator==(const dynarray_iterator<Ptr1> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem == right._pElem;
 	}
 
 	template< typename Ptr1 >
-	bool operator!=(const dynarray_iterator<Ptr1, ValT> & right) const
+	bool operator!=(const dynarray_iterator<Ptr1> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem != right._pElem;
 	}
 
 	template< typename Ptr1 >
-	bool operator <(const dynarray_iterator<Ptr1, ValT> & right) const
+	bool operator <(const dynarray_iterator<Ptr1> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem < right._pElem;
 	}
 
 	template< typename Ptr1 >
-	bool operator >(const dynarray_iterator<Ptr1, ValT> & right) const
+	bool operator >(const dynarray_iterator<Ptr1> & right) const
 	{
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem > right._pElem;
 	}
 
 	template< typename Ptr1 >
-	bool operator<=(const dynarray_iterator<Ptr1, ValT> & right) const
+	bool operator<=(const dynarray_iterator<Ptr1> & right) const
 	{
 		return !(*this > right);
 	}
 
 	template< typename Ptr1 >
-	bool operator>=(const dynarray_iterator<Ptr1, ValT> & right) const
+	bool operator>=(const dynarray_iterator<Ptr1> & right) const
 	{
 		return !(*this < right);
 	}
 
 
-#ifdef _CPPLIB_VER
-	using _Unchecked_type = pointer;
-#endif
-
-	pointer _pElem; //!< Wrapped pointer. Don't mess with the variables! Consider them private except for initialization
+	pointer _pElem; //!< Wrapped pointer. Treat the member variables as private!
 	//! Pointer to struct storing allocation ID and container size
-	typename _ptrTrait::template rebind<_detail::DebugAllocationHeader const> _header;
+	const _detail::DebugAllocationHeader * _header;
 	std::uintptr_t _allocationId;  //!< Used to check if this iterator has been invalidated by deallocation
 
 #undef OEL_ITER_CHECK_COMPATIBLE
 #undef OEL_ITER_VALIDATE_DEREF
 };
 
-} // namespace debug
+} // debug
 
 //! To raw pointer (unchecked)
-template< typename Ptr, typename T >  inline
-auto to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
+template< typename Ptr >  inline
+Ptr to_pointer_contiguous(const dynarray_iterator<Ptr> & it) noexcept  { return it._pElem; }
+
+} // namespace oel
+
+namespace std
 {
-	return (typename std::pointer_traits<Ptr>::element_type *)it._pElem;
+
+template< typename Ptr >
+struct pointer_traits< oel::dynarray_iterator<Ptr> >
+{
+    using pointer         = oel::dynarray_iterator<Ptr>;
+    using difference_type = typename pointer::difference_type;
+    using element_type    = typename std::pointer_traits<Ptr>::element_type;
+
+    static element_type * to_address(const pointer & it) noexcept  { return it._pElem; }
+};
+
 }
 
 
@@ -203,14 +217,16 @@ auto to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 
 
 
+namespace oel
+{
 namespace _detail
 {
-	template< typename T, typename Ptr >
-	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr const pos, T *const block, const void * parent) noexcept
+	template< typename Ptr >
+	dynarray_iterator<Ptr> MakeDynarrayIter(Ptr const pos, Ptr const begin, const void * parent) noexcept
 	{
-		if (block)
+		if (begin)
 		{
-			const auto * h = OEL_DEBUG_HEADER_OF(block);
+			auto const h = OEL_DEBUG_HEADER_OF_C(begin);
 			return {pos, h, h->id};
 		}
 		else
@@ -219,4 +235,4 @@ namespace _detail
 	}
 }
 
-} // namespace oel
+}

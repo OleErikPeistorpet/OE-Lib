@@ -22,7 +22,8 @@ namespace _detail
 
 	constexpr DebugAllocationHeader headerNoAllocation{0, 0};
 
-	#define OEL_DEBUG_HEADER_OF(ptr) ((DebugAllocationHeader *)static_cast<void *>(ptr) - 1)
+	#define OEL_DEBUG_HEADER_OF(ptr)   (      (DebugAllocationHeader *)static_cast<void *>(ptr) - 1)
+	#define OEL_DEBUG_HEADER_OF_C(ptr) ((const DebugAllocationHeader *)static_cast<const void *>(ptr) - 1)
 
 	template< typename T >
 	inline bool HasValidIndex(const T * arrayElem, const DebugAllocationHeader & h)

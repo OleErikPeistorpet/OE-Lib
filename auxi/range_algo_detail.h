@@ -48,7 +48,7 @@ namespace _detail
 	template< typename ContiguousIter, typename ContiguousIter2,
 	          enable_if< can_memmove_with<ContiguousIter2, ContiguousIter>::value > = 0
 	>
-	ContiguousIter CopyUnsf(ContiguousIter const src, std::ptrdiff_t const n, ContiguousIter2 const dest)
+	ContiguousIter CopyUnsf(ContiguousIter const src, ptrdiff_t const n, ContiguousIter2 const dest)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (0 != n)

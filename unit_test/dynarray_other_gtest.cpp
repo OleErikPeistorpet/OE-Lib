@@ -27,6 +27,14 @@ namespace
 	using Iter = dynarray<float>::iterator;
 	using ConstIter = dynarray<float>::const_iterator;
 
+#if __cpp_lib_ranges >= 201907
+	static_assert(std::ranges::contiguous_range< dynarray<float> >);
+#endif
+#if __cpp_lib_concepts >= 201907
+	static_assert(std::contiguous_iterator<Iter>);
+	static_assert(std::contiguous_iterator<ConstIter>);
+#endif
+
 	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>(), "?");
 
 	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
@@ -134,7 +142,7 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( v.emplace_back(), TestException );
 	)
-		EXPECT_EQ(2, ssize(v));
+		EXPECT_EQ(2, oel::ssize(v));
 		EXPECT_TRUE(1.0 == *v[0]);
 		EXPECT_TRUE(2.0 == *v[1]);
 	}

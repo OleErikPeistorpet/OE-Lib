@@ -2,12 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 project(oel-test CXX)
 
-if(${CMAKE_VERSION} VERSION_GREATER "3.8.0")
-	set(CMAKE_CXX_STANDARD 17)
-else()
-	set(CMAKE_CXX_STANDARD 14)
-endif()
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to be used")
 
 
 # Download and unpack googletest at configure time

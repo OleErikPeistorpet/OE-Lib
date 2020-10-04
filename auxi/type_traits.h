@@ -48,6 +48,7 @@ struct all_   : std::is_same< bool_pack_t<true, BoolConstants::value...>,
                               bool_pack_t<BoolConstants::value..., true> > {};
 
 
+using std::ptrdiff_t;
 using std::size_t;
 
 

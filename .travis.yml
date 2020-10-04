@@ -2,7 +2,7 @@ language: c++
 
 before_script: cd unit_test
 script:
-  - cmake -D CMAKE_BUILD_TYPE=$MY_BUILD_TYPE .
+  - cmake -D CMAKE_BUILD_TYPE=$MY_BUILD_TYPE -D CMAKE_CXX_STANDARD=$MY_CXX_STD .
   - make
   - ./oel-test
 
@@ -12,23 +12,22 @@ branches:
     - develop
     - /release/
 
+os:
+  - linux
 jobs:
   include:
-    - os: linux
-      dist: xenial
+    - dist: xenial
       env:
-        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Debug
-    - os: linux
-      arch: arm64
+        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Debug MY_CXX_STD=14
+    - arch: arm64
       dist: focal
       compiler: clang
       env:
-        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Debug
-    - os: linux
-      arch: arm64
-      dist: bionic
+        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Debug MY_CXX_STD=20
+    - arch: arm64
+      dist: focal
       env:
-        - CC=gcc-10 CXX=g++-10  MY_BUILD_TYPE=Release
+        - CC=gcc-10 CXX=g++-10  MY_BUILD_TYPE=Release MY_CXX_STD=20
       addons:
         apt:
           sources:
@@ -38,8 +37,8 @@ jobs:
     - os: osx
       osx_image: xcode7.3
       env:
-        - MY_BUILD_TYPE=Release
+        - MY_BUILD_TYPE=Release MY_CXX_STD=14
     - os: osx
-      osx_image: xcode12.2
+      osx_image: xcode12.3
       env:
-        - CXXFLAGS="-fsanitize=address -fsanitize=undefined" MY_BUILD_TYPE=""
+        - CXXFLAGS="-fsanitize=address -fsanitize=undefined" MY_BUILD_TYPE="" MY_CXX_STD=20
