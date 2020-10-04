@@ -153,38 +153,6 @@ TEST(utilTest, makeUnique)
 	EXPECT_EQ(6, p2->back());
 }
 
-TEST(utilTest, derefArgs)
-{
-	using namespace oel;
-	dynarray< std::unique_ptr<double> > d;
-	d.push_back(make_unique<double>(3.0));
-	d.push_back(make_unique<double>(3.0));
-	d.push_back(make_unique<double>(1.0));
-	d.push_back(make_unique<double>(2.0));
-	d.push_back(make_unique<double>(2.0));
-	{
-	#if __cplusplus < 201402L and _MSC_VER < 1900
-		using Less = std::less<double>;
-	#else
-		using Less = std::less<>;
-	#endif
-		std::set< double *, deref_args<Less> > s;
-		for (const auto & p : d)
-			s.insert(p.get());
-
-		const auto & constAlias = s;
-		double toFind = 2.0;
-		EXPECT_TRUE(constAlias.find(&toFind) != constAlias.end());
-
-		EXPECT_EQ(3U, s.size());
-		double cmp = 0;
-		for (double * v : s)
-			EXPECT_DOUBLE_EQ(++cmp, *v);
-	}
-	auto last = std::unique(d.begin(), d.end(), deref_args<std::equal_to<double>>());
-	EXPECT_EQ(3, last - d.begin());
-}
-
 TEST(utilTest, toPointerContiguous)
 {
 	using namespace oel;
