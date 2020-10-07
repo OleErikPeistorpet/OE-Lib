@@ -20,8 +20,15 @@ auto transformIterFromIntPtr(int * p)
 	return oel::transform_iterator<decltype(f), int *>{f, p};
 }
 
-TEST(viewTest, basicViewSize)
+TEST(viewTest, basicView)
 {
+#if OEL_STD_RANGES
+	using BV = oel::basic_view<int *>;
+
+	static_assert(std::ranges::contiguous_range<BV>);
+	static_assert(std::ranges::view<BV>);
+	static_assert(std::ranges::borrowed_range<BV>);
+#endif
 	int src[3]{};
 	{
 		basic_view<const int *> v{std::begin(src), std::end(src)};
@@ -34,8 +41,15 @@ TEST(viewTest, basicViewSize)
 
 TEST(viewTest, countedView)
 {
-	static_assert(std::is_trivially_copy_constructible<counted_view<int *>>::value, "?");
+	using CV = counted_view<int *>;
 
+	static_assert(std::is_trivially_constructible<CV, CV &>::value, "?");
+
+#if OEL_STD_RANGES
+	static_assert(std::ranges::contiguous_range<CV>);
+	static_assert(std::ranges::view<CV>);
+	static_assert(std::ranges::borrowed_range<CV>);
+#endif
 	{
 		oel::dynarray<int> i{1, 2};
 		counted_view<oel::dynarray<int>::const_iterator> test = i;
