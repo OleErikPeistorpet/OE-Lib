@@ -9,6 +9,14 @@
 #include "util.h"
 #include "auxi/transform_iterator.h"
 
+#ifdef __has_include
+#if __cpp_lib_ranges or (__has_include(<ranges>) and _HAS_CXX20)
+	#include <ranges>
+
+	#define OEL_HAS_STD_RANGES  1
+#endif
+#endif
+
 
 /** @file
 * @brief A view is a lightweight wrapper of a sequence of elements. Views do not mutate or
@@ -24,6 +32,9 @@ namespace oel
 //! A minimal substitute for boost::iterator_range and std::ranges::subrange (C++20)
 template< typename Iterator, typename Sentinel = Iterator >
 class basic_view
+	#if OEL_HAS_STD_RANGES
+	:	public std::ranges::view_base
+	#endif
 {
 public:
 	basic_view() = default;
@@ -49,6 +60,9 @@ constexpr auto ssize(const basic_view<Iterator, Sentinel> & v)
 //! Wrapper for iterator and size
 template< typename Iterator, bool = iter_is_random_access<Iterator>::value >
 class counted_view
+	#if OEL_HAS_STD_RANGES
+	:	public std::ranges::view_base
+	#endif
 {
 public:
 	using value_type      = iter_value_t<Iterator>;
@@ -163,3 +177,13 @@ constexpr auto transform(Range & r, UnaryFunc f)
 } // view
 
 }
+
+#if OEL_HAS_STD_RANGES
+
+template< typename I, typename S >
+inline constexpr bool std::ranges::enable_borrowed_range< oel::basic_view<I, S> > = true;
+
+template< typename I, bool R >
+inline constexpr bool std::ranges::enable_borrowed_range< oel::counted_view<I, R> > = true;
+
+#endif
