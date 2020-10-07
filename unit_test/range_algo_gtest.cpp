@@ -66,6 +66,11 @@ TEST(rangeTest, countedView)
 
 	static_assert(std::is_nothrow_move_constructible<counted_view<int *>>::value, "?");
 
+#if OEL_HAS_RANGES
+	static_assert(std::ranges::contiguous_range< counted_view<int *> >);
+	static_assert(std::ranges::view< counted_view<int *> >);
+#endif
+
 	dynarray<int> i{1, 2};
 	counted_view<dynarray<int>::const_iterator> test = i;
 	EXPECT_EQ(i.size(), test.size());
