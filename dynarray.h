@@ -194,7 +194,7 @@ public:
 	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void resize_default_init(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<Alloc, T>); }
+	void resize_default_init(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<decltype(_m), T>); }
 	void resize(size_type n)                { _resizeImpl(n, _uninitFill{}); }
 
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
@@ -305,7 +305,6 @@ public:
 
 private:
 	using _allocateWrap = _detail::DebugAllocateWrapper<Alloc, pointer>;
-	using _uninitFill = _detail::UninitFill<Alloc>;
 	using _internBase = _detail::DynarrBase<pointer>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 
@@ -374,6 +373,11 @@ private:
 		}
 	};
 
+	using _uninitFill = _detail::UninitFill<decltype(_m)>;
+	using _construct = _detail::Construct<T>;
+	using _span = typename _scopedPtr::Span;
+
+
 	void _resetData(T *const newData)
 	{
 		if (_m.data)
@@ -391,8 +395,6 @@ private:
 		else
 			_detail::Throw::LengthError(_lenErrorMsg);
 	}
-
-	using _span = typename _scopedPtr::Span;
 
 	_span _allocateAdd(size_type const nAdd, size_type const oldSize)
 	{
@@ -419,11 +421,11 @@ private:
 		return oel_max(2 * capacity(), newSize);
 	}
 
-
 	size_type _unusedCapacity() const
 	{
 		return _m.reservEnd - _m.end;
 	}
+
 
 	template< typename Ptr >
 	OEL_ALWAYS_INLINE auto _makeIter(Ptr pos) const noexcept
@@ -468,7 +470,7 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		_m.end = _m.reservEnd;
-		_detail::UninitCopy<Alloc>(src, _m.data, _m.end, _m);
+		_detail::UninitCopy(src, _m.data, _m.end, _m);
 	}
 
 #ifdef __GNUC__
@@ -654,7 +656,7 @@ private:
 		}
 		while (_m.end < newEnd)
 		{	// each iteration updates _m.end for exception safety
-			_detail::Construct<Alloc>(_m, _m.end, *src);
+			_construct{}(_m, _m.end, *src);
 			++src; ++_m.end;
 		}
 		return src;
@@ -691,9 +693,9 @@ private:
 	InputIter _append(InputIter src, size_type const n, false_type)
 	{	// cannot use memcpy
 		_appendImpl( n,
-			[&src](T * dest, size_type n_, Alloc & a)
+			[&src](T * dest, size_type n_, decltype(_m) & alloc)
 			{
-				src = _detail::UninitCopy(src, dest, dest + n_, a);
+				src = _detail::UninitCopy(src, dest, dest + n_, alloc);
 			} );
 		return src;
 	}
@@ -703,7 +705,7 @@ private:
 	{
 		ContiguousIter last = first + n;
 		_appendImpl( n,
-			[first](T * dest, size_type n_, Alloc &)
+			[first](T * dest, size_type n_, decltype(_m) &)
 			{
 				_detail::MemcpyCheck(first, n_, dest);
 			} );
@@ -746,7 +748,7 @@ private:
 		_scopedPtr newBuf{_m, _allocateAddOne()};
 
 		T *const pos = newBuf.data + size();
-		_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
+		_construct{}(_m, pos, static_cast<Args &&>(args)...);
 		_relocateData(newBuf.data, size());
 
 		_m.end = pos;
@@ -761,7 +763,7 @@ private:
 
 		size_type const nBefore = pos - data();
 		T *const newPos = newBuf.data + nBefore;
-		T *const afterAdded = helper.construct(newPos, _m, static_cast<Args &&>(args)...);
+		T *const afterAdded = helper.construct(_m, newPos, static_cast<Args &&>(args)...);
 		// Exception free from here
 		if (_m.data)
 		{
@@ -779,9 +781,9 @@ private:
 		_span allocate(dynarray & self) const { return self._allocateAddOne(); }
 
 		template< typename... Args >
-		T * construct(T *const newPos, Alloc & a, Args &&... args) const
+		T * construct(decltype(_m) & alloc, T *const newPos, Args &&... args) const
 		{
-			_detail::Construct(a, newPos, static_cast<Args &&>(args)...);
+			_construct{}(alloc, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
 		}
 	};
@@ -797,10 +799,10 @@ private:
 			return self._allocateAdd(count, self.size());
 		}
 
-		T * construct(T *const newPos, Alloc & a) const
+		T * construct(decltype(_m) & alloc, T *const newPos) const
 		{
 			T *const dLast = newPos + count;
-			_detail::UninitCopy(first, newPos, dLast, a);
+			_detail::UninitCopy(first, newPos, dLast, alloc);
 			return dLast;
 		};
 	};
@@ -825,7 +827,7 @@ typename dynarray<T, Alloc>::iterator
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
-		_detail::Construct<Alloc>(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+		_construct{}(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_m.end;
@@ -861,7 +863,7 @@ typename dynarray<T, Alloc>::iterator
 		// Construct new
 		OEL_CONST_COND if (can_memmove_with<T *, decltype(first)>::value)
 		{
-			_detail::UninitCopy<Alloc>(first, pPos, dLast, _m);
+			_detail::UninitCopy(first, pPos, dLast, _m);
 		}
 		else
 		{	T * dest = pPos;
@@ -869,7 +871,7 @@ typename dynarray<T, Alloc>::iterator
 			{
 				while (dest != dLast)
 				{
-					_detail::Construct<Alloc>(_m, dest, *first);
+					_construct{}(_m, dest, *first);
 					++first; ++dest;
 				}
 			}
@@ -896,7 +898,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	_debugSizeUpdater guard{_m};
 
 	if (_m.end < _m.reservEnd)
-		_detail::Construct<Alloc>(_m, _m.end, static_cast<Args &&>(args)...);
+		_construct{}(_m, _m.end, static_cast<Args &&>(args)...);
 	else
 		_emplaceBackRealloc(static_cast<Args &&>(args)...);
 
@@ -943,7 +945,7 @@ dynarray<T, Alloc>::dynarray(size_type n, default_init_t, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.end = _m.reservEnd;
-	_detail::UninitDefaultConstruct<Alloc>(_m.data, _m.end, _m);
+	_detail::UninitDefaultConstruct(_m.data, _m.end, _m);
 }
 
 template< typename T, typename Alloc >
@@ -1017,9 +1019,9 @@ template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 {
 	_appendImpl( n,
-		[&val](T * dest, size_type n_, Alloc & a)
+		[&val](T * dest, size_type n_, decltype(_m) & alloc)
 		{
-			_uninitFill{}(dest, dest + n_, a, val);
+			_uninitFill{}(dest, dest + n_, alloc, val);
 		} );
 }
 
