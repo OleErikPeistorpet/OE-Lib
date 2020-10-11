@@ -48,6 +48,9 @@ namespace oel
 namespace oel
 {
 
+template< typename T >
+struct is_trivially_relocatable< std::allocator<T> > : true_type {};
+
 template< typename T, typename Del >
 struct is_trivially_relocatable< std::unique_ptr<T, Del> >
  :	is_trivially_relocatable<Del> {};
