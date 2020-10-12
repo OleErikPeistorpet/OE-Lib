@@ -225,9 +225,9 @@ public:
 	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
-	iterator  erase_unstable(iterator pos) &  { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase_unstable(iterator pos) &   { _eraseUnorder(pos);  return pos; }
 
-	iterator  erase(iterator pos) &           { _erase(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase(iterator pos) &;
 
 	iterator  erase(iterator first, const_iterator last) &;
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require trivially relocatable T
@@ -480,7 +480,8 @@ private:
 	#endif
 #endif
 
-	T * _relocateImpl(T *__restrict dest, size_type, false_type) const
+	template< typename T_, typename... None >
+	T * _relocateData(T_ *__restrict dest, size_type, None...) const
 	{
 		OEL_WHEN_EXCEPTIONS_ON(
 			static_assert(std::is_nothrow_move_constructible<T>::value,
@@ -496,16 +497,14 @@ private:
 		return dest;
 	}
 
-	T * _relocateImpl(T *const dest, size_type const n, true_type) const
+	template< typename T_,
+	          enable_if< is_trivially_relocatable<T_>::value > = 0
+	>
+	T * _relocateData(T_ *__restrict dest, size_type const n) const
 	{
-		T * dLast = dest + n;
+		T *const dLast = dest + n;
 		_detail::MemcpyCheck(_m.data, n, dest);
 		return dLast;
-	}
-	// Returns destination end
-	OEL_ALWAYS_INLINE T * _relocateData(T *__restrict dest, size_type n)
-	{
-		return _relocateImpl(dest, n, is_trivially_relocatable<T>());
 	}
 
 
@@ -536,13 +535,17 @@ private:
 	}
 
 
-	void _eraseUnorder(iterator pos, false_type) // non-trivial relocation
+	template< typename... None >
+	void _eraseUnorder(iterator pos, None...)
 	{
 		*pos = std::move(back());
 		pop_back();
 	}
 
-	void _eraseUnorder(iterator const pos, true_type)
+	template< typename T_ = T,
+	          enable_if< is_trivially_relocatable<T_>::value > = 0
+	>
+	void _eraseUnorder(iterator const pos)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -551,28 +554,6 @@ private:
 		--_m.end;
 		auto mem = reinterpret_cast<aligned_union_t<T> *>(ptr);
 		*mem = *reinterpret_cast<aligned_union_t<T> *>(_m.end); // relocate last element to pos
-	}
-
-	void _erase(iterator const pos, true_type /*trivialRelocate*/)
-	{
-		_debugSizeUpdater guard{_m};
-
-		T *const ptr = to_pointer_contiguous(pos);
-		OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
-
-		ptr-> ~T();
-		const T * next = ptr + 1;
-		std::memmove(ptr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
-		--_m.end;
-	}
-
-	void _erase(iterator const pos, false_type)
-	{
-		_debugSizeUpdater guard{_m};
-
-		iterator last = std::move(pos + 1, end(), pos);
-		_m.end = to_pointer_contiguous(last);
-		(*_m.end).~T();
 	}
 
 
@@ -664,7 +645,7 @@ private:
 
 	template< typename InputIter, typename Sentinel >
 	InputIter _assignImpl(InputIter first, Sentinel const last, false_type)
-	{	// single pass iterator, no size available
+	{	// single-pass iterator and unknown count
 		clear();
 		for (; first != last; ++first)
 			emplace_back(*first);
@@ -672,9 +653,9 @@ private:
 		return first;
 	}
 
-	template< typename InputIter, typename Sentinel >
-	InputIter _append(InputIter first, Sentinel const last, false_type)
-	{	// single pass iterator, no size available
+	template< typename InputIter, typename Sentinel, typename... None >
+	InputIter _append(InputIter first, Sentinel const last, None...)
+	{	// single-pass iterator and unknown count
 		size_type const oldSize = size();
 		OEL_TRY_
 		{
@@ -689,8 +670,8 @@ private:
 		return first;
 	}
 
-	template< typename InputIter >
-	InputIter _append(InputIter src, size_type const n, false_type)
+	template< typename InputIter, typename... None >
+	InputIter _append(InputIter src, size_type const n, None...)
 	{	// cannot use memcpy
 		_appendImpl( n,
 			[&src](T * dest, size_type n_, decltype(_m) & alloc)
@@ -700,8 +681,10 @@ private:
 		return src;
 	}
 
-	template< typename ContiguousIter >
-	ContiguousIter _append(ContiguousIter const first, size_type const n, true_type)
+	template< typename ContiguousIter,
+	          enable_if< can_memmove_with< T *, ContiguousIter >::value > = 0
+	>
+	ContiguousIter _append(ContiguousIter const first, size_type const n)
 	{
 		ContiguousIter last = first + n;
 		_appendImpl( n,
@@ -1029,9 +1012,7 @@ template< typename T, typename Alloc >
 template< typename InputRange >
 inline auto dynarray<T, Alloc>::append(const InputRange & src) -> iterator_t<InputRange const>
 {
-	return _append(oel::adl_begin(src),
-	               _detail::SizeOrEnd(src),
-	               can_memmove_with< T *, iterator_t<InputRange const> >());
+	return _append(oel::adl_begin(src), _detail::SizeOrEnd(src));
 }
 
 
@@ -1054,6 +1035,27 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
 	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
+}
+
+template< typename T, typename Alloc >
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) &
+{
+	_debugSizeUpdater guard{_m};
+
+	T *const ptr = to_pointer_contiguous(pos);
+	OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
+	if (is_trivially_relocatable<T>::value)
+	{
+		ptr-> ~T();
+		const T * next = ptr + 1;
+		std::memmove(ptr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
+		--_m.end;
+	}
+	else
+	{	_m.end = std::move(ptr + 1, _m.end, ptr);
+		(*_m.end).~T();
+	}
+	return pos;
 }
 
 template< typename T, typename Alloc >
