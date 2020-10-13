@@ -64,29 +64,31 @@ namespace _detail
 	}
 
 
-	template< typename T, typename Alloc, bool B, typename... Args >
-	inline auto doConstruct(bool_constant<B>, Alloc & a, T *__restrict p, Args &&... args)
-	->	decltype( a.construct(p, static_cast<Args &&>(args)...) )
-		        { a.construct(p, static_cast<Args &&>(args)...); }
-	// void * worse match than T *
-	template< typename T, typename Alloc, typename... Args >
-	inline void doConstruct(std::true_type, Alloc &, void *__restrict p, Args &&... args)
-	{	// T constructible from Args
-		::new(p) T(static_cast<Args &&>(args)...);
-	}
-
-	template< typename T, typename Alloc, typename... Args >
-	inline void doConstruct(std::false_type, Alloc &, void *__restrict p, Args &&... args)
+	template< typename T >
+	struct Construct
 	{
-		::new(p) T{static_cast<Args &&>(args)...}; // list-initialization
-	}
+		template< typename Alloc, typename... Args >
+		auto operator()(Alloc & a, T *__restrict p, Args &&... args) const
+		->	decltype(a.construct(p, static_cast<Args &&>(args)...))
+			       { a.construct(p, static_cast<Args &&>(args)...); }
 
-	template< typename Alloc, typename T, typename... Args >
-	OEL_ALWAYS_INLINE inline void Construct(Alloc & a, T *__restrict p, Args &&... args)
-	{
-		doConstruct<T>(std::is_constructible<T, Args...>(),
-		               a, p, static_cast<Args &&>(args)...);
-	}
+		// void * worse match than T *
+		template< typename Alloc, typename... Args,
+		          enable_if< std::is_constructible<T, Args...>::value > = 0
+		>
+		void operator()(Alloc &, void *__restrict p, Args &&... args) const
+		{	// T constructible from Args
+			::new(p) T(static_cast<Args &&>(args)...);
+		}
+
+		template< typename Alloc, typename... Args,
+		          enable_if< ! std::is_constructible<T, Args...>::value > = 0
+		>
+		void operator()(Alloc &, void *__restrict p, Args &&... args) const
+		{
+			::new(p) T{static_cast<Args &&>(args)...}; // list-initialization
+		}
+	};
 
 
 	template< typename T >
@@ -109,7 +111,7 @@ namespace _detail
 	}
 
 	template< typename Alloc, typename InputIter, typename T,
-	          enable_if< not can_memmove_with<T *, InputIter>::value > = 0
+	          enable_if< ! can_memmove_with<T *, InputIter>::value > = 0
 	>
 	InputIter UninitCopy(InputIter src, T *__restrict dest, T *const dLast, Alloc & allo)
 	{
@@ -118,7 +120,7 @@ namespace _detail
 		{
 			while (dest != dLast)
 			{
-				_detail::Construct(allo, dest, *src);
+				Construct<T>{}(allo, dest, *src);
 				++src; ++dest;
 			}
 		}
@@ -147,7 +149,7 @@ namespace _detail
 			OEL_TRY_
 			{
 				for (; first != last; ++first)
-					_detail::Construct(allo, first, args...);
+					Construct<T>{}(allo, first, args...);
 			}
 			OEL_CATCH_ALL
 			{

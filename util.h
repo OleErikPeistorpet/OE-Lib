@@ -42,9 +42,9 @@ constexpr std::ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 /** @brief Check if index is valid (can be used with operator[]) for array or other container-like object
 *
-* Negative index should give false result. However, this is not always ensured if the number of
-* elements in r is greater than half the maximum value of its unsigned type and that type holds
-* more bits than `int`. This should not be a concern in practice. */
+* Negative index should give false result. However, this is not ensured if the index type holds more
+* bits than `int`, yet the maximum value of index type is less than the number of elements in r.
+* This is not a concern in practice. */
 template< typename Integral, typename SizedRange >
 constexpr bool index_valid(const SizedRange & r, Integral index);
 

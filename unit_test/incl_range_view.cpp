@@ -1,3 +1,6 @@
 #include <range_view.h>
 
-constexpr auto v = oel::view::counted((int *)nullptr, 0);
+constexpr auto v()
+{
+	return oel::view::counted((int *)nullptr, 0);
+}

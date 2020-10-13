@@ -194,7 +194,7 @@ public:
 	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void resize_default_init(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<Alloc, T>); }
+	void resize_default_init(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<decltype(_m), T>); }
 	void resize(size_type n)                { _resizeImpl(n, _uninitFill{}); }
 
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
@@ -225,9 +225,9 @@ public:
 	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
-	iterator  erase_unstable(iterator pos) &  { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase_unstable(iterator pos) &   { _eraseUnorder(pos);  return pos; }
 
-	iterator  erase(iterator pos) &           { _erase(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase(iterator pos) &;
 
 	iterator  erase(iterator first, const_iterator last) &;
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require trivially relocatable T
@@ -305,7 +305,6 @@ public:
 
 private:
 	using _allocateWrap = _detail::DebugAllocateWrapper<Alloc, pointer>;
-	using _uninitFill = _detail::UninitFill<Alloc>;
 	using _internBase = _detail::DynarrBase<pointer>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 
@@ -374,6 +373,11 @@ private:
 		}
 	};
 
+	using _uninitFill = _detail::UninitFill<decltype(_m)>;
+	using _construct = _detail::Construct<T>;
+	using _span = typename _scopedPtr::Span;
+
+
 	void _resetData(T *const newData)
 	{
 		if (_m.data)
@@ -391,8 +395,6 @@ private:
 		else
 			_detail::Throw::LengthError(_lenErrorMsg);
 	}
-
-	using _span = typename _scopedPtr::Span;
 
 	_span _allocateAdd(size_type const nAdd, size_type const oldSize)
 	{
@@ -419,11 +421,11 @@ private:
 		return oel_max(2 * capacity(), newSize);
 	}
 
-
 	size_type _unusedCapacity() const
 	{
 		return _m.reservEnd - _m.end;
 	}
+
 
 	template< typename Ptr >
 	OEL_ALWAYS_INLINE auto _makeIter(Ptr pos) const noexcept
@@ -468,7 +470,7 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		_m.end = _m.reservEnd;
-		_detail::UninitCopy<Alloc>(src, _m.data, _m.end, _m);
+		_detail::UninitCopy(src, _m.data, _m.end, _m);
 	}
 
 #ifdef __GNUC__
@@ -478,7 +480,8 @@ private:
 	#endif
 #endif
 
-	T * _relocateImpl(T *__restrict dest, size_type, false_type) const
+	template< typename T_, typename... None >
+	T * _relocateData(T_ *__restrict dest, size_type, None...) const
 	{
 		OEL_WHEN_EXCEPTIONS_ON(
 			static_assert(std::is_nothrow_move_constructible<T>::value,
@@ -494,16 +497,14 @@ private:
 		return dest;
 	}
 
-	T * _relocateImpl(T *const dest, size_type const n, true_type) const
+	template< typename T_,
+	          enable_if< is_trivially_relocatable<T_>::value > = 0
+	>
+	T * _relocateData(T_ *__restrict dest, size_type const n) const
 	{
-		T * dLast = dest + n;
+		T *const dLast = dest + n;
 		_detail::MemcpyCheck(_m.data, n, dest);
 		return dLast;
-	}
-	// Returns destination end
-	OEL_ALWAYS_INLINE T * _relocateData(T *__restrict dest, size_type n)
-	{
-		return _relocateImpl(dest, n, is_trivially_relocatable<T>());
 	}
 
 
@@ -534,13 +535,17 @@ private:
 	}
 
 
-	void _eraseUnorder(iterator pos, false_type) // non-trivial relocation
+	template< typename... None >
+	void _eraseUnorder(iterator pos, None...)
 	{
 		*pos = std::move(back());
 		pop_back();
 	}
 
-	void _eraseUnorder(iterator const pos, true_type)
+	template< typename T_ = T,
+	          enable_if< is_trivially_relocatable<T_>::value > = 0
+	>
+	void _eraseUnorder(iterator const pos)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -549,28 +554,6 @@ private:
 		--_m.end;
 		auto mem = reinterpret_cast<aligned_union_t<T> *>(ptr);
 		*mem = *reinterpret_cast<aligned_union_t<T> *>(_m.end); // relocate last element to pos
-	}
-
-	void _erase(iterator const pos, true_type /*trivialRelocate*/)
-	{
-		_debugSizeUpdater guard{_m};
-
-		T *const ptr = to_pointer_contiguous(pos);
-		OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
-
-		ptr-> ~T();
-		const T * next = ptr + 1;
-		std::memmove(ptr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
-		--_m.end;
-	}
-
-	void _erase(iterator const pos, false_type)
-	{
-		_debugSizeUpdater guard{_m};
-
-		iterator last = std::move(pos + 1, end(), pos);
-		_m.end = to_pointer_contiguous(last);
-		(*_m.end).~T();
 	}
 
 
@@ -654,7 +637,7 @@ private:
 		}
 		while (_m.end < newEnd)
 		{	// each iteration updates _m.end for exception safety
-			_detail::Construct<Alloc>(_m, _m.end, *src);
+			_construct{}(_m, _m.end, *src);
 			++src; ++_m.end;
 		}
 		return src;
@@ -662,7 +645,7 @@ private:
 
 	template< typename InputIter, typename Sentinel >
 	InputIter _assignImpl(InputIter first, Sentinel const last, false_type)
-	{	// single pass iterator, no size available
+	{	// single-pass iterator and unknown count
 		clear();
 		for (; first != last; ++first)
 			emplace_back(*first);
@@ -670,9 +653,9 @@ private:
 		return first;
 	}
 
-	template< typename InputIter, typename Sentinel >
-	InputIter _append(InputIter first, Sentinel const last, false_type)
-	{	// single pass iterator, no size available
+	template< typename InputIter, typename Sentinel, typename... None >
+	InputIter _append(InputIter first, Sentinel const last, None...)
+	{	// single-pass iterator and unknown count
 		size_type const oldSize = size();
 		OEL_TRY_
 		{
@@ -687,23 +670,25 @@ private:
 		return first;
 	}
 
-	template< typename InputIter >
-	InputIter _append(InputIter src, size_type const n, false_type)
+	template< typename InputIter, typename... None >
+	InputIter _append(InputIter src, size_type const n, None...)
 	{	// cannot use memcpy
 		_appendImpl( n,
-			[&src](T * dest, size_type n_, Alloc & a)
+			[&src](T * dest, size_type n_, decltype(_m) & alloc)
 			{
-				src = _detail::UninitCopy(src, dest, dest + n_, a);
+				src = _detail::UninitCopy(src, dest, dest + n_, alloc);
 			} );
 		return src;
 	}
 
-	template< typename ContiguousIter >
-	ContiguousIter _append(ContiguousIter const first, size_type const n, true_type)
+	template< typename ContiguousIter,
+	          enable_if< can_memmove_with< T *, ContiguousIter >::value > = 0
+	>
+	ContiguousIter _append(ContiguousIter const first, size_type const n)
 	{
 		ContiguousIter last = first + n;
 		_appendImpl( n,
-			[first](T * dest, size_type n_, Alloc &)
+			[first](T * dest, size_type n_, decltype(_m) &)
 			{
 				_detail::MemcpyCheck(first, n_, dest);
 			} );
@@ -746,7 +731,7 @@ private:
 		_scopedPtr newBuf{_m, _allocateAddOne()};
 
 		T *const pos = newBuf.data + size();
-		_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
+		_construct{}(_m, pos, static_cast<Args &&>(args)...);
 		_relocateData(newBuf.data, size());
 
 		_m.end = pos;
@@ -761,7 +746,7 @@ private:
 
 		size_type const nBefore = pos - data();
 		T *const newPos = newBuf.data + nBefore;
-		T *const afterAdded = helper.construct(newPos, _m, static_cast<Args &&>(args)...);
+		T *const afterAdded = helper.construct(_m, newPos, static_cast<Args &&>(args)...);
 		// Exception free from here
 		if (_m.data)
 		{
@@ -779,9 +764,9 @@ private:
 		_span allocate(dynarray & self) const { return self._allocateAddOne(); }
 
 		template< typename... Args >
-		T * construct(T *const newPos, Alloc & a, Args &&... args) const
+		T * construct(decltype(_m) & alloc, T *const newPos, Args &&... args) const
 		{
-			_detail::Construct(a, newPos, static_cast<Args &&>(args)...);
+			_construct{}(alloc, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
 		}
 	};
@@ -797,10 +782,10 @@ private:
 			return self._allocateAdd(count, self.size());
 		}
 
-		T * construct(T *const newPos, Alloc & a) const
+		T * construct(decltype(_m) & alloc, T *const newPos) const
 		{
 			T *const dLast = newPos + count;
-			_detail::UninitCopy(first, newPos, dLast, a);
+			_detail::UninitCopy(first, newPos, dLast, alloc);
 			return dLast;
 		};
 	};
@@ -812,7 +797,7 @@ typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args) &
 {
 #define OEL_DYNARR_INSERT_STEP1  \
-	_detail::AssertTrivialRelocate<T>{};  \
+	(void) _detail::AssertTrivialRelocate<T>{};  \
 	\
 	_debugSizeUpdater guard{_m};  \
 	\
@@ -825,7 +810,7 @@ typename dynarray<T, Alloc>::iterator
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
-		_detail::Construct<Alloc>(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+		_construct{}(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
 		++_m.end;
@@ -861,7 +846,7 @@ typename dynarray<T, Alloc>::iterator
 		// Construct new
 		OEL_CONST_COND if (can_memmove_with<T *, decltype(first)>::value)
 		{
-			_detail::UninitCopy<Alloc>(first, pPos, dLast, _m);
+			_detail::UninitCopy(first, pPos, dLast, _m);
 		}
 		else
 		{	T * dest = pPos;
@@ -869,7 +854,7 @@ typename dynarray<T, Alloc>::iterator
 			{
 				while (dest != dLast)
 				{
-					_detail::Construct<Alloc>(_m, dest, *first);
+					_construct{}(_m, dest, *first);
 					++first; ++dest;
 				}
 			}
@@ -896,7 +881,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	_debugSizeUpdater guard{_m};
 
 	if (_m.end < _m.reservEnd)
-		_detail::Construct<Alloc>(_m, _m.end, static_cast<Args &&>(args)...);
+		_construct{}(_m, _m.end, static_cast<Args &&>(args)...);
 	else
 		_emplaceBackRealloc(static_cast<Args &&>(args)...);
 
@@ -943,7 +928,7 @@ dynarray<T, Alloc>::dynarray(size_type n, default_init_t, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.end = _m.reservEnd;
-	_detail::UninitDefaultConstruct<Alloc>(_m.data, _m.end, _m);
+	_detail::UninitDefaultConstruct(_m.data, _m.end, _m);
 }
 
 template< typename T, typename Alloc >
@@ -1017,9 +1002,9 @@ template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 {
 	_appendImpl( n,
-		[&val](T * dest, size_type n_, Alloc & a)
+		[&val](T * dest, size_type n_, decltype(_m) & alloc)
 		{
-			_uninitFill{}(dest, dest + n_, a, val);
+			_uninitFill{}(dest, dest + n_, alloc, val);
 		} );
 }
 
@@ -1027,9 +1012,7 @@ template< typename T, typename Alloc >
 template< typename InputRange >
 inline auto dynarray<T, Alloc>::append(const InputRange & src) -> iterator_t<InputRange const>
 {
-	return _append(oel::adl_begin(src),
-	               _detail::SizeOrEnd(src),
-	               can_memmove_with< T *, iterator_t<InputRange const> >());
+	return _append(oel::adl_begin(src), _detail::SizeOrEnd(src));
 }
 
 
@@ -1052,6 +1035,27 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept(nodebug)
 	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
 	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
+}
+
+template< typename T, typename Alloc >
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) &
+{
+	_debugSizeUpdater guard{_m};
+
+	T *const ptr = to_pointer_contiguous(pos);
+	OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
+	if (is_trivially_relocatable<T>::value)
+	{
+		ptr-> ~T();
+		const T * next = ptr + 1;
+		std::memmove(ptr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
+		--_m.end;
+	}
+	else
+	{	_m.end = std::move(ptr + 1, _m.end, ptr);
+		(*_m.end).~T();
+	}
+	return pos;
 }
 
 template< typename T, typename Alloc >

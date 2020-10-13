@@ -29,6 +29,13 @@ namespace
 
 	static_assert( !oel::is_trivially_relocatable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
 
+#if (defined _CPPLIB_VER or defined _LIBCPP_VERSION or defined __GLIBCXX__) and !_GLIBCXX_USE_CXX11_ABI
+	static_assert(oel::is_trivially_relocatable< std::string >::value, "?");
+#endif
+#ifndef OEL_NO_BOOST
+	static_assert(oel::is_trivially_relocatable< boost::circular_buffer<int, oel::allocator<int>> >(), "?");
+#endif
+
 	struct alignas(32) Foo { int a[24]; };
 	static_assert(alignof(oel::aligned_union_t<Foo>) == 32, "?");
 	static_assert(sizeof(oel::aligned_union_t<Foo>) == sizeof(Foo), "?");
