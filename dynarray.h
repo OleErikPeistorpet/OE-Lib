@@ -797,7 +797,7 @@ typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args) &
 {
 #define OEL_DYNARR_INSERT_STEP1  \
-	_detail::AssertTrivialRelocate<T>{};  \
+	(void) _detail::AssertTrivialRelocate<T>{};  \
 	\
 	_debugSizeUpdater guard{_m};  \
 	\
