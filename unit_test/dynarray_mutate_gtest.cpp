@@ -146,7 +146,10 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		}
 		ASSERT_EQ(expected.size(), da.size());
 	)
-		EXPECT_TRUE( std::equal(begin(da), end(da), begin(expected)) );
+		EXPECT_TRUE(
+			std::equal(
+				begin(da), end(da), begin(expected),
+				[](const TrivialRelocat & a, double b) { return *a == b; } ) );
 	}
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 }
@@ -602,7 +605,7 @@ TEST_F(dynarrayTest, statefulAlwaysEqualDefaultConstructibleAlloc)
 }
 
 template<typename T>
-void testErase()
+void testEraseOne()
 {
 	dynarray<T> d;
 
@@ -624,19 +627,24 @@ void testErase()
 
 TEST_F(dynarrayTest, eraseSingle)
 {
-	testErase<int>();
+	testEraseOne<int>();
+
+	TrivialRelocat::ClearCount();
+	testEraseOne<TrivialRelocat>();
+	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 
 	MoveOnly::ClearCount();
-	testErase<MoveOnly>();
+	testEraseOne<MoveOnly>();
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
-TEST_F(dynarrayTest, eraseRange)
+template<typename T>
+void testErase()
 {
-	dynarray<unsigned int> d;
+	dynarray<T> d;
 
 	for (int i = 1; i <= 5; ++i)
-		d.push_back(i);
+		d.emplace_back(i);
 
 	auto const s = d.size();
 	auto ret = d.erase(begin(d) + 2, begin(d) + 2);
@@ -644,7 +652,20 @@ TEST_F(dynarrayTest, eraseRange)
 	ret = d.erase(ret - 1, ret + 1);
 	EXPECT_EQ(begin(d) + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
-	EXPECT_EQ(s, d.back());
+	EXPECT_EQ(s, static_cast<double>(d.back()));
+}
+
+TEST_F(dynarrayTest, eraseRange)
+{
+	testErase<int>();
+
+	TrivialRelocat::ClearCount();
+	testErase<TrivialRelocat>();
+	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
+
+	MoveOnly::ClearCount();
+	testErase<MoveOnly>();
+	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
 TEST_F(dynarrayTest, eraseToEnd)
