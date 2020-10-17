@@ -37,15 +37,7 @@ namespace _detail
 		}
 	};
 
-
-
-	template< typename T > struct AssertTrivialRelocate
-	{
-		static_assert(is_trivially_relocatable<T>::value,
-			"The function requires trivially relocatable T, see declaration of is_trivially_relocatable");
-	};
-
-
+////////////////////////////////////////////////////////////////////////////////
 
 	template< typename ContiguousIter >
 	inline void MemcpyCheck(ContiguousIter const src, size_t const nElems, void *const dest)

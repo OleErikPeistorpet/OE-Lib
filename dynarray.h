@@ -81,11 +81,11 @@ inline namespace debug
 *
 * In general, only that which differs from std::vector is documented.
 *
-* For functions that may reallocate, there is a requirement that template argument T is trivially relocatable or
-* noexcept move constructible (checked when compiling). Most types can be relocated trivially, but it often needs
-* to be declared manually. See specify_trivial_relocate(T &&). Performance is better if T is trivially relocatable.
+* There is a general requirement that template argument T is trivially relocatable or noexcept move
+* constructible (checked when compiling). Most types can be relocated trivially, but it often needs to be
+* declared manually. See specify_trivial_relocate(T &&). Performance is better if T is trivially relocatable.
 * Furthermore, a few functions require that T is trivially relocatable (noexcept movable is not enough):
-* emplace, insert, insert_r and `erase(first, last)`
+* emplace, insert, insert_r
 *
 * The default allocator supports over-aligned types (e.g. __m256)  */
 template< typename T, typename Alloc/* = oel::allocator*/ >
@@ -232,7 +232,7 @@ public:
 	iterator  erase(iterator pos) &;
 
 	iterator  erase(iterator first, const_iterator last) &;
-	//! Equivalent to `erase(first, end())`, but potentially faster and does not require trivially relocatable T
+	//! Equivalent to `erase(first, end())`, but potentially faster and does not require assignable T
 	void      erase_to_end(iterator first) noexcept(nodebug);
 
 	void      clear() noexcept         { erase_to_end(begin()); }
@@ -779,7 +779,8 @@ typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args) &
 {
 #define OEL_DYNARR_INSERT_STEP1  \
-	(void) _detail::AssertTrivialRelocate<T>{};  \
+	static_assert(is_trivially_relocatable<T>::value,  \
+		"The function requires trivially relocatable T, see declaration of is_trivially_relocatable");  \
 	\
 	_debugSizeUpdater guard{_m};  \
 	\
@@ -1026,20 +1027,24 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) &
 template< typename T, typename Alloc >
 typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
 {
-	(void) _detail::AssertTrivialRelocate<T>{};
-
 	_debugSizeUpdater guard{_m};
 
-	T *const      pFirst = to_pointer_contiguous(first);
+	T *            dest = to_pointer_contiguous(first);
 	const T *const pLast = to_pointer_contiguous(last);
-	OEL_ASSERT(_m.data <= pFirst and pFirst <= pLast and pLast <= _m.end);
-	if (pFirst < pLast)
+	OEL_ASSERT(_m.data <= dest and dest <= pLast and pLast <= _m.end);
+	if (is_trivially_relocatable<T>::value)
 	{
-		_detail::Destroy(pFirst, pLast);
+		_detail::Destroy(dest, pLast);
 		size_type const nAfterLast = _m.end - pLast;
 		// Relocate [last, end) to [first, first + nAfterLast)
-		std::memmove(pFirst, pLast, sizeof(T) * nAfterLast);
-		_m.end = pFirst + nAfterLast;
+		std::memmove(dest, pLast, sizeof(T) * nAfterLast);
+		_m.end = dest + nAfterLast;
+	}
+	else if (dest < pLast) // must avoid self-move-assigning the elements
+	{
+		dest = std::move(const_cast<T *>(pLast), _m.end, dest);
+		_detail::Destroy(dest, _m.end);
+		_m.end = dest;
 	}
 	return first;
 }
