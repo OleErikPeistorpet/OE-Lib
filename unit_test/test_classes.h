@@ -96,11 +96,10 @@ public:
 
 	~TrivialRelocat() { ++nDestruct; }
 
-	double operator *() const { return val; }
-
 	const double * get() const { return &val; }
 
-	bool operator==(double d) const { return val == d; }
+	double operator *() const        { return val; }
+	explicit operator double() const { return val; }
 };
 oel::true_type specify_trivial_relocate(TrivialRelocat);
 
