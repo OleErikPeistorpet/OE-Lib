@@ -71,8 +71,17 @@ public:
 	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeConstIter{}(_end, _data.get(), this); }
 	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
 
-	T *       data() noexcept              OEL_ALWAYS_INLINE { return _data.get(); }
-	const T * data() const noexcept        OEL_ALWAYS_INLINE { return _data.get(); }
+	auto      rbegin() noexcept         OEL_ALWAYS_INLINE { return std::reverse_iterator<iterator>{end()}; }
+	auto      rbegin() const noexcept   OEL_ALWAYS_INLINE { return std::reverse_iterator<const_iterator>{end()}; }
+
+	auto      rend() noexcept           OEL_ALWAYS_INLINE { return std::reverse_iterator<iterator>{begin()}; }
+	auto      rend() const noexcept     OEL_ALWAYS_INLINE { return std::reverse_iterator<const_iterator>{begin()}; }
+
+	T *       data() noexcept           OEL_ALWAYS_INLINE { return _data.get(); }
+	const T * data() const noexcept     OEL_ALWAYS_INLINE { return _data.get(); }
+
+	T &       back() noexcept(nodebug)         { return *_makeIterator{}(_end - 1, _data.get(), this); }
+	const T & back() const noexcept(nodebug)   { return *_makeConstIter{}(_end - 1, _data.get(), this); }
 
 	T &       operator[](size_type index) noexcept(nodebug)        { OEL_ASSERT(index < size());
 	                                                                 return _data[index]; }
