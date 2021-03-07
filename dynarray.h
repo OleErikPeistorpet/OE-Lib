@@ -312,7 +312,7 @@ private:
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 
 	template< typename > // template to allow constexpr constructor when Alloc copy constructor is not constexpr
-	struct _memOwner : public _internBase, public Alloc
+	struct _memOwner : public _internBase, public allocator_type
 	{
 		using _internBase::data;   // Owning pointer to beginning of data buffer
 		using _internBase::end;       // Pointer to one past the back object
@@ -340,22 +340,22 @@ private:
 				_allocateWrap::Deallocate(*this, data, reservEnd - data);
 		}
 	};
-	_memOwner<Alloc> _m; // the only data member
+	_memOwner<Alloc> _m; // the only non-static data member
 
-
-	struct _scopedPtr : private _detail::RefOptimizeEmpty<Alloc>
+	// Should be very careful with potential name collisions because of inheriting from allocator
+	struct _scopedPtr : private allocator_type
 	{
 		pointer data;  // owner
 		pointer bufEnd;
 
 		struct Span
 		{
-			pointer p;
+			pointer p;  // owner
 			size_type n;
 		};
 
-		_scopedPtr(allocator_type & a, Span const buf)
-		 :	_scopedPtr::RefOptimizeEmpty{a},
+		_scopedPtr(const allocator_type & a, Span const buf)
+		 :	allocator_type(a),
 			data{buf.p},
 			bufEnd{data + buf.n} {
 		}
@@ -365,21 +365,13 @@ private:
 		~_scopedPtr()
 		{
 			if (data)
-				_allocateWrap::Deallocate(this->Get(), data, bufEnd - data);
-		}
-
-		void Swap(_internBase & other)
-		{
-			using std::swap;
-			swap(other.data, data);
-			swap(other.reservEnd, bufEnd);
+				_allocateWrap::Deallocate(*this, data, bufEnd - data);
 		}
 	};
 
 	using _uninitFill = _detail::UninitFill<decltype(_m)>;
 	using _construct = _detail::Construct<T>;
 	using _span = typename _scopedPtr::Span;
-
 
 	void _resetData(T *const newData)
 	{
@@ -388,6 +380,14 @@ private:
 
 		_m.data = newData;
 	}
+
+	void _swapBuf(_scopedPtr & s)
+	{
+		using std::swap;
+		swap(_m.data, s.data);
+		swap(_m.reservEnd, s.bufEnd);
+	}
+
 
 	static constexpr auto _lenErrorMsg = "Going over dynarray max_size";
 
@@ -489,7 +489,7 @@ private:
 
 		_scopedPtr newBuf{_m, {_allocateExact(_m, newCap), newCap}};
 		_m.end = _detail::Relocate(_m.data, size(), newBuf.data);
-		newBuf.Swap(_m);
+		_swapBuf(newBuf);
 	}
 
 	template< typename UninitFillFunc >
@@ -677,7 +677,7 @@ private:
 		_detail::Relocate(_m.data, oldSize, newBuf.data);
 
 		_m.end = pos;
-		newBuf.Swap(_m);
+		_swapBuf(newBuf);
 	}
 
 	template< typename... Args >
@@ -690,7 +690,7 @@ private:
 		_detail::Relocate(_m.data, size(), newBuf.data);
 
 		_m.end = pos;
-		newBuf.Swap(_m);
+		_swapBuf(newBuf);
 	}
 
 
@@ -709,7 +709,7 @@ private:
 			std::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);  // relocate suffix
 		}
 		_m.end = afterAdded + nAfterPos;
-		newBuf.Swap(_m);
+		_swapBuf(newBuf);
 
 		return newPos;
 	}
