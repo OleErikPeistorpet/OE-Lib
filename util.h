@@ -104,25 +104,6 @@ constexpr auto adl_begin(Range & r) -> decltype(begin(r)) { return begin(r); }
 
 namespace _detail
 {
-	template< typename T, bool = std::is_empty<T>::value >
-	struct RefOptimizeEmpty
-	{
-		T & _ref;
-
-		T & Get() noexcept { return _ref; }
-	};
-
-	template< typename Type_needs_unique_name_for_MSVC >
-	struct RefOptimizeEmpty< Type_needs_unique_name_for_MSVC, true >
-	 :	protected Type_needs_unique_name_for_MSVC
-	{
-		RefOptimizeEmpty(Type_needs_unique_name_for_MSVC & o) : Type_needs_unique_name_for_MSVC(o) {}
-
-		Type_needs_unique_name_for_MSVC & Get() noexcept { return *this; }
-	};
-
-
-
 	using BigUint =
 	#if ULONG_MAX > UINT_MAX
 		unsigned long;
