@@ -744,6 +744,69 @@ private:
 			return dLast;
 		}
 	};
+
+	template< typename EmplaceAtExisting, typename... Args >
+#ifdef _MSC_VER
+	__forceinline
+#endif
+	void _doEmplaceShift(T *const pos, Args &&... args)
+	{
+		if (pos != _m.end)
+		{
+			T *const oldEnd = _m.end;
+			::new(static_cast<void *>(oldEnd)) T(std::move(oldEnd[-1])); // move construct back element
+			++_m.end;
+			std::move_backward(pos, oldEnd - 1, oldEnd);  // move assign rest of tail
+			EmplaceAtExisting{}(_m, pos, static_cast<Args &&>(args)...);
+		}
+		else
+		{	_construct{}(_m, pos, static_cast<Args &&>(args)...);
+			++_m.end;
+		}
+	}
+
+	struct _assign
+	{
+		template< typename T_ >
+		void operator()(decltype(_m) &, T * pos, T_ && val) const
+		{
+			*pos = static_cast<T_ &&>(val);
+		}
+	};
+
+	struct _destroyEmplace
+	{
+		template< typename... Args >
+		void operator()(decltype(_m) & alloc, T *const pos, Args &&... args) const
+		{
+			pos-> ~T();
+			OEL_TRY_
+			{
+				_construct{}(alloc, pos, static_cast<Args &&>(args)...);
+			}
+			OEL_CATCH_ALL
+			{	// Not taking the back element because that might be less cache-friendly
+				::new(static_cast<void *>(pos)) T(std::move(pos[1]));
+				OEL_WHEN_EXCEPTIONS_ON(throw);
+			}
+		}
+	};
+
+	template< typename T_,
+		enable_if<
+			std::is_same< remove_cref_t<T_>, T >::value and
+			!_detail::AllocHasConstruct<Alloc, T_>::value
+		> = 0 >
+	void _emplaceShift(T * pos, T_ && arg)
+	{
+		_doEmplaceShift<_assign>(pos, static_cast<T_ &&>(arg));
+	}
+
+	template< typename... Args >
+	void _emplaceShift(T * pos, Args &&... args)
+	{
+		_doEmplaceShift<_destroyEmplace>(pos, static_cast<Args &&>(args)...);
+	}
 };
 
 template< typename T, typename Alloc >

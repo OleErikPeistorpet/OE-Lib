@@ -89,15 +89,33 @@ template< bool Condition >
 using enable_if = typename std::enable_if<Condition, int>::type;
 
 
+template< typename T >
+using remove_cref_t = typename std::remove_const< typename std::remove_reference<T>::type >::type;
+
 template< typename... Ts >
 using common_type = typename std::common_type<Ts...>::type;
-
-} // namespace oel
 
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
+
+
+namespace _detail
+{
+	template< typename Alloc, typename Arg >
+	decltype( std::declval<Alloc &>().construct( std::declval<typename Alloc::value_type *>(), std::declval<Arg>() ),
+		true_type() )
+		HasConstructTest(int);
+
+	template< typename, typename >
+	false_type HasConstructTest(long);
+
+	template< typename Alloc, typename Arg >
+	struct AllocHasConstruct : decltype( HasConstructTest<Alloc, Arg>(0) ) {};
+}
+
+} // namespace oel
 
 
 template< typename T >
