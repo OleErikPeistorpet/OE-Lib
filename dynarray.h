@@ -709,7 +709,7 @@ private:
 		size_t const nAfterPos = _m.end - pos;
 		_detail::Relocate(_m.data, nBefore, newBuf.data);  // prefix
 		_m.end = _detail::Relocate(pos, nAfterPos, afterAdded); // suffix
-		_swapBuf(newBuf);
+		newBuf.Swap(_m);
 
 		return newPos;
 	}
@@ -744,6 +744,86 @@ private:
 			return dLast;
 		}
 	};
+
+	template< typename EmplaceAtExisting, typename... Args >
+#ifdef _MSC_VER
+	__forceinline
+#endif
+	void _doEmplaceShift(T *const pos, Args &&... args)
+	{
+		if (pos != _m.end)
+		{
+			T *const oldEnd = _m.end;
+			::new(static_cast<void *>(oldEnd)) T(std::move(oldEnd[-1])); // move construct back element
+			++_m.end;
+			std::move_backward(pos, oldEnd - 1, oldEnd);  // move assign rest of tail
+			EmplaceAtExisting{}(_m, pos, static_cast<Args &&>(args)...);
+		}
+		else
+		{	_construct{}(_m, pos, static_cast<Args &&>(args)...);
+			++_m.end;
+		}
+	}
+
+	struct _destroyEmplace
+	{
+		template< typename... Args >
+		void operator()(decltype(_m) & alloc, T *const pos, Args &&... args) const
+		{
+			pos-> ~T();
+		#if 0
+			OEL_TRY_
+			{
+				_construct{}(alloc, pos, static_cast<Args &&>(args)...);
+			}
+			OEL_CATCH_ALL
+			{	// Not taking the back element because that would be less cache-friendly
+				::new(static_cast<void *>(pos)) T(std::move(pos[1]));
+				OEL_WHEN_EXCEPTIONS_ON(throw);
+			}
+		#else
+			struct Guard
+			{
+				T * pos_;
+
+				~Guard()
+				{
+					if (pos_)
+						::new(static_cast<void *>(pos_)) T(std::move(pos_[1]));
+				}
+			} scoped{pos};
+
+			_construct{}(alloc, pos, static_cast<Args &&>(args)...);
+
+			scoped.pos_ = nullptr;
+		#endif
+		}
+	};
+
+	struct _assign
+	{
+		template< typename T_ >
+		void operator()(decltype(_m) &, T * pos, T_ && val) const
+		{
+			*pos = static_cast<T_ &&>(val);
+		}
+	};
+
+	template< bool B, typename... Args >
+	void _emplaceShift(bool_constant<B>, T * pos, Args &&... args)
+	{
+		_doEmplaceShift<_destroyEmplace>(pos, static_cast<Args &&>(args)...);
+	}
+
+	void _emplaceShift(false_type, T * pos, T && arg)
+	{
+		_doEmplaceShift<_assign>(pos, std::move(arg));
+	}
+
+	void _emplaceShift(false_type, T * pos, const T & arg)
+	{
+		_doEmplaceShift<_assign>(pos, arg);
+	}
 };
 
 template< typename T, typename Alloc >
@@ -773,32 +853,9 @@ typename dynarray<T, Alloc>::iterator
 			std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
 		}
 		else
-		{	if (pPos != _m.end)
-			{
-				struct Local
-				{
-					alignas(T) unsigned char storage[sizeof(T)];
-					bool live = false;
-
-					~Local()
-					{
-						if (live)
-							OEL_LAUNDER(reinterpret_cast<T *>(&storage))-> ~T();
-					}
-				} tmp;
-				_construct{}(_m, reinterpret_cast<T *>(&tmp.storage), static_cast<Args &&>(args)...);
-				tmp.live = true;
-
-				T *const oldEnd = _m.end;
-				::new(static_cast<void *>(oldEnd)) T(std::move(oldEnd[-1])); // move construct back element
-				++_m.end;
-				std::move_backward(pPos, oldEnd - 1, oldEnd);  // move assign rest of tail
-				*pPos = std::move(*OEL_LAUNDER( reinterpret_cast<T *>(&tmp.storage) )); // move assign from tmp
-			}
-			else
-			{	_construct{}(_m, _m.end, static_cast<Args &&>(args)...);
-				++_m.end;
-			}
+		{	_emplaceShift(
+				_detail::AllocHasConstruct<Alloc, T>(),
+				pPos, static_cast<Args &&>(args)... );
 		}
 	}
 	else
