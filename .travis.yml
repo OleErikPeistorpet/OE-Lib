@@ -19,11 +19,13 @@ jobs:
       env:
         - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Debug
     - os: linux
-      arch:
-        - arm64
+      arch: arm64
+      dist: focal
+      compiler: clang
       env:
-        - MY_BUILD_TYPE=Release
+        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Debug
     - os: linux
+      arch: arm64
       dist: bionic
       env:
         - CC=gcc-10 CXX=g++-10  MY_BUILD_TYPE=Release
@@ -34,6 +36,10 @@ jobs:
           packages:
             - g++-10
     - os: osx
+      osx_image: xcode7.3
+      env:
+        - MY_BUILD_TYPE=Release
+    - os: osx
       osx_image: xcode12.2
       env:
-        - CXXFLAGS="-fsanitize=address -fsanitize=undefined -D OEL_MEM_BOUND_DEBUG_LVL=0" MY_BUILD_TYPE=""
+        - CXXFLAGS="-fsanitize=address -fsanitize=undefined" MY_BUILD_TYPE=""
