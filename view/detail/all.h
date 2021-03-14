@@ -1,19 +1,27 @@
+#pragma once
+
 // Copyright 2020 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "../counted.h"
+#include "../subrange.h"
+#include "../transform_iterator.h"
+
+namespace oel
+{
 namespace _detail
 {
 	template< typename ViewIter, typename Range, typename... None >
-	constexpr basic_view<ViewIter> all(Range & r, None...)
+	constexpr basic_view<ViewIter> All(Range & r, None...)
 	{
 		return{ ViewIter{begin(r)}, ViewIter{end(r)} };
 	}
 
 	template< typename ViewIter, typename SizedRange >
-	constexpr auto all(SizedRange & r)
+	constexpr auto All(SizedRange & r)
 	->	decltype(counted_view<ViewIter>( ViewIter{begin(r)}, oel::ssize(r) ))
 	{	return   counted_view<ViewIter>( ViewIter{begin(r)}, oel::ssize(r) ); }
 
@@ -49,4 +57,6 @@ namespace _detail
 			return counted_view<TI>( {f, v.begin()}, v.size() );
 		}
 	};
+}
+
 }

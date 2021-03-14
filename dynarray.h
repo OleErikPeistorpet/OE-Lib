@@ -6,12 +6,12 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "allocator.h"
 #include "auxi/detail_forward.h"
 #include "auxi/dynarray_iterator.h"
 #include "auxi/impl_algo.h"
 #include "optimize_ext/default.h"
-#include "allocator.h"
-#include "range_view.h"
+#include "view/move.h"
 
 #include <algorithm>
 

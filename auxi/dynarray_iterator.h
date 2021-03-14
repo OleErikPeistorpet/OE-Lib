@@ -7,6 +7,7 @@
 
 
 #include "allocate_with_header.h"
+#include "contiguous_iterator_to_ptr.h"
 
 
 #ifdef _MSC_VER

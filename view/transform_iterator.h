@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "type_traits.h"
+#include "../auxi/type_traits.h"
 
 
 namespace oel
@@ -74,22 +74,6 @@ class transform_iterator
 {
 	_detail::TightPair< Iterator, _detail::MakeAssignable<UnaryFunc> > _m;
 
-	template< typename IterCat,
-		enable_if< std::is_base_of<std::forward_iterator_tag, IterCat>::value > = 0
-	>
-	constexpr transform_iterator _postIncrement()
-	{
-		auto tmp = *this;
-		++_m.inner;
-		return tmp;
-	}
-
-	template< typename, typename... None >
-	constexpr void _postIncrement(None...)
-	{
-		++_m.inner;
-	}
-
 public:
 	using iterator_category = std::conditional_t<
 			iter_is_forward<Iterator>::value and std::is_copy_constructible<UnaryFunc>::value,
@@ -109,24 +93,21 @@ public:
 
 	constexpr reference operator*() const
 		OEL_REQUIRES(std::invocable< UnaryFunc const, decltype(*_m.inner) >)
-	{
-		return static_cast<const UnaryFunc &>(_m.func())(*_m.inner);
-	}
+		{
+			return static_cast<const UnaryFunc &>(_m.func())(*_m.inner);
+		}
 	constexpr reference operator*()
-	{
-		return static_cast<UnaryFunc &>(_m.func())(*_m.inner);
-	}
+		{
+			return static_cast<UnaryFunc &>(_m.func())(*_m.inner);
+		}
 
 	constexpr transform_iterator & operator++()  OEL_ALWAYS_INLINE
-	{
-		++_m.inner;
-		return *this;
-	}
+		{
+			++_m.inner;
+			return *this;
+		}
 	//! Return type is transform_iterator if iterator_category is forward_iterator_tag, else void
-	constexpr auto operator++(int) &  OEL_ALWAYS_INLINE
-	{
-		return _postIncrement<iterator_category>();
-	}
+	constexpr auto operator++(int) &   OEL_ALWAYS_INLINE { return _postIncrement<iterator_category>(); }
 
 	constexpr difference_type operator -(const transform_iterator & right) const  { return _m.inner - right._m.inner; }
 	template< typename Sentinel >
@@ -146,16 +127,43 @@ public:
 	friend constexpr bool operator!=(const transform_iterator & left, Sentinel right)  { return left._m.inner != right; }
 	template< typename Sentinel >
 	friend constexpr bool operator!=(Sentinel left, const transform_iterator & right)  { return right._m.inner != left; }
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Just implementation
+
+
+private:
+	template< typename IterCat,
+		enable_if< std::is_base_of<std::forward_iterator_tag, IterCat>::value > = 0
+	>
+	constexpr transform_iterator _postIncrement()
+	{
+		auto tmp = *this;
+		++_m.inner;
+		return tmp;
+	}
+
+	template< typename, typename... None >
+	constexpr void _postIncrement(None...)
+	{
+		++_m.inner;
+	}
 };
 
 
 namespace _detail
 {
-	template< typename F, typename RandomAccessIter >
-	constexpr auto SentinelAt(const transform_iterator<F, RandomAccessIter> & it, iter_difference_t<RandomAccessIter> n)
-	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},
-		          it.base() + n )
-		 { return it.base() + n; }
+	template< typename F, typename Iterator >
+	struct SentinelAt< transform_iterator<F, Iterator> >
+	{
+		template< typename I = Iterator >
+		static constexpr auto call(const transform_iterator<F, I> & it, iter_difference_t<I> n)
+		->	decltype( _detail::SentinelAt<I>::call(it.base(), n) )
+		{	return    _detail::SentinelAt<I>::call(it.base(), n); }
+	};
 }
 
 } // namespace oel

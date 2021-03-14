@@ -2,6 +2,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "test_classes.h"
+#include "make_unique.h"
 #include "dynarray.h"
 
 #include "gtest/gtest.h"
@@ -11,7 +12,6 @@
 #if HAS_STD_PMR
 #include <memory_resource>
 #endif
-
 
 namespace
 {
