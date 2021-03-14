@@ -1,7 +1,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "range_algo.h"
+#include "ranges.h"
 #include "dynarray.h"
 
 #include "gtest/gtest.h"
@@ -10,11 +10,10 @@
 #include <deque>
 #include <array>
 #include <valarray>
-#include <functional>
 
 namespace view = oel::view;
 
-TEST(rangeTest, eraseUnstable)
+TEST(algoTest, eraseUnstable)
 {
 	using oel::erase_unstable;
 
@@ -28,7 +27,7 @@ TEST(rangeTest, eraseUnstable)
 	EXPECT_EQ("aa", d.front());
 }
 
-TEST(rangeTest, eraseIf)
+TEST(algoTest, eraseIf)
 {
 	using namespace oel;
 
@@ -45,7 +44,7 @@ TEST(rangeTest, eraseIf)
 	EXPECT_TRUE(std::equal(begin(li), end(li), begin(test1)));
 }
 
-TEST(rangeTest, eraseAdjacentDup)
+TEST(algoTest, eraseAdjacentDup)
 {
 	using namespace oel;
 
@@ -60,86 +59,7 @@ TEST(rangeTest, eraseAdjacentDup)
 	EXPECT_FALSE(uniqueTest != expect);
 }
 
-TEST(rangeTest, countedView)
-{
-	using namespace oel;
-
-	static_assert(std::is_nothrow_move_constructible<counted_view<int *>>::value, "?");
-
-#if OEL_HAS_RANGES
-	static_assert(std::ranges::contiguous_range< counted_view<int *> >);
-	static_assert(std::ranges::view< counted_view<int *> >);
-#endif
-
-	dynarray<int> i{1, 2};
-	counted_view<dynarray<int>::const_iterator> test = i;
-	EXPECT_EQ(i.size(), test.size());
-	EXPECT_TRUE(test.data() == i.data());
-	EXPECT_EQ(1, test[0]);
-	EXPECT_EQ(2, test[1]);
-	test.drop_front();
-	EXPECT_EQ(1U, test.size());
-	EXPECT_EQ(2, test.back());
-	EXPECT_TRUE(test.end() == i.end());
-}
-
-TEST(rangeTest, viewTransformBasics)
-{
-	using Elem = oel::dynarray<int>;
-	Elem r[1];
-	auto v = view::transform(r, [](const Elem & c) { return c.size(); });
-	static_assert( std::is_same< decltype(v.begin())::iterator_category, std::forward_iterator_tag >{},
-		"Wrong for current implementation" );
-	static_assert( sizeof v.begin() == sizeof(Elem *),
-		"Not critical, this assert can be removed" );
-
-	EXPECT_TRUE( v.begin() == r + 0 );
-	EXPECT_FALSE( r + 1 == v.begin() );
-	EXPECT_FALSE( v.begin() != r + 0 );
-	EXPECT_TRUE( r + 1 != v.begin() );
-}
-
-TEST(rangeTest, viewTransformSizedAndNonSizedRange)
-{
-	int src[] {1, 2};
-	auto r = view::subrange(std::begin(src), std::end(src));
-	oel::dynarray<int> test( view::transform(r, [](int & i) { return i++; }) );
-	EXPECT_EQ(2U, test.size());
-	EXPECT_EQ(1, test[0]);
-	EXPECT_EQ(2, test[1]);
-	EXPECT_EQ(2, src[0]);
-	EXPECT_EQ(3, src[1]);
-
-	struct Square
-	{	int operator()(int i) const
-		{
-			return i * i;
-		}
-	};
-	std::forward_list<int> const li{-2, -3};
-	test.append( view::transform(li, Square{}) );
-	EXPECT_EQ(4U, test.size());
-	EXPECT_EQ(4, test[2]);
-	EXPECT_EQ(9, test[3]);
-}
-
-TEST(rangeTest, viewTransformAsOutput)
-{
-	using Pair = std::pair<int, int>;
-	Pair test[]{ {1, 2}, {3, 4} };
-
-	auto f = [](Pair & p) -> int & { return p.second; };
-	auto v = view::transform(test, std::function<int & (Pair &)>{f});
-	*v.begin() = -1;
-	v.drop_front();
-	*v.begin() = -2;
-	EXPECT_EQ(1, test[0].first);
-	EXPECT_EQ(3, test[1].first);
-	EXPECT_EQ(-1, test[0].second);
-	EXPECT_EQ(-2, test[1].second);
-}
-
-TEST(rangeTest, copyUnsafe)
+TEST(algoTest, copyUnsafe)
 {
 	std::valarray<int> src(2);
 	src[0] = 1;
@@ -150,7 +70,7 @@ TEST(rangeTest, copyUnsafe)
 	EXPECT_EQ(2, dest[1]);
 }
 
-TEST(rangeTest, copy)
+TEST(algoTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
@@ -200,7 +120,7 @@ void testAppend()
 	EXPECT_EQ(-1, c.back());
 }
 
-TEST(rangeTest, append)
+TEST(algoTest, append)
 {
 	testAppend< std::list<int> >();
 	testAppend< oel::dynarray<int> >();

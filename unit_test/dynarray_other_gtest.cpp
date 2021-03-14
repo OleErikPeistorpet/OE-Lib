@@ -3,7 +3,7 @@
 
 #include "test_classes.h"
 #include "dynarray.h"
-#include "range_view.h"
+#include "view/move.h"
 
 #include "gtest/gtest.h"
 #include <deque>

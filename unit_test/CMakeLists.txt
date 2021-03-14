@@ -56,12 +56,19 @@ add_executable(oel-test
 	dynarray_other_gtest.cpp
 	forward_decl_test.cpp
 	gtest_mem_main.cpp
-	range_algo_gtest.cpp
+	algo_gtest.cpp
 	util_gtest.cpp
+	view_gtest.cpp
+	incl_algo_copy.cpp
+	incl_algo_erase.cpp
+	incl_allocator.cpp
+	incl_assign_append_insert.cpp
 	incl_dynarray.cpp
 	incl_make_unique.cpp
-	incl_range_algo.cpp
-	incl_range_view.cpp
+	incl_view_counted.cpp
+	incl_view_move.cpp
+	incl_view_subrange.cpp
+	incl_view_transform.cpp
 	incl_util.cpp
 )
 
