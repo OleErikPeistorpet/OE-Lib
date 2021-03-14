@@ -156,6 +156,20 @@ struct is_trivially_relocatable;
 #endif
 
 
+#ifdef __has_builtin
+	#if __has_builtin(__builtin_launder)
+	#define OEL_LAUNDER __builtin_launder
+	#endif
+#endif
+#ifndef OEL_LAUNDER
+	#if __cpp_lib_launder >= 201606
+	#define OEL_LAUNDER  std::launder
+	#else
+	#define OEL_LAUNDER
+	#endif
+#endif
+
+
 #if defined __cpp_deduction_guides or (_MSC_VER >= 1914 and _HAS_CXX17)
 	#define OEL_HAS_DEDUCTION_GUIDES  1
 #endif

@@ -29,6 +29,7 @@ inline namespace debug
 template< typename Ptr, typename ValT >
 class dynarray_iterator
 {
+// Meant to detect UB, but if _header has been deallocated, the check itself is UB...
 #define OEL_ITER_VALIDATE_DEREF  \
 	OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex(static_cast<const ValT *>(_pElem), *_header) )
 
@@ -206,11 +207,11 @@ auto to_pointer_contiguous(const dynarray_iterator<Ptr, T> & it) noexcept
 namespace _detail
 {
 	template< typename T, typename Ptr >
-	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr const pos, T *const block, const void * parent) noexcept
+	dynarray_iterator<Ptr, T> MakeDynarrayIter(Ptr const pos, T *const data, const void * parent) noexcept
 	{
-		if (block)
-		{
-			const auto * h = OEL_DEBUG_HEADER_OF(block);
+		if (data)
+		{	// Didn't keep pointer returned by placement new, launder to avoid UB problem
+			const auto * h = OEL_LAUNDER(OEL_DEBUG_HEADER_OF(data));
 			return {pos, h, h->id};
 		}
 		else

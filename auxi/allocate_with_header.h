@@ -61,7 +61,9 @@ namespace _detail
 		static void Deallocate(Alloc & a, Ptr p, size_t n) noexcept(noexcept( a.deallocate(p, n) ))
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
-			OEL_DEBUG_HEADER_OF(p)->id = 0;
+			// Store needed to detect iterator invalidation, not letting compiler optimize it away
+			static_cast<volatile std::uintptr_t &>(OEL_DEBUG_HEADER_OF(p)->id) = 0;
+
 			p -= sizeForHeader;
 			n += sizeForHeader;
 		#endif
@@ -81,8 +83,8 @@ namespace _detail
 		{
 			if (container.data)
 			{
-				auto h = OEL_DEBUG_HEADER_OF(container.data);
-				h->nObjects = container.end - container.data;
+				OEL_LAUNDER(OEL_DEBUG_HEADER_OF(container.data))->nObjects
+					= container.end - container.data;
 			}
 		}
 	#endif
