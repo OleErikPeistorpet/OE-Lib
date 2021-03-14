@@ -1,43 +1,26 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h"
+#include "../../util.h"
 
 #include <cstring>
-#include <stdexcept>
-
 
 namespace oel
 {
 namespace _detail
 {
-	struct Throw
-	{	// Exception throwing has been split out from templates to avoid bloat
-		[[noreturn]] static void outOfRange(const char * what)
-		{
-			OEL_THROW(std::out_of_range(what), what);
-		}
-
-		[[noreturn]] static void lengthError(const char * what)
-		{
-			OEL_THROW(std::length_error(what), what);
-		}
-	};
-
-////////////////////////////////////////////////////////////////////////////////
-
 	template< typename T > struct AssertTrivialRelocate
 	{
 		static_assert(is_trivially_relocatable<T>::value,
 			"The function requires trivially relocatable T, see declaration of is_trivially_relocatable");
 	};
 
-
+////////////////////////////////////////////////////////////////////////////////
 
 	template< typename ContiguousIter >
 	inline void MemcpyCheck(ContiguousIter const src, size_t const nElems, void *const dest)

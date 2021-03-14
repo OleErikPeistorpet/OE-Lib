@@ -1,16 +1,16 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/dynarray_iterator.h"
-#include "auxi/impl_algo.h"
+#include "algo/detail/misc.h"
+#include "view/dynarray_iterator.h"
+#include "view/move.h"
 #include "optimize_ext/default.h"
 #include "align_allocator.h"
-#include "range_view.h"
 
 #include <algorithm>
 
@@ -47,13 +47,13 @@ namespace pmr
 template< typename T, typename Alloc >
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
-//! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
+//! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in algo/erase.h)
 template< typename T, typename A >  inline
 void erase_unstable(dynarray<T, A> & d, size_t index)  { d.erase_unstable(d.begin() + index); }
 
 //! @name GenericContainerInsert
 //!@{
-// Overloads of generic functions for inserting into container (in range_algo.h)
+// Overloads of generic functions for inserting into container (in algo/assign_append_insert.h)
 template< typename T, typename A, typename InputRange >  inline
 void assign(dynarray<T, A> & dest, InputRange && source)  { dest.assign(source); }
 

@@ -1,12 +1,13 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "allocate_with_header.h"
+#include "detail/alloc_with_header.h"
+#include "../algo/contiguous_iterator_to_ptr.h"
 
 
 #ifdef _MSC_VER

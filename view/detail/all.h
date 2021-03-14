@@ -1,7 +1,14 @@
+#pragma once
+
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "../subrange.h"
+#include "../counted.h"
+
+namespace oel
+{
 namespace _detail
 {
 	template< typename Sentinel, typename Iterator, typename Range, typename... None >
@@ -14,4 +21,6 @@ namespace _detail
 	constexpr auto all(Iterator first, SizedRange & r)
 	->	decltype( counted_view<Iterator>{first, oel::ssize(r)} )
 		 { return counted_view<Iterator>{first, oel::ssize(r)}; }
+}
+
 }

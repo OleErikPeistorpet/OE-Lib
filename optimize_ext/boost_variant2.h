@@ -8,7 +8,7 @@
 * @brief Variant2 was introduced in Boost 1.71
 */
 
-#include "../auxi/type_traits.h"
+#include "../algo/type_traits.h"
 
 #include <boost/variant2/variant.hpp>
 
