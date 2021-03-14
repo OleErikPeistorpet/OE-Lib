@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "detail/alloc_with_header.h"
-#include "../algo/contiguous_iterator_to_ptr.h"
+#include "alloc_with_header.h"
+#include "../contiguous_iterator_to_ptr.h"
 
 
 #ifdef _MSC_VER

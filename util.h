@@ -7,7 +7,7 @@
 
 
 #include "algo/type_traits.h"
-#include "algo/contiguous_iterator_to_ptr.h"
+#include "view/contiguous_iterator_to_ptr.h"
 
 
 /** @file

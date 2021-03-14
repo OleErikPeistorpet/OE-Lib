@@ -1,4 +1,4 @@
-#include "user_traits.h"
+#include "fwd.h"
 
 struct Outer
 {

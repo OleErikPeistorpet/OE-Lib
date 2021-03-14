@@ -7,7 +7,7 @@
 
 
 #include "algo/detail/misc.h"
-#include "view/dynarray_iterator.h"
+#include "view/detail/dynarray_iterator.h"
 #include "view/move.h"
 #include "optimize_ext/default.h"
 #include "align_allocator.h"
