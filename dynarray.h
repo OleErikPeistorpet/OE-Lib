@@ -10,7 +10,7 @@
 #include "auxi/dynarray_iterator.h"
 #include "auxi/impl_algo.h"
 #include "optimize_ext/default.h"
-#include "align_allocator.h"
+#include "allocator.h"
 #include "range_view.h"
 
 #include <algorithm>

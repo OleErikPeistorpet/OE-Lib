@@ -58,7 +58,7 @@ Another good way, using `resize_for_overwrite`:
 
 Precondition checks are off by default except for Visual C++ debug builds. (Preconditions are the same as std::vector.) They can be controlled with a global define such as `-D OEL_MEM_BOUND_DEBUG_LVL=2`. But be careful with compilers other than MSVC, the checks should **not** be combined with compiler optimizations unless you set the `-fno-strict-aliasing` flag.
 
-You can customize what happens when a check is triggered. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `user_traits.h`
+You can customize what happens when a check is triggered. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `fwd.h`
 
 ### Visual Studio visualizer
 

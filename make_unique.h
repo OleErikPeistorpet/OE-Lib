@@ -17,29 +17,21 @@
 namespace oel
 {
 
-/**
-* @brief Same as std::make_unique, but performs list-initialization `T{...}` if there is no matching constructor
-*
-* (Works for aggregates.) http://open-std.org/JTC1/SC22/WG21/docs/papers/2015/n4462.html  */
-template< typename T, typename... Args,
-          typename = enable_if< !std::is_array<T>::value >
->
-std::unique_ptr<T> make_unique(Args &&... args);
-
-//! Equivalent to std::make_unique (array version)
-template< typename T,
-          typename = enable_if< std::is_array<T>::value >
->
-std::unique_ptr<T> make_unique(size_t arraySize);
-
 //! Equivalent to std::make_unique_for_overwrite (C++20)
 template< typename T,
           typename = enable_if< std::is_array<T>::value >
 >
 std::unique_ptr<T> make_unique_for_overwrite(size_t arraySize);
 
-template< typename T > [[deprecated]]
-auto make_unique_default_init(size_t arraySize) { return make_unique_for_overwrite<T>(arraySize); }
+template< typename T, typename... Args,
+          typename = enable_if< !std::is_array<T>::value >
+>
+[[deprecated]] std::unique_ptr<T> make_unique(Args &&... args);
+
+template< typename T,
+          typename = enable_if< std::is_array<T>::value >
+>
+[[deprecated]] std::unique_ptr<T> make_unique(size_t arraySize);
 
 
 
