@@ -1,17 +1,17 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "allocator.h"
 #include "auxi/detail_forward.h"
 #include "auxi/dynarray_iterator.h"
 #include "auxi/impl_algo.h"
 #include "optimize_ext/default.h"
-#include "align_allocator.h"
-#include "range_view.h"
+#include "view/move.h"
 
 #include <algorithm>
 

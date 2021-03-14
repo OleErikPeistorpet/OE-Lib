@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../user_traits.h"
+#include "../fwd.h"
 
 #include <iterator>
 
@@ -148,3 +148,46 @@ namespace _detail
 
 template< typename T >
 struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};
+
+
+//! @cond INTERNAL
+
+#if __cpp_deduction_guides or (_MSC_VER >= 1914 and _HAS_CXX17)
+	#define OEL_HAS_DEDUCTION_GUIDES  1
+#endif
+
+#if __cpp_lib_concepts >= 201907
+	#define OEL_REQUIRES(...) requires(__VA_ARGS__)
+#else
+	#define OEL_REQUIRES(...)
+#endif
+
+
+#ifdef __GNUC__
+	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
+#else
+	#define OEL_ALWAYS_INLINE
+#endif
+
+#ifdef _MSC_VER
+	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
+#else
+	#define OEL_CONST_COND
+#endif
+
+
+#if defined _CPPUNWIND or defined __EXCEPTIONS
+	#define OEL_HAS_EXCEPTIONS        1
+	#define OEL_THROW(exception, msg) throw exception
+	#define OEL_RETHROW               throw
+	#define OEL_TRY_                  try
+	#define OEL_CATCH_ALL             catch (...)
+#else
+	#define OEL_HAS_EXCEPTIONS        0
+	#define OEL_THROW(exc, message)   OEL_ABORT(message)
+	#define OEL_RETHROW
+	#define OEL_TRY_
+	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
+#endif
+
+//! @endcond

@@ -8,7 +8,6 @@
 
 #include "auxi/type_traits.h"
 #include "auxi/contiguous_iterator_to_ptr.h"
-#include "make_unique.h"
 
 
 /** @file
@@ -90,10 +89,14 @@ struct
 namespace _detail
 {
 	template< typename RandomAccessIter >
-	constexpr auto SentinelAt(RandomAccessIter it, iter_difference_t<RandomAccessIter> n)
-	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},
-		          it + n )
-		 { return it + n; }
+	struct SentinelAt
+	{
+		template< typename I = RandomAccessIter, enable_if< iter_is_random_access<I>::value > = 0 >
+		static constexpr I call(I it, iter_difference_t<I> n)
+		{
+			return it + n;
+		}
+	};
 }
 
 } // namespace oel

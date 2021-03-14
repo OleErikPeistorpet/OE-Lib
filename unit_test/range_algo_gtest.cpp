@@ -3,6 +3,7 @@
 
 #include "test_classes.h"
 #include "range_algo.h"
+#include "views.h"
 #include "dynarray.h"
 
 #include "gtest/gtest.h"
