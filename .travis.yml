@@ -12,21 +12,23 @@ branches:
     - develop
     - /release/
 
+os:
+  - linux
+
 jobs:
   include:
-    - os: linux
-      dist: xenial
-      env:
-        - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Debug
-    - os: linux
-      arch:
-        - arm64
-      env:
-        - MY_BUILD_TYPE=Release
-    - os: linux
-      dist: bionic
-      env:
-        - CC=gcc-10 CXX=g++-10  MY_BUILD_TYPE=Release
+    - dist: xenial
+      env: CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Debug
+    - arch: arm64
+      env: CC=gcc-9 CXX=g++-9  MY_BUILD_TYPE=Release
+      addons:
+        apt:
+          sources:
+            - sourceline: 'ppa:ubuntu-toolchain-r/test'
+          packages:
+            - g++-9
+    - dist: bionic
+      env: CC=gcc-10 CXX=g++-10  MY_BUILD_TYPE=Release
       addons:
         apt:
           sources:
@@ -35,5 +37,4 @@ jobs:
             - g++-10
     - os: osx
       osx_image: xcode12.2
-      env:
-        - CXXFLAGS="-fsanitize=address -fsanitize=undefined -D OEL_MEM_BOUND_DEBUG_LVL=0" MY_BUILD_TYPE=""
+      env: CXXFLAGS="-fsanitize=address -fsanitize=undefined" MY_BUILD_TYPE=""

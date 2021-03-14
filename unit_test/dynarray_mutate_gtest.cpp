@@ -544,14 +544,12 @@ struct StaticBufAlloc
 	using value_type = NonPowerOfTwo;
 	using is_always_equal = std::true_type;
 
-	value_type * buf = nullptr;
+	value_type * buff = nullptr;
 	size_t size = 0;
-
-	StaticBufAlloc() = default;
 
 	template<size_t N>
 	StaticBufAlloc(value_type (&array)[N])
-	 :	buf(array), size(N) {
+	 :	buff(array), size(N) {
 	}
 
 	size_t max_size() const { return size; }
@@ -562,7 +560,7 @@ struct StaticBufAlloc
 			oel::_detail::Throw::LengthError("StaticBufAlloc::allocate n > size");
 
 		size = 0;
-		return buf;
+		return buff;
 	}
 
 	void deallocate(value_type *, size_t) {}

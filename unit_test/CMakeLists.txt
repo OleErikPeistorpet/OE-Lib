@@ -73,7 +73,7 @@ if(MSVC)
 	add_definitions(/D_SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING)
 	target_compile_options(oel-test PRIVATE /W4)
 else()
-	target_compile_options(oel-test PRIVATE -fstrict-aliasing -Wall -Wextra)
+	target_compile_options(oel-test PRIVATE -Wall -Wextra -Wconversion -Wshadow)
 endif()
 
 target_link_libraries(oel-test gtest_main)
