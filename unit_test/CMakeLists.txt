@@ -30,11 +30,15 @@ add_executable(oel-test
 	range_algo_gtest.cpp
 	util_gtest.cpp
 	view_gtest.cpp
+	incl_allocator.cpp
 	incl_dynarray.cpp
 	incl_make_unique.cpp
 	incl_range_algo.cpp
-	incl_range_view.cpp
 	incl_util.cpp
+	incl_view_counted.cpp
+	incl_view_move.cpp
+	incl_view_subrange.cpp
+	incl_view_transform.cpp
 )
 
 target_include_directories(oel-test PRIVATE

@@ -3,7 +3,7 @@
 
 #include "test_classes.h"
 #include "mem_leak_detector.h"
-#include "range_view.h"
+#include "view/move.h"
 #include "dynarray.h"
 
 #include <deque>

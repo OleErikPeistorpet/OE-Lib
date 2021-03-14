@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "type_traits.h"
+#include "../auxi/type_traits.h"
 
 
 namespace oel
@@ -137,11 +137,14 @@ public:
 
 namespace _detail
 {
-	template< typename F, typename RandomAccessIter >
-	auto SentinelAt(const transform_iterator<F, RandomAccessIter> & it, iter_difference_t<RandomAccessIter> n)
-	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},
-		          it.base() + n )
-		 { return it.base() + n; }
+	template< typename F, typename Iterator >
+	struct SentinelAt< transform_iterator<F, Iterator> >
+	{
+		static auto call(const transform_iterator<F, Iterator> & it, iter_difference_t<Iterator> n)
+		{
+			return _detail::SentinelAt<Iterator>::call(it.base(), n);
+		}
+	};
 }
 
 } // namespace oel

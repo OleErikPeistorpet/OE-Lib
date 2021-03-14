@@ -121,10 +121,13 @@ namespace _detail
 
 
 	template< typename RandomAccessIter >
-	constexpr auto SentinelAt(RandomAccessIter it, iter_difference_t<RandomAccessIter> n)
-	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},
-		          it + n )
-		 { return it + n; }
+	struct SentinelAt
+	{
+		static constexpr auto call(RandomAccessIter it, iter_difference_t<RandomAccessIter> n)
+		{
+			return it + n;
+		}
+	};
 }
 
 } // namespace oel

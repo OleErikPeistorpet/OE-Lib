@@ -12,8 +12,6 @@
 
 /** @file
 * @brief specify_trivial_relocate for user classes, error handling macros, forward declarations
-*
-* Notably provides a forward declaration of dynarray
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
@@ -60,7 +58,7 @@
 namespace oel
 {
 
-template< typename T > struct allocator;  // forward declare
+template< typename T > struct allocator;
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
 inline namespace debug
@@ -124,49 +122,3 @@ template< typename T >
 struct is_trivially_relocatable;
 
 } // namespace oel
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// The rest of the file is not for users (implementation)
-
-
-//! @cond INTERNAL
-
-#ifdef __GNUC__
-	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
-#else
-	#define OEL_ALWAYS_INLINE
-#endif
-
-#ifdef _MSC_VER
-	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
-#else
-	#define OEL_CONST_COND
-#endif
-
-#if __cpp_lib_concepts >= 201907
-	#define OEL_REQUIRES(...) requires(__VA_ARGS__)
-#else
-	#define OEL_REQUIRES(...)
-#endif
-
-#if defined __cpp_deduction_guides or (_MSC_VER >= 1914 and _HAS_CXX17)
-	#define OEL_HAS_DEDUCTION_GUIDES  1
-#endif
-
-
-#if defined _CPPUNWIND or defined __EXCEPTIONS
-	#define OEL_THROW(exception, msg) throw exception
-	#define OEL_TRY_                  try
-	#define OEL_CATCH_ALL             catch (...)
-	#define OEL_WHEN_EXCEPTIONS_ON(x) x
-#else
-	#define OEL_THROW(exc, message)   OEL_ABORT(message)
-	#define OEL_TRY_
-	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
-	#define OEL_WHEN_EXCEPTIONS_ON(x)
-#endif
-
-//! @endcond

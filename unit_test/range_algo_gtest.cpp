@@ -2,6 +2,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "range_algo.h"
+#include "views.h"
 #include "dynarray.h"
 
 #include "gtest/gtest.h"

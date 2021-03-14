@@ -8,7 +8,7 @@
 * @brief No longer maintained, will most likely be removed in version 3
 */
 
-#include "../user_traits.h"
+#include "../fwd.h"
 
 #include <Eigen/Dense>
 
