@@ -153,9 +153,13 @@ public:
 
 	dynarray & operator =(dynarray && other) &
 		noexcept(_allocTrait::propagate_on_container_move_assignment::value or is_always_equal<Alloc>::value);
-	//! Acts as if allocator_type does not have propagate_on_container_copy_assignment
-	dynarray & operator =(const dynarray & other) &    { assign(other);  return *this; }
-
+	//! Requires that allocator_type is always equal or does not have propagate_on_container_copy_assignment
+	dynarray & operator =(const dynarray & other) &
+		{
+			static_assert(!_allocTrait::propagate_on_container_copy_assignment::value or is_always_equal<Alloc>::value,
+			              "Alloc propagate_on_container_copy_assignment unsupported");
+			assign(other);  return *this;
+		}
 	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
 	void        swap(dynarray & other)
