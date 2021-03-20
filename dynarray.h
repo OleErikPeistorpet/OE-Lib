@@ -256,7 +256,7 @@ public:
 	size_type max_size() const noexcept   { return _allocTrait::max_size(_m) - _allocateWrap::sizeForHeader; }
 
 	//! How much smaller capacity is than the number passed to allocator_type::allocate
-	static constexpr size_type allocate_size_overhead()  { return _allocateWrap::sizeForHeader; }
+	static constexpr size_type allocate_size_overhead() noexcept  { return _allocateWrap::sizeForHeader; }
 
 	allocator_type get_allocator() const noexcept   { return _m; }
 

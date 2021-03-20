@@ -68,6 +68,7 @@ public:
 	transform_iterator(const transform_iterator &) = default;
 
 	transform_iterator & operator =(const transform_iterator & other) &
+		noexcept(noexcept( _m.inner = other._m.inner ))
 	{
 		_m.inner = other._m.inner;
 		return *this;
