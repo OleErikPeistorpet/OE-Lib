@@ -86,7 +86,7 @@ TEST(dynarrayOtherTest, compare)
 TEST(dynarrayOtherTest, allocAndIterEquality)
 {
 	oel::allocator<int> a;
-	ASSERT_TRUE(oel::allocator<std::string>{} == a);
+	ASSERT_FALSE(oel::allocator<int>{} != a);
 
 	EXPECT_TRUE(dynarray<int>::const_iterator() == dynarray<int>::iterator{});
 }

@@ -41,16 +41,14 @@ struct allocator
 	T *  allocate(size_t nElems);
 	void deallocate(T * ptr, size_t nElems) noexcept;
 
-	static constexpr size_t max_size()   { return (size_t)-1 / sizeof(T); }
+	static constexpr size_t max_size() noexcept   { return (size_t)-1 / sizeof(T); }
 
 	allocator() = default;
 	template< typename U >  OEL_ALWAYS_INLINE
 	constexpr allocator(const allocator<U> &) noexcept {}
 
-	template< typename U >
-	friend bool operator==(allocator, allocator<U>) noexcept { return true; }
-	template< typename U >
-	friend bool operator!=(allocator, allocator<U>) noexcept { return false; }
+	friend constexpr bool operator==(allocator, allocator) noexcept  { return true; }
+	friend constexpr bool operator!=(allocator, allocator) noexcept  { return false; }
 };
 
 
