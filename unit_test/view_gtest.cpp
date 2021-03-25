@@ -67,18 +67,27 @@ TEST(viewTest, countedView)
 
 TEST(viewTest, viewTransformBasics)
 {
-	using Elem = oel::dynarray<int>;
+	using Elem = std::unique_ptr<double>;
 	Elem r[1];
-	auto v = view::transform(r, [](const Elem & c) { return c.size(); });
-	static_assert( std::is_same< decltype(v.begin())::iterator_category, std::forward_iterator_tag >{},
-		"Wrong for current implementation" );
-	static_assert( sizeof v.begin() == sizeof(Elem *),
-		"Not critical, this assert can be removed" );
+	struct { auto operator()(const Elem &) /*mutable*/ { return 0; } } f;
+	auto v = view::transform(r, f);
+	auto v2 = view::transform(r, [](Elem & e) { return *e; });
+	static_assert(oel::iter_is_forward< decltype(v.begin()) >(), "?");
+	static_assert(oel::iter_is_forward< decltype(v2.begin()) >(), "?");
+	static_assert(sizeof v.begin()  == sizeof(Elem *), "Not critical, this assert can be removed");
+	static_assert(sizeof v2.begin() == sizeof(Elem *), "Not critical, this assert can be removed");
 
 	EXPECT_TRUE( v.begin() == r + 0 );
 	EXPECT_FALSE( r + 1 == v.begin() );
 	EXPECT_FALSE( v.begin() != r + 0 );
 	EXPECT_TRUE( r + 1 != v.begin() );
+
+	auto v3 = view::transform(v2, [](double d) { return d; });
+	auto const it = v3.begin();
+	EXPECT_TRUE(r + 0 == it);
+	EXPECT_TRUE(r + 1 != it);
+	EXPECT_FALSE(it == r + 1);
+	EXPECT_FALSE(it != r + 0);
 }
 
 TEST(viewTest, viewTransformSizedAndNonSizedRange)
@@ -103,6 +112,22 @@ TEST(viewTest, viewTransformSizedAndNonSizedRange)
 	EXPECT_EQ(4U, dest.size());
 	EXPECT_EQ(4, dest[2]);
 	EXPECT_EQ(9, dest[3]);
+}
+
+TEST(viewTest, viewTransformMutableLambda)
+{
+	auto iota = [i = 0](int) mutable
+	{
+		return i++;
+	};
+	int dummy[3];
+	oel::dynarray<int> test(oel::reserve, 3);
+	test.resize(1);
+
+	test.assign( view::transform(dummy, iota) );
+	EXPECT_EQ(0, test[0]);
+	EXPECT_EQ(1, test[1]);
+	EXPECT_EQ(2, test[2]);
 }
 
 TEST(viewTest, viewTransformAsOutput)
