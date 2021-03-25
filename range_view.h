@@ -143,8 +143,9 @@ std::bitset<8> arr[] { 3, 5, 7, 11 };
 dynarray<std::string> result;
 result.append( view::transform(arr, [](const auto & bs) { return bs.to_string(); }) );
 @endcode
-* Similar to boost::adaptors::transform, but supports lambdas directly. Also more efficient
-* because it stores just one copy of f and has no size overhead for empty UnaryFunc. <br>
+* Similar to boost::adaptors::transform, but stores just one copy of f and has no size overhead for stateless
+* function objects. Also accepts lambdas (as long as by-value captures are nothrow copy constructible and
+* trivially destructible). Moreover, UnaryFunc can have non-const operator() (such as mutable lambda). <br>
 * Note that passing an rvalue range is meant to give a compile error. Use a named variable. */
 template< typename UnaryFunc, typename Range >
 auto transform(Range & r, UnaryFunc f)
@@ -152,7 +153,7 @@ auto transform(Range & r, UnaryFunc f)
 		using It = decltype(begin(r));
 		return _detail::all<It>(transform_iterator<UnaryFunc, It>{f, begin(r)}, r);
 	}
-}
+} // view
 
 
 
@@ -179,4 +180,4 @@ void counted_view<Iterator, B>::drop_back() noexcept
 	--_size;
 }
 
-} // namespace oel
+}

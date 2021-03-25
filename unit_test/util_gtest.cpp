@@ -41,10 +41,13 @@ namespace
 	static_assert(alignof(oel::aligned_union_t<Foo>) == 32, "?");
 	static_assert(sizeof(oel::aligned_union_t<Foo>) == sizeof(Foo), "?");
 
+	using ListI = std::list<double>::const_iterator;
 	static_assert(!oel::can_memmove_with< int *, float * >::value, "?");
 	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >(), "?");
-	static_assert(!oel::can_memmove_with< int *, std::move_iterator<std::list<int>::iterator> >(), "?");
+	static_assert(!oel::can_memmove_with< int *, std::move_iterator<ListI> >(), "?");
 	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<int *> >(), "?");
+
+	static_assert(!oel::iter_is_random_access<ListI>(), "?");
 }
 
 template<typename SizeT>

@@ -56,7 +56,7 @@ struct copy_return
 * @return `begin(source)` incremented by source size
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* Requires that source has size() member or is an array, and that dest models RandomAccessIterator.
+* Requires that `oel::ssize(source)` is valid, and that dest models random_access_iterator.
 * To move instead of copy, pass `view::move(source)`. To mimic std::copy_n, use view::counted.
 * (Views can be used for all functions taking a range as source)  */
 template< typename SizedInputRange, typename RandomAccessIter >  inline
@@ -68,7 +68,7 @@ auto copy_unsafe(SizedInputRange && source, RandomAccessIter dest)
 * @return `begin(source)` incremented by the number of elements in source
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* Requires that source has size() member or is an array, and dest is a random_access_range (C++20 concept)  */
+* Requires that `oel::ssize(source)` is valid, and dest is a random_access_range (C++20 concept)  */
 template< typename SizedInputRange, typename RandomAccessRange >
 auto copy(SizedInputRange && source, RandomAccessRange && dest)
 ->	copy_return<decltype(begin(source))>;

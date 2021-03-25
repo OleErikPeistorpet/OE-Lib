@@ -789,7 +789,7 @@ typename dynarray<T, Alloc>::iterator
 	auto const count = _detail::CountOrEnd(src);
 
 	static_assert( std::is_same<decltype(count), size_t const>::value,
-			"insert_r requires that begin(source) is a ForwardIterator (multi-pass)" );
+			"insert_r requires that begin(source) is multi-pass (a forward_iterator)" );
 
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1
