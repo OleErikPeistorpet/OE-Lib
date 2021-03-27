@@ -89,14 +89,30 @@ struct
 
 namespace _detail
 {
-	template< typename RandomAccessIter >
-	struct SentinelAt
+	template< typename T, typename U,
+	          bool = std::is_empty<U>::value >
+	struct TightPair
 	{
-		template< typename I = RandomAccessIter, enable_if< iter_is_random_access<I>::value > = 0 >
-		static constexpr I call(I it, iter_difference_t<I> n)
-		{
-			return it + n;
-		}
+		T first;
+		U _sec;
+
+		OEL_ALWAYS_INLINE constexpr const U & second() const { return _sec; }
+		OEL_ALWAYS_INLINE constexpr       U & second()       { return _sec; }
+	};
+
+	template< typename Type_unique_name_for_MSVC, typename Empty_type_MSVC_unique_name >
+	struct TightPair<Type_unique_name_for_MSVC, Empty_type_MSVC_unique_name, true>
+	 :	Empty_type_MSVC_unique_name
+	{
+		Type_unique_name_for_MSVC first;
+
+		TightPair() = default;
+		constexpr TightPair(Type_unique_name_for_MSVC f, Empty_type_MSVC_unique_name s)
+		 :	Empty_type_MSVC_unique_name{s}, first{std::move(f)}
+		{}
+
+		OEL_ALWAYS_INLINE constexpr const Empty_type_MSVC_unique_name & second() const { return *this; }
+		OEL_ALWAYS_INLINE constexpr       Empty_type_MSVC_unique_name & second()       { return *this; }
 	};
 }
 

@@ -19,7 +19,7 @@ namespace oel
 {
 namespace _detail
 {
-	template< typename Alloc >
+	template< typename Alloc >  // pass dummy int to prefer this overload
 	bool_constant<Alloc::can_reallocate()> CanRealloc(int);
 
 	template< typename >
@@ -105,26 +105,27 @@ using sentinel_t = decltype( end(std::declval<Range &>()) );
 #endif
 
 template< typename Iterator >
-using iter_is_forward = bool_constant<
-		_detail::IterCatIs<Iterator, std::forward_iterator_tag>()
-		and std::is_copy_constructible<Iterator>::value
-	>;
+constexpr bool iter_is_forward =
+	_detail::IterCatIs<Iterator, std::forward_iterator_tag>()
+	and std::is_copy_constructible<Iterator>::value;
+
 template< typename Iterator >
-using iter_is_random_access = bool_constant<
-		_detail::IterCatIs<Iterator, std::random_access_iterator_tag>()
-		and std::is_copy_constructible<Iterator>::value
-	>;
+constexpr bool iter_is_random_access =
+	_detail::IterCatIs<Iterator, std::random_access_iterator_tag>()
+	and std::is_copy_constructible<Iterator>::value;
+
 /**
 * @brief Partial emulation of std::sized_sentinel_for (C++20)
 *
-* Let i be an Iterator and s a Sentinel. If `s - i` is well-formed, then this type trait specifies
-* whether that subtraction is valid and O(1). Must be specialized for some iterator, sentinel pairs. */
+* Let i be an Iterator and s a Sentinel. If `s - i` is well-formed, then this value specifies whether
+* that subtraction is invalid or not O(1). Must be specialized for some iterator, sentinel pairs. */
 template< typename Sentinel, typename Iterator >
-struct maybe_sized_sentinel_for
- :	bool_constant<
-		iter_is_random_access<Iterator>::value or
-		iter_is_random_access<Sentinel>::value
-	> {};
+constexpr bool disable_sized_sentinel_for =
+	#if __cpp_lib_concepts >= 201907
+		std::disable_sized_sentinel_for<Sentinel, Iterator>;
+	#else
+		!(iter_is_random_access<Sentinel> or iter_is_random_access<Iterator>);
+	#endif
 
 
 //! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
