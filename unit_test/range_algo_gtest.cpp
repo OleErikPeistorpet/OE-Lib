@@ -85,12 +85,14 @@ TEST(rangeTest, viewTransformBasics)
 	struct { auto operator()(const Elem &) /*mutable*/ { return 0; } } f;
 	auto v = view::transform(r, f);
 	auto v2 = view::transform(r, [](Elem & e) { return *e; });
-	static_assert(oel::iter_is_forward< decltype(v.begin()) >(), "?");
-	static_assert(oel::iter_is_forward< decltype(v2.begin()) >(), "?");
 	static_assert(sizeof v.begin()  == sizeof(Elem *), "Not critical, this assert can be removed");
 	static_assert(sizeof v2.begin() == sizeof(Elem *), "Not critical, this assert can be removed");
-
-	EXPECT_TRUE( v.begin() == r + 0 );
+	{
+		auto it = v.begin();
+		EXPECT_TRUE( it++ == v.begin() );
+		EXPECT_TRUE( it != v.begin() );
+	}
+	EXPECT_TRUE( v.begin() == v.begin().base() );
 	EXPECT_FALSE( r + 1 == v.begin() );
 	EXPECT_FALSE( v.begin() != r + 0 );
 	EXPECT_TRUE( r + 1 != v.begin() );
