@@ -95,7 +95,7 @@ namespace _detail
 
 	template< typename Range, typename... None,
 		enable_if<
-			maybe_sized_sentinel_for< sentinel_t<Range>, iterator_t<Range> >::value
+			!disable_sized_sentinel_for< sentinel_t<Range>, iterator_t<Range> >
 		> = 0 >
 	constexpr auto Size(Range && r, None...)
 	->	decltype(end(r) - begin(r))

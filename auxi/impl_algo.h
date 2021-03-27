@@ -208,7 +208,7 @@ namespace _detail
 
 	template< typename Range,
 		enable_if<
-			iter_is_forward< iterator_t<Range> >::value
+			iter_is_forward< iterator_t<Range> >
 		> = 0 >
 	size_t CountOrEndNoSize(Range & r, int)
 	{

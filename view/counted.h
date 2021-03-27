@@ -7,7 +7,7 @@
 
 
 #include "../util.h"
-#include "detail/std_range.h"
+#include "detail/core.h"
 
 /** @file
 */
@@ -16,7 +16,7 @@ namespace oel
 {
 
 //! Wrapper for iterator and size
-template< typename Iterator, bool = iter_is_random_access<Iterator>::value >
+template< typename Iterator, bool = iter_is_random_access<Iterator> >
 class counted_view
 {
 public:

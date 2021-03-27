@@ -7,6 +7,7 @@
 #include "gtest/gtest.h"
 #include <forward_list>
 #include <functional>
+#include <sstream>
 
 namespace view = oel::view;
 
@@ -68,15 +69,29 @@ TEST(viewTest, countedView)
 
 TEST(viewTest, viewTransformBasics)
 {
-	using Elem = std::unique_ptr<double>;
+	using Elem = double;
+
+	struct MoveOnly
+	{	std::unique_ptr<double> p;
+		auto operator()(Elem &) const { return 0; }
+	};
 	Elem r[1];
-	struct { auto operator()(const Elem &) /*mutable*/ { return 0; } } f;
-	auto v = view::transform(r, f);
-	auto v2 = view::transform(r, [](Elem & e) { return *e; });
-	static_assert(std::is_same< decltype(v.begin())::iterator_category, std::forward_iterator_tag >(), "?");
-	static_assert(std::is_same< decltype(v2.begin())::iterator_category, std::forward_iterator_tag >(), "?");
-	static_assert(sizeof v.begin()  == sizeof(Elem *), "Not critical, this assert can be removed");
-	static_assert(sizeof v2.begin() == sizeof(Elem *), "Not critical, this assert can be removed");
+	auto v = view::transform(r, [](Elem &) { return 0; });
+
+	using IEmptyLambda = decltype(v.begin());
+	using IMoveOnly = oel::transform_iterator<MoveOnly, Elem *>;
+
+	static_assert(std::is_same< IEmptyLambda::iterator_category, std::forward_iterator_tag >(), "?");
+	static_assert(std::is_same< IMoveOnly::iterator_category, std::input_iterator_tag >(), "?");
+	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
+#if OEL_STD_RANGES
+	static_assert(std::ranges::forward_range<decltype(v)>);
+	static_assert(std::input_iterator<IMoveOnly>);
+	{
+		constexpr IEmptyLambda valueInit{};
+		constexpr auto copy = valueInit;
+	}
+#endif
 	{
 		auto it = v.begin();
 		EXPECT_TRUE( it++ == v.begin() );
@@ -87,36 +102,47 @@ TEST(viewTest, viewTransformBasics)
 	EXPECT_FALSE( v.begin() != r + 0 );
 	EXPECT_TRUE( r + 1 != v.begin() );
 
-	auto v3 = view::transform(v2, [](double d) { return d; });
-	auto const it = v3.begin();
+	auto nested = view::transform(v, [](double d) { return d; });
+	auto const it = nested.begin();
 	EXPECT_TRUE(r + 0 == it);
 	EXPECT_TRUE(r + 1 != it);
 	EXPECT_FALSE(it == r + 1);
 	EXPECT_FALSE(it != r + 0);
 }
 
-TEST(viewTest, viewTransformSizedAndNonSizedRange)
+struct Square
+{	int operator()(int i) const
+	{
+		return i * i;
+	}
+};
+
+TEST(viewTest, viewTransformSizedRange)
 {
 	int src[] {1, 2};
-	auto r = view::subrange(std::begin(src), std::end(src));
-	oel::dynarray<int> dest( view::transform(r, [](int & i) { return i++; }) );
+	oel::dynarray<int> dest( view::transform(src, [](int & i) { return i++; }) );
 	EXPECT_EQ(2U, dest.size());
 	EXPECT_EQ(1, dest[0]);
 	EXPECT_EQ(2, dest[1]);
 	EXPECT_EQ(2, src[0]);
 	EXPECT_EQ(3, src[1]);
 
-	struct Square
-	{	int operator()(int i) const
-		{
-			return i * i;
-		}
-	};
-	std::forward_list<int> const li{-2, -3};
-	dest.append( view::transform(li, Square{}) );
-	EXPECT_EQ(4U, dest.size());
+	std::forward_list<int> const li{-2};
+	auto v = view::counted(li.begin(), 1);
+	dest.append( view::transform(v, Square{}) );
+	EXPECT_EQ(3U, dest.size());
 	EXPECT_EQ(4, dest[2]);
-	EXPECT_EQ(9, dest[3]);
+
+	static_assert(sizeof v.begin() == sizeof li.begin(), "Not critical, this assert can be removed");
+}
+
+TEST(viewTest, viewTransformNonSizedRange)
+{
+	std::forward_list<int> const li{-2, -3};
+	oel::dynarray<int> dest( view::transform(li, Square{}) );
+	EXPECT_EQ(2U, dest.size());
+	EXPECT_EQ(4, dest[0]);
+	EXPECT_EQ(9, dest[1]);
 }
 
 TEST(viewTest, viewTransformMutableLambda)
@@ -126,10 +152,23 @@ TEST(viewTest, viewTransformMutableLambda)
 		return i++;
 	};
 	int dummy[3];
+	auto v = view::transform(dummy, iota);
+	using I = decltype(v.begin());
+
+	static_assert(std::is_same<I::iterator_category, std::forward_iterator_tag>(), "?");
+#if OEL_STD_RANGES
+	static_assert(std::input_or_output_iterator<I>);
+	static_assert(std::ranges::range<decltype(v)>);
+	{
+		constexpr I valueInit{};
+		constexpr auto copy = valueInit;
+	}
+#endif
+
 	oel::dynarray<int> test(oel::reserve, 3);
 	test.resize(1);
 
-	test.assign( view::transform(dummy, iota) );
+	test.assign(v);
 	EXPECT_EQ(0, test[0]);
 	EXPECT_EQ(1, test[1]);
 	EXPECT_EQ(2, test[2]);

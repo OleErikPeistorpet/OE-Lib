@@ -43,7 +43,7 @@ namespace
 	static_assert(!oel::can_memmove_with< int *, std::move_iterator<ListI> >(), "?");
 	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<const int *> >(), "?");
 
-	static_assert(!oel::iter_is_random_access<ListI>(), "?");
+	static_assert(!oel::iter_is_random_access<ListI>, "?");
 }
 
 TEST(utilTest, ForwardT)

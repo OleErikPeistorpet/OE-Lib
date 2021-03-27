@@ -7,7 +7,7 @@
 
 
 #include "../auxi/type_traits.h"
-#include "detail/std_range.h"
+#include "detail/core.h"
 
 /** @file
 */

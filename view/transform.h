@@ -23,8 +23,8 @@ dynarray<std::string> result;
 result.append( view::transform(arr, [](const auto & bs) { return bs.to_string(); }) );
 @endcode
 * Similar to boost::adaptors::transform, but stores just one copy of f and has no size overhead for stateless
-* function objects. Also accepts lambdas (as long as by-value captures are nothrow copy constructible and
-* trivially destructible). Moreover, UnaryFunc can have non-const operator() (such as mutable lambda). <br>
+* function objects. Also accepts a lambda as long as any by-value captures are trivially copy constructible
+* and trivially destructible. Moreover, UnaryFunc can have non-const operator() (such as mutable lambda). <br>
 * Note that passing an rvalue range is meant to give a compile error. Use a named variable. */
 template< typename UnaryFunc, typename Range >
 constexpr auto transform(Range & r, UnaryFunc f)
