@@ -2,9 +2,9 @@
 
 A cross-platform, very fast substitute for C++ std::vector (and std::copy)
 
-Unlike the containers in many of the standard libraries in use, over-aligned types (as used by SSE and AVX instructions) are supported with no special action by the user. A runtime crash would be expected using std::vector, at least with older implementations.
+Features relocation optimizations similar to [Folly fbvector](https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation) and UnrealEngine TArray.
 
-Features relocation optimizations similar to Folly fbvector and UnrealEngine TArray. Furthermore, OE-Lib has been optimized not only for release builds but also for execution speed in debug.
+Unlike the containers in many older standard library implementations, over-aligned types (as used by SSE and AVX instructions) are supported with no special action by the user. A runtime crash would often be the result with std::vector.
 
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
@@ -13,9 +13,25 @@ Supported compilers:
 * GCC 5 and later
 * Clang is tested regularly (Travis CI), but minimum version is unknown
 
+### Append
+
+Instead of calling `push_back` or `emplace_back` in a loop, you should use the `append` member function of dynarray. This often performs substantially better than doing the same thing using std::vector.
+Example:
+> void moveAllTo(std::vector<Foo> & dest)
+> {
+>    for (auto && foo : sourceContainerOfFoo)
+>       dest.push_back(std::move(foo));
+> }
+
+Would be better as:
+> void moveAllTo(oel::dynarray<Foo> & dest)
+> {
+>    dest.append(oel::view::move(sourceContainerOfFoo));
+> }
+
 ### Checked preconditions
 
-Precondition checks are off by default except for Visual C++ debug builds. (Preconditions are the same as std::vector.) They can be controlled with a global define such as `-D OEL_MEM_BOUND_DEBUG_LVL=2`. But be careful, they should **not** be combined with compiler optimizations unless you set the `-fno-strict-aliasing` flag (GCC, LLVM).
+Precondition checks are off by default except for Visual C++ debug builds. (Preconditions are the same as std::vector.) They can be controlled with a global define such as `-D OEL_MEM_BOUND_DEBUG_LVL=2`. But be careful with compilers other than MSVC, they should **not** be combined with compiler optimizations unless you set the `-fno-strict-aliasing` flag.
 
 You can customize what happens when a check is triggered. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `user_traits.h`
 
@@ -28,6 +44,6 @@ While usually faster than the Visual C++ standard library, performance can be an
 
 ### Other
 
-If not using Boost, you need to manually define OEL_NO_BOOST for some older compilers.
+If not using Boost, you need to manually define OEL_NO_BOOST for some old compilers (GCC 4 and Visual Studio 2015).
 
 To use dense matrixes, quaternions, etc. from the Eigen library efficiently in dynarray: include `optimize_ext/eigen_dense.h`
