@@ -632,11 +632,12 @@ private:
 	template< typename InputIter, typename... None >
 	InputIter _append(InputIter src, size_type const n, None...)
 	{	// cannot use memcpy
-		_appendImpl( n,
+		_appendImpl(
 			[&src](T * dest, size_type n_, decltype(_m) & alloc)
 			{
 				src = _detail::UninitCopy(src, dest, dest + n_, alloc);
-			} );
+			},
+			n );
 		return src;
 	}
 
@@ -645,24 +646,25 @@ private:
 	>
 	ContiguousIter _append(ContiguousIter const first, size_type const n)
 	{
-		ContiguousIter last = first + n;
-		_appendImpl( n,
+		ContiguousIter const last = first + n;
+		_appendImpl(
 			[first](T * dest, size_type n_, decltype(_m) &)
 			{
 				_detail::MemcpyCheck(first, n_, dest);
-			} );
+			},
+			n );
 		return last; // has been invalidated in the case of append self and reallocation
 	}
 
 	template< typename MakeFuncAppend >
-	void _appendImpl(size_type const count, MakeFuncAppend const makeNew)
+	void _appendImpl(MakeFuncAppend const makeNew, size_type const count)
 	{
 		_debugSizeUpdater guard{_m};
 
 		if (_unusedCapacity() >= count)
 			makeNew(_m.end, count, _m);
 		else
-			_appendRealloc(count, makeNew);
+			_appendRealloc(makeNew, count);
 
 		_m.end += count;
 	}
@@ -671,7 +673,7 @@ private:
 #ifdef _MSC_VER
 	__declspec(noinline) // to get the compiler to inline calling function
 #endif
-	void _appendRealloc(size_type const count, MakeFuncAppend const makeNew)
+	void _appendRealloc(MakeFuncAppend const makeNew, size_type const count)
 	{
 		size_type const oldSize = size();
 		_scopedPtr newBuf{_m, _allocateAdd(count, oldSize)};
@@ -701,6 +703,9 @@ private:
 	template< typename InsertHelper, typename... Args >
 	T * _insertRealloc(T *const pos, size_type const nAfterPos, InsertHelper const helper, Args &&... args)
 	{
+	#if defined _MSC_VER and _MSC_VER < 1927
+		(void) helper; // C4100	unreferenced formal parameter
+	#endif
 		_scopedPtr newBuf{_m, helper.allocate(*this)};
 
 		size_type const nBefore = pos - data();
@@ -720,10 +725,10 @@ private:
 
 	struct _emplaceHelper
 	{
-		_span allocate(dynarray & self) const { return self._allocateAddOne(); }
+		static _span allocate(dynarray & self) { return self._allocateAddOne(); }
 
 		template< typename... Args >
-		T * construct(decltype(_m) & alloc, T *const newPos, Args &&... args) const
+		static T * construct(decltype(_m) & alloc, T *const newPos, Args &&... args)
 		{
 			_construct{}(alloc, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
@@ -746,7 +751,7 @@ private:
 			T *const dLast = newPos + count;
 			_detail::UninitCopy(first, newPos, dLast, alloc);
 			return dLast;
-		};
+		}
 	};
 };
 
@@ -951,11 +956,12 @@ void dynarray<T, Alloc>::shrink_to_fit()
 template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 {
-	_appendImpl( n,
+	_appendImpl(
 		[&val](T * dest, size_type n_, decltype(_m) & alloc)
 		{
 			_uninitFill{}(dest, dest + n_, alloc, val);
-		} );
+		},
+		n );
 }
 
 
