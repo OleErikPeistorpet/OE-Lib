@@ -41,13 +41,13 @@ namespace _detail
 
 	template< typename T >
 	struct Construct
-	{
+	{	// Must always call operator() with T * (other type will compile but bypass Alloc)
+
 		template< typename Alloc, typename... Args >
 		auto operator()(Alloc & a, T *__restrict p, Args &&... args) const
 		->	decltype(a.construct(p, static_cast<Args &&>(args)...))
 			       { a.construct(p, static_cast<Args &&>(args)...); }
 
-		// void * worse match than T *
 		template< typename Alloc, typename... Args,
 		          enable_if< std::is_constructible<T, Args...>::value > = 0
 		>

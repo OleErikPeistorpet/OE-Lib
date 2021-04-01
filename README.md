@@ -4,7 +4,7 @@ A cross-platform, very fast substitute for C++ std::vector (and std::copy)
 
 Features relocation optimizations similar to [Folly fbvector](https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation) and UnrealEngine TArray.
 
-Unlike the containers in many older standard library implementations, over-aligned types (as used by SSE and AVX instructions) are supported with no special action by the user. A runtime crash would often be the result with std::vector.
+Unlike the containers in many older standard library implementations, over-aligned types (as used by SSE and AVX instructions) are supported with no special action by the user. A runtime crash would often be the result using std::vector.
 
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
@@ -13,9 +13,52 @@ Supported compilers:
 * GCC 5 and later
 * Clang is tested regularly (Travis CI), but minimum version is unknown
 
+### Append
+
+You should use the `append` member function of dynarray instead of doing `insert` of multiple elements at the end. This is often substantially faster than with std::vector (likely due to inlining which lets the compiler optimize further). Example:
+
+	void moveAllToBackOf(std::vector<Foo> & dest)
+	{
+		dest.insert(dest.end(), std::move_iterator{fooList.begin()}, std::move_iterator{fooList.end()});
+	}
+
+Would be better as:
+
+	void moveAllToBackOf(oel::dynarray<Foo> & dest)
+	{
+		dest.append(oel::view::move(fooList));
+	}
+
+Compared to calling `push_back` or `emplace_back` in a loop, `append` has major benefits, mainly because of fewer memory allocations without having to worry about manual `reserve`. Moreover, calling `reserve` inside a loop is a performance pitfall that many aren't aware of. For example, see here: <https://stackoverflow.com/questions/48535727/why-are-c-stl-vectors-1000x-slower-when-doing-many-reserves>
+
+	for (int i{}; i < outerLimit; i++)
+	{
+		arr.reserve(arr.size() + innerLimit); // typically BAD inside loop, but easy to miss in more complex code
+		for (int j{}; j < innerLimit; j++)
+			arr.push_back(i * j);
+	}
+
+Should be something like:
+
+	for (int i{}; i < outerLimit; i++)
+	{
+		auto v = std::views::iota(0, innerLimit);
+		arr.append( oel::view::transform(v, [i](auto j) { return i * j; }) );
+	}
+
+Another good way, using `resize_for_overwrite`:
+
+	std::size_t arrIdx{};
+	for (int i{}; i < outerLimit; i++)
+	{
+		arr.resize_for_overwrite(arr.size() + innerLimit);
+		for (int j{}; j < innerLimit; j++)
+			arr[arrIdx++] = i * j;
+	}
+
 ### Checked preconditions
 
-Precondition checks are off by default except for Visual C++ debug builds. (Preconditions are the same as std::vector.) They can be controlled with a global define such as `-D OEL_MEM_BOUND_DEBUG_LVL=2`. But be careful with compilers other than MSVC, they should **not** be combined with compiler optimizations unless you set the `-fno-strict-aliasing` flag.
+Precondition checks are off by default except for Visual C++ debug builds. (Preconditions are the same as std::vector.) They can be controlled with a global define such as `-D OEL_MEM_BOUND_DEBUG_LVL=2`. But be careful with compilers other than MSVC, the checks should **not** be combined with compiler optimizations unless you set the `-fno-strict-aliasing` flag.
 
 You can customize what happens when a check is triggered. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `user_traits.h`
 
@@ -28,6 +71,6 @@ While usually faster than the Visual C++ standard library, performance can be an
 
 ### Other
 
-If not using Boost, you need to manually define OEL_NO_BOOST for some older compilers.
+If not using Boost, you need to manually define OEL_NO_BOOST for some old compilers (GCC 4 and Visual Studio 2015).
 
 To use dense matrixes, quaternions, etc. from the Eigen library efficiently in dynarray: include `optimize_ext/eigen_dense.h`

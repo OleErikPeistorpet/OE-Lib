@@ -128,7 +128,7 @@ basic_view< std::move_iterator<InputIterator> >
 	                                                  return {MovI{first}, MovI{last}}; }
 /**
 * @brief Wrap a range such that the elements can be moved from when passed to a container or algorithm
-* @return type `counted_view<std::move_iterator>` if r.size() exists or r is an array,
+* @return Type `counted_view<std::move_iterator>` if r.size() exists or r is an array,
 *	else `basic_view<std::move_iterator>`
 *
 * Note that passing an rvalue range is meant to give a compile error. Use a named variable. */

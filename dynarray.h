@@ -168,7 +168,7 @@ public:
 
 	/**
 	* @brief Replace the contents with source range
-	* @param source an array, STL container, iterator_range, gsl::span or such.
+	* @param source an input_range (C++20 concept), except `end(source)` is not required if there is a source.size()
 	* @pre source shall not refer to any elements in this dynarray (same as std::vector::assign)
 	* @return iterator `begin(source)` incremented by the number of elements in source
 	*
@@ -182,7 +182,7 @@ public:
 	/**
 	* @brief Add at end the elements from source range
 	* @pre Behavior is undefined if all of the following apply: source refers to any elements in this dynarray,
-	*	source.size() does not exist and source does not model forward_range (C++20 concept)
+	*	there is no valid source.size() and source does not model forward_range (C++20 concept)
 	* @return `begin(source)` incremented by source size. The iterator is already invalidated (do not dereference) if
 	*	`begin(source)` pointed into this dynarray and there was insufficient capacity to avoid reallocation.
 	*
@@ -248,7 +248,7 @@ public:
 
 	void      reserve(size_type minCap)   { if (capacity() < minCap) _growTo(minCap); }
 
-	//! It's a good idea to check that size() < capacity() before calling to avoid useless reallocation
+	//! It's probably a good idea to check that size() < capacity() before calling, maybe add some treshold to size
 	void      shrink_to_fit();
 
 	size_type capacity() const noexcept   { return _m.reservEnd - _m.data; }
