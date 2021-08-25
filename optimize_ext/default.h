@@ -5,7 +5,7 @@
 
 
 // std:: unique_ptr, shared_ptr, weak_ptr, basic_string, pair, tuple
-// boost:: intrusive_ptr, circular_buffer, variant, polymorphic_allocator
+// boost:: intrusive_ptr, local_shared_ptr, circular_buffer, variant, polymorphic_allocator
 
 /** @file
 * @brief This is included by dynarray.h, so should not be needed in user code
@@ -25,6 +25,7 @@
 namespace boost
 {
 	template< typename T > class intrusive_ptr;
+	template< typename T > class local_shared_ptr;
 }
 #endif
 
@@ -67,6 +68,9 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 
 	template< typename T >
 	struct is_trivially_relocatable< boost::intrusive_ptr<T> > : true_type {};
+
+	template< typename T >
+	struct is_trivially_relocatable< boost::local_shared_ptr<T> > : true_type {};
 
 	template< typename T, typename Alloc >
 	struct is_trivially_relocatable< boost::circular_buffer<T, Alloc> >
