@@ -214,6 +214,21 @@ TEST_F(dynarrayConstructTest, constructInitList)
 	}
 }
 
+#if HAS_STD_PMR
+
+#include "pmr.h"
+
+TEST_F(dynarrayConstructTest, pmrToDynarray)
+{
+	auto pool = std::pmr::monotonic_buffer_resource(32);
+	std::pmr::vector<int> v({1, 2}, &pool);
+
+	auto d = v | pmr::to_dynarray(&pool);
+	static_assert(std::is_same_v< decltype(d)::allocator_type, pmr::polymorphic_allocator<int> >);
+	EXPECT_EQ(d.size(), v.size());
+}
+#endif
+
 TEST_F(dynarrayConstructTest, toDynarray)
 {
 	{
