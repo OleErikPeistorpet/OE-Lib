@@ -11,7 +11,7 @@
 
 
 /** @file
-* @brief Contains as_signed/as_unsigned, index_valid, ssize and more
+* @brief Contains make_unique_for_overwrite, as_signed/as_unsigned, index_valid, ssize and more
 */
 
 namespace oel
@@ -50,6 +50,16 @@ constexpr bool index_valid(SizedRangeLike & r, Integral index)
 		static_assert( sizeof(Integral) >= sizeof _detail::Size(r) or std::is_unsigned_v<Integral>,
 			"Mismatched index type, please use a wider integer (or unsigned)" );
 		return as_unsigned(index) < as_unsigned(_detail::Size(r));
+	}
+
+
+//! Equivalent to std::make_unique_for_overwrite (C++20), for array types with unknown bound
+template< typename T,
+          enable_if< _detail::isUnboundedArray<T> > = 0
+>  inline
+std::unique_ptr<T> make_unique_for_overwrite(size_t count)
+	{
+		return std::unique_ptr<T>{new std::remove_extent_t<T>[count]};
 	}
 
 
