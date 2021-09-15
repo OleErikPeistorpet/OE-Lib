@@ -11,7 +11,7 @@
 
 
 /** @file
-* @brief Contains as_signed/as_unsigned, index_valid, ssize and more
+* @brief Contains make_unique_for_overwrite, as_signed/as_unsigned, index_valid, ssize and more
 */
 
 namespace oel
@@ -49,6 +49,17 @@ constexpr bool index_valid(const SizedRange & r, Integral index)
 	}
 
 
+//! Equivalent to std::make_unique_for_overwrite (C++20), for array types with unknown bound
+template< typename T,
+          enable_if< _detail::isUnboundedArray<T> > = 0
+>  inline
+std::unique_ptr<T> make_unique_for_overwrite(size_t arraySize)
+	{
+		using Elem = std::remove_extent_t<T>;
+		return std::unique_ptr<T>(new Elem[arraySize]);
+	}
+
+
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {
@@ -62,7 +73,6 @@ struct for_overwrite_t
 	explicit constexpr for_overwrite_t() {}
 };
 constexpr for_overwrite_t for_overwrite;  //!< An instance of for_overwrite_t for convenience
-[[deprecated]] constexpr for_overwrite_t default_init;
 
 
 

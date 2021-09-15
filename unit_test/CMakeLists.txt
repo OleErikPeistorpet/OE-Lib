@@ -64,7 +64,6 @@ add_executable(oel-test
 	incl_allocator.cpp
 	incl_assign_append_insert.cpp
 	incl_dynarray.cpp
-	incl_make_unique.cpp
 	incl_view_counted.cpp
 	incl_view_move.cpp
 	incl_view_subrange.cpp

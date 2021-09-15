@@ -75,12 +75,22 @@ using iter_is_random_access = std::is_base_of< std::random_access_iterator_tag, 
 template< bool Condition >
 using enable_if = typename std::enable_if<Condition, int>::type;
 
-} // namespace oel
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
+
+
+namespace _detail
+{
+	template< typename >
+	constexpr bool isUnboundedArray = false;
+
+	template< typename T >
+	constexpr bool isUnboundedArray<T[]> = true;
+}
+
+} // namespace oel
 
 
 template< typename T >

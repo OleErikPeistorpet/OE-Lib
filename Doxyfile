@@ -891,7 +891,6 @@ EXCLUDE_PATTERNS       =
 # exclude all test directories use the pattern */test/*
 
 EXCLUDE_SYMBOLS        = *::_detail \
-                         OEL_MAKE_UNIQUE_A \
                          OEL_DYNARR_INSERT_STEP1
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or directories

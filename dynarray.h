@@ -194,7 +194,6 @@ public:
 	//! Equivalent to `std::vector::insert(end(), count, val)`
 	void append(size_type count, const T & val);
 
-	[[deprecated]] void resize_default_init(size_type n) { resize_for_overwrite(n); }
 	/**
 	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	*
