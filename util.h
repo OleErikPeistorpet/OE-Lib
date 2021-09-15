@@ -61,7 +61,6 @@ struct for_overwrite_t
 	explicit constexpr for_overwrite_t() {}
 };
 constexpr for_overwrite_t for_overwrite;  //!< An instance of for_overwrite_t for convenience
-[[deprecated]] constexpr for_overwrite_t default_init;
 
 
 

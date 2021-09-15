@@ -142,6 +142,12 @@ namespace _detail
 {
 	template< typename B0, typename B1 >
 	constexpr bool conjunctionV = std::conditional_t<B0::value, B1, B0>::value;
+
+
+	template< typename > constexpr bool isUnboundedArray = false;
+
+	template< typename T >
+	constexpr bool isUnboundedArray<T[]> = true;
 }
 
 } // namespace oel
