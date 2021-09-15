@@ -2,7 +2,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "test_classes.h"
-#include "make_unique.h"
 #include "dynarray.h"
 
 #include "gtest/gtest.h"
@@ -165,29 +164,15 @@ TEST(utilTest, indexValid)
 	}
 }
 
-struct OneSizeT
-{
-	size_t val;
-};
-
 TEST(utilTest, makeUnique)
 {
 	auto ps = oel::make_unique_for_overwrite<std::string[]>(2);
 	EXPECT_TRUE(ps[0].empty());
 	EXPECT_TRUE(ps[1].empty());
 
-	{
-		auto p = oel::make_unique<OneSizeT>(7U);
-		EXPECT_EQ(7U, p->val);
-
-		auto a = oel::make_unique<OneSizeT[]>(5);
-		for (size_t i = 0; i < 5; ++i)
-			EXPECT_EQ(0U, a[i].val);
-	}
-	auto p2 = oel::make_unique<std::list<int>>(4, 6);
-	EXPECT_EQ(4U, p2->size());
-	EXPECT_EQ(6, p2->front());
-	EXPECT_EQ(6, p2->back());
+	auto a = oel::make_unique_for_overwrite<int[]>(5);
+	for (int i = 0; i < 5; ++i)
+		a[i] = i;
 }
 
 TEST(utilTest, toPointerContiguous)

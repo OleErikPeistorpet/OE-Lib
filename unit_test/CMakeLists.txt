@@ -22,7 +22,6 @@ add_executable(oel-test
 	view_gtest.cpp
 	incl_allocator.cpp
 	incl_dynarray.cpp
-	incl_make_unique.cpp
 	incl_range_algo.cpp
 	incl_util.cpp
 	incl_view_counted.cpp
