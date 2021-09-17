@@ -99,10 +99,13 @@ class transform_iterator
 	_detail::TightPair< Iterator, typename _detail::AssignableWrap<UnaryFunc>::Type > _m;
 
 public:
-	using iterator_category = std::conditional_t<
-			_detail::isForward< iter_category<Iterator> > and std::is_copy_constructible<UnaryFunc>::value,
-			std::forward_iterator_tag,
-			std::input_iterator_tag
+	using iterator_category =
+		std::conditional_t< !std::is_copy_constructible<UnaryFunc>::value,
+			std::input_iterator_tag,
+			std::conditional_t< iter_is_random_access<Iterator>::value,
+				std::random_access_iterator_tag,
+				iter_category<Iterator>
+			>
 		>;
 	using difference_type = iter_difference_t<Iterator>;
 	using reference       = decltype( std::declval<UnaryFunc &>()(*_m.iter) );
@@ -140,8 +143,60 @@ public:
 		return tmp;
 	}
 
+	// For bidirectional Iterator
+	transform_iterator & operator--()  OEL_ALWAYS_INLINE
+	{
+		--_m.iter;
+		return *this;
+	}
+
+	transform_iterator operator--(int) &
+	{
+		auto tmp = *this;
+		--_m.iter;
+		return tmp;
+	}
+
+	// For random-access Iterator
+	transform_iterator & operator+=(difference_type offset) &
+	{
+		_m.iter += offset;
+		return *this;
+	}
+
+	transform_iterator & operator-=(difference_type offset) &
+	{
+		_m.iter -= offset;
+		return *this;
+	}
+
+	friend transform_iterator operator +(difference_type offset, transform_iterator it)  { return it += offset; }
+	friend transform_iterator operator +(transform_iterator it, difference_type offset)  { return it += offset; }
+	friend transform_iterator operator -(transform_iterator it, difference_type offset)  { return it -= offset; }
+
+	difference_type operator -(const transform_iterator & right) const               { return _m.iter - right._m.iter; }
+	template< typename Sentinel,
+		decltype(std::declval<Iterator>() == std::declval<Sentinel>()) = true // enable if sentinel for Iterator
+	>
+	friend difference_type operator -(const transform_iterator & left, Sentinel right)  { return left._m.iter - right; }
+	template< typename Sentinel >
+	friend difference_type operator -(Sentinel left, const transform_iterator & right)  { return left - right._m.iter; }
+
+	reference operator[](difference_type offset) const
+	{
+		auto tmp = *this;
+		tmp += offset; // not operator + to save a call in non-optimized builds
+		return *tmp;
+	}
+
 	bool        operator==(const transform_iterator & right) const        { return _m.iter == right._m.iter; }
 	bool        operator!=(const transform_iterator & right) const        { return _m.iter != right._m.iter; }
+
+	bool        operator <(const transform_iterator & right) const        { return _m.iter < right._m.iter; }
+	bool        operator >(const transform_iterator & right) const        { return _m.iter > right._m.iter; }
+	bool        operator<=(const transform_iterator & right) const        { return !(_m.iter > right._m.iter); }
+	bool        operator>=(const transform_iterator & right) const        { return !(_m.iter < right._m.iter); }
+
 	template< typename Sentinel >
 	friend bool operator==(const transform_iterator & left, Sentinel right)  { return left._m.iter == right; }
 	template< typename Sentinel >
@@ -150,6 +205,23 @@ public:
 	friend bool operator!=(const transform_iterator & left, Sentinel right)  { return left._m.iter != right; }
 	template< typename Sentinel >
 	friend bool operator!=(Sentinel left, const transform_iterator & right)  { return right._m.iter != left; }
+
+	template< typename Sentinel >
+	friend bool operator <(const transform_iterator & left, Sentinel right)  { return left._m.iter < right; }
+	template< typename Sentinel >
+	friend bool operator <(Sentinel left, const transform_iterator & right)  { return right._m.iter > left; }
+	template< typename Sentinel >
+	friend bool operator >(const transform_iterator & left, Sentinel right)  { return left._m.iter > right; }
+	template< typename Sentinel >
+	friend bool operator >(Sentinel left, const transform_iterator & right)  { return right._m.iter < left; }
+	template< typename Sentinel >
+	friend bool operator<=(const transform_iterator & left, Sentinel right)  { return !(left._m.iter > right); }
+	template< typename Sentinel >
+	friend bool operator<=(Sentinel left, const transform_iterator & right)  { return !(right._m.iter < left); }
+	template< typename Sentinel >
+	friend bool operator>=(const transform_iterator & left, Sentinel right)  { return !(left._m.iter < right); }
+	template< typename Sentinel >
+	friend bool operator>=(Sentinel left, const transform_iterator & right)  { return !(right._m.iter > left); }
 };
 
 } // namespace oel

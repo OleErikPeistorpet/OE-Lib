@@ -92,6 +92,12 @@ TEST(rangeTest, viewTransformBasics)
 		EXPECT_TRUE( it++ == v.begin() );
 		EXPECT_TRUE( it != v.begin() );
 	}
+	EXPECT_TRUE( 0 + v.begin() == r );
+	EXPECT_TRUE( v.end() - 0 != r );
+	EXPECT_TRUE( v.end() - v.begin() == 1 );
+	EXPECT_TRUE( v.end() - r == 1 );
+	EXPECT_TRUE( r - v.begin() == 0 );
+
 	EXPECT_TRUE( v.begin() == v.begin().base() );
 	EXPECT_FALSE( r + 1 == v.begin() );
 	EXPECT_FALSE( v.begin() != r + 0 );
