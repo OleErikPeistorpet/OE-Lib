@@ -6,16 +6,21 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "../util.h"  // for TightPair
 #include "detail/core.h"
 
+/** @file
+*/
 
 namespace oel
 {
 
 /** @brief Similar to boost::transform_iterator
 *
-* Move-only UnaryFunc and Iterator supported, but then transform_iterator
-* itself becomes move-only, and oel views don't handle that. */
+* But unlike boost::transform_iterator:
+* - Has no size overhead for stateless function objects
+* - Accepts a lambda as long as any by-value captures are trivially copy constructible and trivially destructible
+* - Move-only UnaryFunc and Iterator supported (then transform_iterator itself becomes move-only) */
 template< typename UnaryFunc, typename Iterator >
 class transform_iterator
 {
@@ -89,22 +94,8 @@ public:
 	friend constexpr bool operator!=(Sentinel left, const transform_iterator & right)  { return right._m.first != left; }
 };
 
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-
-namespace _detail
-{
-	template< typename F, typename Iterator >
-	struct SentinelAt< transform_iterator<F, Iterator> >
-	{
-		template< typename I = Iterator >
-		static constexpr auto call(const transform_iterator<F, I> & it, iter_difference_t<I> n)
-		->	decltype( _detail::SentinelAt<I>::call(it.base(), n) )
-		{	return    _detail::SentinelAt<I>::call(it.base(), n); }
-	};
-}
+template< typename F, typename I >
+constexpr bool disable_sized_sentinel_for< transform_iterator<F, I>, transform_iterator<F, I> >
+	= !iter_is_random_access<I>;
 
 } // namespace oel

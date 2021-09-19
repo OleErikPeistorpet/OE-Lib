@@ -5,9 +5,10 @@
 
 
 /** @file
-* @brief A small subset of the functionality of C++20 ranges, in addition to views that move
+* @brief A small subset of the functionality of views in standard <ranges> (C++ 20/23)
 *
-* The views are mostly intended as input for dynarray and the oel::copy functions.
+* The goal is not to be a general range library,
+* but to provide input for dynarray and the oel::copy functions in a way that optimizes really well.
 */
 
 #include "view/counted.h"

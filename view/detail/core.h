@@ -24,15 +24,16 @@ namespace oel
 {
 namespace _detail
 {
-	template< typename RandomAccessIter >
-	struct SentinelAt
+	template< typename T,
+		enable_if< std::is_copy_constructible<T>::value > = 0
+	> OEL_ALWAYS_INLINE
+	constexpr const T & MoveIfNotCopyable(T & ob) { return ob; }
+
+	template< typename T, typename... None >
+	constexpr T MoveIfNotCopyable(T & ob, None...)
 	{
-		template< typename I = RandomAccessIter, enable_if< iter_is_random_access<I> > = 0 >
-		static constexpr I call(I it, iter_difference_t<I> n)
-		{
-			return it + n;
-		}
-	};
+		return static_cast<T &&>(ob);
+	}
 
 
 
@@ -87,4 +88,4 @@ namespace _detail
 	};
 }
 
-}
+} // oel

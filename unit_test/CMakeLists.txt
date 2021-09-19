@@ -31,6 +31,7 @@ add_executable(oel-test
 	incl_view_move.cpp
 	incl_view_subrange.cpp
 	incl_view_transform.cpp
+	incl_transform_iterator.cpp
 )
 
 target_include_directories(oel-test PRIVATE

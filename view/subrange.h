@@ -1,12 +1,12 @@
 #pragma once
 
-// Copyright 2015 Ole Erik Peistorpet
+// Copyright 2019 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../auxi/type_traits.h"
+#include "../util.h"  // for as_unsigned
 #include "detail/core.h"
 
 /** @file
@@ -23,23 +23,36 @@ public:
 	using difference_type = iter_difference_t<Iterator>;
 
 	basic_view() = default;
-	constexpr basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
+	constexpr basic_view(Iterator f, Sentinel l)   : _begin{std::move(f)}, _end{l} {}
 
+	constexpr Iterator begin()         { return _detail::MoveIfNotCopyable(_begin); }
 	constexpr Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
+
 	constexpr Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
+
+	//! Provided only if begin() can be subtracted from end()
+	template< typename I = Iterator,
+	          enable_if< !disable_sized_sentinel_for<Sentinel, I> > = 0
+	>
+	constexpr auto size() const
+	->	decltype( as_unsigned(std::declval<Sentinel>() - std::declval<I>()) )  { return _end - _begin; }
+
+	constexpr bool empty() const   { return _begin == _end; }
+
+	constexpr decltype(auto) operator[](difference_type index) const   OEL_ALWAYS_INLINE
+		OEL_REQUIRES(iter_is_random_access<Iterator>)          { return _begin[index]; }
 
 protected:
 	Iterator _begin;
 	Sentinel _end;
 };
 
-//! View creation functions. Trying to mimic subset of C++20 ranges
 namespace view
 {
 
 //! Create a basic_view from iterator pair, or iterator and sentinel
 template< typename Iterator, typename Sentinel >
-constexpr basic_view<Iterator, Sentinel> subrange(Iterator first, Sentinel last)  { return {first, last}; }
+constexpr basic_view<Iterator, Sentinel> subrange(Iterator first, Sentinel last)  { return {std::move(first), last}; }
 
 }
 
