@@ -5,6 +5,7 @@
 #include "dynarray.h"
 
 #include "gtest/gtest.h"
+#include <array>
 #include <forward_list>
 #include <functional>
 #include <sstream>
@@ -22,9 +23,11 @@ constexpr auto transformIterFromIntPtr(const int * p)
 
 TEST(viewTest, basicView)
 {
-#if OEL_STD_RANGES
 	using BV = oel::basic_view<int *>;
 
+	static_assert(std::is_trivially_constructible<BV, BV &>::value, "?");
+
+#if OEL_STD_RANGES
 	static_assert(std::ranges::contiguous_range<BV>);
 	static_assert(std::ranges::view<BV>);
 	static_assert(std::ranges::borrowed_range<BV>);
@@ -56,14 +59,10 @@ TEST(viewTest, countedView)
 		EXPECT_EQ(i.size(), test.size());
 		EXPECT_EQ(1, test[0]);
 		EXPECT_EQ(2, test[1]);
-		test.drop_front();
-		EXPECT_EQ(1U, test.size());
-		EXPECT_EQ(2, test.back());
 		EXPECT_TRUE(test.end() == i.end());
 	}
 	static constexpr int src[1]{};
-	constexpr auto it = transformIterFromIntPtr(src);
-	constexpr auto v = view::counted(it, 1);
+	constexpr auto v = view::counted(src, 1);
 	EXPECT_EQ(std::end(src), v.end());
 }
 
@@ -110,6 +109,34 @@ TEST(viewTest, viewTransformBasics)
 	EXPECT_FALSE(it != r + 0);
 }
 
+#if __cplusplus > 201500 or _HAS_CXX17
+
+using StdArrInt2 = std::array<int, 2>;
+
+constexpr auto multBy2(StdArrInt2 a)
+{
+	StdArrInt2 res{};
+	struct
+	{	constexpr auto operator()(int i) const { return 2 * i; }
+	} mult2;
+	auto v = view::transform(a, mult2);
+	std::ptrdiff_t i{};
+	for (auto val : v)
+		res[i++] = val;
+
+	return res;
+}
+
+void testViewTransformConstexpr()
+{
+	constexpr StdArrInt2 a{1, 3};
+	constexpr auto res = multBy2(a);
+	static_assert(res[0] == 2);
+	static_assert(res[1] == 6);
+}
+
+#endif
+
 struct Square
 {	int operator()(int i) const
 	{
@@ -120,7 +147,10 @@ struct Square
 TEST(viewTest, viewTransformSizedRange)
 {
 	int src[] {1, 2};
-	oel::dynarray<int> dest( view::transform(src, [](int & i) { return i++; }) );
+	auto tv = view::transform(src, [](int & i) { return i++; });
+	auto tsr = view::subrange(tv.begin(), tv.end());
+	oel::dynarray<int> dest(tsr);
+	EXPECT_EQ(2U, tsr.size());
 	EXPECT_EQ(2U, dest.size());
 	EXPECT_EQ(1, dest[0]);
 	EXPECT_EQ(2, dest[1]);
@@ -132,8 +162,6 @@ TEST(viewTest, viewTransformSizedRange)
 	dest.append( view::transform(v, Square{}) );
 	EXPECT_EQ(3U, dest.size());
 	EXPECT_EQ(4, dest[2]);
-
-	static_assert(sizeof v.begin() == sizeof li.begin(), "Not critical, this assert can be removed");
 }
 
 TEST(viewTest, viewTransformNonSizedRange)
@@ -191,3 +219,25 @@ TEST(viewTest, viewTransformAsOutput)
 	EXPECT_EQ(-1, test[0].second);
 	EXPECT_EQ(-2, test[1].second);
 }
+
+TEST(viewTest, viewMoveEndDifferentType)
+{
+	auto nonEmpty = [i = -1](int j) { return i + j; };
+	int src[1];
+	oel::transform_iterator it{nonEmpty, src + 0};
+	auto v = view::move(view::subrange(it, src + 1));
+
+	EXPECT_NE(v.begin(), v.end());
+	EXPECT_EQ(src + 1, v.end().base());
+}
+
+#if OEL_STD_RANGES
+
+TEST(viewTest, viewMoveMutableEmptyAndSize)
+{
+	int src[] {0, 1};
+	auto v = view::move( src | std::views::drop_while([](int i) { return i <= 0; }) );
+	EXPECT_FALSE(v.empty());
+	EXPECT_EQ(1U, v.size());
+}
+#endif

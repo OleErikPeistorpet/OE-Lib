@@ -217,3 +217,56 @@ TEST(utilTest, detailSize_rangeNoMember)
 	EmptyRandomAccessRange r;
 	EXPECT_EQ(0, oel::_detail::Size(r));
 }
+
+template< typename I >
+struct TooSimpleIter
+{
+	using value_type = double;
+	using reference = double &;
+	using pointer = void;
+	using difference_type = std::ptrdiff_t;
+	using iterator_category = std::forward_iterator_tag;
+
+	I it;
+
+	void operator++()
+	{
+		++it;
+	}
+
+	bool operator==(I right) const
+	{
+		return it == right;
+	}
+	bool operator!=(I right) const
+	{
+		return it != right;
+	}
+
+	friend std::ptrdiff_t operator -(I, TooSimpleIter)
+	{
+		static_assert(sizeof(I) == -1, "Not supposed to be here");
+		return {};
+	}
+};
+
+#if !defined _MSC_VER or _MSC_VER >= 1920
+template< typename I >
+constexpr bool oel::disable_sized_sentinel_for< I, TooSimpleIter<I> > = true;
+#else
+namespace oel
+{
+template< typename I >
+constexpr bool disable_sized_sentinel_for< I, TooSimpleIter<I> > = true;
+}
+#endif
+
+TEST(utilTest, detailCountOrEnd_disabledSize)
+{
+	using A = std::array<double, 1>;
+	A src{1};
+	auto v = oel::view::subrange(TooSimpleIter<A::iterator>{src.begin()}, src.end());
+
+	auto n = oel::_detail::CountOrEnd(v);
+	EXPECT_EQ(1u, n);
+}
