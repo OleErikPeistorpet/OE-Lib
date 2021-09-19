@@ -29,6 +29,7 @@ add_executable(oel-test
 	gtest_mem_main.cpp
 	range_algo_gtest.cpp
 	util_gtest.cpp
+	view_gtest.cpp
 	incl_dynarray.cpp
 	incl_make_unique.cpp
 	incl_range_algo.cpp

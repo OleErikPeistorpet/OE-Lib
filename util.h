@@ -104,6 +104,14 @@ constexpr auto adl_begin(Range & r) -> decltype(begin(r)) { return begin(r); }
 
 namespace _detail
 {
+	template< typename RandomAccessIter >
+	constexpr auto SentinelAt(RandomAccessIter it, iter_difference_t<RandomAccessIter> n)
+	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},
+		          it + n )
+		 { return it + n; }
+
+
+
 	using BigUint =
 	#if ULONG_MAX > UINT_MAX
 		unsigned long;

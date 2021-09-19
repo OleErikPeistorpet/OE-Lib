@@ -71,6 +71,18 @@ using iter_category = typename std::iterator_traits<Iterator>::iterator_category
 template< typename Iterator >
 using iter_is_random_access = std::is_base_of< std::random_access_iterator_tag, iter_category<Iterator> >;
 
+/**
+* @brief Partial emulation of std::sized_sentinel_for (C++20)
+*
+* Let i be an Iterator and s a Sentinel. If `s - i` is well-formed, then this type trait specifies
+* whether that subtraction is valid and O(1). Must be specialized for some iterator, sentinel pairs. */
+template< typename Sentinel, typename Iterator >
+struct maybe_sized_sentinel_for
+ :	bool_constant<
+		iter_is_random_access<Iterator>::value or
+		iter_is_random_access<Sentinel>::value
+	> {};
+
 
 //! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
 template< bool Condition >

@@ -59,7 +59,7 @@ public:
 	using pointer         = void;
 	using value_type      = typename std::decay<reference>::type;
 
-	Iterator base() const  { return _m.inner; }
+	Iterator base() const  OEL_ALWAYS_INLINE { return _m.inner; }
 
 	transform_iterator(UnaryFunc f, Iterator it)
 	 :	_m{it, f} {
@@ -92,14 +92,23 @@ public:
 		return tmp;
 	}
 
-	OEL_ALWAYS_INLINE
+	friend difference_type operator -(const transform_iterator & left, Iterator right)  { return left._m.inner - right; }
+	friend difference_type operator -(Iterator left, const transform_iterator & right)  { return left - right._m.inner; }
+
 	friend bool operator==(const transform_iterator & left, Iterator right)  { return left._m.inner == right; }
-	OEL_ALWAYS_INLINE
 	friend bool operator==(Iterator left, const transform_iterator & right)  { return left == right._m.inner; }
-	OEL_ALWAYS_INLINE
 	friend bool operator!=(const transform_iterator & left, Iterator right)  { return left._m.inner != right; }
-	OEL_ALWAYS_INLINE
 	friend bool operator!=(Iterator left, const transform_iterator & right)  { return left != right._m.inner; }
 };
+
+
+namespace _detail
+{
+	template< typename F, typename RandomAccessIter >
+	auto SentinelAt(const transform_iterator<F, RandomAccessIter> & it, iter_difference_t<RandomAccessIter> n)
+	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},
+		          it.base() + n )
+		 { return it.base() + n; }
+}
 
 } // namespace oel

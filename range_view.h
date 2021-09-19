@@ -36,18 +36,20 @@ protected:
 	Sentinel _end;
 };
 
-template< typename Iterator,
-          enable_if< iter_is_random_access<Iterator>::value > = 0
+//! Participates in overload resolution only if v.begin() can be subtracted from v.end()
+template< typename Iterator, typename Sentinel,
+          enable_if< maybe_sized_sentinel_for<Sentinel, Iterator>::value > = 0
 >
-iter_difference_t<Iterator> ssize(const basic_view<Iterator> & r)   { return r.end() - r.begin(); }
+auto ssize(const basic_view<Iterator, Sentinel> & v)
+->	decltype( v.end() - v.begin() )
+	 { return v.end() - v.begin(); }
 
 
-//! Wrapper for iterator and size. Similar to gsl::span, less safe, but not just for arrays
+//! Wrapper for iterator and size
 template< typename Iterator, bool = iter_is_random_access<Iterator>::value >
 class counted_view
 {
 public:
-	using iterator        = Iterator;
 	using value_type      = iter_value_t<Iterator>;
 	using difference_type = iter_difference_t<Iterator>;
 	using size_type       = typename std::make_unsigned<difference_type>::type;
@@ -55,17 +57,19 @@ public:
 	//! Initialize to empty
 	constexpr counted_view() noexcept                      : _size() {}
 	constexpr counted_view(Iterator f, difference_type n);
-	//! Construct from array or container with matching iterator type
+	//! Construct from range (lvalue) that knows its size, with matching iterator type
 	template< typename SizedRange,
 		enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0 // avoid being selected for copy
 	>
 	constexpr counted_view(SizedRange & r)   : _begin(oel::adl_begin(r)), _size(oel::ssize(r)) {}
 
-	constexpr iterator  begin() const   OEL_ALWAYS_INLINE { return _begin; }
+	constexpr Iterator  begin() const   OEL_ALWAYS_INLINE { return _begin; }
+
+	constexpr auto      end() const     { return _detail::SentinelAt(_begin, _size); }
 
 	constexpr size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
 
-	constexpr bool      empty() const noexcept   { return 0 == _size; }
+	constexpr bool      empty() const noexcept  OEL_ALWAYS_INLINE { return 0 == _size; }
 
 	//! Increment begin, decrementing size
 	void      drop_front();
@@ -84,7 +88,6 @@ class counted_view<Iterator, true> : public counted_view<Iterator, false>
 	using _base = counted_view<Iterator, false>;
 
 public:
-	using typename _base::iterator;
 	using typename _base::value_type;
 	using typename _base::difference_type;
 	using typename _base::size_type;
@@ -92,16 +95,9 @@ public:
 
 	using _base::_base;
 
-	constexpr iterator  end() const   OEL_ALWAYS_INLINE { return this->_begin + this->_size; }
-
-	constexpr reference back() const                 { return this->_begin[this->_size - 1]; }
+	constexpr reference back() const        { return this->_begin[this->_size - 1]; }
 
 	constexpr reference operator[](difference_type index) const   OEL_ALWAYS_INLINE { return this->_begin[index]; }
-
-	//! Get raw pointer to underlying array. The function will exist only if `to_pointer_contiguous(begin())` is valid
-	template< typename It = Iterator >
-	auto data() const noexcept
-	->	decltype( to_pointer_contiguous(std::declval<It>()) )  { return to_pointer_contiguous(this->_begin); }
 };
 
 
