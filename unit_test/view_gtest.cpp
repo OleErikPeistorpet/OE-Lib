@@ -54,10 +54,10 @@ TEST(viewTest, countedView)
 		EXPECT_EQ(i.size(), test.size());
 		EXPECT_EQ(1, test[0]);
 		EXPECT_EQ(2, test[1]);
-		test.drop_front();
+		test.drop_back();
 		EXPECT_EQ(1U, test.size());
-		EXPECT_EQ(2, test.back());
-		EXPECT_TRUE(test.end() == i.end());
+		EXPECT_EQ(1, test.back());
+		EXPECT_TRUE(test.end() == i.end() - 1);
 	}
 	int src[1]{};
 	auto it = transformIterFromIntPtr(src);

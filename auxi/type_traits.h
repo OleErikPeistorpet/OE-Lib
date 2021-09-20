@@ -55,10 +55,6 @@ using std::size_t;
 using std::begin;  using std::end;
 
 
-//! Type returned by begin function (found by ADL)
-template< typename Range >
-using iterator_t = decltype( begin(std::declval<Range &>()) );
-
 template< typename Iterator >
 using iter_difference_t = typename std::iterator_traits<Iterator>::difference_type;
 
@@ -85,6 +81,13 @@ struct maybe_sized_sentinel_for
 		iter_is_random_access<Iterator>::value or
 		iter_is_random_access<Sentinel>::value
 	> {};
+
+//! Return type of begin function (found by ADL)
+template< typename Range >
+using iterator_t = decltype( begin(std::declval<Range &>()) );
+
+template< typename Range >
+using range_difference_t = iter_difference_t< iterator_t<Range> >;
 
 
 //! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy

@@ -43,14 +43,6 @@ public:
 
 	constexpr bool      empty() const noexcept  OEL_ALWAYS_INLINE { return 0 == _size; }
 
-	//! Modify this view to exclude first element
-	constexpr void      drop_front()
-		{
-		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-			OEL_ASSERT(_size > 0);
-		#endif
-			++_begin; --_size;
-		}
 	//! Modify this view to exclude last element
 	constexpr void      drop_back() noexcept
 		{

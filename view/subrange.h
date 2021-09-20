@@ -29,6 +29,15 @@ public:
 	constexpr Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
 	constexpr Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
 
+	//! Decrement end. Requires that Sentinel is bidirectional (else compile error)
+	constexpr void     drop_back()
+		{
+		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+			OEL_ASSERT(_begin != _end);
+		#endif
+			--_end;
+		}
+
 protected:
 	Iterator _begin;
 	Sentinel _end;

@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "detail/all.h"
+#include "detail/may_sized.h"
 #include "transform_iterator.h"
 
 /** @file
@@ -30,8 +30,8 @@ result.append( view::transform(arr, [](const auto & bs) { return bs.to_string();
 template< typename UnaryFunc, typename Range >
 auto transform(Range & r, UnaryFunc f)
 	{
-		using It = decltype(begin(r));
-		return _detail::all<It>(transform_iterator<UnaryFunc, It>{f, begin(r)}, r);
+		using TI = transform_iterator<UnaryFunc, decltype( begin(r) )>;
+		return _detail::maySized(TI{f, begin(r)}, r);
 	}
 } // view
 
