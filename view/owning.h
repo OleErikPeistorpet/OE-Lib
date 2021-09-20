@@ -23,7 +23,7 @@ class owning
 public:
 	static_assert( std::is_move_assignable_v<Range> );
 
-	using difference_type = iter_difference_t< iterator_t<Range> >;
+	using difference_type = range_difference_t<Range>;
 
 	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
 

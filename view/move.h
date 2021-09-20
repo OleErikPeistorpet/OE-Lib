@@ -20,7 +20,7 @@ class _moveView
 	View _base;
 
 public:
-	using difference_type = iter_difference_t< iterator_t<View> >;
+	using difference_type = range_difference_t<View>;
 
 	constexpr explicit _moveView(View && v)   : _base{std::move(v)} {}
 

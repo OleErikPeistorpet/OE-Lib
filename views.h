@@ -12,6 +12,8 @@
 */
 
 #include "view/counted.h"
+#include "view/first.h"
+#include "view/last.h"
 #include "view/generate.h"
 #include "view/move.h"
 #include "view/owning.h"
