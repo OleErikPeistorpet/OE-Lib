@@ -25,11 +25,10 @@ class counted_view
 public:
 	using value_type      = iter_value_t<Iterator>;
 	using difference_type = iter_difference_t<Iterator>;
-	using size_type       = std::make_unsigned_t<difference_type>;
 
 	counted_view() = default;
 	constexpr counted_view(Iterator f, difference_type n)  : _begin(f), _size(n)  { OEL_ASSERT(n >= 0); }
-	//! Construct from range (lvalue) that knows its size, with matching iterator type
+	//! Construct from lvalue sized_range (C++20 concept) with matching iterator type
 	template< typename SizedRange,
 		enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0 // avoid being selected for copy
 	>
@@ -39,7 +38,7 @@ public:
 
 	constexpr auto      end() const     { return _detail::SentinelAt<Iterator>::call(_begin, _size); }
 
-	constexpr size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
+	constexpr auto      size() const noexcept   OEL_ALWAYS_INLINE { return as_unsigned(_size); }
 
 	constexpr bool      empty() const noexcept  OEL_ALWAYS_INLINE { return 0 == _size; }
 
@@ -66,14 +65,12 @@ class counted_view<Iterator, true> : public counted_view<Iterator, false>
 public:
 	using typename _base::value_type;
 	using typename _base::difference_type;
-	using typename _base::size_type;
-	using reference = typename std::iterator_traits<Iterator>::reference;
 
 	using _base::_base;
 
-	constexpr reference back() const        { return this->_begin[this->_size - 1]; }
+	constexpr decltype(auto) back() const        { return this->_begin[this->_size - 1]; }
 
-	constexpr reference operator[](difference_type index) const   OEL_ALWAYS_INLINE { return this->_begin[index]; }
+	constexpr decltype(auto) operator[](difference_type index) const   OEL_ALWAYS_INLINE { return this->_begin[index]; }
 };
 
 namespace view

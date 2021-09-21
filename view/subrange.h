@@ -23,14 +23,29 @@ class basic_view
 	#endif
 {
 public:
+	using value_type      = iter_value_t<Iterator>;
+	using difference_type = iter_difference_t<Iterator>;
+
 	basic_view() = default;
 	constexpr basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
 
 	constexpr Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
 	constexpr Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
 
+	constexpr bool     empty() const   { return _begin == _end; }
+
+	//! Is present only if an Iterator can be subtracted from a Sentinel
+	template< typename I = Iterator,
+	          enable_if< maybe_sized_sentinel_for<Sentinel, I>::value > = 0
+	>
+	constexpr auto size() const
+	->	decltype( as_unsigned(end() - std::declval<I>()) )  { return _end - _begin); }
+
+	//! Requires that Sentinel is convertible to Iterator and Iterator is bidirectional (else compile error)
+	constexpr decltype(auto) back() const   { return *std::prev(static_cast<Iterator>(_end)); }
+
 	//! Decrement end. Requires that Sentinel is bidirectional (else compile error)
-	constexpr void     drop_back()
+	constexpr void           drop_back()
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 			OEL_ASSERT(_begin != _end);
@@ -42,14 +57,6 @@ protected:
 	Iterator _begin;
 	Sentinel _end;
 };
-
-//! Participates in overload resolution only if v.begin() can be subtracted from v.end()
-template< typename Iterator, typename Sentinel,
-          enable_if< maybe_sized_sentinel_for<Sentinel, Iterator>::value > = 0
->
-constexpr auto ssize(const basic_view<Iterator, Sentinel> & v)
-->	decltype( v.end() - v.begin() )
-	 { return v.end() - v.begin(); }
 
 //! View creation functions. Trying to mimic subset of C++20 ranges
 namespace view
