@@ -103,6 +103,10 @@ struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::d
 	#define OEL_HAS_DEDUCTION_GUIDES  1
 #endif
 
+#if defined __cpp_nontype_template_parameter_auto or (_MSC_VER >= 1914 and _HAS_CXX17)
+	#define OEL_HAS_TEMPLATE_AUTO  1
+#endif
+
 
 #ifdef __GNUC__
 	#define OEL_ALWAYS_INLINE __attribute__((always_inline))

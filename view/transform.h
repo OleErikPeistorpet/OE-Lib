@@ -8,6 +8,9 @@
 
 #include "detail/all.h"
 #include "transform_iterator.h"
+#ifdef OEL_HAS_TEMPLATE_AUTO
+#include "../auxi/monostate_function.h"
+#endif
 
 /** @file
 */
@@ -17,8 +20,7 @@ namespace oel
 namespace view
 {
 
-/**
-* @brief Create a view with transform_iterator from a range
+/** @brief Create a view with transform_iterator from a range
 @code
 std::bitset<8> arr[] { 3, 5, 7, 11 };
 dynarray<std::string> result;
@@ -33,6 +35,21 @@ constexpr auto transform(Range & r, UnaryFunc f)
 		using It = decltype(begin(r));
 		return _detail::all<It>(transform_iterator<UnaryFunc, It>{f, begin(r)}, r);
 	}
+
+#ifdef OEL_HAS_TEMPLATE_AUTO
+	/** @brief Overload for function pointers, including member functions
+	@code
+	struct Foo {
+		int x;
+
+		double bar() const { return 1.5 * x; }
+	};
+	Foo arr[]{ {1}, {2} };
+	dynarray<double> result( view::transform< &Foo::bar >(arr) );
+	@endcode */
+	template< auto Callable, typename Range >
+	constexpr auto transform(Range & r)   { return view::transform(r, monostate_function<Callable>{}); }
+#endif
 } // view
 
 }
