@@ -52,6 +52,21 @@ namespace
 	static_assert(!oel::allocator_can_realloc< oel::allocator<MoveOnly> >);
 }
 
+void testCompileDynarrayMembers()
+{
+	dynarray<int> const d{0};
+	dynarray<int>::allocate_size_overhead();
+	d.get_allocator();
+	d.cbegin();
+	d.cend();
+	d.rbegin();
+	d.rend();
+	d.data();
+	d.front();
+	d.back();
+	d.at(0);
+}
+
 TEST(dynarrayOtherTest, zeroBitRepresentation)
 {
 	{

@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -35,9 +35,9 @@ class dynarray_iterator
 
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	// Test for iterator pair pointing to same container
-	#define OEL_ITER_CHECK_COMPATIBLE(other)  OEL_ASSERT(_allocationId == other._allocationId)
+	#define OEL_ITER_CHECK_COMPATIBLE(a, b)  OEL_ASSERT((a)._allocationId == (b)._allocationId)
 #else
-	#define OEL_ITER_CHECK_COMPATIBLE(other)
+	#define OEL_ITER_CHECK_COMPATIBLE(a, b)
 #endif
 
 public:
@@ -71,26 +71,26 @@ public:
 	}
 
 	dynarray_iterator & operator++() &  OEL_ALWAYS_INLINE
-	{	// preincrement
+	{
 		++_pElem;
 		return *this;
 	}
 
 	dynarray_iterator operator++(int) &
-	{	// postincrement
+	{	// post-increment
 		auto tmp = *this;
 		++_pElem;
 		return tmp;
 	}
 
 	dynarray_iterator & operator--() &  OEL_ALWAYS_INLINE
-	{	// predecrement
+	{
 		--_pElem;
 		return *this;
 	}
 
 	dynarray_iterator operator--(int) &
-	{	// postdecrement
+	{	// post-decrement
 		auto tmp = *this;
 		--_pElem;
 		return tmp;
@@ -108,66 +108,67 @@ public:
 		return *this;
 	}
 
-	friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)
+	[[nodiscard]] friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)
 	{
-		return it += offset;
+		it._pElem += offset;
+		return it;
 	}
 
-	friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
+	[[nodiscard]] friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
 	{
-		return it += offset;
+		it._pElem += offset;
+		return it;
 	}
 
-	friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
+	[[nodiscard]] friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
 	{
-		return it -= offset;
+		it._pElem -= offset;
+		return it;
 	}
 
-	difference_type operator -(const const_iterator & right) const
-	{	// difference of iterators
-		OEL_ITER_CHECK_COMPATIBLE(right);
-		return _pElem - right._pElem;
+	friend difference_type operator -(const dynarray_iterator & left, const dynarray_iterator & right)
+	{
+		OEL_ITER_CHECK_COMPATIBLE(left, right);
+		return left._pElem - right._pElem;
 	}
 
 	reference operator[](difference_type offset) const
 	{
-		auto tmp = *this;
-		tmp += offset; // not operator + to save a call in non-optimized builds
-		return *tmp;
+		return *(*this + offset);
 	}
 
 	template< typename Ptr1 >
 	bool operator==(const dynarray_iterator<Ptr1> & right) const
 	{
-		OEL_ITER_CHECK_COMPATIBLE(right);
+		OEL_ITER_CHECK_COMPATIBLE(*this, right);
 		return _pElem == right._pElem;
 	}
 
 	template< typename Ptr1 >
 	bool operator!=(const dynarray_iterator<Ptr1> & right) const
 	{
-		OEL_ITER_CHECK_COMPATIBLE(right);
+		OEL_ITER_CHECK_COMPATIBLE(*this, right);
 		return _pElem != right._pElem;
 	}
 
 	template< typename Ptr1 >
 	bool operator <(const dynarray_iterator<Ptr1> & right) const
 	{
-		OEL_ITER_CHECK_COMPATIBLE(right);
+		OEL_ITER_CHECK_COMPATIBLE(*this, right);
 		return _pElem < right._pElem;
 	}
 
 	template< typename Ptr1 >
 	bool operator >(const dynarray_iterator<Ptr1> & right) const
 	{
-		OEL_ITER_CHECK_COMPATIBLE(right);
+		OEL_ITER_CHECK_COMPATIBLE(*this, right);
 		return _pElem > right._pElem;
 	}
 
 	template< typename Ptr1 >
 	bool operator<=(const dynarray_iterator<Ptr1> & right) const
 	{
-		return !(*this > right);
+		return !(right < *this);
 	}
 
 	template< typename Ptr1 >
@@ -212,16 +213,22 @@ struct std::pointer_traits< oel::dynarray_iterator<Ptr> >
 
 namespace oel::_detail
 {
-	template< typename Ptr >
-	dynarray_iterator<Ptr> MakeDynarrayIter(Ptr const pos, Ptr const begin, const void * parent) noexcept
+	template< typename Ptr, typename P2 >
+	auto MakeDynarrIter(const DynarrBase<P2> & parent, Ptr const pos) noexcept
 	{
-		if (begin)
+	#if OEL_MEM_BOUND_DEBUG_LVL
+		if (parent.data)
 		{
-			auto const h = OEL_DEBUG_HEADER_OF_C(begin);
-			return {pos, h, h->id};
+			auto const h = _detail::DebugHeaderOf(parent.data);
+			return dynarray_iterator<Ptr>{pos, h, h->id};
 		}
 		else
-		{	return {pos, &_detail::headerNoAllocation, reinterpret_cast<std::uintptr_t>(parent)};
+		{	auto id = reinterpret_cast<std::uintptr_t>(&parent);
+			return dynarray_iterator<Ptr>{pos, &_detail::headerNoAllocation, id};
 		}
+	#else
+		(void) parent;
+		return pos;
+	#endif
 	}
 }

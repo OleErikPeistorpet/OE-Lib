@@ -21,14 +21,16 @@ namespace oel::_detail
 
 	inline constexpr DebugAllocationHeader headerNoAllocation{};
 
-	#define OEL_DEBUG_HEADER_OF(ptr)   (      (DebugAllocationHeader *)static_cast<void *>(ptr) - 1)
-	#define OEL_DEBUG_HEADER_OF_C(ptr) ((const DebugAllocationHeader *)static_cast<const void *>(ptr) - 1)
+	OEL_ALWAYS_INLINE inline DebugAllocationHeader * DebugHeaderOf(void * p)
+	{
+		return static_cast<DebugAllocationHeader *>(p) - 1;
+	}
 
 	template< typename T >
 	inline bool HasValidIndex(const T * arrayElem, const DebugAllocationHeader & h)
 	{
-		size_t index = arrayElem - reinterpret_cast<const T *>(&h + 1);
-		return index < h.nObjects;
+		auto index = arrayElem - reinterpret_cast<const T *>(&h + 1);
+		return static_cast<size_t>(index) < h.nObjects;
 	}
 
 	template< typename Alloc, typename Ptr >
@@ -45,7 +47,8 @@ namespace oel::_detail
 		{
 			p += sizeForHeader;
 
-			auto const h = OEL_DEBUG_HEADER_OF(p);
+			auto const h = _detail::DebugHeaderOf(p);
+			// Take address, set highest and lowest bits for a hopefully unique bit pattern to compare later
 			constexpr auto maxMinBits = ~(~std::uintptr_t{} >> 1) | 1u;
 			new(h) DebugAllocationHeader{reinterpret_cast<std::uintptr_t>(&a) | maxMinBits, 0};
 
@@ -68,7 +71,7 @@ namespace oel::_detail
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			if (p)
 			{	// volatile to make sure the write isn't optimized away
-				static_cast<volatile std::uintptr_t &>(OEL_DEBUG_HEADER_OF(p)->id) = 0;
+				static_cast<volatile std::uintptr_t &>(_detail::DebugHeaderOf(p)->id) = 0;
 				p -= sizeForHeader;
 			}
 			n += sizeForHeader;
@@ -82,7 +85,7 @@ namespace oel::_detail
 		static void dealloc(Alloc & a, Ptr p, size_t n) noexcept(noexcept( a.deallocate(p, n) ))
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
-			static_cast<volatile std::uintptr_t &>(OEL_DEBUG_HEADER_OF(p)->id) = 0;
+			static_cast<volatile std::uintptr_t &>(_detail::DebugHeaderOf(p)->id) = 0;
 			p -= sizeForHeader;
 			n += sizeForHeader;
 		#endif
@@ -102,7 +105,7 @@ namespace oel::_detail
 		{
 			if (container.data)
 			{
-				auto h = OEL_DEBUG_HEADER_OF(container.data);
+				auto h = _detail::DebugHeaderOf(container.data);
 				h->nObjects = container.end - container.data;
 			}
 		}

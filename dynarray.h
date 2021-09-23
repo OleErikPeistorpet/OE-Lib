@@ -220,11 +220,11 @@ public:
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require assignable T
 	void      erase_to_end(iterator first) noexcept;
 
-	void      clear() noexcept         { erase_to_end(begin()); }
+	void      clear() noexcept                 { erase_to_end(begin()); }
 
-	bool      empty() const noexcept   { return _m.data == _m.end; }
+	[[nodiscard]] bool empty() const noexcept  { return _m.data == _m.end; }
 
-	size_type size() const noexcept    { return _m.end - _m.data; }
+	size_type size() const noexcept            { return _m.end - _m.data; }
 
 	void      reserve(size_type minCap)
 		{
@@ -243,28 +243,28 @@ public:
 
 	allocator_type get_allocator() const noexcept   { return _m; }
 
-	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIter(_m.data); }
-	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const T *>(_m.data); }
+	iterator       begin() noexcept          { return _detail::MakeDynarrIter           (_m, _m.data); }
+	const_iterator begin() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.data); }
 	const_iterator cbegin() const noexcept   OEL_ALWAYS_INLINE { return begin(); }
 
-	iterator       end() noexcept          OEL_ALWAYS_INLINE { return _makeIter(_m.end); }
-	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeIter<const T *>(_m.end); }
+	iterator       end() noexcept          { return _detail::MakeDynarrIter           (_m, _m.end); }
+	const_iterator end() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.end); }
 	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
 
-	reverse_iterator       rbegin() noexcept        OEL_ALWAYS_INLINE { return reverse_iterator{end()}; }
+	reverse_iterator       rbegin() noexcept        OEL_ALWAYS_INLINE { return       reverse_iterator{end()}; }
 	const_reverse_iterator rbegin() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
 
-	reverse_iterator       rend() noexcept        OEL_ALWAYS_INLINE { return reverse_iterator{begin()}; }
+	reverse_iterator       rend() noexcept        OEL_ALWAYS_INLINE { return       reverse_iterator{begin()}; }
 	const_reverse_iterator rend() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
 
 	T *             data() noexcept         OEL_ALWAYS_INLINE { return _m.data; }
 	const T *       data() const noexcept   OEL_ALWAYS_INLINE { return _m.data; }
 
-	reference       front() noexcept        { return *begin(); }
-	const_reference front() const noexcept  { return *begin(); }
+	reference       front() noexcept        { return (*this)[0]; }
+	const_reference front() const noexcept  { return (*this)[0]; }
 
-	reference       back() noexcept         { return *_makeIter(_m.end - 1); }
-	const_reference back() const noexcept   { return *_makeIter<const T *>(_m.end - 1); }
+	reference       back() noexcept         { return *_detail::MakeDynarrIter           (_m, _m.end - 1); }
+	const_reference back() const noexcept   { return *_detail::MakeDynarrIter<const T *>(_m, _m.end - 1); }
 
 	reference       at(size_type index);
 	const_reference at(size_type index) const;
@@ -364,17 +364,6 @@ private:
 	{
 		_m.end = _m.data = _allocateChecked(capToCheck);
 		_m.reservEnd = _m.data + capToCheck;
-	}
-
-
-	template< typename Ptr >
-	OEL_ALWAYS_INLINE auto _makeIter(Ptr pos) const noexcept
-	{
-	#if OEL_MEM_BOUND_DEBUG_LVL
-		return _detail::MakeDynarrayIter<Ptr>(pos, _m.data, this);
-	#else
-		return pos;
-	#endif
 	}
 
 
@@ -541,7 +530,7 @@ private:
 				if (newEnd < _m.end)
 				{	// downsizing, assign new and destroy rest
 					src = copy(std::move(src), _m.data, newEnd);
-					erase_to_end(_makeIter(newEnd));
+					erase_to_end(_detail::MakeDynarrIter(_m, newEnd));
 				}
 				else // assign to old elements as far as we can
 				{	src = copy(std::move(src), _m.data, _m.end);
@@ -693,7 +682,7 @@ typename dynarray<T, Alloc>::iterator
 	{	pPos = _insertRealloc< _emplaceHelper, _detail::ForwardT<Args>... >
 				(pPos, static_cast<Args &&>(args)...);
 	}
-	return _makeIter(pPos);
+	return _detail::MakeDynarrIter(_m, pPos);
 }
 
 template< typename T, typename Alloc >
@@ -749,7 +738,7 @@ typename dynarray<T, Alloc>::iterator
 	else
 	{	pPos = _insertRealloc<_insertRHelper>(pPos, std::move(first), count);
 	}
-	return _makeIter(pPos);
+	return _detail::MakeDynarrIter(_m, pPos);
 }
 
 template< typename T, typename Alloc >
