@@ -47,6 +47,13 @@ namespace oel::_detail
 		return static_cast<DebugAllocationHeader *>(data) - 1;
 	}
 
+	template< typename T >
+	void AssertDerefValid(const T * arrayElem, const DebugAllocationHeader & h, std::uintptr_t const origId)
+	{
+		auto index = arrayElem - reinterpret_cast<const T *>(&h + 1);
+		OEL_ASSERT(origId == h.id and static_cast<size_t>(index) < h.nObjects);
+	}
+
 	template< typename Alloc, typename Ptr >
 	struct DebugAllocateWrapper
 	{

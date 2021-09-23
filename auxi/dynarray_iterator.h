@@ -51,13 +51,13 @@ struct dynarray_iterator
 
 	reference operator*() const
 		{
-			_validateDeref();
+			_detail::AssertDerefValid(_pElem, *_header, _allocationId);
 			return *_pElem;
 		}
 
 	pointer operator->() const
 		{
-			_validateDeref();
+			_detail::AssertDerefValid(_pElem, *_header, _allocationId);
 			return _pElem;
 		}
 
@@ -154,12 +154,6 @@ struct dynarray_iterator
 	//! Pointer to struct storing allocation ID and container size
 	const _detail::DebugAllocationHeader * _header;
 	std::uintptr_t _allocationId;  //!< Used to check if this iterator has been invalidated by deallocation
-
-	void _validateDeref() const
-	{
-		auto index =_pElem - reinterpret_cast<const value_type *>(_header + 1);
-		OEL_ASSERT(_header->id == _allocationId and static_cast<size_t>(index) < _header->nObjects);
-	}
 };
 
 } // debug
