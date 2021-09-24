@@ -480,12 +480,6 @@ private:
 		_detail::UninitCopy(src, _m.data, _m.end, _m);
 	}
 
-#ifdef __GNUC__
-	#pragma GCC diagnostic push
-	#if __GNUC__ >= 8
-	#pragma GCC diagnostic ignored "-Wclass-memaccess"
-	#endif
-#endif
 
 	void _growTo(size_type newCap)
 	{
@@ -712,12 +706,8 @@ private:
 		T *const newPos = newBuf.data + nBefore;
 		T *const afterAdded = helper.construct(_m, newPos, static_cast<Args &&>(args)...);
 		// Exception free from here
-		if (_m.data)
-		{
-			std::memcpy(newBuf.data, data(), sizeof(T) * nBefore); // relocate prefix
-			std::memcpy(afterAdded, pos, sizeof(T) * nAfterPos);  // relocate suffix
-		}
-		_m.end = afterAdded + nAfterPos;
+		_detail::Relocate(_m.data, nBefore, newBuf.data);  // prefix
+		_m.end = _detail::Relocate(pos, nAfterPos, afterAdded); // suffix
 		_swapBuf(newBuf);
 
 		return newPos;
@@ -777,10 +767,12 @@ typename dynarray<T, Alloc>::iterator
 		aligned_union_t<T> tmp;
 		_construct{}(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
-		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
+		std::memmove(
+			static_cast<void *>(pPos + 1),
+			static_cast<const void *>(pPos),
+			sizeof(T) * nAfterPos );
 		++_m.end;
-
-		std::memcpy(pPos, &tmp, sizeof(T)); // relocate the new element to pos
+		std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
 	}
 	else
 	{	pPos = _insertRealloc(pPos, nAfterPos, _emplaceHelper{}, static_cast<Args &&>(args)...);
@@ -806,10 +798,13 @@ typename dynarray<T, Alloc>::iterator
 	{
 		T *const dLast = pPos + count;
 		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
-		std::memmove(dLast, pPos, sizeof(T) * nAfterPos);
+		std::memmove(
+			static_cast<void *>(dLast),
+			static_cast<const void *>(pPos),
+			sizeof(T) * nAfterPos );
 		_m.end += count;
 		// Construct new
-		OEL_CONST_COND if (can_memmove_with<T *, decltype(first)>::value)
+		if (can_memmove_with<T *, decltype(first)>::value)
 		{
 			_detail::UninitCopy(first, pPos, dLast, _m);
 		}
@@ -825,7 +820,10 @@ typename dynarray<T, Alloc>::iterator
 			}
 			OEL_CATCH_ALL
 			{	// relocate back to fill hole
-				std::memmove(dest, dLast, sizeof(T) * nAfterPos);
+				std::memmove(
+					static_cast<void *>(dest),
+					static_cast<const void *>(dLast),
+					sizeof(T) * nAfterPos );
 				_m.end -= (dLast - dest);
 				OEL_WHEN_EXCEPTIONS_ON(throw);
 			}
@@ -996,8 +994,11 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) &
 	if (is_trivially_relocatable<T>::value)
 	{
 		ptr-> ~T();
-		const T * next = ptr + 1;
-		std::memmove(ptr, next, sizeof(T) * (_m.end - next)); // relocate [pos + 1, end) to [pos, end - 1)
+		T *const next = ptr + 1;
+		std::memmove( // relocate [pos + 1, end) to [pos, end - 1)
+			static_cast<void *>(ptr),
+			static_cast<const void *>(next),
+			sizeof(T) * (_m.end - next) );
 		--_m.end;
 	}
 	else
@@ -1019,8 +1020,10 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 	{
 		_detail::Destroy(dest, pLast);
 		size_type const nAfterLast = _m.end - pLast;
-		// Relocate [last, end) to [first, first + nAfterLast)
-		std::memmove(dest, pLast, sizeof(T) * nAfterLast);
+		std::memmove( // relocate [last, end) to [first, first + nAfterLast)
+			static_cast<void *>(dest),
+			static_cast<const void *>(pLast),
+			sizeof(T) * nAfterLast );
 		_m.end = dest + nAfterLast;
 	}
 	else if (dest < pLast) // must avoid self-move-assigning the elements
@@ -1032,9 +1035,6 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 	return first;
 }
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 template< typename T, typename Alloc >
 OEL_ALWAYS_INLINE inline T & dynarray<T, Alloc>::at(size_type i)

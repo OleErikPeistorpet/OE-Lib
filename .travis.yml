@@ -24,7 +24,9 @@ jobs:
       compiler: clang
       env:
         - CXXFLAGS="-D OEL_MEM_BOUND_DEBUG_LVL=2" MY_BUILD_TYPE=Debug MY_CXX_STD=20
-    - arch: arm64
+    - arch: arm64-graviton2
+      virt: lxd
+      group: edge
       dist: focal
       env:
         - CC=gcc-10 CXX=g++-10  MY_BUILD_TYPE=Release MY_CXX_STD=20
@@ -39,6 +41,6 @@ jobs:
       env:
         - MY_BUILD_TYPE=Release MY_CXX_STD=14
     - os: osx
-      osx_image: xcode12.3
+      osx_image: xcode13.1
       env:
         - CXXFLAGS="-fsanitize=address -fsanitize=undefined" MY_BUILD_TYPE="" MY_CXX_STD=20

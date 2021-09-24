@@ -77,12 +77,15 @@ namespace _detail
 	}
 
 
+#if !defined _MSC_VER or _MSC_VER >= 2000
+	#define OEL_CHECK_NULL_MEMCPY  1
+#endif
 	template< typename ContiguousIter >
 	void MemcpyCheck(ContiguousIter const src, size_t const nElems, void *const dest)
 	{	// memcpy(nullptr, nullptr, 0) is UB. Unfortunately, checking can have significant performance hit,
 		// probably due to functions no longer being inlined. GCC known to need the check in some cases
-	#if !defined _MSC_VER or _MSC_VER >= 2000 or OEL_MEM_BOUND_DEBUG_LVL
-		if (nElems > 0)
+	#if OEL_CHECK_NULL_MEMCPY or OEL_MEM_BOUND_DEBUG_LVL
+		if (nElems != 0)
 	#endif
 		{	// Dereference to detect out of range errors if the iterator has internal check
 		#if OEL_MEM_BOUND_DEBUG_LVL
@@ -99,8 +102,15 @@ namespace _detail
 	>
 	inline T * Relocate(T *__restrict src, size_t const n, T *__restrict dest)
 	{
-		T * dLast = dest + n;
-		_detail::MemcpyCheck(src, n, dest);
+		T *const dLast = dest + n;
+	#if OEL_CHECK_NULL_MEMCPY
+		if (src)
+	#endif
+		{	std::memcpy(
+				static_cast<void *>(dest),
+				static_cast<const void *>(src),
+				sizeof(T) * n );
+		}
 		return dLast;
 	}
 
@@ -118,6 +128,7 @@ namespace _detail
 		}
 		return dest;
 	}
+	#undef OEL_CHECK_NULL_MEMCPY
 
 
 	template< typename Alloc, typename ContiguousIter, typename T,

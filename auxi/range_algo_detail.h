@@ -51,7 +51,7 @@ namespace _detail
 	ContiguousIter CopyUnsf(ContiguousIter const src, ptrdiff_t const n, ContiguousIter2 const dest)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
-		if (0 != n)
+		if (n != 0)
 		{	// Dereference to detect out of range errors if the iterator has internal check
 			(void) *dest;
 			(void) *(dest + (n - 1));

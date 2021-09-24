@@ -540,9 +540,10 @@ TEST_F(dynarrayConstructTest, selfCopyAssign)
 		d = d;
 		EXPECT_TRUE(d.empty());
 		EXPECT_TRUE(d.capacity() == 0);
-
+	}
+	{
 		auto il = {1, 2, 3, 4};
-		d = il;
+		dynarray<int> d(il);
 		d = d;
 		EXPECT_EQ(d.size(), il.size());
 		EXPECT_TRUE(std::equal( d.begin(), d.end(), begin(il) ));
