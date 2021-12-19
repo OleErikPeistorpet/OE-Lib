@@ -117,6 +117,11 @@ namespace _detail
 	}
 
 	template< size_t Align >
+	#ifdef _MSC_VER
+	__declspec(restrict)
+	#elif __GNUC__
+	__attribute__(( assume_aligned(Align), malloc, returns_nonnull ))
+	#endif
 	void * OpNewAlign(size_t const size)
 	{
 		if (size <= (size_t)-1 - Align) // then size + Align doesn't overflow
