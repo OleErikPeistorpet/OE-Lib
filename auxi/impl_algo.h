@@ -44,14 +44,14 @@ namespace _detail
 	{	// Must always call operator() with T * (other type will compile but bypass Alloc)
 
 		template< typename Alloc, typename... Args >
-		auto operator()(Alloc & a, T *__restrict p, Args &&... args) const
+		static auto Call(Alloc & a, T *__restrict p, Args &&... args)
 		->	decltype(a.construct(p, static_cast<Args &&>(args)...))
 			       { a.construct(p, static_cast<Args &&>(args)...); }
 
 		template< typename Alloc, typename... Args,
 		          enable_if< std::is_constructible<T, Args...>::value > = 0
 		>
-		void operator()(Alloc &, void *__restrict p, Args &&... args) const
+		static void Call(Alloc &, void *__restrict p, Args &&... args)
 		{	// T constructible from Args
 			::new(p) T(static_cast<Args &&>(args)...);
 		}
@@ -59,7 +59,7 @@ namespace _detail
 		template< typename Alloc, typename... Args,
 		          enable_if< ! std::is_constructible<T, Args...>::value > = 0
 		>
-		void operator()(Alloc &, void *__restrict p, Args &&... args) const
+		static void Call(Alloc &, void *__restrict p, Args &&... args)
 		{
 			::new(p) T{static_cast<Args &&>(args)...}; // list-initialization
 		}
@@ -149,7 +149,7 @@ namespace _detail
 		{
 			while (dest != dLast)
 			{
-				Construct<T>{}(allo, dest, *src);
+				Construct<T>::Call(allo, dest, *src);
 				++src; ++dest;
 			}
 		}
@@ -172,13 +172,13 @@ namespace _detail
 		template< typename T, typename... Args,
 		          enable_if< !IsByte<T>::value > = 0
 		>
-		void operator()(T *__restrict first, T *const last, Alloc & allo, const Args &... args) const
+		static void Call(T *__restrict first, T *const last, Alloc & allo, const Args &... args)
 		{
 			T *const init = first;
 			OEL_TRY_
 			{
 				for (; first != last; ++first)
-					Construct<T>{}(allo, first, args...);
+					Construct<T>::Call(allo, first, args...);
 			}
 			OEL_CATCH_ALL
 			{
@@ -190,7 +190,7 @@ namespace _detail
 		template< typename T,
 		          enable_if< IsByte<T>::value > = 0
 		>
-		void operator()(T * first, T * last, Alloc &, T val) const
+		static void Call(T *const first, T * last, Alloc &, T val)
 		{
 			std::memset(first, static_cast<int>(val), last - first);
 		}
@@ -198,18 +198,21 @@ namespace _detail
 		template< typename T,
 		          enable_if< std::is_trivial<T>::value > = 0
 		>
-		void operator()(T * first, T * last, Alloc &) const
+		static void Call(T *const first, T * last, Alloc &)
 		{
 			std::memset(first, 0, sizeof(T) * (last - first));
 		}
 	};
 
-	template< typename Alloc, typename T >
-	inline void UninitDefaultConstruct(T *const first, T *const last, Alloc & a)
+	struct UninitDefaultConstruct
 	{
-		if (!std::is_trivially_default_constructible<T>::value)
-			UninitFill<Alloc>{}(first, last, a);
-	}
+		template< typename Alloc, typename T >
+		static void Call(T *__restrict first, T *const last, Alloc & a)
+		{
+			if (!std::is_trivially_default_constructible<T>::value)
+				UninitFill<Alloc>::Call(first, last, a);
+		}
+	};
 
 
 

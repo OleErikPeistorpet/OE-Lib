@@ -201,8 +201,8 @@ public:
 	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void resize_for_overwrite(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstruct<decltype(_m), T>); }
-	void resize(size_type n)                 { _resizeImpl(n, _uninitFill{}); }
+	void resize_for_overwrite(size_type n)   { _resizeImpl<_detail::UninitDefaultConstruct>(n); }
+	void resize(size_type n)                 { _resizeImpl<_uninitFill>(n); }
 
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if source.size() exists
@@ -490,9 +490,9 @@ private:
 		_swapBuf(newBuf);
 	}
 
-	template< typename UninitFillFunc >
-	void _resizeImpl(size_type const newSize, UninitFillFunc initAdded)
-	{	// note: initAdded cannot hold a reference to element of this
+	template< typename UninitFiller >
+	void _resizeImpl(size_type const newSize)
+	{
 		_debugSizeUpdater guard{_m};
 
 		if (capacity() < newSize)
@@ -500,7 +500,7 @@ private:
 
 		T *const newEnd = _m.data + newSize;
 		if (_m.end < newEnd)
-			initAdded(_m.end, newEnd, _m);
+			UninitFiller::Call(_m.end, newEnd, _m);
 		else
 			_detail::Destroy(newEnd, _m.end);
 
@@ -590,7 +590,7 @@ private:
 		}
 		while (_m.end < newEnd)
 		{	// each iteration updates _m.end for exception safety
-			_construct{}(_m, _m.end, *src);
+			_construct::Call(_m, _m.end, *src);
 			++src; ++_m.end;
 		}
 		return src;
@@ -686,7 +686,7 @@ private:
 		_scopedPtr newBuf{_m, _allocateAddOne()};
 
 		T *const pos = newBuf.data + size();
-		_construct{}(_m, pos, static_cast<Args &&>(args)...);
+		_construct::Call(_m, pos, static_cast<Args &&>(args)...);
 		_detail::Relocate(_m.data, size(), newBuf.data);
 
 		_m.end = pos;
@@ -720,7 +720,7 @@ private:
 		template< typename... Args >
 		static T * construct(decltype(_m) & alloc, T *const newPos, Args &&... args)
 		{
-			_construct{}(alloc, newPos, static_cast<Args &&>(args)...);
+			_construct::Call(alloc, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
 		}
 	};
@@ -765,7 +765,7 @@ typename dynarray<T, Alloc>::iterator
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		aligned_union_t<T> tmp;
-		_construct{}(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+		_construct::Call(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(
 			static_cast<void *>(pPos + 1),
@@ -814,7 +814,7 @@ typename dynarray<T, Alloc>::iterator
 			{
 				while (dest != dLast)
 				{
-					_construct{}(_m, dest, *first);
+					_construct::Call(_m, dest, *first);
 					++first; ++dest;
 				}
 			}
@@ -844,7 +844,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	_debugSizeUpdater guard{_m};
 
 	if (_m.end < _m.reservEnd)
-		_construct{}(_m, _m.end, static_cast<Args &&>(args)...);
+		_construct::Call(_m, _m.end, static_cast<Args &&>(args)...);
 	else
 		_emplaceBackRealloc(static_cast<Args &&>(args)...);
 
@@ -891,7 +891,7 @@ dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.end = _m.reservEnd;
-	_detail::UninitDefaultConstruct(_m.data, _m.end, _m);
+	_detail::UninitDefaultConstruct::Call(_m.data, _m.reservEnd, _m);
 }
 
 template< typename T, typename Alloc >
@@ -901,7 +901,7 @@ dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.end = _m.reservEnd;
-	_uninitFill{}(_m.data, _m.end, _m);
+	_uninitFill::Call(_m.data, _m.reservEnd, _m);
 }
 
 template< typename T, typename Alloc >
@@ -911,7 +911,7 @@ dynarray<T, Alloc>::dynarray(size_type n, const T & val, const Alloc & a)
 	_debugSizeUpdater guard{_m};
 
 	_m.end = _m.reservEnd;
-	_uninitFill{}(_m.data, _m.end, _m, val);
+	_uninitFill::Call(_m.data, _m.reservEnd, _m, val);
 }
 
 template< typename T, typename Alloc >
@@ -957,7 +957,7 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 	_appendImpl(
 		[&val](T * dest, size_type n_, decltype(_m) & alloc)
 		{
-			_uninitFill{}(dest, dest + n_, alloc, val);
+			_uninitFill::Call(dest, dest + n_, alloc, val);
 		},
 		n );
 }
