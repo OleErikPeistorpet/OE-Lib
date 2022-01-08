@@ -43,8 +43,6 @@ protected:
 		AllocCounter::clearAll();
 		MyCounter::clearCount();
 	}
-
-	// Objects declared here can be used by all tests.
 };
 
 template< typename T >
@@ -175,6 +173,28 @@ TEST_F(dynarrayTest, pushBackCase2)
 {
 	testPushBack2<MoveOnly>();
 	testPushBack2<TrivialRelocat>();
+}
+
+static int funcToRef() { return 0; }
+
+struct ConstructFromRef
+{
+	using UPtr = std::unique_ptr<double>;
+
+	template< typename T >
+	ConstructFromRef(UPtr &, T &&, int(&)())
+	{
+		static_assert(std::is_const<T>(), "?");
+	}
+};
+
+TEST_F(dynarrayTest, emplaceReferencePreserve)
+{
+	dynarray<ConstructFromRef> d;
+	ConstructFromRef::UPtr p0{};
+	ConstructFromRef::UPtr const p1{};
+	d.emplace_back(p0, std::move(p1), funcToRef);
+	d.emplace(d.begin(), p0, std::move(p1), funcToRef);
 }
 
 TEST_F(dynarrayTest, assign)

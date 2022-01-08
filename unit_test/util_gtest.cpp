@@ -16,16 +16,10 @@ namespace
 	static_assert(oel::is_trivially_relocatable< std::tuple<std::unique_ptr<double>> >(), "?");
 	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value, "?");
 
-	struct NonTrivialAssign
-	{
-		void operator =(const NonTrivialAssign &) { ; }
-	};
 	struct NonTrivialDestruct
 	{
 		~NonTrivialDestruct() { ; }
 	};
-	static_assert( !std::is_trivially_copyable<NonTrivialAssign>::value, "?" );
-	static_assert( !std::is_trivially_copyable<NonTrivialDestruct>::value, "?" );
 
 	static_assert( !oel::is_trivially_relocatable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
 
@@ -44,6 +38,44 @@ namespace
 	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >(), "?");
 	static_assert(!oel::can_memmove_with< int *, std::move_iterator<std::list<int>::iterator> >(), "?");
 	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<int *> >(), "?");
+
+	template< typename Expected, typename Arg >
+	void forwardTAssert(Arg && arg)
+	{
+		static_assert(std::is_same< Expected, oel::_detail::ForwardT<Arg> >(), "?");
+		(void) arg;
+	}
+}
+
+TEST(utilTest, ForwardT)
+{
+	double d;
+	forwardTAssert<double>(d);
+	forwardTAssert<double>(0.9);
+
+	int a1[1];
+	forwardTAssert<int(&)[1]>(a1);
+#if !defined _MSC_VER || _MSC_VER >= 1910
+	forwardTAssert<int(&&)[1]>(std::move(a1));
+#endif
+
+#ifdef _MSC_VER
+	using P = std::unique_ptr<int>;
+	forwardTAssert<P>(P{});
+
+	using A = std::array<double, 2>;
+	forwardTAssert<A &&>(A{});
+#else
+	using A = std::array<int *, 2>;
+	A const a{};
+	forwardTAssert<A>(a);
+	forwardTAssert<A>(A{});
+#endif
+
+#ifdef OEL_HAS_STD_PMR
+	using Alloc = oel::pmr::polymorphic_allocator<int>;
+	forwardTAssert<Alloc>(Alloc{});
+#endif
 }
 
 template<typename SizeT>
