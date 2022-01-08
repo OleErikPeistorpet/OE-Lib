@@ -16,16 +16,10 @@ namespace
 	static_assert(oel::is_trivially_relocatable< std::tuple<std::unique_ptr<double>> >(), "?");
 	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value, "?");
 
-	struct NonTrivialAssign
-	{
-		void operator =(const NonTrivialAssign &) { ; }
-	};
 	struct NonTrivialDestruct
 	{
 		~NonTrivialDestruct() { ; }
 	};
-	static_assert( !std::is_trivially_copyable<NonTrivialAssign>::value, "?" );
-	static_assert( !std::is_trivially_copyable<NonTrivialDestruct>::value, "?" );
 
 	static_assert( !oel::is_trivially_relocatable< std::tuple<int, NonTrivialDestruct, int> >(), "?" );
 
@@ -44,6 +38,71 @@ namespace
 	static_assert(!oel::can_memmove_with< int *, std::set<int>::iterator >(), "?");
 	static_assert(!oel::can_memmove_with< int *, std::move_iterator<std::list<int>::iterator> >(), "?");
 	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<int *> >(), "?");
+}
+
+TEST(utilTest, ForwardT)
+{
+	using oel::_detail::ForwardT;
+
+	static_assert(std::is_same< ForwardT<double const>, double >::value, "?");
+	static_assert(std::is_same< ForwardT<double &&>, double >::value, "?");
+	static_assert(std::is_same< ForwardT<const double &&>, double >::value, "?");
+	static_assert(std::is_same< ForwardT<const double &>, double >::value, "?");
+	static_assert(std::is_same< ForwardT<double &>, double & >::value, "?");
+
+	static_assert(std::is_same< ForwardT<int[1]>, int(&&)[1] >::value, "?");
+	static_assert(std::is_same< ForwardT<int(&&)[1]>, int(&&)[1] >::value, "?");
+	static_assert(std::is_same< ForwardT<const int(&)[1]>, const int(&)[1] >::value, "?");
+
+	using P = std::unique_ptr<int>;
+	static_assert(std::is_same< ForwardT<P const>, const P && >::value, "?");
+	static_assert(std::is_same< ForwardT<const P &&>, const P && >::value, "?");
+	static_assert(std::is_same< ForwardT<P &>, P & >::value, "?");
+	static_assert(std::is_same< ForwardT<const P &>, const P & >::value, "?");
+
+	// Small, non-trivial copy
+	static_assert(std::is_same< ForwardT<TrivialRelocat const>, const TrivialRelocat && >(), "?");
+	static_assert(std::is_same< ForwardT<const TrivialRelocat &&>, const TrivialRelocat && >(), "?");
+	static_assert(std::is_same< ForwardT<TrivialRelocat &>, TrivialRelocat & >(), "?");
+	static_assert(std::is_same< ForwardT<const TrivialRelocat &>, const TrivialRelocat & >(), "?");
+
+#ifdef _MSC_VER
+	static_assert(std::is_same< ForwardT<P>, P >::value, "?");
+	static_assert(std::is_same< ForwardT<P &&>, P >::value, "?");
+
+	static_assert(std::is_same< ForwardT<TrivialRelocat>, TrivialRelocat >::value, "?");
+	static_assert(std::is_same< ForwardT<TrivialRelocat &&>, TrivialRelocat >::value, "?");
+#else
+	static_assert(std::is_same< ForwardT<P>, P && >::value, "?");
+	static_assert(std::is_same< ForwardT<P &&>, P && >::value, "?");
+
+	static_assert(std::is_same< ForwardT<TrivialRelocat>, TrivialRelocat && >::value, "?");
+	static_assert(std::is_same< ForwardT<TrivialRelocat &&>, TrivialRelocat && >::value, "?");
+#endif
+
+#ifdef _MSC_VER
+	using A = std::array<double, 2>;
+	static_assert(std::is_same< ForwardT<A>, A && >::value, "?");
+	static_assert(std::is_same< ForwardT<A &&>, A && >::value, "?");
+	static_assert(std::is_same< ForwardT<A const>, const A && >::value, "?");
+	static_assert(std::is_same< ForwardT<const A &&>, const A && >::value, "?");
+	static_assert(std::is_same< ForwardT<A &>, A & >::value, "?");
+	static_assert(std::is_same< ForwardT<const A &>, const A & >::value, "?");
+#else
+	using A = std::array<int *, 2>;
+	static_assert(std::is_same< ForwardT<A const>, A >::value, "?");
+	static_assert(std::is_same< ForwardT<A &&>, A >::value, "?");
+	static_assert(std::is_same< ForwardT<const A &&>, A >::value, "?");
+	static_assert(std::is_same< ForwardT<const A &>, A >::value, "?");
+	static_assert(std::is_same< ForwardT<A &>, A & >::value, "?");
+#endif
+
+#ifdef OEL_HAS_STD_PMR
+	using Alloc = oel::pmr::polymorphic_allocator<int>;
+	static_assert(std::is_same< ForwardT<Alloc>, Alloc >::value, "?");
+	static_assert(std::is_same< ForwardT<Alloc &&>, Alloc >::value, "?");
+	static_assert(std::is_same< ForwardT<const Alloc &>, Alloc >::value, "?");
+#endif
 }
 
 template<typename SizeT>
