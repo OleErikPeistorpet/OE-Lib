@@ -88,12 +88,19 @@ struct maybe_sized_sentinel_for
 template< bool Condition >
 using enable_if = typename std::enable_if<Condition, int>::type;
 
-} // namespace oel
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
+
+
+namespace _detail
+{
+	template< typename B0, typename B1 >
+	constexpr bool conjunctionV = std::conditional_t<B0::value, B1, B0>::value;
+}
+
+} // namespace oel
 
 
 template< typename T >
