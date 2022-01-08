@@ -103,6 +103,33 @@ constexpr auto adl_begin(Range & r) -> decltype(begin(r)) { return begin(r); }
 
 namespace _detail
 {
+	template< typename T, typename SansCVRef >
+	struct ShouldPassByValue : bool_constant<
+		#if defined _MSC_VER && (_M_IX86 || _M_AMD64)
+			sizeof(SansCVRef) <= 2 * sizeof(int) and
+			(	std::is_trivially_copy_constructible<SansCVRef>::value or
+				(std::is_move_constructible<SansCVRef>::value and
+				 !std::is_lvalue_reference<T>::value and !std::is_const<T>::value) )
+		#else
+			sizeof(SansCVRef) <= 2 * sizeof(void *) and
+				std::is_trivially_copy_constructible<SansCVRef>::value and std::is_trivially_destructible<SansCVRef>::value
+		#endif
+		> {};
+
+	template< typename T,
+		typename SansCVRef = std::remove_cv_t< std::remove_reference_t<T> >
+	>
+	auto ForwardT(T &&)
+	->	std::conditional_t<
+			conjunctionV<
+				bool_constant< !std::is_function<SansCVRef>::value >,
+				ShouldPassByValue<T, SansCVRef>
+			>,
+			SansCVRef,
+			T &&
+		>;
+
+
 	template< typename RandomAccessIter >
 	constexpr auto SentinelAt(RandomAccessIter it, iter_difference_t<RandomAccessIter> n)
 	->	decltype( std::true_type{iter_is_random_access<RandomAccessIter>()},

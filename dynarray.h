@@ -681,7 +681,7 @@ private:
 	}
 
 	template< typename... Args >
-	void _emplaceBackRealloc(Args &&... args)
+	void _emplaceBackRealloc(Args... args)
 	{
 		_scopedPtr newBuf{_m, _allocateAddOne()};
 
@@ -695,17 +695,16 @@ private:
 
 
 	template< typename InsertHelper, typename... Args >
-	T * _insertRealloc(T *const pos, size_type const nAfterPos, InsertHelper const helper, Args &&... args)
+	T * _insertRealloc(T *const pos, Args... args)
 	{
-	#if defined _MSC_VER and _MSC_VER < 1927
-		(void) helper; // C4100	unreferenced formal parameter
-	#endif
-		_scopedPtr newBuf{_m, helper.allocate(*this)};
+		_scopedPtr newBuf{_m, InsertHelper::allocate(*this, args...)};
 
 		size_type const nBefore = pos - data();
 		T *const newPos = newBuf.data + nBefore;
-		T *const afterAdded = helper.construct(_m, newPos, static_cast<Args &&>(args)...);
+		T *const afterAdded =
+			InsertHelper::template construct<Args...>(_m, newPos, static_cast<Args &&>(args)...);
 		// Exception free from here
+		size_type const nAfterPos = _m.end - pos;
 		_detail::Relocate(_m.data, nBefore, newBuf.data);  // prefix
 		_m.end = _detail::Relocate(pos, nAfterPos, afterAdded); // suffix
 		_swapBuf(newBuf);
@@ -715,28 +714,30 @@ private:
 
 	struct _emplaceHelper
 	{
-		static _span allocate(dynarray & self) { return self._allocateAddOne(); }
+		template< typename... Unused >
+		static _span allocate(dynarray & self, const Unused &...)
+		{
+			return self._allocateAddOne();
+		}
 
 		template< typename... Args >
-		static T * construct(decltype(_m) & alloc, T *const newPos, Args &&... args)
+		static T * construct(decltype(_m) & alloc, T *const newPos, Args... args)
 		{
 			_construct::Call(alloc, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
 		}
 	};
 
-	template< typename InputIter >
 	struct _insertRHelper
 	{
-		InputIter first;
-		size_type count;
-
-		_span allocate(dynarray & self) const
+		template< typename InputIter >
+		static _span allocate(dynarray & self, InputIter, size_type count)
 		{
 			return self._allocateAdd(count, self.size());
 		}
 
-		T * construct(decltype(_m) & alloc, T *const newPos) const
+		template< typename InputIter, typename >
+		static T * construct(decltype(_m) & alloc, T *const newPos, InputIter first, size_type count)
 		{
 			T *const dLast = newPos + count;
 			_detail::UninitCopy(first, newPos, dLast, alloc);
@@ -757,8 +758,7 @@ typename dynarray<T, Alloc>::iterator
 	_debugSizeUpdater guard{_m};  \
 	\
 	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
-	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);  \
-	size_type const nAfterPos = _m.end - pPos;
+	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);
 
 	OEL_DYNARR_INSERT_STEP1
 	if (_m.end < _m.reservEnd)
@@ -767,15 +767,17 @@ typename dynarray<T, Alloc>::iterator
 		aligned_union_t<T> tmp;
 		_construct::Call(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
+		size_type const bytesAfterPos = sizeof(T) * (_m.end - pPos);
 		std::memmove(
 			static_cast<void *>(pPos + 1),
 			static_cast<const void *>(pPos),
-			sizeof(T) * nAfterPos );
+			bytesAfterPos );
 		++_m.end;
 		std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
 	}
 	else
-	{	pPos = _insertRealloc(pPos, nAfterPos, _emplaceHelper{}, static_cast<Args &&>(args)...);
+	{	pPos = _insertRealloc< _emplaceHelper, decltype(_detail::ForwardT( static_cast<Args &&>(args) ))... >
+				(pPos, static_cast<Args &&>(args)...);
 	}
 	return _makeIter(pPos);
 }
@@ -798,10 +800,11 @@ typename dynarray<T, Alloc>::iterator
 	{
 		T *const dLast = pPos + count;
 		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
+		size_type const bytesAfterPos = sizeof(T) * (_m.end - pPos);
 		std::memmove(
 			static_cast<void *>(dLast),
 			static_cast<const void *>(pPos),
-			sizeof(T) * nAfterPos );
+			bytesAfterPos );
 		_m.end += count;
 		// Construct new
 		if (can_memmove_with<T *, decltype(first)>::value)
@@ -823,16 +826,14 @@ typename dynarray<T, Alloc>::iterator
 				std::memmove(
 					static_cast<void *>(dest),
 					static_cast<const void *>(dLast),
-					sizeof(T) * nAfterPos );
+					bytesAfterPos );
 				_m.end -= (dLast - dest);
 				OEL_WHEN_EXCEPTIONS_ON(throw);
 			}
 		}
 	}
 	else
-	{	pPos = _insertRealloc(
-			pPos, nAfterPos,
-			_insertRHelper<decltype(first)>{first, count} );
+	{	pPos = _insertRealloc<_insertRHelper>(pPos, first, count);
 	}
 	return _makeIter(pPos);
 }
@@ -846,7 +847,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	if (_m.end < _m.reservEnd)
 		_construct::Call(_m, _m.end, static_cast<Args &&>(args)...);
 	else
-		_emplaceBackRealloc(static_cast<Args &&>(args)...);
+		_emplaceBackRealloc< decltype(_detail::ForwardT( static_cast<Args &&>(args) ))... >(static_cast<Args &&>(args)...);
 
 	return *(_m.end++);
 }
