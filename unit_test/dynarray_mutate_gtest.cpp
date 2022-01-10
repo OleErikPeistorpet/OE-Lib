@@ -411,7 +411,7 @@ TEST_F(dynarrayTest, insertRTrivial)
 {
 	// Should hit static_assert
 	//dynarray<double> d;
-	//d.insert_r( d.begin(), oel::iterator_range< std::istream_iterator<double> >({}, {}) );
+	//d.insert_range( d.begin(), oel::basic_view< std::istream_iterator<double> >({}, {}) );
 
 	size_t const initSize = 2;
 	auto toInsert = {-1.0, -2.0};
@@ -422,7 +422,7 @@ TEST_F(dynarrayTest, insertRTrivial)
 				dest.emplace_back(1);
 				dest.emplace_back(2);
 
-				dest.insert_r(dest.begin() + insertOffset, toInsert);
+				dest.insert_range(dest.begin() + insertOffset, toInsert);
 
 				EXPECT_TRUE(dest.size() == initSize + toInsert.size());
 				for (size_t i = 0; i < toInsert.size(); ++i)
@@ -463,12 +463,12 @@ TEST_F(dynarrayTest, insertR)
 					{
 					#if OEL_HAS_EXCEPTIONS
 						TrivialRelocat::countToThrowOn = countThrow;
-						EXPECT_THROW( dest.insert_r(dest.begin() + insertOffset, toInsert), TestException );
+						EXPECT_THROW( dest.insert_range(dest.begin() + insertOffset, toInsert), TestException );
 					#endif
 						EXPECT_TRUE(initSize <= dest.size() and dest.size() <= initSize + countThrow);
 					}
 					else
-					{	dest.insert_r(dest.begin() + insertOffset, toInsert);
+					{	dest.insert_range(dest.begin() + insertOffset, toInsert);
 
 						EXPECT_TRUE(dest.size() == initSize + toInsert.size());
 					}
@@ -552,7 +552,7 @@ TEST_F(dynarrayTest, mutableBeginSizeRange)
 	dest.assign(v);
 	EXPECT_EQ(1u, dest.size());
 
-	dest.insert_r(dest.begin(), v);
+	dest.insert_range(dest.begin(), v);
 	EXPECT_EQ(2u, dest.size());
 
 	dest.append(v);

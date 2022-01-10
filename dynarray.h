@@ -42,9 +42,9 @@ template< typename T, typename A >  inline
 void append(dynarray<T, A> & dest, size_t n, const T & val)  { dest.append(n, val); }
 
 template< typename T, typename A, typename ForwardRange >  inline
-auto insert(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, ForwardRange && source)
+auto insert_range(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, ForwardRange && source)
 {
-	return dest.insert_r(pos, source);
+	return dest.insert_range(pos, source);
 }
 //!@}
 
@@ -62,7 +62,7 @@ inline namespace debug
 * constructible (checked when compiling). Most types can be relocated trivially, but it often needs to be
 * declared manually. See specify_trivial_relocate(T &&). Performance is better if T is trivially relocatable.
 * Furthermore, a few functions require that T is trivially relocatable (noexcept movable is not enough):
-* emplace, insert, insert_r
+* emplace, insert, insert_range
 *
 * Note that the allocator model is not quite standard: `destroy` is never used,
 * `construct` may not be called if T is trivially constructible and is not called when relocating elements.
@@ -187,7 +187,7 @@ public:
 	//! @brief Equivalent to `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if `source.size()` exists
 	template< typename ForwardRange >
-	iterator  insert_r(const_iterator pos, ForwardRange && source) &;
+	iterator  insert_range(const_iterator pos, ForwardRange && source) &;
 
 	iterator  insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
 	iterator  insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
@@ -732,13 +732,13 @@ typename dynarray<T, Alloc>::iterator
 template< typename T, typename Alloc >
 template< typename ForwardRange >
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::insert_r(const_iterator pos, ForwardRange && src) &
+	dynarray<T, Alloc>::insert_range(const_iterator pos, ForwardRange && src) &
 {
 	auto first = oel::adl_begin(src);
 	auto const count = _detail::CountOrEnd(src);
 
 	static_assert( std::is_same<decltype(count), size_t const>::value,
-			"insert_r requires that source models std::ranges::forward_range or that source.size() is valid" );
+			"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
 
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1

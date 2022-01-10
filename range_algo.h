@@ -99,7 +99,7 @@ constexpr void append(Container & dest, typename Container::size_type count, con
 }
 
 template< typename Container, typename ContainerIterator, typename InputRange >
-constexpr auto insert(Container & dest, ContainerIterator pos, InputRange && source)
+constexpr auto insert_range(Container & dest, ContainerIterator pos, InputRange && source)
 {
 	return dest.insert(pos, begin(source), end(source));
 }
