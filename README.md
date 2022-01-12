@@ -1,6 +1,6 @@
 # Obscure Efficient Library (v2)
 
-A cross-platform, very fast substitute for C++ std::vector (and std::copy)
+A cross-platform, very fast substitute for C++ std::vector (and std::copy) with a range-based interface.
 
 Features relocation optimizations similar to [Folly fbvector](https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation) and UnrealEngine TArray.
 
@@ -65,12 +65,6 @@ You can customize what happens when a check is triggered. This is done by defini
 ### Visual Studio specific
 
 For better display of dynarray and the iterators in the Visual Studio debugger, copy `oe_lib2.natvis` to:
-`<My Documents>\Visual Studio 2015\Visualizers`. You can also just add `oe_lib2.natvis` to the project instead.
+`Documents\Visual Studio 20**\Visualizers`. You can also just add `oe_lib2.natvis` to the project instead.
 
-While usually faster than the Visual C++ standard library, performance can be an issue even for debug builds. If so, try setting inline function expansion to `/Ob1`, Basic Runtime Checks to default, and/or an environment variable `_NO_DEBUG_HEAP=1`.
-
-### Other
-
-If not using Boost, you need to manually define OEL_NO_BOOST for some old compilers (GCC 4 and Visual Studio 2015).
-
-To use dense matrixes, quaternions, etc. from the Eigen library efficiently in dynarray: include `optimize_ext/eigen_dense.h`
+For Visual Studio 2015, you need to manually define OEL_NO_BOOST if not using Boost.

@@ -8,14 +8,6 @@
 #include "gtest/gtest.h"
 #include <deque>
 
-#if defined __has_include
-#if __has_include(<Eigen/Dense>)
-	#include "optimize_ext/eigen_dense.h"
-
-	static_assert(oel::is_trivially_relocatable<Eigen::Rotation2Df>::value, "?");
-#endif
-#endif
-
 #if defined OEL_HAS_STD_PMR
 	static_assert(oel::is_trivially_relocatable< std::pmr::polymorphic_allocator<int> >::value, "?");
 #endif
