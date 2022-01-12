@@ -26,17 +26,21 @@ template< typename T >  OEL_ALWAYS_INLINE
 constexpr std::make_unsigned_t<T> as_unsigned(T val) noexcept  { return std::make_unsigned_t<T>(val); }
 
 
-//! Same as std::ssize (C++20)
-template< typename SizedRange >  OEL_ALWAYS_INLINE
-constexpr auto ssize(const SizedRange & r)
-->	std::common_type_t<ptrdiff_t, decltype( as_signed(r.size()) )>
-	{
-		using S = std::common_type_t<ptrdiff_t, decltype( as_signed(r.size()) )>;
-		return static_cast<S>(r.size());
-	}
-//! Equivalent to array overload of std::ssize
-template< typename T, ptrdiff_t Size >  OEL_ALWAYS_INLINE
-constexpr ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
+#if __cpp_lib_ssize
+	using std::ssize;
+#else
+	//! Same as std::ssize (C++20)
+	template< typename SizedRange >  OEL_ALWAYS_INLINE
+	constexpr auto ssize(const SizedRange & r)
+	->	std::common_type_t<ptrdiff_t, decltype( as_signed(r.size()) )>
+		{
+			using S = std::common_type_t<ptrdiff_t, decltype( as_signed(r.size()) )>;
+			return static_cast<S>(r.size());
+		}
+	//! Equivalent to array overload of std::ssize
+	template< typename T, ptrdiff_t Size >  OEL_ALWAYS_INLINE
+	constexpr ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
+#endif
 
 
 /** @brief Check if index is valid (can be used with operator[]) for array or other container-like object
