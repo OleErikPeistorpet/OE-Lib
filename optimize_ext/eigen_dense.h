@@ -4,6 +4,10 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+/** @file
+* @brief No longer maintained, will most likely be removed in version 3
+*/
+
 #include "../user_traits.h"
 
 #include <Eigen/Dense>
