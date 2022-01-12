@@ -86,7 +86,9 @@ inline namespace debug
 * Furthermore, a few functions require that T is trivially relocatable (noexcept movable is not enough):
 * emplace, insert, insert_r
 *
-* The default allocator supports over-aligned types (e.g. __m256)  */
+* Note that the allocator model is not quite standard: `destroy` is never used,
+* `construct` may not be called if T is trivially constructible and is not called when relocating elements.
+*/
 template< typename T, typename Alloc/* = oel::allocator*/ >
 class dynarray
 {
@@ -751,7 +753,7 @@ typename dynarray<T, Alloc>::iterator
 {
 #define OEL_DYNARR_INSERT_STEP1  \
 	static_assert(is_trivially_relocatable<T>::value,  \
-		"The function requires trivially relocatable T, see declaration of is_trivially_relocatable");  \
+		"insert, emplace require trivially relocatable T, see declaration of is_trivially_relocatable");  \
 	\
 	_debugSizeUpdater guard{_m};  \
 	\
