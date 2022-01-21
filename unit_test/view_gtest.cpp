@@ -147,7 +147,7 @@ struct Square
 TEST(viewTest, viewTransformSizedRange)
 {
 	int src[] {1, 2};
-	auto tv = view::transform(src, [](int & i) { return i++; });
+	auto tv = src | view::transform([](int & i) { return i++; });
 	auto tsr = view::subrange(tv.begin(), tv.end());
 	oel::dynarray<int> dest(tsr);
 	EXPECT_EQ(2U, tsr.size());
@@ -158,8 +158,7 @@ TEST(viewTest, viewTransformSizedRange)
 	EXPECT_EQ(3, src[1]);
 
 	std::forward_list<int> const li{-2};
-	auto v = view::counted(li.begin(), 1);
-	dest.append( view::transform(v, Square{}) );
+	dest.append( view::counted(li.begin(), 1) | view::transform(Square{}) );
 	EXPECT_EQ(3U, dest.size());
 	EXPECT_EQ(4, dest[2]);
 }
@@ -225,7 +224,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 	auto nonEmpty = [i = -1](int j) { return i + j; };
 	int src[1];
 	oel::transform_iterator it{nonEmpty, src + 0};
-	auto v = view::move(view::subrange(it, src + 1));
+	auto v = view::subrange(it, src + 1) | view::move();
 
 	EXPECT_NE(v.begin(), v.end());
 	EXPECT_EQ(src + 1, v.end().base());
@@ -236,7 +235,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 TEST(viewTest, viewMoveMutableEmptyAndSize)
 {
 	int src[] {0, 1};
-	auto v = view::move( src | std::views::drop_while([](int i) { return i <= 0; }) );
+	auto v = src | std::views::drop_while([](int i) { return i <= 0; }) | view::move();
 	EXPECT_FALSE(v.empty());
 	EXPECT_EQ(1U, v.size());
 }

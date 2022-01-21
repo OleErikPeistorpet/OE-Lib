@@ -65,27 +65,40 @@ namespace _detail
 		constexpr View         base() &&      { return std::move(_m.first); }
 		constexpr const View & base() const & { return _m.first; }
 	};
+
+	template< typename F >
+	struct TransfPartial
+	{
+		F _f;
+
+		template< typename Range >
+		friend constexpr auto operator |(Range && r, TransfPartial t)
+		{
+			using V = decltype(view::all( static_cast<Range &&>(r) ));
+			return TransformView<V, F>{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
+		}
+	};
 }
 
 
 namespace view
 {
 
-/** @brief Create a view with transform_iterator from a range
+/** @brief Given a source range, transform each element when dereferenced, using operator | (like std::views)
 @code
 std::bitset<8> arr[] { 3, 5, 7, 11 };
-dynarray<std::string> result;
-result.append( view::transform(arr, [](const auto & bs) { return bs.to_string(); }) );
-@endcode
+dynarray<std::string> result( arr | view::transform([](const auto & bs) { return bs.to_string(); }) );
+@endcode  */
+template< typename UnaryFunc >
+constexpr auto transform(UnaryFunc f)    { return _detail::TransfPartial<UnaryFunc>{std::move(f)}; }
+/**
+* @brief Create a view that transforms each element of the range when dereferenced, normal function style
+*
 * Similar to boost::adaptors::transform, but stores just one copy of f and has no size overhead for stateless
 * function objects. Also accepts a lambda as long as any by-value captures are trivially copy constructible
 * and trivially destructible. Moreover, UnaryFunc can have non-const operator() (such as mutable lambda). */
 template< typename UnaryFunc, typename Range >
-constexpr auto transform(Range && r, UnaryFunc f)
-	{
-		using V = decltype(view::all( static_cast<Range &&>(r) ));
-		return _detail::TransformView<V, UnaryFunc>{view::all( static_cast<Range &&>(r) ), std::move(f)};
-	}
+constexpr auto transform(Range && r, UnaryFunc f)  { return static_cast<Range &&>(r) | view::transform(std::move(f)); }
 
 }
 
