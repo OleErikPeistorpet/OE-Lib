@@ -13,6 +13,19 @@
 
 namespace oel
 {
+namespace view
+{
+
+//! Wrap an input range with std::move_iterator (and conditionally std::move_sentinel), using operator | (like std::views)
+constexpr auto move();
+//! Create a view with std::move_iterator (and conditionally std::move_sentinel) from a range, normal function style
+template< typename InputRange >
+constexpr auto move(InputRange && r);
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 namespace _detail
 {
 	template< typename InputView >
@@ -60,26 +73,30 @@ namespace _detail
 		constexpr InputView         base() &&      { return std::move(_base); }
 		constexpr const InputView & base() const & { return _base; }
 	};
-}
 
-
-namespace view
-{
-
-//! Wrap a range such that the elements can be moved from when passed to a container or algorithm
-template< typename InputRange >
-constexpr auto move(InputRange && r)   { using V = decltype(view::all( static_cast<InputRange &&>(r) ));
-                                         return _detail::MoveView<V>{view::all( static_cast<InputRange &&>(r) )}; }
-//! Create a MoveView from iterator and sentinel pair
-template< typename InputIterator, typename Sentinel >
-constexpr auto move(InputIterator first, Sentinel last)
+	struct MovePartial
 	{
-		return _detail::MoveView< basic_view<InputIterator, Sentinel> >{ {std::move(first), last} };
-	}
-} // view
-
+		template< typename InputRange >
+		friend constexpr auto operator |(InputRange && r, MovePartial)
+		{
+			using V = decltype(view::all( static_cast<InputRange &&>(r) ));
+			return MoveView<V>{view::all( static_cast<InputRange &&>(r) )};
+		}
+	};
 }
 
+constexpr auto view::move()
+{
+	return _detail::MovePartial{};
+}
+
+template< typename InputRange >
+constexpr auto view::move(InputRange && r)
+{
+	return static_cast<InputRange &&>(r) | _detail::MovePartial{};
+}
+
+} // oel
 
 #if OEL_STD_RANGES
 

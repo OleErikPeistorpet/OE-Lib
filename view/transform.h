@@ -14,6 +14,31 @@
 
 namespace oel
 {
+namespace view
+{
+
+/** @brief Given a source range, transform each element when dereferenced, using operator | (like std::views)
+@code
+std::bitset<8> arr[] { 3, 5, 7, 11 };
+dynarray<std::string> result( arr | view::transform([](const auto & bs) { return bs.to_string(); }) );
+@endcode
+* Unlike std::views::transform, copies or moves the function into the iterator rather than
+* storing it just in the view, thus saving one indirection when dereferencing the iterator.
+* When used in OE-Lib, the function does not need to model std::regular_invocable,
+* meaning it's all right to return different results for the same input. */
+template< typename UnaryFunc >
+constexpr auto transform(UnaryFunc f);
+/*
+* @brief Similar to `std::views::transform(r, f)`
+*
+* See view::transform(UnaryFunc) above. */
+template< typename UnaryFunc, typename Range >
+constexpr auto transform(Range && r, UnaryFunc f)  { return static_cast<Range &&>(r) | view::transform(std::move(f)); }
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 namespace _detail
 {
 	template< typename View, typename Func >
@@ -65,29 +90,25 @@ namespace _detail
 		constexpr View         base() &&      { return std::move(_m.first); }
 		constexpr const View & base() const & { return _m.first; }
 	};
+
+	template< typename F >
+	struct TransfPartial
+	{
+		F _f;
+
+		template< typename Range >
+		friend constexpr auto operator |(Range && r, TransfPartial t)
+		{
+			using V = decltype(view::all( static_cast<Range &&>(r) ));
+			return TransformView<V, F>{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
+		}
+	};
 }
 
-
-namespace view
+template< typename UnaryFunc >
+constexpr auto view::transform(UnaryFunc f)
 {
-
-/** @brief Similar to `std::views::transform(r, f)`
-@code
-std::bitset<8> arr[] { 3, 5, 7, 11 };
-dynarray<std::string> result;
-result.append( view::transform(arr, [](const auto & bs) { return bs.to_string(); }) );
-@endcode
-* Unlike std::views::transform, copies or moves the function into the iterator rather than
-* storing it just in the view, thus saving one indirection when dereferencing the iterator.
-* When used in OE-Lib, the function does not need to model std::regular_invocable,
-* meaning it's all right to return different results for the same input. */
-template< typename UnaryFunc, typename Range >
-constexpr auto transform(Range && r, UnaryFunc f)
-	{
-		using V = decltype(view::all( static_cast<Range &&>(r) ));
-		return _detail::TransformView<V, UnaryFunc>{view::all( static_cast<Range &&>(r) ), std::move(f)};
-	}
-
+	return _detail::TransfPartial<UnaryFunc>{std::move(f)};
 }
 
 } // namespace oel
