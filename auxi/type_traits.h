@@ -10,6 +10,17 @@
 
 #include <iterator>
 
+//! Users can define (to override __cpp_lib_ranges or to not pay for include)
+#ifndef OEL_STD_RANGES
+	#if __cpp_lib_ranges < 201911
+	#define OEL_STD_RANGES  0
+	#else
+	#define OEL_STD_RANGES  1
+	#endif
+#endif
+#if OEL_STD_RANGES
+#include <ranges>
+#endif
 
 #if !__has_include(<boost/config.hpp>)
 	#define OEL_NO_BOOST  1
@@ -89,6 +100,19 @@ using iterator_t = decltype( begin(std::declval<Range &>()) );
 //! Return type of end function (found by ADL)
 template< typename Range >
 using sentinel_t = decltype( end(std::declval<Range &>()) );
+
+//! Like std::ranges::borrowed_iterator_t, but doesn't require that Range has end()
+template< typename Range >
+using borrowed_iterator_t =
+#if OEL_STD_RANGES
+	std::conditional_t<
+		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
+		iterator_t<Range>,
+		std::ranges::dangling
+	>;
+#else
+	iterator_t<Range>;
+#endif
 
 #if __cpp_lib_concepts < 201907
 	template< typename Iterator >

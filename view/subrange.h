@@ -7,7 +7,7 @@
 
 
 #include "../util.h"  // for as_unsigned
-#include "detail/core.h"
+#include "detail/misc.h"
 
 /** @file
 */

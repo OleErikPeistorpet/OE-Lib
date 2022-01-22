@@ -7,7 +7,7 @@
 
 
 #include "../util.h"
-#include "detail/core.h"
+#include "detail/misc.h"
 
 /** @file
 */

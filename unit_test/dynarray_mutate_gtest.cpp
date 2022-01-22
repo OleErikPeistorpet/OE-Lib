@@ -928,3 +928,14 @@ TEST_F(dynarrayTest, misc)
 		test.push_back(1);
 	}
 }
+
+#if OEL_STD_RANGES
+void testDanglingReturn()
+{
+	dynarray<int> d;
+	auto i0 = d.assign(dynarray<int>{});
+	auto i1 = d.append(dynarray<int>{});
+	static_assert(std::is_same_v<decltype(i0), std::ranges::dangling>);
+	static_assert(std::is_same_v<decltype(i1), std::ranges::dangling>);
+}
+#endif
