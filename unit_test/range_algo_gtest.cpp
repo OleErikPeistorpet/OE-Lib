@@ -88,13 +88,13 @@ TEST(rangeTest, copy)
 	EXPECT_FALSE(success);
 
 	ASSERT_EQ(4, test[N]);
-	auto l = oel::copy(test2, test).source_last;
+	auto l = oel::copy(test2, test).in;
 	EXPECT_EQ(-7, test[N]);
 	EXPECT_TRUE(std::end(test2) == l);
 	{
 		std::list<std::string> li{"aa", "bb"};
 		std::array<std::string, 2> strDest;
-		auto sLast = oel::copy(view::move(li), strDest).source_last;
+		auto sLast = oel::copy(view::move(li), strDest).in;
 		EXPECT_EQ("aa", strDest[0]);
 		EXPECT_EQ("bb", strDest[1]);
 		EXPECT_TRUE(li.begin()->empty());

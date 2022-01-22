@@ -7,7 +7,7 @@
 
 
 #include "../util.h"  // for TightPair
-#include "detail/core.h"
+#include "detail/misc.h"
 
 /** @file
 */

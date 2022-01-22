@@ -7,7 +7,6 @@
 
 
 #include "all.h"
-#include "detail/core.h"
 
 /** @file
 */
