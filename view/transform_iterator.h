@@ -23,10 +23,16 @@ class transform_iterator
 {
 	_detail::TightPair< Iterator, typename _detail::AssignableWrap<UnaryFunc>::Type > _m;
 
+	static constexpr bool _isBidirectional = iter_is_bidirectional<Iterator>;
+
 public:
 	using iterator_category = std::conditional_t<
-			iter_is_forward<Iterator> and std::is_copy_constructible<UnaryFunc>::value,
-			std::forward_iterator_tag,
+			std::is_copy_constructible<UnaryFunc>::value,
+			std::conditional_t<
+				_isBidirectional,
+				std::bidirectional_iterator_tag,
+				std::conditional_t< iter_is_forward<Iterator>, std::forward_iterator_tag, std::input_iterator_tag >
+			>,
 			std::input_iterator_tag
 		>;
 	using difference_type = iter_difference_t<Iterator>;
@@ -57,7 +63,7 @@ public:
 	template< typename T = transform_iterator,
 	          enable_if< iter_is_forward<T> > = 0
 	>
-	constexpr transform_iterator operator++(int) &
+	constexpr transform_iterator   operator++(int) &
 		{
 			auto tmp = *this;
 			++_m.first;
@@ -66,7 +72,18 @@ public:
 	template< typename T = transform_iterator,
 	          enable_if< ! iter_is_forward<T> > = 0
 	>	OEL_ALWAYS_INLINE
-	constexpr void operator++(int) &   { ++_m.first; }
+	constexpr void                 operator++(int) &   { ++_m.first; }
+
+	constexpr transform_iterator & operator--()   OEL_ALWAYS_INLINE
+		OEL_REQUIRES(_isBidirectional)          { --_m.first;  return *this; }
+
+	constexpr transform_iterator   operator--(int) &
+		OEL_REQUIRES(_isBidirectional)
+		{
+			auto tmp = *this;
+			--_m.first;
+			return tmp;
+		}
 
 	constexpr difference_type operator -(const transform_iterator & right) const
 		OEL_REQUIRES(std::sized_sentinel_for<Iterator, Iterator>)        { return _m.first - right._m.first; }
