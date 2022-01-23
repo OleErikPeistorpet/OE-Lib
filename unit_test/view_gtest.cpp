@@ -85,12 +85,12 @@ TEST(viewTest, viewTransformBasics)
 	using IEmptyLambda = decltype(v.begin());
 	using IMoveOnly = decltype(itMoveOnly);
 
-	static_assert(std::is_same< IEmptyLambda::iterator_category, std::forward_iterator_tag >(), "?");
+	static_assert(std::is_same< IEmptyLambda::iterator_category, std::bidirectional_iterator_tag >(), "?");
 	static_assert(std::is_same< IMoveOnly::iterator_category, std::input_iterator_tag >(), "?");
 	static_assert(std::is_same< decltype(itMoveOnly++), void >(), "?");
 	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
 #if OEL_STD_RANGES
-	static_assert(std::ranges::forward_range<decltype(v)>);
+	static_assert(std::ranges::bidirectional_range<decltype(v)>);
 	static_assert(std::input_iterator<IMoveOnly>);
 	{
 		constexpr IEmptyLambda valueInit{};
@@ -100,7 +100,9 @@ TEST(viewTest, viewTransformBasics)
 	{
 		auto it = v.begin();
 		EXPECT_TRUE( it++ == v.begin() );
-		EXPECT_TRUE( it != v.begin() );
+		EXPECT_TRUE( it == v.end() );
+		EXPECT_TRUE( --it == v.begin() );
+		EXPECT_TRUE( (++it)-- != v.begin() );
 	}
 	EXPECT_TRUE( v.begin() == makeSentinel(v.begin().base()) );
 	EXPECT_FALSE( makeSentinel(r + 1) == v.begin() );
@@ -164,9 +166,12 @@ TEST(viewTest, viewTransformSizedRange)
 	EXPECT_EQ(3, src[1]);
 
 	std::forward_list<int> const li{-2};
-	dest.append( view::counted(li.begin(), 1) | view::transform(Square{}) );
+	auto last = dest.append( view::counted(li.begin(), 1) | view::transform(Square{}) );
 	EXPECT_EQ(3U, dest.size());
 	EXPECT_EQ(4, dest[2]);
+	EXPECT_EQ(li.end(), last.base());
+
+	static_assert(std::is_same< decltype(last)::iterator_category, std::forward_iterator_tag >(), "?");
 }
 
 TEST(viewTest, viewTransformNonSizedRange)
@@ -188,7 +193,7 @@ TEST(viewTest, viewTransformMutableLambda)
 	auto v = view::transform(dummy, iota);
 	using I = decltype(v.begin());
 
-	static_assert(std::is_same<I::iterator_category, std::forward_iterator_tag>(), "?");
+	static_assert(std::is_same<I::iterator_category, std::bidirectional_iterator_tag>(), "?");
 #if OEL_STD_RANGES
 	static_assert(std::input_or_output_iterator<I>);
 	static_assert(std::ranges::range<decltype(v)>);

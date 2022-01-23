@@ -58,8 +58,11 @@ namespace _detail
 
 
 	template< typename Iter, typename Tag >
-	constexpr bool IterCatIs()
+	constexpr bool IterIs()
 	{
+		if (!std::is_copy_constructible<Iter>::value)
+			return false;
+
 		return std::is_base_of< Tag, decltype(_detail::IterCat<Iter>(0)) >::value
 		    or std::is_base_of< Tag, decltype(_detail::IterConcept<Iter>(0)) >::value;
 	}
@@ -129,17 +132,15 @@ using borrowed_iterator_t =
 #endif
 
 template< typename Iterator >
-constexpr bool iter_is_forward =
-	_detail::IterCatIs<Iterator, std::forward_iterator_tag>()
-	and std::is_copy_constructible<Iterator>::value;
+constexpr bool iter_is_forward       = _detail::IterIs<Iterator, std::forward_iterator_tag>();
 
 template< typename Iterator >
-constexpr bool iter_is_random_access =
-	_detail::IterCatIs<Iterator, std::random_access_iterator_tag>()
-	and std::is_copy_constructible<Iterator>::value;
+constexpr bool iter_is_bidirectional = _detail::IterIs<Iterator, std::bidirectional_iterator_tag>();
 
-/**
-* @brief Partial emulation of std::sized_sentinel_for (C++20)
+template< typename Iterator >
+constexpr bool iter_is_random_access = _detail::IterIs<Iterator, std::random_access_iterator_tag>();
+
+/** @brief Partial emulation of std::sized_sentinel_for (C++20)
 *
 * Let i be an Iterator and s a Sentinel. If `s - i` is well-formed, then this value specifies whether
 * that subtraction is invalid or not O(1). Must be specialized for some iterator, sentinel pairs. */
