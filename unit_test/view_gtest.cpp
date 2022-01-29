@@ -85,11 +85,11 @@ constexpr auto transformIterFromIntPtr(const int * p)
 	{
 		auto operator()(int i) const { return i; }
 	};
-	return oel::transform_iterator<F, const int *>{F{}, p};
+	return oel::_transformIterator<F, const int *>{F{}, p};
 }
 
 template< typename S >
-constexpr oel::sentinel_wrapper<S> makeSentinel(S se) { return {se}; }
+constexpr oel::_sentinelWrapper<S> makeSentinel(S se) { return {se}; }
 
 TEST(viewTest, subscript)
 {
@@ -382,6 +382,15 @@ void testTransformIterWithConceptOnly()
 }
 #endif
 
+TEST(viewTest, viewZipTransformN)
+{
+	int a[]{0, 1};
+	int b[]{1, 2};
+	auto v = view::zip_transform_n([](int x, int y) { return x + y; }, 1, a, b);
+	EXPECT_EQ(1, v[0]);
+	EXPECT_EQ(3, v[1]);
+}
+
 #if !defined __GLIBCXX__ or __GNUC__ > 10 or !__cpp_lib_concepts
 
 constexpr StdArrInt2 generatedArray()
@@ -452,7 +461,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 {
 	auto nonEmpty = [i = -1](int j) { return i + j; };
 	int src[1];
-	oel::transform_iterator it{nonEmpty, src + 0};
+	oel::_transformIterator it{nonEmpty, src + 0};
 	auto v = view::subrange(it, makeSentinel(src + 1)) | view::move;
 
 #if OEL_STD_RANGES

@@ -7,7 +7,7 @@
 
 
 #include "all.h"
-#include "transform_iterator.h"
+#include "../auxi/transform_iterator.h"
 
 /** @file
 */
@@ -48,7 +48,7 @@ struct _transformView
 	View _v;
 	OEL_NO_UNIQUE_ADDRESS _detail::MakeAssignable<Func> _f;
 
-	using _iter = transform_iterator< Func, iterator_t<View> >;
+	using _iter = _transformIterator< Func, iterator_t<View> >;
 
 
 	using difference_type = iter_difference_t<_iter>;
@@ -57,7 +57,7 @@ struct _transformView
 		{
 			return {_detail::MoveIfNotCopyable(_f), _v.begin()};
 		}
-	//! Return type either same as `begin()` or oel::sentinel_wrapper
+	//! Return type either same as `begin()` or _sentinelWrapper
 	template< typename V = View,
 	          typename /*EnableIfHasEnd*/ = sentinel_t<V>
 	>
@@ -66,7 +66,7 @@ struct _transformView
 			if constexpr( std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> > )
 				return _iter(_f, _v.end());
 			else
-				return sentinel_wrapper< sentinel_t<V> >{_v.end()};
+				return _sentinelWrapper< sentinel_t<V> >{_v.end()};
 		}
 
 	template< typename V = View >  OEL_ALWAYS_INLINE

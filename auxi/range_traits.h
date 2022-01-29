@@ -159,7 +159,7 @@ inline constexpr bool range_is_sized
 
 
 template< typename Sentinel >
-struct sentinel_wrapper { Sentinel se; };
+struct _sentinelWrapper { Sentinel se; };
 
 } // oel
 
@@ -168,7 +168,7 @@ struct sentinel_wrapper { Sentinel se; };
 
 // Small hack to let std::move_iterator< sentinel_wrapper<S> > compile
 template< typename S >
-struct std::iterator_traits< oel::sentinel_wrapper<S> >
+struct std::iterator_traits< oel::_sentinelWrapper<S> >
  :	std::iterator_traits<S> {};
 
 #endif
