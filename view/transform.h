@@ -15,41 +15,64 @@
 namespace oel
 {
 
-template< typename View, typename Func >
+template< bool IsZip, typename Func, typename... Views >
 class _transformView
 {
-	using _iter = transform_iterator< Func, iterator_t<View> >;
+	using _iter = transform_iterator< IsZip, Func, iterator_t<Views>... >;
+	using _iSeq = std::index_sequence_for<Views...>;
 
-	_detail::TightPair< View, typename _detail::AssignableWrap<Func>::Type > _m;
+	_detail::TightPair< tuple<Views...>, Func > _m;
+
+	template< size_t... Ns >
+	constexpr auto _empty(std::index_sequence<Ns...>)
+		{
+			return (... or std::get<Ns>(_m.first).empty());
+		}
+
+	template< typename Tuple, size_t... Ns >
+	static constexpr auto _size(Tuple & views, std::index_sequence<Ns...>)
+	->	decltype( std::min({std::get<Ns>(views).size()...}) )
+		 { return std::min({std::get<Ns>(views).size()...}); }
+
+	template< size_t... Ns >
+	constexpr _iter _begin(std::index_sequence<Ns...>)
+		{
+			return {_detail::MoveIfNotCopyable(_m.second()), std::get<Ns>(_m.first).begin()...};
+		}
+	template< typename... Vs, size_t... Ns,
+	          typename /*EnableIfHasEnd*/ = tuple< sentinel_t<Vs>... >
+	>
+	constexpr auto _end(tuple<Vs...> & views, std::index_sequence<Ns...>) const
+		{
+			if constexpr( (... and std::is_same_v< iterator_t<Vs>, sentinel_t<Vs> >)
+			              and std::is_empty_v<Func> )
+				return _iter{_m.second(), std::get<Ns>(views).end()...};
+			else
+				return std::make_tuple(std::get<Ns>(views).end()...);
+		}
 
 public:
 	using difference_type = iter_difference_t<_iter>;
 
 	_transformView() = default;
-	constexpr _transformView(View v, Func f)   : _m{std::move(v), std::move(f)} {}
+	constexpr _transformView(Func f, Views... vs)   : _m{ {std::move(vs)...}, std::move(f) } {}
 
-	constexpr _iter begin()
-		{
-			return {_detail::MoveIfNotCopyable(_m.second()), _m.first.begin()};
-		}
-	//! Return type either same as `begin()` or sentinel_t<View>
-	template< typename V = View, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
-	constexpr auto end()
-		{
-			if constexpr (std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> >)
-				return _iter(_m.second(), _m.first.end());
-			else
-				return _m.first.end();
-		}
+	constexpr _iter begin()   OEL_ALWAYS_INLINE { return _begin(_iSeq{}); }
+	//! Return type either same as begin() or `tuple< sentinel_t<Views>... >`
+	template< typename T = tuple<Views...> >  OEL_ALWAYS_INLINE
+	constexpr auto  end()
+	->	decltype( _end(std::declval<T &>(), _iSeq{}) )  { return _end(_m.first, _iSeq{}); }
 
-	template< typename V = View >  OEL_ALWAYS_INLINE
+	template< typename T = tuple<Views...> >  OEL_ALWAYS_INLINE
 	constexpr auto size()
-	->	decltype( std::declval<V>().size() )  { return _m.first.size(); }
+	->	decltype( _size(std::declval<T &>(), _iSeq{}) )  { return _size(_m.first, _iSeq{}); }
 
-	constexpr bool empty()   { return _m.first.empty(); }
+	constexpr bool empty()   OEL_ALWAYS_INLINE { return _empty(_iSeq{}); }
 
-	constexpr View         base() &&                { return std::move(_m.first); }
-	constexpr const View & base() const & noexcept  { return _m.first; }
+	constexpr auto         base() &&
+		OEL_REQUIRES(!IsZip)    { return std::get<0>(std::move(_m.first)); }
+	constexpr const auto & base() const & noexcept
+		OEL_REQUIRES(!IsZip)    { return std::get<0>(_m.first); }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -64,7 +87,8 @@ namespace _detail
 		template< typename Range >
 		friend constexpr auto operator |(Range && r, TransfPartial t)
 		{
-			return _transformView{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
+			using V = _transformView< false, F, decltype(view::all( static_cast<Range &&>(r) )) >;
+			return V{std::move(t)._f, view::all( static_cast<Range &&>(r) )};
 		}
 
 		template< typename Range >
@@ -101,6 +125,20 @@ struct _transformFn
 * https://en.cppreference.com/w/cpp/ranges/transform_view  */
 inline constexpr _transformFn transform;
 
+//! TODO
+inline constexpr auto zip_transform =
+	[](auto func, auto &&... ranges)
+	{
+		using V = _transformView< true, decltype(func), decltype( all(static_cast<decltype(ranges)>(ranges)) )... >;
+		return V{std::move(func), all( static_cast<decltype(ranges)>(ranges) )...};
+	};
+//! TODO
+inline constexpr auto zip_transform_n =
+	[](auto func, auto count, auto... iterators)
+	{
+		return counted(make_zip_transform_iter( std::move(func), std::move(iterators)... ), count);
+	};
+
 } // view
 
 }
@@ -108,11 +146,11 @@ inline constexpr _transformFn transform;
 
 #if OEL_STD_RANGES
 
-template< typename V, typename F >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::_transformView<V, F> >
-	= std::ranges::enable_borrowed_range< std::remove_cv_t<V> >;
+template< bool Z, typename F, typename... Vs >
+inline constexpr bool std::ranges::enable_borrowed_range< oel::_transformView<Z, F, Vs...> >
+	= (... and std::ranges::enable_borrowed_range< std::remove_cv_t<Vs> >);
 
-template< typename V, typename F >
-inline constexpr bool std::ranges::enable_view< oel::_transformView<V, F> > = true;
+template< bool Z, typename F, typename... Vs >
+inline constexpr bool std::ranges::enable_view< oel::_transformView<Z, F, Vs...> > = true;
 
 #endif
