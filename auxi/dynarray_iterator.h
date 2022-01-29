@@ -108,7 +108,7 @@ public:
 		return *this;
 	}
 
-	[[nodiscard]] friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)
+	friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)
 	{
 		it._pElem += offset;
 		return it;

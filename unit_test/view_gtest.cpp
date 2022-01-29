@@ -15,15 +15,14 @@ namespace view = oel::view;
 
 constexpr auto transformIterFromIntPtr(const int * p)
 {
-	struct F
-	{
-		auto operator()(int i) const { return i; }
-	};
-	return oel::transform_iterator<F, const int *>{F{}, p};
+	struct
+	{	auto operator()(int i) const { return i; }
+	} f;
+	return view::transform(view::counted(p, 1), f).begin();
 }
 
 template< typename S >
-constexpr oel::sentinel_wrapper<S> makeSentinel(S se) { return {se}; }
+constexpr oel::_sentinelWrapper<S> makeSentinel(S se) { return {se}; }
 
 TEST(viewTest, subscript)
 {
@@ -107,12 +106,12 @@ TEST(viewTest, viewTransformBasics)
 	using IEmptyLambda = decltype(v.begin());
 	using IMoveOnly = decltype(itMoveOnly);
 
-	static_assert(std::is_same_v< IEmptyLambda::iterator_category, std::bidirectional_iterator_tag >);
+	static_assert(std::is_same_v< IEmptyLambda::iterator_category, std::random_access_iterator_tag >);
 	static_assert(std::is_same_v< IMoveOnly::iterator_category, std::input_iterator_tag >);
 	static_assert(std::is_same_v< decltype(itMoveOnly++), void >);
 	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
 #if OEL_STD_RANGES
-	static_assert(std::ranges::bidirectional_range<decltype(v)>);
+	static_assert(std::ranges::random_access_range<decltype(v)>);
 	static_assert(std::input_iterator<IMoveOnly>);
 	{
 		constexpr IEmptyLambda valueInit{};
@@ -208,18 +207,24 @@ TEST(viewTest, viewTransformMutableLambda)
 		return i++;
 	};
 	int dummy[3];
-	auto v = view::transform(dummy, iota);
+	{
+		auto v = view::transform(dummy, iota);
 
-	using I = decltype(v.begin());
-	static_assert(std::is_same_v<I::iterator_category, std::input_iterator_tag>);
-#if OEL_STD_RANGES
-	static_assert(std::ranges::input_range<decltype(v)>);
-#endif
+		using I = decltype(v.begin());
+		static_assert(std::is_same_v<I::iterator_category, std::input_iterator_tag>);
+	#if OEL_STD_RANGES
+		static_assert(std::ranges::input_range<decltype(v)>);
+	#endif
 
-	oel::dynarray<int> test(oel::reserve, 3);
-	test.resize(1);
+		oel::dynarray<int> test(oel::reserve, 3);
+		test.resize(1);
 
-	test.assign(v);
+		test.assign(v);
+		EXPECT_EQ(0, test[0]);
+		EXPECT_EQ(1, test[1]);
+		EXPECT_EQ(2, test[2]);
+	}
+	auto test = view::transform(dummy, iota);
 	EXPECT_EQ(0, test[0]);
 	EXPECT_EQ(1, test[1]);
 	EXPECT_EQ(2, test[2]);
@@ -241,6 +246,15 @@ TEST(viewTest, viewTransformAsOutput)
 	EXPECT_EQ(3, test[1].first);
 	EXPECT_EQ(-1, test[0].second);
 	EXPECT_EQ(-2, test[1].second);
+}
+
+TEST(viewTest, viewZipTransformN)
+{
+	int a[]{0, 1};
+	int b[]{1, 2};
+	auto v = view::zip_transform_n([](int x, int y) { return x + y; }, 1, a, b);
+	EXPECT_EQ(1, v[0]);
+	EXPECT_EQ(3, v[1]);
 }
 
 constexpr StdArrInt2 generatedArray()
@@ -287,7 +301,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 {
 	auto nonEmpty = [i = -1](int j) { return i + j; };
 	int src[1];
-	oel::transform_iterator it{nonEmpty, src + 0};
+	auto it = view::transform(src, nonEmpty).begin();
 	auto v = view::subrange(it, makeSentinel(src + 1)) | view::move;
 
 	static_assert(oel::range_is_sized<decltype(v)>);
