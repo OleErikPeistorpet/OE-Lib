@@ -19,7 +19,7 @@ constexpr auto transformIterFromIntPtr(const int * p)
 	{
 		auto operator()(int i) const { return i; }
 	};
-	return oel::transform_iterator<F, const int *>{F{}, p};
+	return oel::transform_iterator{F{}, p};
 }
 
 template< typename S >
@@ -242,6 +242,16 @@ TEST(viewTest, viewTransformAsOutput)
 	EXPECT_EQ(3, test[1].first);
 	EXPECT_EQ(-1, test[0].second);
 	EXPECT_EQ(-2, test[1].second);
+}
+
+TEST(viewTest, viewZipTransformN)
+{
+	int a[]{0};
+	int b[]{1};
+	auto v = view::zip_transform_n([](int, int) { return 1; }, 1, a, b);
+	// TODO
+	for (auto i : v)
+		;
 }
 
 struct Ints
