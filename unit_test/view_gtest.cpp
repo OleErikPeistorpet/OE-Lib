@@ -244,6 +244,25 @@ TEST(viewTest, viewTransformAsOutput)
 	EXPECT_EQ(-2, test[1].second);
 }
 
+struct Ints
+{
+	int i;
+
+	int operator()()  { return i++; }
+};
+
+TEST(viewTest, viewGenerate)
+{
+	auto d = view::generate(Ints{1}, 2) | oel::to_dynarray();
+
+	ASSERT_EQ(2U, d.size());
+	EXPECT_EQ(1, d[0]);
+	EXPECT_EQ(2, d[1]);
+
+	d.assign(oel::view::generate(Ints{}, 0));
+	EXPECT_TRUE(d.empty());
+}
+
 TEST(viewTest, viewMoveEndDifferentType)
 {
 	auto nonEmpty = [i = -1](int j) { return i + j; };
@@ -264,6 +283,9 @@ TEST(viewTest, viewMoveMutableEmptyAndSize)
 	EXPECT_FALSE(v.empty());
 	EXPECT_EQ(1U, v.size());
 }
+
+using IntGenIter = oel::iterator_t<decltype( view::generate(Ints{}, 0) )>;
+static_assert(std::input_or_output_iterator<IntGenIter>);
 
 TEST(viewTest, chainWithStd)
 {

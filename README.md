@@ -40,9 +40,8 @@ Should be something like:
 
 	for (int i{}; i < outerLimit; i++)
 	{
-		auto v = std::views::iota(0, innerLimit)
-			| oel::view::transform([i](auto j) { return i * j; });
-		arr.append(v);
+		auto fn = [i, j = 0]() mutable { return i * j++; };
+		arr.append(oel::view::generate(fn, innerLimit));
 	}
 
 Another good way, using `resize_for_overwrite`:
