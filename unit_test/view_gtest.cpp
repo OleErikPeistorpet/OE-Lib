@@ -364,6 +364,15 @@ void testTransformIterWithConceptOnly()
 }
 #endif
 
+TEST(viewTest, viewZipTransformN)
+{
+	int a[]{0, 1};
+	int b[]{1, 2};
+	auto v = view::zip_transform_n([](int x, int y) { return x + y; }, 1, a, b);
+	EXPECT_EQ(1, v[0]);
+	EXPECT_EQ(3, v[1]);
+}
+
 constexpr StdArrInt2 generatedArray()
 {
 	StdArrInt2 res{};
