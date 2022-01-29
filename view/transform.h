@@ -7,7 +7,7 @@
 
 
 #include "all.h"
-#include "transform_iterator.h"
+#include "../auxi/transform_iterator.h"
 
 /** @file
 */
@@ -42,12 +42,13 @@ inline constexpr _transformFn transform;
 
 } // view
 
+
 template< typename View, typename Func >
-struct _transformView
+struct _iterTransformView
 {
 	_detail::TightPair< View, typename _detail::AssignableWrap<Func>::Type > _m;
 
-	using _iter = transform_iterator< Func, iterator_t<View> >;
+	using _iter = _iterTransformIterator< Func, iterator_t<View> >;
 
 
 	using difference_type = iter_difference_t<_iter>;
@@ -56,7 +57,7 @@ struct _transformView
 		{
 			return {_detail::MoveIfNotCopyable(_m.second()), _m.first.begin()};
 		}
-	//! Return type either same as `begin()` or oel::sentinel_wrapper
+	//! Return type either same as `begin()` or _sentinelWrapper
 	template< typename V = View,
 	          typename /*EnableIfHasEnd*/ = sentinel_t<V>
 	>
@@ -65,7 +66,7 @@ struct _transformView
 			if constexpr( std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> > )
 				return _iter(_m.second(), _m.first.end());
 			else
-				return sentinel_wrapper< sentinel_t<V> >{_m.first.end()};
+				return _sentinelWrapper< sentinel_t<V> >{_m.first.end()};
 		}
 
 	template< typename V = View >  OEL_ALWAYS_INLINE
@@ -75,10 +76,10 @@ struct _transformView
 	constexpr bool empty()   { return _m.first.empty(); }
 
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(requires(View & v) { v[index]; })
+		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)
 		{
 			const Func & f = _m.second();
-			return f(_m.first[index]);
+			return f(_m.first.begin() + index);
 		}
 
 	constexpr View         base() &&                { return std::move(_m.first); }
@@ -88,11 +89,28 @@ struct _transformView
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
+//
+// Only implementation details in rest of the file
 
 
 namespace _detail
 {
+	template< typename Func_7KQw >
+	struct DerefArg : public Func_7KQw
+	{
+		template< typename T >
+		constexpr decltype(auto) operator()(T && arg)
+		{
+			return static_cast<Func_7KQw &>(*this)( *static_cast<T &&>(arg) );
+		}
+
+		template< typename T >
+		constexpr auto operator()(T && arg) const
+		->	decltype( static_cast<const Func_7KQw &>(*this)( *static_cast<T &&>(arg) ) )
+		{	return    static_cast<const Func_7KQw &>(*this)( *static_cast<T &&>(arg) ); }
+	};
+
+
 	template< typename F >
 	struct TransformPartial
 	{
@@ -102,7 +120,10 @@ namespace _detail
 		friend constexpr auto operator |(R && range, TransformPartial t)
 		{
 			auto v = view::all(static_cast<R &&>(range));
-			return _transformView< decltype(v), F >{{std::move(v), std::move(t)._f}};
+			return _iterTransformView< decltype(v), DerefArg<F> >
+			{{	std::move(v),
+				DerefArg<F>{std::move(t)._f}
+			}};
 		}
 
 		template< typename R >
@@ -122,11 +143,11 @@ constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 } // oel
 
 template< typename V, typename F >
-inline constexpr bool oel::enable_view< oel::_transformView<V, F> > = true;
+inline constexpr bool oel::enable_view< oel::_iterTransformView<V, F> > = true;
 
 #if OEL_STD_RANGES
 
 template< typename V, typename F >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::_transformView<V, F> >
+inline constexpr bool std::ranges::enable_borrowed_range< oel::_iterTransformView<V, F> >
 	= enable_borrowed_range< std::remove_cv_t<V> >;
 #endif
