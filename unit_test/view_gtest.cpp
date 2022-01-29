@@ -230,6 +230,8 @@ TEST(viewTest, viewMoveEndDifferentType)
 
 #if OEL_STD_RANGES
 
+static_assert(std::random_access_iterator< oel::iota_iterator<int> >);
+
 TEST(viewTest, viewMoveMutableEmptyAndSize)
 {
 	int src[] {0, 1};
