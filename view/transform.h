@@ -7,7 +7,7 @@
 
 
 #include "all.h"
-#include "transform_iterator.h"
+#include "../auxi/transform_iterator.h"
 
 /** @file
 */
@@ -45,7 +45,7 @@ inline constexpr _transformFn transform;
 template< typename View, typename Func >
 class _transformView
 {
-	using _iter = transform_iterator< Func, iterator_t<View> >;
+	using _iter = _transformIterator< false, Func, iterator_t<View> >;
 
 	_detail::TightPair< View, typename _detail::AssignableWrap<Func>::Type > _m;
 
@@ -59,14 +59,14 @@ public:
 		{
 			return {_detail::MoveIfNotCopyable(_m.second()), _m.first.begin()};
 		}
-	//! Return type either same as `begin()` or oel::sentinel_wrapper
+	//! Return type either same as `begin()` or oel::_sentinelWrapper
 	template< typename V = View, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
 	constexpr auto end()
 		{
 			if constexpr (std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> >)
 				return _iter(_m.second(), _m.first.end());
 			else
-				return sentinel_wrapper< sentinel_t<V> >{_m.first.end()};
+				return _sentinelWrapper< sentinel_t<V> >{_m.first.end()};
 		}
 
 	template< typename V = View >  OEL_ALWAYS_INLINE
@@ -74,6 +74,13 @@ public:
 	->	decltype( std::declval<V>().size() )  { return _m.first.size(); }
 
 	constexpr bool empty()   { return _m.first.empty(); }
+
+	constexpr decltype(auto) operator[](difference_type index)
+		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)
+		{
+			Func & f = _m.second();
+			return f(_m.first.begin()[index]);
+		}
 
 	constexpr View         base() &&                { return std::move(_m.first); }
 	constexpr const View & base() const & noexcept  { return _m.first; }
@@ -113,6 +120,7 @@ constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 }
 
 } // oel
+
 
 #if OEL_STD_RANGES
 
