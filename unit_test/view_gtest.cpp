@@ -70,15 +70,14 @@ TEST(viewTest, viewAll)
 
 constexpr auto transformIterFromIntPtr(const int * p)
 {
-	struct F
-	{
-		auto operator()(int i) const { return i; }
-	};
-	return oel::transform_iterator<F, const int *>{F{}, p};
+	struct
+	{	auto operator()(int i) const { return i; }
+	} f;
+	return view::transform(view::counted(p, 1), f).begin();
 }
 
 template< typename S >
-constexpr oel::sentinel_wrapper<S> makeSentinel(S se) { return {se}; }
+constexpr oel::_sentinelWrapper<S> makeSentinel(S se) { return {se}; }
 
 TEST(viewTest, subscript)
 {
@@ -409,7 +408,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 {
 	auto nonEmpty = [i = -1](int j) { return i + j; };
 	int src[1];
-	oel::transform_iterator it{nonEmpty, src + 0};
+	auto it = view::transform(src, nonEmpty).begin();
 	auto v = view::subrange(it, makeSentinel(src + 1)) | view::move;
 
 #if OEL_STD_RANGES
