@@ -74,6 +74,13 @@ struct _transformView
 
 	constexpr bool empty()   { return _m.first.empty(); }
 
+	constexpr decltype(auto) operator[](difference_type index)
+		OEL_REQUIRES(requires(View & v) { v[index]; })
+		{
+			const Func & f = _m.second();
+			return f(_m.first[index]);
+		}
+
 	constexpr View         base() &&                { return std::move(_m.first); }
 	constexpr const View & base() const & noexcept  { return _m.first; }
 };

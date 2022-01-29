@@ -230,16 +230,8 @@ struct TooSimpleIter
 	}
 };
 
-#if !defined _MSC_VER or _MSC_VER >= 1920
 template< typename I >
 constexpr bool oel::disable_sized_sentinel_for< I, TooSimpleIter<I> > = true;
-#else
-namespace oel
-{
-template< typename I >
-constexpr bool disable_sized_sentinel_for< I, TooSimpleIter<I> > = true;
-}
-#endif
 
 TEST(utilTest, detailCountOrEnd_disabledSize)
 {

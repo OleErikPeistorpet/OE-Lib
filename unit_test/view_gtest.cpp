@@ -165,12 +165,12 @@ TEST(viewTest, viewTransformBasics)
 
 	using IEmptyLambda = decltype(v.begin());
 
-	static_assert(std::is_same_v< IEmptyLambda::iterator_category, std::bidirectional_iterator_tag >);
+	static_assert(std::is_same_v< IEmptyLambda::iterator_category, std::random_access_iterator_tag >);
 	static_assert(std::is_same_v< decltype(itMoveOnly)::iterator_category, std::input_iterator_tag >);
 	static_assert(std::is_same_v< decltype(itMoveOnly++), void >);
 	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
 #if OEL_STD_RANGES
-	static_assert(std::ranges::bidirectional_range< decltype(v) >);
+	static_assert(std::ranges::random_access_range< decltype(v) >);
 	static_assert(std::ranges::input_range< decltype(v2) >);
 	static_assert(std::ranges::view< decltype(v) >);
 	using RVal = decltype( std::move(v) );
@@ -182,8 +182,13 @@ TEST(viewTest, viewTransformBasics)
 #endif
 	{
 		auto it = v.begin();
+		EXPECT_FALSE( it >= v.end() );
+
 		EXPECT_TRUE( it++ == v.begin() );
 		EXPECT_TRUE( it == v.end() );
+		EXPECT_TRUE( it > v.begin() );
+		EXPECT_FALSE( it <= v.begin() );
+
 		EXPECT_TRUE( --it == v.begin() );
 		EXPECT_TRUE( (++it)-- != v.begin() );
 	}
@@ -235,14 +240,17 @@ TEST(viewTest, viewTransformSizedRange)
 {
 	int src[] {1, 2};
 	auto tv = src | view::transform([](int & i) { return i++; });
+	EXPECT_EQ(1, tv[0]);
+	EXPECT_EQ(2, tv[1]);
+
 	auto tsr = view::subrange(tv.begin(), tv.end());
 	auto dest = tsr | oel::to_dynarray();
 	EXPECT_EQ(2U, tsr.size());
 	EXPECT_EQ(2U, dest.size());
-	EXPECT_EQ(1, dest[0]);
-	EXPECT_EQ(2, dest[1]);
-	EXPECT_EQ(2, src[0]);
-	EXPECT_EQ(3, src[1]);
+	EXPECT_EQ(2, dest[0]);
+	EXPECT_EQ(3, dest[1]);
+	EXPECT_EQ(3, src[0]);
+	EXPECT_EQ(4, src[1]);
 
 	std::forward_list<int> const li{-2};
 	auto last = dest.append( view::counted(li.begin(), 1) | view::transform(Square{}) );
@@ -294,15 +302,68 @@ TEST(viewTest, viewTransformAsOutput)
 	auto f = [](Pair & p) -> int & { return p.second; };
 	auto v = view::transform(test, std::function<int & (Pair &)>{f});
 	int n{};
-	auto const last = v.end();
-	for (auto it = v.begin(); it != last; ++it)
-		*it = --n;
+	auto it = v.begin();
+	for (ptrdiff_t i{}; i != ssize(v); ++i)
+		it[i] = --n;
 
 	EXPECT_EQ(1, test[0].first);
 	EXPECT_EQ(3, test[1].first);
 	EXPECT_EQ(-1, test[0].second);
 	EXPECT_EQ(-2, test[1].second);
 }
+
+struct MoveOnlyIterWithForwardTag
+{
+	using iterator_category = std::forward_iterator_tag;
+	using value_type        = int;
+	using reference         = int;
+	using pointer           = void;
+	using difference_type   = ptrdiff_t;
+
+	constexpr int operator*() const { return 7; }
+
+	MoveOnlyIterWithForwardTag() = default;
+	MoveOnlyIterWithForwardTag(MoveOnlyIterWithForwardTag &&)      = default;
+	MoveOnlyIterWithForwardTag(const MoveOnlyIterWithForwardTag &) = delete;
+	MoveOnlyIterWithForwardTag& operator =(MoveOnlyIterWithForwardTag &&) = default;
+
+	constexpr MoveOnlyIterWithForwardTag & operator++()      { return *this; }
+	constexpr void                         operator++(int) & {}
+};
+
+TEST(viewTest, testTransformMoveOnlyIterator)
+{
+	auto v = view::counted(MoveOnlyIterWithForwardTag{}, 1)
+			| view::transform([](int i) { return i; });
+	auto it = v.begin();
+	static_assert(std::is_same_v< decltype(it++), void >);
+	EXPECT_EQ(7, *it);
+}
+
+#if __cpp_lib_concepts
+
+struct IterWithConceptOnly
+{
+	using iterator_concept = std::forward_iterator_tag;
+	using value_type       = int;
+	using difference_type  = ptrdiff_t;
+
+	constexpr int operator*() const { return 7; }
+
+	constexpr IterWithConceptOnly & operator++()      { return *this; }
+	constexpr void                  operator++(int) & {}
+};
+
+void testTransformIterWithConceptOnly()
+{
+	auto v = view::counted(IterWithConceptOnly{}, 1)
+			| view::transform([](int i) { return i; });
+	auto it = v.begin();
+	using I = decltype(it);
+	static_assert(std::is_same_v< I::iterator_category, std::forward_iterator_tag >);
+	static_assert(std::is_same_v< decltype(it++), I >);
+}
+#endif
 
 constexpr StdArrInt2 generatedArray()
 {

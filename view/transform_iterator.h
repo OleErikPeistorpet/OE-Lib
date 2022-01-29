@@ -16,7 +16,8 @@ namespace oel
 {
 namespace _detail
 {
-	template< typename Func, typename Iter,
+	template
+	<	typename Func, typename Iter,
 		bool = std::is_invocable_v< const Func &, decltype( *std::declval<Iter const>() ) >
 	>
 	struct TransformIterBase
@@ -40,8 +41,8 @@ namespace _detail
 }
 
 
-/** @brief Similar to boost::transform_iterator
-*
+//! Similar to boost::transform_iterator
+/**
 * But unlike boost::transform_iterator:
 * - Has no size overhead for stateless function objects
 * - Accepts a lambda as long as any by-value captures are trivially copy constructible and trivially destructible
@@ -55,17 +56,23 @@ class transform_iterator
 
 	using _super::m;
 
+	static constexpr auto _cat()
+		{
+			if constexpr( std::is_copy_constructible_v<UnaryFunc> and _super::canCallConst )
+			{
+				if constexpr( iter_is_random_access<Iterator> )
+					return std::random_access_iterator_tag{};
+				else
+					return _detail::CheckedIterTag<Iterator>();
+			}
+			else
+			{	return std::input_iterator_tag{};
+			}
+		}
+
 public:
-	using iterator_category =
-		std::conditional_t<
-			std::is_copy_constructible_v<UnaryFunc> and _super::canCallConst,
-			std::conditional_t<
-				iter_is_bidirectional<Iterator>,
-				std::bidirectional_iterator_tag,
-				std::conditional_t< iter_is_forward<Iterator>, std::forward_iterator_tag, std::input_iterator_tag >
-			>,
-			std::input_iterator_tag
-		>;
+	using iterator_category = decltype( _cat() );
+
 	using difference_type = iter_difference_t<Iterator>;
 	using reference       = decltype( std::declval<typename _super::FnRef>()(*m.first) );
 	using pointer         = void;
@@ -87,9 +94,16 @@ public:
 			return f(*m.first);
 		}
 
+	constexpr reference operator[](difference_type offset) const
+		{
+			const UnaryFunc & f = m.second();
+			return f(m.first[offset]);
+		}
+
 	constexpr transform_iterator & operator++()   OEL_ALWAYS_INLINE { ++m.first;  return *this; }
+
 	//! Post-increment: return type is transform_iterator if iterator_category is-a forward_iterator_tag, else void
-	constexpr auto                 operator++(int) &
+	constexpr auto operator++(int) &
 		{
 			if constexpr( std::is_same_v<iterator_category, std::input_iterator_tag> )
 			{
@@ -109,6 +123,23 @@ public:
 			--m.first;
 			return tmp;
 		}
+
+	constexpr transform_iterator & operator+=(difference_type offset) &
+		{
+			m.first += offset;
+			return *this;
+		}
+	constexpr transform_iterator & operator-=(difference_type offset) &
+		{
+			m.first -= offset;
+			return *this;
+		}
+
+	friend constexpr transform_iterator operator +(difference_type offset, transform_iterator it)  { return it += offset; }
+	OEL_ALWAYS_INLINE
+	friend constexpr transform_iterator operator +(transform_iterator it, difference_type offset)  { return it += offset; }
+
+	friend constexpr transform_iterator operator -(transform_iterator it, difference_type offset)  { return it -= offset; }
 
 	friend constexpr difference_type operator -(const transform_iterator & left, const transform_iterator & right)
 		OEL_REQUIRES(std::sized_sentinel_for<Iterator, Iterator>)
@@ -134,6 +165,18 @@ public:
 		{
 			return left.m.first != right.m.first;
 		}
+	friend constexpr bool operator <(const transform_iterator & left, const transform_iterator & right)
+		{
+			return left.m.first < right.m.first;
+		}
+	friend constexpr bool operator >
+		(const transform_iterator & left, const transform_iterator & right)  { return right < left; }
+
+	friend constexpr bool operator<=
+		(const transform_iterator & left, const transform_iterator & right)  { return !(right < left); }
+
+	friend constexpr bool operator>=
+		(const transform_iterator & left, const transform_iterator & right)  { return !(left < right); }
 
 	template< typename S >
 	friend constexpr bool operator==

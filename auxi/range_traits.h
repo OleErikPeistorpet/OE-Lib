@@ -32,7 +32,7 @@ namespace _detail
 	template< typename Iter >
 	typename std::iterator_traits<Iter>::iterator_category IterCat(int);
 
-	template< typename > void IterCat(long);
+	template< typename > std::input_iterator_tag IterCat(long);
 
 
 	template< typename Iter >
@@ -41,14 +41,21 @@ namespace _detail
 	template< typename > void IterConcept(long);
 
 
-	template< typename Iter, typename Tag >
-	constexpr bool IterIs()
+	template< typename Iter >
+	constexpr auto CheckedIterTag()
 	{
-		if constexpr( !std::is_copy_constructible_v<Iter> )
-			return false;
-
-		return std::is_base_of_v< Tag, decltype( _detail::IterCat<Iter>(0) ) >
-		    or std::is_base_of_v< Tag, decltype( _detail::IterConcept<Iter>(0) ) >;
+		if constexpr( std::is_copy_constructible_v<Iter> )
+		{
+			using Cat     = decltype( _detail::IterCat<Iter>(0) );
+			using Concept = decltype( _detail::IterConcept<Iter>(0) );
+			if constexpr( std::is_base_of_v<Cat, Concept> )
+				return Concept{};
+			else
+				return Cat{};
+		}
+		else
+		{	return std::input_iterator_tag{};
+		}
 	}
 }
 
@@ -88,14 +95,12 @@ using borrowed_iterator_t =
 	using std::iter_value_t;
 #endif
 
-template< typename Iterator >
-inline constexpr bool iter_is_forward       = _detail::IterIs<Iterator, std::forward_iterator_tag>();
+//! May fail for std::output_iterator_tag
+template< typename Iterator, typename Tag >
+inline constexpr bool iter_is  =  std::is_base_of_v< Tag, decltype( _detail::CheckedIterTag<Iterator>() ) >;
 
 template< typename Iterator >
-inline constexpr bool iter_is_bidirectional = _detail::IterIs<Iterator, std::bidirectional_iterator_tag>();
-
-template< typename Iterator >
-inline constexpr bool iter_is_random_access = _detail::IterIs<Iterator, std::random_access_iterator_tag>();
+inline constexpr bool iter_is_random_access = iter_is<Iterator, std::random_access_iterator_tag>;
 
 //! Partial emulation of std::sized_sentinel_for (C++20)
 /**

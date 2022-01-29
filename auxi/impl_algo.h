@@ -125,7 +125,9 @@ namespace oel::_detail
 
 
 	template< typename Range >
-	inline constexpr auto rangeIsForwardOrSized = iter_is_forward< iterator_t<Range> > or range_is_sized<Range>;
+	inline constexpr auto rangeIsForwardOrSized =
+		iter_is< iterator_t<Range>, std::forward_iterator_tag >
+		or range_is_sized<Range>;
 
 	// Used only if rangeIsForwardOrSized
 	template< typename Range >
