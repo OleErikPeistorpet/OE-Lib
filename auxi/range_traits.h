@@ -27,8 +27,67 @@
 
 namespace oel
 {
+
+using std::ptrdiff_t;
+using std::size_t;
+
+
+using std::begin;  using std::end;
+
+
+#if __cpp_lib_concepts >= 201907
+	using std::unreachable_sentinel_t;
+	using std::unreachable_sentinel;
+#else
+	//! Same as std::unreachable_sentinel_t, just not concept constrained
+	struct unreachable_sentinel_t
+	{
+		template< typename I >  OEL_ALWAYS_INLINE
+		friend constexpr bool operator==(const I &, unreachable_sentinel_t) noexcept { return false; }
+
+		template< typename I >  OEL_ALWAYS_INLINE
+		friend constexpr bool operator==(unreachable_sentinel_t, const I &) noexcept { return false; }
+
+		template< typename I >  OEL_ALWAYS_INLINE
+		friend constexpr bool operator!=(const I &, unreachable_sentinel_t) noexcept { return true; }
+
+		template< typename I >  OEL_ALWAYS_INLINE
+		friend constexpr bool operator!=(unreachable_sentinel_t, const I &) noexcept { return true; }
+	};
+	inline constexpr unreachable_sentinel_t unreachable_sentinel;
+#endif
+
+
+//! Return type of begin function (found by ADL)
+template< typename Range >
+using iterator_t = decltype( begin(std::declval<Range &>()) );
+//! Return type of end function (found by ADL)
+template< typename Range >
+using sentinel_t = decltype( end(std::declval<Range &>()) );
+
+//! Like std::ranges::borrowed_iterator_t, but doesn't require that Range has end()
+template< typename Range >
+using borrowed_iterator_t =
+#if OEL_STD_RANGES
+	std::conditional_t<
+		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
+		iterator_t<Range>,
+		std::ranges::dangling
+	>;
+#else
+	iterator_t<Range>;
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+
 namespace _detail
 {
+	template< typename Range >
+	sentinel_t<Range> SentinelOrVoid(int);
+
+	template< typename > void SentinelOrVoid(long);
+
+
 	template< typename Iter >
 	typename std::iterator_traits<Iter>::iterator_category IterCat(int);
 
@@ -52,33 +111,15 @@ namespace _detail
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
-using std::ptrdiff_t;
-using std::size_t;
-
-
-using std::begin;  using std::end;
-
-
-//! Return type of begin function (found by ADL)
+/** @brief Used to specify that a range is infinite, like Range-v3 cardinality
+*
+* This enables some composed views to model std::ranges::sized_range, which can be important for performance. */
 template< typename Range >
-using iterator_t = decltype( begin(std::declval<Range &>()) );
-//! Return type of end function (found by ADL)
-template< typename Range >
-using sentinel_t = decltype( end(std::declval<Range &>()) );
+inline constexpr bool enable_infinite_range =
+	std::is_same_v< decltype(_detail::SentinelOrVoid<Range>(0)), unreachable_sentinel_t >;
 
-//! Like std::ranges::borrowed_iterator_t, but doesn't require that Range has end()
-template< typename Range >
-using borrowed_iterator_t =
-#if OEL_STD_RANGES
-	std::conditional_t<
-		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
-		iterator_t<Range>,
-		std::ranges::dangling
-	>;
-#else
-	iterator_t<Range>;
-#endif
 
 #if __cpp_lib_concepts < 201907
 	template< typename Iterator >
@@ -103,7 +144,8 @@ inline constexpr bool iter_is_bidirectional = _detail::IterIs<Iterator, std::bid
 template< typename Iterator >
 inline constexpr bool iter_is_random_access = _detail::IterIs<Iterator, std::random_access_iterator_tag>();
 
-/** @brief Partial emulation of std::sized_sentinel_for (C++20)
+/**
+* @brief Partial emulation of std::sized_sentinel_for (C++20)
 *
 * Let i be an Iterator and s a Sentinel. If `s - i` is well-formed, then this value specifies whether
 * that subtraction is invalid or not O(1). Must be specialized for some iterator, sentinel pairs. */

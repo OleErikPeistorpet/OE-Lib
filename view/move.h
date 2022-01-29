@@ -72,10 +72,13 @@ oel::dynarray movedStrings(moveFrom | view::move);
 @endcode  */
 inline constexpr _moveFn move;
 
+} // view
+
+template< typename V >
+inline constexpr bool enable_infinite_range< _moveView<V> >
+	= enable_infinite_range< std::remove_cv_t<V> >;
+
 }
-
-} // oel
-
 
 #if OEL_STD_RANGES
 

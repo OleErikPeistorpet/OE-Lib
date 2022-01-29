@@ -12,14 +12,14 @@
 #include <sstream>
 
 namespace view = oel::view;
+using std::make_tuple;
 
 constexpr auto transformIterFromIntPtr(const int * p)
 {
-	struct F
-	{
-		auto operator()(int i) const { return i; }
-	};
-	return oel::transform_iterator<F, const int *>{F{}, p};
+	struct
+	{	auto operator()(int i) const { return i; }
+	} f;
+	return oel::transform_iterator{f, p};
 }
 
 TEST(viewTest, subscript)
@@ -60,7 +60,7 @@ TEST(viewTest, viewSubrange)
 		EXPECT_EQ(2, ssize(v));
 	}
 	constexpr auto it = transformIterFromIntPtr(src);
-	constexpr auto v = view::subrange(it, src + 3);
+	constexpr auto v = view::subrange(it, make_tuple( std::end(src) ));
 	EXPECT_EQ(3, ssize(v));
 }
 
@@ -123,17 +123,17 @@ TEST(viewTest, viewTransformBasics)
 		EXPECT_TRUE( --it == v.begin() );
 		EXPECT_TRUE( (++it)-- != v.begin() );
 	}
-	EXPECT_TRUE( v.begin() == v.begin().base() );
-	EXPECT_FALSE( r + 1 == v.begin() );
-	EXPECT_FALSE( v.begin() != r + 0 );
-	EXPECT_TRUE( r + 1 != v.begin() );
+	EXPECT_TRUE( v.begin() == std::tuple{v.begin().base()} );
+	EXPECT_FALSE( make_tuple(r + 1) == v.begin() );
+	EXPECT_FALSE( v.begin() != make_tuple(r + 0) );
+	EXPECT_TRUE( make_tuple(r + 1) != v.begin());
 
 	auto nested = view::transform(v, [](double d) { return d; });
 	auto const it = nested.begin();
-	EXPECT_TRUE(r + 0 == it);
-	EXPECT_TRUE(r + 1 != it);
-	EXPECT_FALSE(it == r + 1);
-	EXPECT_FALSE(it != r + 0);
+	EXPECT_TRUE( make_tuple(make_tuple(r + 0)) == it );
+	EXPECT_TRUE( make_tuple(make_tuple(r + 1)) != it );
+	EXPECT_FALSE( it == make_tuple(make_tuple(r + 1)) );
+	EXPECT_FALSE( it != make_tuple(make_tuple(r + 0)) );
 }
 
 using StdArrInt2 = std::array<int, 2>;
@@ -222,13 +222,23 @@ TEST(viewTest, viewMoveEndDifferentType)
 	auto nonEmpty = [i = -1](int j) { return i + j; };
 	int src[1];
 	oel::transform_iterator it{nonEmpty, src + 0};
-	auto v = view::subrange(it, src + 1) | view::move;
+	auto se = make_tuple(src + 1);
+	auto v = view::subrange(it, se) | view::move;
 
 	EXPECT_NE(v.begin(), v.end());
-	EXPECT_EQ(src + 1, v.end().base());
+	EXPECT_EQ(se, v.end().base());
 }
 
 #if OEL_STD_RANGES
+
+void testEnableInfiniteRange()
+{
+	std::forward_list<int> li{};
+	auto bounded = std::ranges::subrange(li);
+	auto unbound = std::ranges::subrange(li.begin(), std::unreachable_sentinel);
+	static_assert(not oel::enable_infinite_range< decltype(bounded) >);
+	static_assert(oel::enable_infinite_range< decltype(unbound) >);
+}
 
 TEST(viewTest, viewMoveMutableEmptyAndSize)
 {
