@@ -139,26 +139,25 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
-#ifdef __has_include
 #if __has_include(<variant>) and (__cplusplus > 201500 or _HAS_CXX17)
-	#include "optimize_ext/std_variant.h"
 
-	TEST(dynarrayOtherTest, stdVariant)
-	{
-		using Inner = std::conditional_t< oel::is_trivially_relocatable<std::string>{}, std::string, dynarray<char> >;
-		using V = std::variant<std::unique_ptr<double>, Inner>;
-		static_assert(oel::is_trivially_relocatable<V>());
+#include "optimize_ext/std_variant.h"
 
-		dynarray<V> a;
+TEST(dynarrayOtherTest, stdVariant)
+{
+	using Inner = std::conditional_t< oel::is_trivially_relocatable<std::string>{}, std::string, dynarray<char> >;
+	using V = std::variant<std::unique_ptr<double>, Inner>;
+	static_assert(oel::is_trivially_relocatable<V>());
 
-		a.emplace_back(Inner("abc"));
-		a.push_back(std::make_unique<double>(3.3));
-		a.reserve(9);
+	dynarray<V> a;
 
-		EXPECT_TRUE(std::strcmp( "abc", std::get<Inner>(a[0]).data() ) == 0);
-		EXPECT_EQ( 3.3, *std::get<0>(a[1]) );
-	}
-#endif
+	a.emplace_back(Inner("abc"));
+	a.push_back(std::make_unique<double>(3.3));
+	a.reserve(9);
+
+	EXPECT_TRUE(std::strcmp( "abc", std::get<Inner>(a[0]).data() ) == 0);
+	EXPECT_EQ( 3.3, *std::get<0>(a[1]) );
+}
 #endif
 
 TEST(dynarrayOtherTest, withReferenceWrapper)
