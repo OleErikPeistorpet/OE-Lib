@@ -15,12 +15,10 @@
 
 #include <algorithm>
 
-#ifdef __has_include
 #if __has_include(<memory_resource>) and (__cplusplus > 201500 or _HAS_CXX17)
-	#include <memory_resource>
+#include <memory_resource>
 
-	#define OEL_HAS_STD_PMR  1
-#endif
+#define OEL_HAS_STD_PMR  1
 #endif
 
 /** @file
