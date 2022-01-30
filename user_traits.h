@@ -64,7 +64,7 @@ template< typename T > struct allocator;  // forward declare
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
 inline namespace debug
-	#if __GNUC__ >= 5
+	#ifdef __GNUC__
 		__attribute__((abi_tag))
 	#endif
 {
@@ -97,20 +97,20 @@ using std::false_type;
 *
 * Already true for trivially copyable types. For others, declare a function in the namespace of the type like this:
 @code
-oel::true_type specify_trivial_relocate(MyClass &&);
+oel::true_type specify_trivial_relocate(MyClass);
 
 // Or if you are unsure if a member or base class is and will stay trivially relocatable:
 class MyClass {
 	std::string name;
 };
-oel::is_trivially_relocatable<std::string> specify_trivial_relocate(MyClass &&);
+oel::is_trivially_relocatable<std::string> specify_trivial_relocate(MyClass);
 
 // With nested class, use friend keyword:
 class Outer {
 	class Inner {
 		std::unique_ptr<whatever> a;
 	};
-	friend oel::true_type specify_trivial_relocate(Inner &&);
+	friend oel::true_type specify_trivial_relocate(Inner);
 };
 @endcode  */
 template< typename T >

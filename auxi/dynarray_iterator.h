@@ -43,9 +43,6 @@ public:
 	using iterator_category = std::random_access_iterator_tag;
 #if __cpp_lib_concepts
 	using iterator_concept  = std::contiguous_iterator_tag;
-
-#elif _CPPLIB_VER
-	using _Unchecked_type = Ptr; // to silence MS checked iterator warnings
 #endif
 
 	using difference_type = ptrdiff_t;

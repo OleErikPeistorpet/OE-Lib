@@ -4,12 +4,10 @@ A cross-platform, very fast substitute for C++ std::vector (and std::copy) with 
 
 Features relocation optimizations similar to [Folly fbvector](https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation) and UnrealEngine TArray.
 
-Unlike the containers in many older standard library implementations, over-aligned types (as used by SSE and AVX instructions) are supported with no special action by the user. A runtime crash would often be the result using std::vector.
-
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
 C++14 is required. Supported compilers:
-* Visual Studio 2015 and later
+* Visual Studio 2017 and later
 * GCC 5 and later
 * Clang (tested regularly, but minimum version is unknown)
 
@@ -62,9 +60,7 @@ Precondition checks are off by default except for Visual C++ debug builds. (Prec
 
 You can customize what happens when a check is triggered. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `user_traits.h`
 
-### Visual Studio specific
+### Visual Studio visualizer
 
 For better display of dynarray and the iterators in the Visual Studio debugger, copy `oe_lib2.natvis` to:
 `Documents\Visual Studio 20**\Visualizers`. You can also just add `oe_lib2.natvis` to the project instead.
-
-For Visual Studio 2015, you need to manually define OEL_NO_BOOST if not using Boost.

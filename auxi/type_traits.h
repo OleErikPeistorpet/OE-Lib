@@ -11,10 +11,8 @@
 #include <iterator>
 
 
-#ifdef __has_include
-	#if !__has_include(<boost/config.hpp>)
+#if !__has_include(<boost/config.hpp>)
 	#define OEL_NO_BOOST  1
-	#endif
 #endif
 
 namespace oel
