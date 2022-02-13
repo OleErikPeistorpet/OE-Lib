@@ -13,91 +13,137 @@ namespace oel
 {
 namespace _detail
 {
-	template< typename I, typename F,
-	          bool = std::is_empty<F>::value >
+	template< typename T, typename U,
+	          bool = std::is_empty<U>::value >
 	struct TightPair
 	{
-		I inner;
-		F _fun;
+		T inner;
+		U _sec;
 
-		OEL_ALWAYS_INLINE const F & func() const noexcept { return _fun; }
+		OEL_ALWAYS_INLINE const U & func() const noexcept { return _sec; }
+		OEL_ALWAYS_INLINE       U & func() noexcept       { return _sec; }
 	};
 
-	template< typename Iterator_MSVC_needs_unique_name, typename Empty_function_object_MSVC_name >
-	struct TightPair< Iterator_MSVC_needs_unique_name, Empty_function_object_MSVC_name, true >
-	 :	Empty_function_object_MSVC_name
+	template< typename Type_unique_name_for_MSVC, typename Empty_type_MSVC_unique_name >
+	struct TightPair<Type_unique_name_for_MSVC, Empty_type_MSVC_unique_name, true>
+	 :	Empty_type_MSVC_unique_name
 	{
-		Iterator_MSVC_needs_unique_name inner;
+		Type_unique_name_for_MSVC inner;
 
-		TightPair(Iterator_MSVC_needs_unique_name it, Empty_function_object_MSVC_name f)
-		 :	Empty_function_object_MSVC_name(f), inner(it) {
-		}
+		TightPair() = default;
+		TightPair(Type_unique_name_for_MSVC i, Empty_type_MSVC_unique_name f)
+		 :	Empty_type_MSVC_unique_name{f}, inner{std::move(i)}
+		{}
 
-		OEL_ALWAYS_INLINE const Empty_function_object_MSVC_name & func() const noexcept { return *this; }
+		OEL_ALWAYS_INLINE const Empty_type_MSVC_unique_name & func() const noexcept { return *this; }
+		OEL_ALWAYS_INLINE       Empty_type_MSVC_unique_name & func() noexcept       { return *this; }
 	};
+
+
+	template< typename Type_unique_name_for_MSVC >
+	struct AssignableBox : Type_unique_name_for_MSVC
+	{
+		static_assert(
+			std::is_nothrow_copy_constructible<Type_unique_name_for_MSVC>::value and
+				std::is_trivially_destructible<Type_unique_name_for_MSVC>::value,
+			"transform_iterator requires move assignable or trivially destructible UnaryFunc");
+
+		AssignableBox(const Type_unique_name_for_MSVC & src) noexcept
+		 :	Type_unique_name_for_MSVC(src) {}
+
+		AssignableBox() = default;
+		AssignableBox(const AssignableBox &) = default;
+
+		void operator =(const AssignableBox & other) & noexcept
+		{
+			::new(this) AssignableBox(other);
+		}
+	};
+
+	template< typename T >
+	using MakeAssignable = std::conditional_t< std::is_move_assignable<T>::value, T, AssignableBox<T> >;
 }
 
 
 /** @brief Similar to boost::transform_iterator
 *
-* Note that the transform function is kept for the whole lifetime. It can only be set by
-* constructor, and is untouched on assignment. The reason is zero-overhead lambda support  */
+* Move-only UnaryFunc and Iterator supported, but then transform_iterator
+* itself becomes move-only, and oel views don't handle that. */
 template< typename UnaryFunc, typename Iterator >
 class transform_iterator
 {
-	_detail::TightPair<Iterator, UnaryFunc> _m;
+	_detail::TightPair< Iterator, _detail::MakeAssignable<UnaryFunc> > _m;
 
-public:
-	using iterator_category = std::conditional_t<
-			iter_is_forward<Iterator>::value,
-			std::forward_iterator_tag,
-			std::input_iterator_tag
-		>;
-	using difference_type = iter_difference_t<Iterator>;
-	using reference       = decltype( _m.func()(*_m.inner) );
-	using pointer         = void;
-	using value_type      = std::decay_t<reference>;
-
-	Iterator base() const  OEL_ALWAYS_INLINE { return _m.inner; }
-
-	transform_iterator(UnaryFunc f, Iterator it)
-	 :	_m{it, f} {
-	}
-
-	transform_iterator(const transform_iterator &) = default;
-
-	transform_iterator & operator =(const transform_iterator & other) &
-		noexcept(noexcept( _m.inner = other._m.inner ))
+	template< typename IterCat,
+		enable_if< std::is_base_of<std::forward_iterator_tag, IterCat>::value > = 0
+	>
+	transform_iterator _postIncrement()
 	{
-		_m.inner = other._m.inner;
-		return *this;
-	}
-
-	reference operator*() const
-	{
-		return _m.func()(*_m.inner);
-	}
-
-	transform_iterator & operator++()  OEL_ALWAYS_INLINE
-	{	// preincrement
-		++_m.inner;
-		return *this;
-	}
-
-	transform_iterator operator++(int) &
-	{	// postincrement
 		auto tmp = *this;
 		++_m.inner;
 		return tmp;
 	}
 
-	friend difference_type operator -(const transform_iterator & left, Iterator right)  { return left._m.inner - right; }
-	friend difference_type operator -(Iterator left, const transform_iterator & right)  { return left - right._m.inner; }
+	template< typename, typename... None >
+	void _postIncrement(None...)
+	{
+		++_m.inner;
+	}
 
-	friend bool operator==(const transform_iterator & left, Iterator right)  { return left._m.inner == right; }
-	friend bool operator==(Iterator left, const transform_iterator & right)  { return left == right._m.inner; }
-	friend bool operator!=(const transform_iterator & left, Iterator right)  { return left._m.inner != right; }
-	friend bool operator!=(Iterator left, const transform_iterator & right)  { return left != right._m.inner; }
+public:
+	using iterator_category = std::conditional_t<
+			iter_is_forward<Iterator>::value and std::is_copy_constructible<UnaryFunc>::value,
+			std::forward_iterator_tag,
+			std::input_iterator_tag
+		>;
+	using difference_type = iter_difference_t<Iterator>;
+	using reference       = decltype( std::declval<UnaryFunc &>()(*_m.inner) );
+	using pointer         = void;
+	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
+
+	transform_iterator() = default;
+	transform_iterator(UnaryFunc f, Iterator it)  : _m{std::move(it), std::move(f)} {}
+
+	Iterator         base() &&       OEL_ALWAYS_INLINE { return std::move(_m.inner); }
+	const Iterator & base() const &  OEL_ALWAYS_INLINE { return _m.inner; }
+
+	reference operator*() const
+		OEL_REQUIRES(std::invocable< UnaryFunc const, decltype(*_m.inner) >)
+	{
+		return static_cast<const UnaryFunc &>(_m.func())(*_m.inner);
+	}
+	reference operator*()
+	{
+		return static_cast<UnaryFunc &>(_m.func())(*_m.inner);
+	}
+
+	transform_iterator & operator++()  OEL_ALWAYS_INLINE
+	{
+		++_m.inner;
+		return *this;
+	}
+	//! Return type is transform_iterator if iterator_category is forward_iterator_tag, else void
+	auto operator++(int) &  OEL_ALWAYS_INLINE
+	{
+		return _postIncrement<iterator_category>();
+	}
+
+	difference_type operator -(const transform_iterator & right) const              { return _m.inner - right._m.inner; }
+	template< typename Sentinel >
+	friend difference_type operator -(const transform_iterator & left, Sentinel right)  { return left._m.inner - right; }
+	template< typename Sentinel >
+	friend difference_type operator -(Sentinel left, const transform_iterator & right)  { return left - right._m.inner; }
+
+	bool        operator==(const transform_iterator & right) const       { return _m.inner == right._m.inner; }
+	bool        operator!=(const transform_iterator & right) const       { return _m.inner != right._m.inner; }
+	template< typename Sentinel >
+	friend bool operator==(const transform_iterator & left, Sentinel right)  { return left._m.inner == right; }
+	template< typename Sentinel >
+	friend bool operator==(Sentinel left, const transform_iterator & right)  { return right._m.inner == left; }
+	template< typename Sentinel >
+	friend bool operator!=(const transform_iterator & left, Sentinel right)  { return left._m.inner != right; }
+	template< typename Sentinel >
+	friend bool operator!=(Sentinel left, const transform_iterator & right)  { return right._m.inner != left; }
 };
 
 

@@ -146,6 +146,11 @@ struct is_trivially_relocatable;
 	#define OEL_CONST_COND
 #endif
 
+#if __cpp_lib_concepts >= 201907
+	#define OEL_REQUIRES(...) requires(__VA_ARGS__)
+#else
+	#define OEL_REQUIRES(...)
+#endif
 
 #if defined __cpp_deduction_guides or (_MSC_VER >= 1914 and _HAS_CXX17)
 	#define OEL_HAS_DEDUCTION_GUIDES  1

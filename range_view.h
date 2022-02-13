@@ -37,6 +37,8 @@ template< typename Iterator, typename Sentinel = Iterator >
 class basic_view
 {
 public:
+	using difference_type = iter_difference_t<Iterator>;
+
 	basic_view() = default;
 	basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
 
@@ -122,9 +124,9 @@ public:
 namespace view
 {
 
-//! Create a basic_view from two iterators, with type deduced from arguments
-template< typename Iterator >  inline
-basic_view<Iterator> subrange(Iterator first, Iterator last)  { return {first, last}; }
+//! Create a basic_view from iterator pair, or iterator and sentinel
+template< typename Iterator, typename Sentinel >  inline
+basic_view<Iterator, Sentinel> subrange(Iterator first, Sentinel last)  { return {first, last}; }
 
 
 //! Create a counted_view from iterator and count, with type deduced from first
@@ -137,8 +139,8 @@ constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Itera
 //! Create a basic_view of std::move_iterator from two iterators
 template< typename InputIterator >
 basic_view< std::move_iterator<InputIterator> >
-	move(InputIterator first, InputIterator last)   { using MovI = std::move_iterator<InputIterator>;
-	                                                  return {MovI{first}, MovI{last}}; }
+	move(InputIterator first, InputIterator last)   { using MI = std::move_iterator<InputIterator>;
+	                                                  return{ MI{first}, MI{last} }; }
 /**
 * @brief Wrap a range such that the elements can be moved from when passed to a container or algorithm
 * @return Type `counted_view<std::move_iterator>` if r.size() exists or r is an array,
@@ -146,8 +148,8 @@ basic_view< std::move_iterator<InputIterator> >
 *
 * Note that passing an rvalue range is meant to give a compile error. Use a named variable. */
 template< typename InputRange >
-auto move(InputRange & r)     { using MovI = std::move_iterator<decltype( begin(r) )>;
-                                return _detail::all<MovI>(MovI{begin(r)}, r); }
+auto move(InputRange & r)     { using MI = std::move_iterator<decltype( begin(r) )>;
+                                return _detail::all<MI>(r); }
 
 /**
 * @brief Create a view with transform_iterator from a range
@@ -156,14 +158,15 @@ std::bitset<8> arr[] { 3, 5, 7, 11 };
 dynarray<std::string> result;
 result.append( view::transform(arr, [](const auto & bs) { return bs.to_string(); }) );
 @endcode
-* Similar to boost::adaptors::transform, but supports lambdas directly. Also more efficient
-* because it stores just one copy of f and has no size overhead for empty UnaryFunc. <br>
+* Similar to boost::adaptors::transform, but stores just one copy of f and has no size overhead for stateless
+* function objects. Also accepts lambdas (as long as by-value captures are nothrow copy constructible and
+* trivially destructible). Moreover, UnaryFunc can have non-const operator() (such as mutable lambda). <br>
 * Note that passing an rvalue range is meant to give a compile error. Use a named variable. */
 template< typename UnaryFunc, typename Range >
 auto transform(Range & r, UnaryFunc f)
 	{
-		using It = decltype(begin(r));
-		return _detail::all<It>(transform_iterator<UnaryFunc, It>{f, begin(r)}, r);
+		using I = decltype(begin(r));
+		return _detail::Transf<UnaryFunc, I>::call(_detail::all<I>(r), f);
 	}
 } // view
 
