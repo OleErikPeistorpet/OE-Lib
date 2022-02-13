@@ -307,6 +307,13 @@ TEST_F(dynarrayConstructTest, constructForwardRangeNoSize)
 	}
 }
 
+TEST_F(dynarrayConstructTest, constructRangeMutableBeginSize)
+{
+	int src[1] {1};
+	dynarray<int> d(ToMutableBeginSizeView(src));
+	EXPECT_EQ(1u, d.size());
+}
+
 
 template<typename Alloc>
 void testMoveConstruct(Alloc a0, Alloc a1)

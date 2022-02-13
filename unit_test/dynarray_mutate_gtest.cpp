@@ -512,6 +512,24 @@ TEST_F(dynarrayTest, insert)
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 }
 
+TEST_F(dynarrayTest, mutableBeginSizeRange)
+{
+	int src[1] {1};
+	auto v = ToMutableBeginSizeView(src);
+	dynarray<int> dest;
+
+	dest.assign(v);
+	EXPECT_EQ(1u, dest.size());
+
+	dest.insert_r(dest.begin(), v);
+	EXPECT_EQ(2u, dest.size());
+
+	dest.append(v);
+	EXPECT_EQ(3u, dest.size());
+
+}
+
+
 TEST_F(dynarrayTest, resize)
 {
 	dynarray<int, throwingAlloc<int>> d;
