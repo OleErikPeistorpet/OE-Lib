@@ -1,6 +1,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include "test_classes.h"
 #include "range_algo.h"
 #include "dynarray.h"
 
@@ -105,6 +106,24 @@ OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_EQ("aa", strDest[0]);
 	EXPECT_EQ("bb", strDest[1]);
 	EXPECT_TRUE(success);
+}
+
+TEST(rangeTest, copyRangeMutableBeginSize)
+{
+	int src[1] {1};
+	int dest[1];
+	auto v = ToMutableBeginSizeView(src);
+
+	oel::copy_unsafe(v, std::begin(dest));
+	EXPECT_EQ(1, dest[0]);
+	dest[0] = 0;
+
+	oel::copy(v, dest);
+	EXPECT_EQ(1, dest[0]);
+	dest[0] = 0;
+
+	oel::copy_fit(v, dest);
+	EXPECT_EQ(1, dest[0]);
 }
 
 template<typename Container>

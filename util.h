@@ -26,9 +26,9 @@ template< typename T >  OEL_ALWAYS_INLINE
 constexpr std::make_unsigned_t<T> as_unsigned(T val) noexcept  { return std::make_unsigned_t<T>(val); }
 
 
-//! Equivalent to std::ssize (C++20)
-template< typename SizedRange >
-constexpr auto ssize(const SizedRange & r)
+//! Same as std::ssize, except that non-const `r.size()` is supported
+template< typename SizedRangeLike >
+constexpr auto ssize(SizedRangeLike && r)
 ->	std::common_type_t< ptrdiff_t, std::make_signed_t<decltype(r.size())> >
 	{
 		using S = std::common_type_t< ptrdiff_t, std::make_signed_t<decltype(r.size())> >;

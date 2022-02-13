@@ -59,7 +59,7 @@ struct copy_return
 * To move instead of copy, pass `view::move(source)`. To mimic std::copy_n, use view::counted.
 * (Views can be used for all functions taking a range as source)  */
 template< typename SizedInputRange, typename RandomAccessIter >  inline
-auto copy_unsafe(const SizedInputRange & source, RandomAccessIter dest)
+auto copy_unsafe(SizedInputRange && source, RandomAccessIter dest)
 ->	copy_return<decltype(begin(source))>
 	                                     { return {_detail::CopyUnsf(begin(source), oel::ssize(source), dest)}; }
 /**
@@ -69,7 +69,7 @@ auto copy_unsafe(const SizedInputRange & source, RandomAccessIter dest)
 *
 * Requires that source has size() member or is an array, and dest is a random_access_range (C++20 concept)  */
 template< typename SizedInputRange, typename RandomAccessRange >
-auto copy(const SizedInputRange & source, RandomAccessRange && dest)
+auto copy(SizedInputRange && source, RandomAccessRange && dest)
 ->	copy_return<decltype(begin(source))>;
 /**
 * @brief Copies as many elements from source as will fit in dest
@@ -78,7 +78,7 @@ auto copy(const SizedInputRange & source, RandomAccessRange && dest)
 *
 * Requires that dest is a random_access_range (otherwise compilation will fail)  */
 template< typename InputRange, typename RandomAccessRange >  inline
-bool copy_fit(const InputRange & source, RandomAccessRange && dest)   { return _detail::CopyFit(source, dest); }
+bool copy_fit(InputRange && source, RandomAccessRange && dest)   { return _detail::CopyFit(source, dest); }
 
 
 
@@ -86,10 +86,10 @@ bool copy_fit(const InputRange & source, RandomAccessRange && dest)   { return _
 * @brief For generic code that may use either dynarray or std library container (overloaded in dynarray.h)  */
 //!@{
 template< typename Container, typename InputRange >  inline
-void assign(Container & dest, const InputRange & source)  { dest.assign(begin(source), end(source)); }
+void assign(Container & dest, InputRange && source)  { dest.assign(begin(source), end(source)); }
 
 template< typename Container, typename InputRange >  inline
-void append(Container & dest, const InputRange & source)  { dest.insert(dest.end(), begin(source), end(source)); }
+void append(Container & dest, InputRange && source)  { dest.insert(dest.end(), begin(source), end(source)); }
 
 template< typename Container, typename T >  inline
 void append(Container & dest, typename Container::size_type count, const T & val)
@@ -98,7 +98,7 @@ void append(Container & dest, typename Container::size_type count, const T & val
 }
 
 template< typename Container, typename ContainerIterator, typename InputRange >  inline
-auto insert(Container & dest, ContainerIterator pos, const InputRange & source)
+auto insert(Container & dest, ContainerIterator pos, InputRange && source)
 {
 	return dest.insert(pos, begin(source), end(source));
 }
@@ -113,7 +113,7 @@ auto insert(Container & dest, ContainerIterator pos, const InputRange & source)
 
 
 template< typename SizedInputRange, typename RandomAccessRange >
-auto oel::copy(const SizedInputRange & src, RandomAccessRange && dest)
+auto oel::copy(SizedInputRange && src, RandomAccessRange && dest)
 ->	copy_return<decltype(begin(src))>
 {
 	if (oel::ssize(src) <= oel::ssize(dest))

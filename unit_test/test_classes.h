@@ -11,6 +11,34 @@
 #include <unordered_map>
 
 
+#if __cpp_lib_ranges
+
+#include <ranges>
+
+inline auto ToMutableBeginSizeView(const int(& arr)[1])
+{
+	return std::views::drop_while(
+		arr,
+		[](const auto &) { return false; } );
+}
+
+#else
+
+struct MutableBeginSizeView
+{
+	const int * _begin;
+
+	const int * begin() { return _begin; }
+
+	size_t size() { return 1; }
+};
+
+inline auto ToMutableBeginSizeView(const int(& arr)[1])
+{
+	return MutableBeginSizeView{arr};
+}
+#endif
+
 class TestException : public std::exception {};
 
 struct MyCounter
