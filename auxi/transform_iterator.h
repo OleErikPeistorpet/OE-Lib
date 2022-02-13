@@ -47,6 +47,22 @@ class transform_iterator
 {
 	_detail::TightPair<Iterator, UnaryFunc> _m;
 
+	template< typename IterCat,
+		enable_if< std::is_base_of<std::forward_iterator_tag, IterCat>::value > = 0
+	>
+	transform_iterator _postIncrement()
+	{
+		auto tmp = *this;
+		++_m.inner;
+		return tmp;
+	}
+
+	template< typename, typename... None >
+	void _postIncrement(None...)
+	{
+		++_m.inner;
+	}
+
 public:
 	using iterator_category = std::conditional_t<
 			std::is_base_of< std::forward_iterator_tag, iter_category<Iterator> >::value,
@@ -83,17 +99,18 @@ public:
 		++_m.inner;
 		return *this;
 	}
-
-	transform_iterator operator++(int) &
-	{	// postincrement
-		auto tmp = *this;
-		++_m.inner;
-		return tmp;
+	//! Return type is transform_iterator if iterator_category is forward_iterator_tag, else void
+	auto operator++(int) &  OEL_ALWAYS_INLINE
+	{
+		return _postIncrement<iterator_category>();
 	}
 
+	difference_type operator -(const transform_iterator & right) const                { return _m.inner - right._m.inner; }
 	friend difference_type operator -(const transform_iterator & left, Iterator right)  { return left._m.inner - right; }
 	friend difference_type operator -(Iterator left, const transform_iterator & right)  { return left - right._m.inner; }
 
+	bool operator==(const transform_iterator & right) const                { return _m.inner == right._m.inner; }
+	bool operator!=(const transform_iterator & right) const                { return _m.inner != right._m.inner; }
 	friend bool operator==(const transform_iterator & left, Iterator right)  { return left._m.inner == right; }
 	friend bool operator==(Iterator left, const transform_iterator & right)  { return left == right._m.inner; }
 	friend bool operator!=(const transform_iterator & left, Iterator right)  { return left._m.inner != right; }

@@ -76,8 +76,12 @@ TEST(viewTest, viewTransformBasics)
 		"Wrong for current implementation" );
 	static_assert( sizeof v.begin() == sizeof(Elem *),
 		"Not critical, this assert can be removed" );
-
-	EXPECT_TRUE( v.begin() == r + 0 );
+	{
+		auto it = v.begin();
+		EXPECT_TRUE( it++ == v.begin() );
+		EXPECT_TRUE( it != v.begin() );
+	}
+	EXPECT_TRUE( v.begin() == v.begin().base() );
 	EXPECT_FALSE( r + 1 == v.begin() );
 	EXPECT_FALSE( v.begin() != r + 0 );
 	EXPECT_TRUE( r + 1 != v.begin() );
