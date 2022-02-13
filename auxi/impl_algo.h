@@ -69,7 +69,12 @@ namespace _detail
 	}
 
 
-#if !defined _MSC_VER or _MSC_VER >= 2000
+#ifdef __clang__
+	#define OEL_MEMCPY __builtin_memcpy
+#else
+	#define OEL_MEMCPY  std::memcpy
+#endif
+#if !(defined __clang__ or defined _MSC_VER) or _MSC_VER >= 2000
 	#define OEL_CHECK_NULL_MEMCPY  1
 #endif
 	template< typename ContiguousIter >
@@ -84,7 +89,7 @@ namespace _detail
 			(void) *src;
 			(void) *(src + (nElems - 1));
 		#endif
-			std::memcpy(dest, to_pointer_contiguous(src), sizeof(*src) * nElems);
+			OEL_MEMCPY(dest, to_pointer_contiguous(src), sizeof(*src) * nElems);
 		}
 	}
 
@@ -98,7 +103,7 @@ namespace _detail
 	#if OEL_CHECK_NULL_MEMCPY
 		if (src)
 	#endif
-		{	std::memcpy(
+		{	OEL_MEMCPY(
 				static_cast<void *>(dest),
 				static_cast<const void *>(src),
 				sizeof(T) * n );
@@ -121,6 +126,7 @@ namespace _detail
 		return dest;
 	}
 	#undef OEL_CHECK_NULL_MEMCPY
+	#undef OEL_MEMCPY
 
 
 	template< typename Alloc, typename ContiguousIter, typename T,
