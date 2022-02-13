@@ -91,9 +91,12 @@ public:
 		return tmp;
 	}
 
+	difference_type operator -(const transform_iterator & right) const                { return _m.inner - right._m.inner; }
 	friend difference_type operator -(const transform_iterator & left, Iterator right)  { return left._m.inner - right; }
 	friend difference_type operator -(Iterator left, const transform_iterator & right)  { return left - right._m.inner; }
 
+	bool operator==(const transform_iterator & right) const                { return _m.inner == right._m.inner; }
+	bool operator!=(const transform_iterator & right) const                { return _m.inner != right._m.inner; }
 	friend bool operator==(const transform_iterator & left, Iterator right)  { return left._m.inner == right; }
 	friend bool operator==(Iterator left, const transform_iterator & right)  { return left == right._m.inner; }
 	friend bool operator!=(const transform_iterator & left, Iterator right)  { return left._m.inner != right; }

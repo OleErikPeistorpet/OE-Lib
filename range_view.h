@@ -26,23 +26,28 @@ template< typename Iterator, typename Sentinel = Iterator >
 class basic_view
 {
 public:
-	basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
+	constexpr basic_view(Iterator f, Sentinel l)  : _begin(f), _end(l) {}
 
-	Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
-	Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
+	constexpr Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
+	constexpr Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
+
+	//! Present only if begin() can be subtracted from end()
+	template< typename I = Iterator,
+	          enable_if< maybe_sized_sentinel_for<Sentinel, I>::value > = 0
+	>
+	constexpr auto size() const
+	->	decltype( as_unsigned(end() - std::declval<I>()) )  { return _end - _begin; }
+
+	//! Present only if Iterator is random-access
+	template< typename I_ = Iterator,
+	          enable_if< iter_is_random_access<I_>::value > = 0
+	>   OEL_ALWAYS_INLINE
+	constexpr decltype(auto) operator[](iter_difference_t<Iterator> index) const  { return _begin[index]; }
 
 protected:
 	Iterator _begin;
 	Sentinel _end;
 };
-
-//! Participates in overload resolution only if v.begin() can be subtracted from v.end()
-template< typename Iterator, typename Sentinel,
-          enable_if< maybe_sized_sentinel_for<Sentinel, Iterator>::value > = 0
->
-auto ssize(const basic_view<Iterator, Sentinel> & v)
-->	decltype( v.end() - v.begin() )
-	 { return v.end() - v.begin(); }
 
 
 //! Wrapper for iterator and size
@@ -117,9 +122,9 @@ public:
 namespace view
 {
 
-//! Create a basic_view from two iterators, with type deduced from arguments
-template< typename Iterator >  inline
-basic_view<Iterator> subrange(Iterator first, Iterator last)  { return {first, last}; }
+//! Create a basic_view from iterator pair, or iterator and sentinel
+template< typename Iterator, typename Sentinel >
+constexpr basic_view<Iterator, Sentinel> subrange(Iterator first, Sentinel last)  { return {first, last}; }
 
 
 //! Create a counted_view from iterator and count, with type deduced from first
@@ -132,8 +137,8 @@ constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Itera
 //! Create a basic_view of std::move_iterator from two iterators
 template< typename InputIterator >
 basic_view< std::move_iterator<InputIterator> >
-	move(InputIterator first, InputIterator last)   { using MovI = std::move_iterator<InputIterator>;
-	                                                  return {MovI{first}, MovI{last}}; }
+	move(InputIterator first, InputIterator last)   { using MI = std::move_iterator<InputIterator>;
+	                                                  return{ MI{first}, MI{last} }; }
 /**
 * @brief Wrap a range such that the elements can be moved from when passed to a container or algorithm
 * @return Type `counted_view<std::move_iterator>` if r.size() exists or r is an array,
@@ -141,9 +146,8 @@ basic_view< std::move_iterator<InputIterator> >
 *
 * Note that passing an rvalue range is meant to give a compile error. Use a named variable. */
 template< typename InputRange >
-auto move(InputRange & r)     { using MovI = std::move_iterator<decltype( begin(r) )>;
-                                return _detail::all<MovI>(MovI{begin(r)}, r); }
-
+auto move(InputRange & r)     { using MI = std::move_iterator<decltype( begin(r) )>;
+                                return _detail::all<MI>(r); }
 /**
 * @brief Create a view with transform_iterator from a range
 @code
@@ -157,8 +161,8 @@ result.append( view::transform(arr, [](const auto & bs) { return bs.to_string();
 template< typename UnaryFunc, typename Range >
 auto transform(Range & r, UnaryFunc f)
 	{
-		using It = decltype(begin(r));
-		return _detail::all<It>(transform_iterator<UnaryFunc, It>{f, begin(r)}, r);
+		using I = decltype(begin(r));
+		return _detail::Transf<UnaryFunc, I>::call(_detail::all<I>(r), f);
 	}
 } // view
 
