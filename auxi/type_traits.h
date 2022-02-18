@@ -76,9 +76,12 @@ using std::size_t;
 using std::begin;  using std::end;
 
 
-//! Type returned by begin function (found by ADL)
+//! Return type of begin function (found by ADL)
 template< typename Range >
 using iterator_t = decltype( begin(std::declval<Range &>()) );
+//! Return type of end function (found by ADL)
+template< typename Range >
+using sentinel_t = decltype( end(std::declval<Range &>()) );
 
 #if __cpp_lib_concepts < 201907
 	template< typename Iterator >

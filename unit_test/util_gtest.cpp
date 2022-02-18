@@ -183,3 +183,14 @@ TEST(utilTest, toPointerContiguous)
 	EXPECT_EQ(addr, result);
 #endif
 }
+
+struct EmptyRandomAccessRange {};
+
+int * begin(EmptyRandomAccessRange) { return {}; }
+int * end(EmptyRandomAccessRange)   { return {}; }
+
+TEST(utilTest, detailSize_rangeNoMember)
+{
+	EmptyRandomAccessRange r;
+	EXPECT_EQ(0, oel::_detail::Size(r));
+}

@@ -26,20 +26,16 @@ template< typename T >  OEL_ALWAYS_INLINE
 constexpr std::make_unsigned_t<T> as_unsigned(T val) noexcept  { return std::make_unsigned_t<T>(val); }
 
 
-//! Same as std::ssize, except that non-const `r.size()` is supported
+//! More generic than std::ssize, close to std::ranges::ssize
 template< typename SizedRangeLike >
 constexpr auto ssize(SizedRangeLike && r)
-->	std::common_type_t< ptrdiff_t, std::make_signed_t<decltype(r.size())> >
+->	std::common_type_t< ptrdiff_t, decltype(as_signed( _detail::Size(r) )) >
 	{
-		using S = std::common_type_t< ptrdiff_t, std::make_signed_t<decltype(r.size())> >;
-		return static_cast<S>(r.size());
+		return std::common_type_t< ptrdiff_t, decltype(as_signed( _detail::Size(r) )) >(_detail::Size(r));
 	}
-//! Equivalent to std::ssize, array overload
-template< typename T, ptrdiff_t Size >  OEL_ALWAYS_INLINE
-constexpr ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
 
-/** @brief Check if index is valid (can be used with operator[]) for array or other container-like object
+/** @brief Check if index is valid (can be used with operator[]) for sized_range (std concept) or similar
 *
 * Negative index should give false result. However, this is not ensured if the index type holds more
 * bits than `int`, yet the maximum value of index type is less than the number of elements in r.
@@ -136,7 +132,7 @@ namespace _detail
 template< typename Integral, typename SizedRange >
 constexpr bool oel::index_valid(const SizedRange & r, Integral index)
 {
-	using T = decltype(oel::ssize(r));
+	using T = decltype(_detail::Size(r));
 	using NeitherIsBig = bool_constant<sizeof(T) < sizeof(_detail::BigUint) and sizeof index < sizeof(_detail::BigUint)>;
-	return _detail::IndexValid(as_unsigned(oel::ssize(r)), index, NeitherIsBig{});
+	return _detail::IndexValid(as_unsigned(_detail::Size(r)), index, NeitherIsBig{});
 }

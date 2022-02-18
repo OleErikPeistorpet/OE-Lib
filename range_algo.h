@@ -55,19 +55,19 @@ struct copy_return
 * @return `begin(source)` incremented by source size
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* Requires that source has size() member or is an array, and that dest models RandomAccessIterator.
+* Requires that  `source.size()` or `end(source) - begin(source)` is valid, and that dest models random_access_iterator.
 * To move instead of copy, pass `view::move(source)`. To mimic std::copy_n, use view::counted.
 * (Views can be used for all functions taking a range as source)  */
 template< typename SizedInputRange, typename RandomAccessIter >  inline
 auto copy_unsafe(SizedInputRange && source, RandomAccessIter dest)
 ->	copy_return<decltype(begin(source))>
-	                                     { return {_detail::CopyUnsf(begin(source), oel::ssize(source), dest)}; }
+	                                    { return {_detail::CopyUnsf(begin(source), _detail::Size(source), dest)}; }
 /**
 * @brief Copies the elements in source range into dest range, throws std::out_of_range if dest is smaller than source
 * @return `begin(source)` incremented by the number of elements in source
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* Requires that source has size() member or is an array, and dest is a random_access_range (C++20 concept)  */
+* Requires that `source.size()` or `end(source) - begin(source)` is valid, and that dest models random_access_range. */
 template< typename SizedInputRange, typename RandomAccessRange >
 auto copy(SizedInputRange && source, RandomAccessRange && dest)
 ->	copy_return<decltype(begin(source))>;
@@ -76,7 +76,7 @@ auto copy(SizedInputRange && source, RandomAccessRange && dest)
 * @return true if all elements were copied, false means truncation happened
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* Requires that dest is a random_access_range (otherwise compilation will fail)  */
+* Requires that dest is a random_access_range (C++20 concept)  */
 template< typename InputRange, typename RandomAccessRange >  inline
 bool copy_fit(InputRange && source, RandomAccessRange && dest)   { return _detail::CopyFit(source, dest); }
 
@@ -116,7 +116,7 @@ template< typename SizedInputRange, typename RandomAccessRange >
 auto oel::copy(SizedInputRange && src, RandomAccessRange && dest)
 ->	copy_return<decltype(begin(src))>
 {
-	if (oel::ssize(src) <= oel::ssize(dest))
+	if (as_unsigned(_detail::Size(src)) <= as_unsigned(_detail::Size(dest)))
 		return oel::copy_unsafe(src, begin(dest));
 	else
 		_detail::Throw::outOfRange("Too small dest oel::copy");

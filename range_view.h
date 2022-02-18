@@ -48,14 +48,6 @@ protected:
 	Sentinel _end;
 };
 
-//! Participates in overload resolution only if v.begin() can be subtracted from v.end()
-template< typename Iterator, typename Sentinel,
-          enable_if< maybe_sized_sentinel_for<Sentinel, Iterator>::value > = 0
->
-auto ssize(const basic_view<Iterator, Sentinel> & v)
-->	decltype( v.end() - v.begin() )
-	 { return v.end() - v.begin(); }
-
 
 //! Wrapper for iterator and size
 template< typename Iterator, bool = iter_is_random_access<Iterator>::value >
@@ -76,8 +68,10 @@ public:
 	constexpr counted_view(SizedRange & r)   : _begin(oel::adl_begin(r)), _size(oel::ssize(r)) {}
 
 	constexpr Iterator  begin() const   OEL_ALWAYS_INLINE { return _begin; }
-
-	constexpr auto      end() const     { return _detail::SentinelAt(_begin, _size); }
+	//! Provided only if Iterator is random-access or special case
+	template< typename I = Iterator >
+	constexpr auto      end() const
+	->	decltype( _detail::SentinelAt(std::declval<I>(), difference_type{}) )  { return _detail::SentinelAt(_begin, _size); }
 
 	constexpr size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
 

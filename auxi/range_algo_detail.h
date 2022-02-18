@@ -48,7 +48,7 @@ namespace _detail
 	template< typename ContiguousIter, typename ContiguousIter2,
 	          enable_if< can_memmove_with<ContiguousIter2, ContiguousIter>::value > = 0
 	>
-	ContiguousIter CopyUnsf(ContiguousIter const src, ptrdiff_t const n, ContiguousIter2 const dest)
+	ContiguousIter CopyUnsf(ContiguousIter const src, size_t const n, ContiguousIter2 const dest)
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (n != 0)
@@ -61,10 +61,10 @@ namespace _detail
 		return src + n;
 	}
 
-	template< typename InputIter, typename Integral, typename RandomAccessIter, typename... None >
-	InputIter CopyUnsf(InputIter src, Integral const n, RandomAccessIter const dest, None...)
+	template< typename InputIter, typename RandomAccessIter, typename... None >
+	InputIter CopyUnsf(InputIter src, size_t const n, RandomAccessIter const dest, None...)
 	{
-		for (Integral i{}; i < n; ++i)
+		for (size_t i{}; i < n; ++i)
 		{
 			dest[i] = *src;
 			++src;
@@ -94,10 +94,10 @@ namespace _detail
 
 	template< typename SizedRange, typename RandomAccessRange >
 	auto CopyFit(SizedRange & src, RandomAccessRange & dest)
-	->	decltype( oel::ssize(src), bool() ) // better match if ssize(src) is well-formed (SFINAE)
+	->	decltype( _detail::Size(src), bool() ) // better match if Size(src) is well-formed (SFINAE)
 	{
-		auto const destSize = oel::ssize(dest);
-		auto n = oel::ssize(src);
+		auto n              = as_unsigned(_detail::Size(src));
+		auto const destSize = as_unsigned(_detail::Size(dest));
 		bool const success{n <= destSize};
 		if (!success)
 			n = destSize;

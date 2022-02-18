@@ -131,7 +131,7 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( v.emplace_back(), TestException );
 	)
-		EXPECT_EQ(2, oel::ssize(v));
+		EXPECT_EQ(2, ssize(v));
 		EXPECT_TRUE(1.0 == *v[0]);
 		EXPECT_TRUE(2.0 == *v[1]);
 	}

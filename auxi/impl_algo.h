@@ -234,8 +234,8 @@ namespace _detail
 
 	template< typename Range >
 	auto CountOrEnd(Range & r)
-	->	decltype( size_t(oel::ssize(r)) )
-	{	return    size_t(oel::ssize(r)); }
+	->	decltype( static_cast<size_t>(_detail::Size(r)) )
+	{	return    static_cast<size_t>(_detail::Size(r)); }
 }
 
 } // namespace oel
