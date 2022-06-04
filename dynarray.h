@@ -342,7 +342,6 @@ private:
 	};
 
 	using _uninitFill = _detail::UninitFill<decltype(_m)>;
-	using _construct = _detail::Construct<T>;
 
 	void _resetData(T *const newData)
 	{
@@ -582,7 +581,7 @@ private:
 		}
 		while (_m.end < newEnd)
 		{	// each iteration updates _m.end for exception safety
-			_construct::call(_m, _m.end, *src);
+			_allocTrait::construct(_m, _m.end, *src);
 			++src; ++_m.end;
 		}
 		return src;
@@ -669,7 +668,7 @@ private:
 		template< typename... Args >
 		static T * construct(decltype(_m) & alloc, T *const newPos, Args... args)
 		{
-			_construct::call(alloc, newPos, static_cast<Args &&>(args)...);
+			_allocTrait::construct(alloc, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
 		}
 	};
@@ -711,7 +710,7 @@ typename dynarray<T, Alloc>::iterator
 	{
 		// Temporary in case constructor throws or source is an element of this dynarray at pos or after
 		storage_for<T> tmp;
-		_construct::call(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+		_allocTrait::construct(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		size_type const bytesAfterPos = sizeof(T) * (_m.end - pPos);
 		std::memmove(
@@ -763,7 +762,7 @@ typename dynarray<T, Alloc>::iterator
 			{
 				while (dest != dLast)
 				{
-					_construct::call(_m, dest, *first);
+					_allocTrait::construct(_m, dest, *first);
 					++first; ++dest;
 				}
 			}
@@ -793,7 +792,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	if (_m.end == _m.reservEnd)
 		_growByOne();
 
-	_construct::call(_m, _m.end, static_cast<Args &&>(args)...);
+	_allocTrait::construct(_m, _m.end, static_cast<Args &&>(args)...);
 
 	return *(_m.end++);
 }
