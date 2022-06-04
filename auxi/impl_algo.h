@@ -32,33 +32,6 @@ namespace _detail
 ////////////////////////////////////////////////////////////////////////////////
 
 	template< typename T >
-	struct Construct
-	{	// Must always call with T * (other type will compile but bypass Alloc)
-
-		template< typename Alloc, typename... Args >
-		static auto call(Alloc & a, T *__restrict p, Args &&... args)
-		->	decltype(a.construct(p, static_cast<Args &&>(args)...))
-			       { a.construct(p, static_cast<Args &&>(args)...); }
-
-		template< typename Alloc, typename... Args,
-		          enable_if< std::is_constructible<T, Args...>::value > = 0
-		>
-		static void call(Alloc &, void *__restrict p, Args &&... args)
-		{	// T constructible from Args
-			::new(p) T(static_cast<Args &&>(args)...);
-		}
-
-		template< typename Alloc, typename... Args,
-		          enable_if< ! std::is_constructible<T, Args...>::value > = 0
-		>
-		static void call(Alloc &, void *__restrict p, Args &&... args)
-		{
-			::new(p) T{static_cast<Args &&>(args)...}; // list-initialization
-		}
-	};
-
-
-	template< typename T >
 	void Destroy(T *const p, size_t const n) noexcept
 	{
 		if (!std::is_trivially_destructible<T>::value) // for speed with non-optimized builds
@@ -139,7 +112,7 @@ namespace _detail
 		{
 			while (i < n)
 			{
-				Construct<T>::call(allo, dest + i, *src);
+				std::allocator_traits<Alloc>::construct(allo, dest + i, *src);
 				++i; ++src;
 			}
 		}
@@ -168,7 +141,7 @@ namespace _detail
 			OEL_TRY_
 			{
 				for (; i < n; ++i)
-					Construct<T>::call(allo, p + i, args...);
+					std::allocator_traits<Alloc>::construct(allo, p + i, args...);
 			}
 			OEL_CATCH_ALL
 			{
