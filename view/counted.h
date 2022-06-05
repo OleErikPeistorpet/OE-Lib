@@ -6,7 +6,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h"
 #include "detail/misc.h"
 
 /** @file
@@ -26,14 +25,8 @@ public:
 
 	counted_view() = default;
 	constexpr counted_view(Iterator f, difference_type n)   : _begin{std::move(f)}, _size{n} {}
-	//! Construct from range (lvalue) that knows its size, with matching iterator type
-	template< typename SizedRange,
-		enable_if< !std::is_base_of<counted_view, SizedRange>::value > = 0 // avoid being selected for copy
-	>
-	constexpr counted_view(SizedRange & r)   : _begin(oel::adl_begin(r)), _size(oel::ssize(r)) {}
 
-	constexpr Iterator begin()         { return _detail::MoveIfNotCopyable(_begin); }
-	constexpr Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
+	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_begin); }
 	//! Provided only if Iterator is random-access
 	template< typename I = Iterator,
 	          enable_if< iter_is_random_access<I> > = 0
