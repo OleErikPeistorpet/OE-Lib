@@ -58,7 +58,7 @@ TEST(viewTest, countedView)
 #endif
 	{
 		oel::dynarray<int> i{1, 2};
-		oel::counted_view<oel::dynarray<int>::const_iterator> test = i;
+		auto test = view::counted(i.begin(), i.size());
 		EXPECT_EQ(i.size(), test.size());
 		EXPECT_EQ(1, test[0]);
 		EXPECT_EQ(2, test[1]);

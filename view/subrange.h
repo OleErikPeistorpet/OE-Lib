@@ -25,10 +25,9 @@ public:
 	basic_view() = default;
 	constexpr basic_view(Iterator f, Sentinel l)   : _begin{std::move(f)}, _end{l} {}
 
-	constexpr Iterator begin()         { return _detail::MoveIfNotCopyable(_begin); }
-	constexpr Iterator begin() const   OEL_ALWAYS_INLINE { return _begin; }
+	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_begin); }
 
-	constexpr Sentinel end() const     OEL_ALWAYS_INLINE { return _end; }
+	constexpr Sentinel end() const   OEL_ALWAYS_INLINE { return _end; }
 
 	//! Provided only if begin() can be subtracted from end()
 	template< typename I = Iterator,
