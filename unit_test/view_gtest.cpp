@@ -70,18 +70,21 @@ TEST(viewTest, viewTransformBasics)
 {
 	using Elem = double;
 
-	struct MoveOnly
+	struct MoveOnlyF
 	{	std::unique_ptr<double> p;
 		auto operator()(Elem &) const { return 0; }
 	};
 	Elem r[1];
-	auto v = view::transform(r, [](Elem &) { return 0; });
+	auto v = r | view::transform([](Elem &) { return 0; });
+	auto v2 = view::transform(r, MoveOnlyF{});
+	auto itMoveOnly = v2.begin();
 
 	using IEmptyLambda = decltype(v.begin());
-	using IMoveOnly = oel::transform_iterator<MoveOnly, Elem *>;
+	using IMoveOnly = decltype(itMoveOnly);
 
 	static_assert(std::is_same< IEmptyLambda::iterator_category, std::bidirectional_iterator_tag >(), "?");
 	static_assert(std::is_same< IMoveOnly::iterator_category, std::input_iterator_tag >(), "?");
+	static_assert(std::is_same< decltype(itMoveOnly++), void >(), "?");
 	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
 #if OEL_STD_RANGES
 	static_assert(std::ranges::bidirectional_range<decltype(v)>);
@@ -244,4 +247,15 @@ TEST(viewTest, viewMoveMutableEmptyAndSize)
 	EXPECT_FALSE(v.empty());
 	EXPECT_EQ(1U, v.size());
 }
+
+TEST(viewTest, chainWithStd)
+{
+	auto f = [](int i) { return -i; };
+	int src[] {0, 1};
+
+	src | view::move() | std::views::drop_while([](int i) { return i <= 0; });
+	src | std::views::reverse | view::transform(f) | std::views::take(1);
+	src | view::transform(f) | std::views::drop(1) | view::move();
+}
+
 #endif

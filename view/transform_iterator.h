@@ -17,7 +17,10 @@ namespace oel
 
 /** @brief Similar to boost::transform_iterator
 *
-* Move-only UnaryFunc and Iterator supported (then transform_iterator itself becomes move-only) */
+* But unlike boost::transform_iterator:
+* - Has no size overhead for stateless function objects
+* - Accepts a lambda as long as any by-value captures are trivially copy constructible and trivially destructible
+* - Move-only UnaryFunc and Iterator supported (then transform_iterator itself becomes move-only) */
 template< typename UnaryFunc, typename Iterator >
 class transform_iterator
 {
@@ -43,8 +46,8 @@ public:
 	transform_iterator() = default;
 	constexpr transform_iterator(UnaryFunc f, Iterator it)   : _m{std::move(it), std::move(f)} {}
 
-	constexpr Iterator         base() &&       OEL_ALWAYS_INLINE { return std::move(_m.first); }
-	constexpr const Iterator & base() const &  OEL_ALWAYS_INLINE { return _m.first; }
+	constexpr Iterator         base() &&                       { return std::move(_m.first); }
+	constexpr const Iterator & base() const & noexcept  OEL_ALWAYS_INLINE { return _m.first; }
 
 	constexpr reference operator*() const
 		OEL_REQUIRES(std::invocable< UnaryFunc const, decltype(*_m.first) >)
@@ -96,16 +99,25 @@ public:
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
 	friend constexpr difference_type operator -(S left, const transform_iterator & right)  { return left - right._m.first; }
 
-	constexpr bool        operator==(const transform_iterator & right) const       { return _m.first == right._m.first; }
-	constexpr bool        operator!=(const transform_iterator & right) const       { return _m.first != right._m.first; }
-	template< typename Sentinel >
-	friend constexpr bool operator==(const transform_iterator & left, Sentinel right)  { return left._m.first == right; }
-	template< typename Sentinel >
-	friend constexpr bool operator==(Sentinel left, const transform_iterator & right)  { return right._m.first == left; }
-	template< typename Sentinel >
-	friend constexpr bool operator!=(const transform_iterator & left, Sentinel right)  { return left._m.first != right; }
-	template< typename Sentinel >
-	friend constexpr bool operator!=(Sentinel left, const transform_iterator & right)  { return right._m.first != left; }
+	constexpr bool operator==(const transform_iterator & right) const   { return _m.first == right._m.first; }
+
+	constexpr bool operator!=(const transform_iterator & right) const   { return _m.first != right._m.first; }
+
+	template< typename S >
+		OEL_REQUIRES(std::sentinel_for<S, Iterator>)
+	friend constexpr bool operator==(const transform_iterator & left, S right)   { return left._m.first == right; }
+
+	template< typename S >
+		OEL_REQUIRES(std::sentinel_for<S, Iterator>)
+	friend constexpr bool operator==(S left, const transform_iterator & right)   { return right._m.first == left; }
+
+	template< typename S >
+		OEL_REQUIRES(std::sentinel_for<S, Iterator>)
+	friend constexpr bool operator!=(const transform_iterator & left, S right)   { return left._m.first != right; }
+
+	template< typename S >
+		OEL_REQUIRES(std::sentinel_for<S, Iterator>)
+	friend constexpr bool operator!=(S left, const transform_iterator & right)   { return right._m.first != left; }
 };
 
 template< typename F, typename I >
