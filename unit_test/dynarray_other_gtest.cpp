@@ -89,7 +89,7 @@ TEST(dynarrayOtherTest, compare)
 TEST(dynarrayOtherTest, allocAndIterEquality)
 {
 	oel::allocator<int> a;
-	ASSERT_TRUE(oel::allocator<std::string>{} == a);
+	ASSERT_FALSE(oel::allocator<int>{} != a);
 
 	EXPECT_TRUE(dynarray<int>::const_iterator() == dynarray<int>::iterator{});
 }
@@ -125,7 +125,7 @@ TEST(dynarrayOtherTest, stdDequeWithOelAlloc)
 
 TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 {
-	MoveOnly::ClearCount();
+	MoveOnly::clearCount();
 	{
 		auto v = dynarray< MoveOnly, std::allocator<MoveOnly> >(oel::reserve, 2);
 
@@ -145,7 +145,7 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( v.emplace_back(), TestException );
 	#endif
-		EXPECT_EQ(2, ssize(v));
+		EXPECT_EQ(2, oel::ssize(v));
 		EXPECT_TRUE(1.0 == *v[0]);
 		EXPECT_TRUE(2.0 == *v[1]);
 	}

@@ -205,7 +205,7 @@ namespace _detail
 		return _detail::CopyImpl
 			(	src, dest,
 				[](IterSource si, IteratorDest di) { return Ret{si, di}; },
-				[]() -> Ret { Throw::OutOfRange(errorCopyMsg); }
+				[]() -> Ret { Throw::outOfRange(errorCopyMsg); }
 			);
 	}
 
@@ -220,7 +220,7 @@ namespace _detail
 			return {sLast, begin(dest) + n};
 		}
 		else
-		{	Throw::OutOfRange(errorCopyMsg);
+		{	Throw::outOfRange(errorCopyMsg);
 		}
 	}
 

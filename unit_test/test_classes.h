@@ -19,13 +19,13 @@ struct MyCounter
 	static int nDestruct;
 	static int countToThrowOn;
 
-	static void ClearCount()
+	static void clearCount()
 	{
 		nConstructions = nDestruct = 0;
 		countToThrowOn = -1;
 	}
 
-	void ConditionalThrow()
+	void conditionalThrow()
 	{
 		if (0 <= countToThrowOn)
 		{
@@ -37,70 +37,86 @@ struct MyCounter
 
 class MoveOnly : public MyCounter
 {
-	std::unique_ptr<double> val;
+	double * pVal{};
+	double val{};
 
 public:
 	MoveOnly()
-	{	ConditionalThrow();
+	{	conditionalThrow();
 		++nConstructions;
 	}
 	explicit MoveOnly(double v)
-	 :	val(new double{v})
-	{	ConditionalThrow();
+	 :	pVal(&val),
+		val(v)
+	{
+		conditionalThrow();
 		++nConstructions;
 	}
 
 	MoveOnly(MoveOnly && other) noexcept
-	 :	val(std::move(other.val))
-	{	++nConstructions;
+	 :	pVal(other.pVal ? &val : nullptr),
+		val(other.val)
+	{
+		other.pVal = nullptr;
+		++nConstructions;
 	}
 
 	MoveOnly & operator =(MoveOnly && other) noexcept
-	{
-		val = std::move(other.val);
+	{	// The point here is to make pVal null in case of self move assignment,
+		// in order to test for that happening unexpectedly
+		pVal = nullptr;
+		if (other.pVal)
+		{
+			val = *other.pVal;
+			pVal = &val;
+			other.pVal = nullptr;
+		}
 		return *this;
 	}
 
 	~MoveOnly() { ++nDestruct; }
 
-	const double * get() const { return val.get(); }
+	bool hasValue() const { return pVal != nullptr; }
 
-	double operator *() const        { return *val; }
-	explicit operator double() const { return *val; }
+	double operator *() const        { return *pVal; }
+	explicit operator double() const { return *pVal; }
 };
 oel::false_type specify_trivial_relocate(MoveOnly);
 
 class TrivialRelocat : public MyCounter
 {
-	double val;
+	std::unique_ptr<double> val;
 
 public:
+	TrivialRelocat()
+	{	conditionalThrow();
+		++nConstructions;
+	}
 	explicit TrivialRelocat(double v) noexcept
-	 :	val(v)
+	 :	val(new double{v})
 	{	++nConstructions;
 	}
 
 	TrivialRelocat(const TrivialRelocat & other)
 	{
-		ConditionalThrow();
-		val = other.val;
+		conditionalThrow();
+		val.reset(new double{*other.val});
 		++nConstructions;
 	}
 
 	TrivialRelocat & operator =(const TrivialRelocat & other)
 	{
-		ConditionalThrow();
-		val = other.val;
+		conditionalThrow();
+		val.reset(new double{*other.val});
 		return *this;
 	}
 
 	~TrivialRelocat() { ++nDestruct; }
 
-	double operator *() const { return val; }
+	bool hasValue() const { return val != nullptr; }
 
-	const double * get() const { return &val; }
-
-	bool operator==(double d) const { return val == d; }
+	double operator *() const        { return *val; }
+	explicit operator double() const { return *val; }
 };
 oel::true_type specify_trivial_relocate(TrivialRelocat);
 
@@ -118,7 +134,7 @@ struct NontrivialConstruct : MyCounter
 
 	NontrivialConstruct()
 	{
-		ConditionalThrow();
+		conditionalThrow();
 		++nConstructions;
 	}
 
@@ -135,7 +151,7 @@ struct AllocCounter
 
 	static std::unordered_map<void *, std::size_t> sizeFromPtr;
 
-	static void ClearAll()
+	static void clearAll()
 	{
 		nAllocations = 0;
 		nDeallocations = 0;

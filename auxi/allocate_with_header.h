@@ -52,7 +52,7 @@ namespace _detail
 			return p;
 		}
 
-		static Ptr Allocate(Alloc & a, size_t n)
+		static Ptr allocate(Alloc & a, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			n += sizeForHeader;
@@ -63,7 +63,7 @@ namespace _detail
 		#endif
 		}
 
-		static Ptr Reallocate(Alloc & a, Ptr p, size_t n)
+		static Ptr realloc(Alloc & a, Ptr p, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			if (p)
@@ -79,7 +79,7 @@ namespace _detail
 		#endif
 		}
 
-		static void Deallocate(Alloc & a, Ptr p, size_t n) noexcept
+		static void dealloc(Alloc & a, Ptr p, size_t n) noexcept(noexcept( a.deallocate(p, n) ))
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			static_cast<volatile std::uintptr_t &>(OEL_DEBUG_HEADER_OF(p)->id) = 0;

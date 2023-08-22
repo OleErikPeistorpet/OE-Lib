@@ -29,8 +29,8 @@ protected:
 
 	dynarrayConstructTest()
 	{
-		AllocCounter::ClearAll();
-		MyCounter::ClearCount();
+		AllocCounter::clearAll();
+		MyCounter::clearCount();
 
 		sizes = {{0, 1, 200}};
 	}
@@ -141,7 +141,7 @@ TEST_F(dynarrayConstructTest, constructNDefault)
 	for (auto const n : sizes)
 	{
 		AllocCounter::nConstructCalls = 0;
-		NontrivialConstruct::ClearCount();
+		NontrivialConstruct::clearCount();
 
 		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
 		{
@@ -352,8 +352,8 @@ TEST_F(dynarrayConstructTest, moveConstructWithStatefulAlloc)
 template<typename T>
 void testConstructMoveElements()
 {
-	AllocCounter::ClearAll();
-	T::ClearCount();
+	AllocCounter::clearAll();
+	T::clearCount();
 	// not propagating, not equal, cannot steal the memory
 	for (auto const na : {0, 1, 101})
 	{
@@ -381,7 +381,7 @@ void testConstructMoveElements()
 		EXPECT_EQ(capBefore, a.capacity());
 		ASSERT_EQ(na, ssize(b));
 		for (int i = 0; i < na; ++i)
-			EXPECT_TRUE(b[i].get() and *b[i] == i + 0.5);
+			EXPECT_TRUE(b[i].hasValue() and *b[i] == i + 0.5);
 	}
 	EXPECT_EQ(T::nConstructions, T::nDestruct);
 	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
@@ -446,8 +446,6 @@ TEST_F(dynarrayConstructTest, moveAssignStatefulAlloc)
 template<typename T>
 void testAssignMoveElements()
 {
-	AllocCounter::ClearAll();
-	T::ClearCount();
 	// not propagating, not equal, cannot steal the memory
 	for (auto const na : {0, 1, 101})
 	{
@@ -481,7 +479,7 @@ void testAssignMoveElements()
 			EXPECT_EQ(capBefore, a.capacity());
 			ASSERT_EQ(na, ssize(b));
 			for (int i = 0; i < na; ++i)
-				EXPECT_TRUE(b[i].get() and *b[i] == i + 0.5);
+				EXPECT_TRUE(b[i].hasValue() and *b[i] == i + 0.5);
 		}
 		EXPECT_EQ(T::nConstructions, T::nDestruct);
 		EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
@@ -580,7 +578,7 @@ void testConstructNThrowing(const Arg &... arg)
 	for (auto i : {0, 1, 99})
 	{
 		AllocCounter::nConstructCalls = 0;
-		T::ClearCount();
+		T::clearCount();
 		T::countToThrowOn = i;
 
 		ASSERT_THROW(
@@ -618,7 +616,7 @@ TEST_F(dynarrayConstructTest, copyConstructThrowing)
 	for (auto i : {0, 1, 99})
 	{
 		AllocCounter::nConstructCalls = 0;
-		TrivialRelocat::ClearCount();
+		TrivialRelocat::clearCount();
 		TrivialRelocat::countToThrowOn = i;
 
 		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
