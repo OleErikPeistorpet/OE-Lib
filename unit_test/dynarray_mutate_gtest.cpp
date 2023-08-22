@@ -70,6 +70,7 @@ TEST_F(dynarrayTest, pushBack)
 		EXPECT_THROW( up.emplace_back(), TestException );
 		ASSERT_EQ(2U, up.size());
 	#endif
+		up.reserve(3);
 		up.push_back( std::move(up.back()) );
 		ASSERT_EQ(3U, up.size());
 
@@ -131,7 +132,8 @@ TEST_F(dynarrayTest, pushBackNonTrivialReloc)
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 
 	#if OEL_HAS_EXCEPTIONS
-		TrivialRelocat::countToThrowOn = 3;
+		da.reserve(da.size() + 2);
+		TrivialRelocat::countToThrowOn = 1;
 		try
 		{
 			for(;;)
@@ -276,26 +278,27 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 }
 #endif
 
-TEST_F(dynarrayTest, append)
+TEST_F(dynarrayTest, appendCase1)
 {
-	{
-		oel::dynarray<double> dest;
-		// Test append empty std iterator range to empty dynarray
-		std::deque<double> src;
-		dest.append(src);
+	oel::dynarray<double> dest;
+	// Test append empty std iterator range to empty dynarray
+	std::deque<double> src;
+	dest.append(src);
 
-		dest.append({});
-		EXPECT_EQ(0U, dest.size());
+	dest.append({});
+	EXPECT_EQ(0U, dest.size());
 
-		double const TEST_VAL = 6.6;
-		dest.append(2, TEST_VAL);
-		dest.reserve(2 * dest.size());
-		dest.append( view::subrange(dest.begin(), dest.end()) );
-		EXPECT_EQ(4U, dest.size());
-		for (const auto & d : dest)
-			EXPECT_EQ(TEST_VAL, d);
-	}
+	double const TEST_VAL = 6.6;
+	dest.append(2, TEST_VAL);
+	dest.reserve(2 * dest.size());
+	dest.append( view::subrange(dest.begin(), dest.end()) );
+	EXPECT_EQ(4U, dest.size());
+	for (const auto & d : dest)
+		EXPECT_EQ(TEST_VAL, d);
+}
 
+TEST_F(dynarrayTest, appendCase2)
+{
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;

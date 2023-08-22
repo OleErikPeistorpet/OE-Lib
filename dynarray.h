@@ -209,15 +209,19 @@ public:
 	iterator  insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
 	iterator  insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
 
-	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
 	template<typename... Args>
 	iterator  emplace(const_iterator pos, Args &&... elemInitArgs) &;
 
-	//! Does list-initialization `T{...}` of element if no constructor matches Args (using default allocator)
+	/**
+	* @brief Beware, passing an element of same array is often unsafe (otherwise same as std::vector::emplace_back)
+	* @pre args shall not refer to any element of this dynarray, unless `size() < capacity()` */
 	template<typename... Args>
 	reference emplace_back(Args &&... args) &;
 
+	/** @brief Beware, passing an element of same array is often unsafe (otherwise same as std::vector::push_back)
+	* @pre val shall not be a reference to an element of this dynarray, unless `size() < capacity()` */
 	void      push_back(T && val)       { emplace_back(std::move(val)); }
+	//! @copydoc push_back(T &&)
 	void      push_back(const T & val)  { emplace_back(val); }
 
 	void      pop_back() noexcept(nodebug);
@@ -510,6 +514,29 @@ private:
 			_detail::Throw::LengthError(lenErrorMsg);
 	}
 
+#ifdef _MSC_VER
+	__declspec(noinline) // to get the compiler to inline calling function
+#else
+	__attribute__((noinline))
+#endif
+	void _growBy(size_type const count)
+	{
+		if (count <= std::numeric_limits<size_type>::max() / sizeof(T) / 2)
+		{
+			size_type const s = size();
+			_realloc(_calcCap(s + count), s);
+		}
+		else
+		{	_detail::Throw::LengthError(lenErrorMsg);
+		}
+	}
+
+	void _growByOne()
+	{
+		_realloc(_calcCapAddOne(), size());
+	}
+
+
 	template<typename UninitFillFunc>
 	void _resizeImpl(size_type const newSize, UninitFillFunc initAdded)
 	{	// note: initAdded cannot hold a reference to element of this
@@ -698,59 +725,11 @@ private:
 		_debugSizeUpdater guard{_m};
 
 		if (_unusedCapacity() < count)
-			_appendRealloc(count);
+			_growBy(count);
 
 		auto last = makeNew(_m.end, count, _m);
 		_m.end += count;
 		return last;
-	}
-
-#ifdef _MSC_VER
-	__declspec(noinline) // to get the compiler to inline calling function
-#else
-	__attribute__((noinline))
-#endif
-	void _appendRealloc(size_type const count)
-	{
-		if (count <= std::numeric_limits<size_type>::max() / sizeof(T) / 2)
-		{
-			size_type const s = size();
-			_realloc(_calcCap(s + count), s);
-		}
-		else
-		{	_detail::Throw::LengthError(lenErrorMsg);
-		}
-	}
-
-	template<typename... Args>
-	void _emplaceBackRealloc(Args &&... args)
-	{
-		OEL_CONST_COND if (is_trivially_relocatable<T>::value and allocator_can_realloc<Alloc>::value)
-		{
-			// Temporary in case source is an element of this dynarray
-			aligned_union_t<T> tmp;
-			_detail::Construct<Alloc>(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
-			OEL_TRY_
-			{
-				_realloc(_calcCapAddOne(), size());
-			}
-			OEL_CATCH_ALL
-			{
-				reinterpret_cast<T &>(tmp).~T();
-				OEL_RETHROW;
-			}
-			std::memcpy(_m.end, &tmp, sizeof(T));
-		}
-		else
-		{	_scopedPtr newBuf{_m, _calcCapAddOne()};
-
-			T *const pos = newBuf.data + size();
-			_detail::Construct<Alloc>(_m, pos, static_cast<Args &&>(args)...);
-			_relocateData(newBuf.data, size(), is_trivially_relocatable<T>());
-
-			_m.end = pos;
-			newBuf.Swap(_m);
-		}
 	}
 
 
@@ -881,15 +860,12 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 {
 	_debugSizeUpdater guard{_m};
 
-	if (_m.end < _m.reservEnd)
-		_detail::Construct<Alloc>(_m, _m.end, static_cast<Args &&>(args)...);
-	else
-		_emplaceBackRealloc(static_cast<Args &&>(args)...);
+	if (_m.end == _m.reservEnd)
+		_growByOne();
 
-	T *const pos = _m.end;
-	++_m.end;
+	_detail::Construct<Alloc>(_m, _m.end, static_cast<Args &&>(args)...);
 
-	return *pos;
+	return *(_m.end++);
 }
 
 

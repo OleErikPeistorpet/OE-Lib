@@ -127,7 +127,7 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 {
 	MoveOnly::ClearCount();
 	{
-		dynarray< MoveOnly, std::allocator<MoveOnly> > v;
+		auto v = dynarray< MoveOnly, std::allocator<MoveOnly> >(oel::reserve, 2);
 
 		v.emplace_back(-1.0);
 
