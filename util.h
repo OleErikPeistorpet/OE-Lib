@@ -35,6 +35,11 @@ constexpr auto ssize(SizedRangeLike && r)
 		return std::common_type_t< ptrdiff_t, decltype(as_signed( _detail::Size(r) )) >(_detail::Size(r));
 	}
 
+namespace view
+{
+using oel::ssize;
+}
+
 
 /** @brief Check if index is valid (within bounds for operator[])
 *

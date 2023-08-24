@@ -83,7 +83,7 @@ namespace _detail
 } // oel
 
 
-#if !OEL_STD_RANGES
+#if !OEL_HAS_STD_MOVE_SENTINEL
 
 // Small hack to let std::move_iterator< sentinel_wrapper<S> > compile
 template< typename S >

@@ -3,6 +3,7 @@
 
 #include "views.h"
 #include "dynarray.h"
+#include "util.h"
 
 #include "gtest/gtest.h"
 #include <array>
@@ -24,16 +25,16 @@ constexpr auto transformIterFromIntPtr(const int * p)
 template< typename S >
 constexpr oel::sentinel_wrapper<S> makeSentinel(S se) { return {se}; }
 
-TEST(viewTest, basicView)
+TEST(viewTest, viewSubrange)
 {
-	using BV = oel::basic_view<int *>;
+	using V = view::subrange<int *, int *>;
 
-	static_assert(std::is_trivially_constructible<BV, BV &>::value);
+	static_assert(std::is_trivially_constructible<V, V &>::value);
 
 #if OEL_STD_RANGES
-	static_assert(std::ranges::contiguous_range<BV>);
-	static_assert(std::ranges::view<BV>);
-	static_assert(std::ranges::borrowed_range<BV>);
+	static_assert(std::ranges::contiguous_range<V>);
+	static_assert(std::ranges::view<V>);
+	static_assert(std::ranges::borrowed_range<V>);
 #endif
 	static constexpr int src[3]{};
 	{
@@ -45,9 +46,9 @@ TEST(viewTest, basicView)
 	EXPECT_EQ(3, ssize(v));
 }
 
-TEST(viewTest, countedView)
+TEST(viewTest, viewCounted)
 {
-	using CV = oel::counted_view<int *>;
+	using CV = view::counted<int *>;
 
 	static_assert(std::is_trivially_constructible<CV, CV &>::value);
 

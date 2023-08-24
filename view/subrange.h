@@ -12,18 +12,18 @@
 /** @file
 */
 
-namespace oel
+namespace oel::view
 {
 
-//! A minimal substitute for boost::iterator_range and std::ranges::subrange (C++20)
-template< typename Iterator, typename Sentinel = Iterator >
-class basic_view
+//! A minimal substitute for std::ranges::subrange and boost::iterator_range
+template< typename Iterator, typename Sentinel >
+class subrange
 {
 public:
 	using difference_type = iter_difference_t<Iterator>;
 
-	basic_view() = default;
-	constexpr basic_view(Iterator f, Sentinel l)   : _begin{std::move(f)}, _end{l} {}
+	subrange() = default;
+	constexpr subrange(Iterator first, Sentinel last)   : _begin{std::move(first)}, _end{last} {}
 
 	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_begin); }
 
@@ -41,28 +41,20 @@ public:
 	constexpr decltype(auto) operator[](difference_type index) const
 		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE { return _begin[index]; }
 
-protected:
+private:
 	Iterator _begin;
 	Sentinel _end;
 };
 
-namespace view
-{
-
-//! Create a basic_view from iterator pair, or iterator and sentinel
-inline constexpr auto subrange =
-	[](auto first, auto last) { return basic_view{std::move(first), last}; };
-
 }
 
-} // oel
 
 #if OEL_STD_RANGES
 
 template< typename I, typename S >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::basic_view<I, S> > = true;
+inline constexpr bool std::ranges::enable_borrowed_range< oel::view::subrange<I, S> > = true;
 
 template< typename I, typename S >
-inline constexpr bool std::ranges::enable_view< oel::basic_view<I, S> > = true;
+inline constexpr bool std::ranges::enable_view< oel::view::subrange<I, S> > = true;
 
 #endif
