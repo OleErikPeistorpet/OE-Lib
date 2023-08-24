@@ -18,34 +18,28 @@ namespace _detail
 	template< typename InputView >
 	class MoveView
 	{
-		using _iter = std::move_iterator< iterator_t<InputView> >;
-
 		InputView _base;
 
 	public:
-		using difference_type = iter_difference_t<_iter>;
+		using difference_type = iter_difference_t< iterator_t<InputView> >;
 
 		MoveView() = default;
 		constexpr explicit MoveView(InputView v) : _base{std::move(v)} {}
 
-		constexpr _iter begin()
+		constexpr auto begin()
 		{
-			return _iter{_base.begin()};
+			return std::move_iterator{_base.begin()};
 		}
 
 		template< typename V = InputView, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
 		constexpr auto end()
 		{
-		#if OEL_STD_RANGES
-			using S = std::conditional_t<
-					std::is_same_v< iterator_t<V>, sentinel_t<V> >,
-					_iter,
-					std::move_sentinel< sentinel_t<V> > // What is it good for?
-				>;
-		#else
-			using S = std::move_iterator< sentinel_t<V> >;
+		#if __cpp_lib_concepts >= 201907
+			if constexpr (!std::is_same_v< iterator_t<V>, sentinel_t<V> >)
+				return std::move_sentinel{_base.end()}; // What is it good for?
+			else
 		#endif
-			return S{_base.end()};
+				return std::move_iterator{_base.end()};
 		}
 
 		constexpr bool empty()  { return _base.empty(); }
@@ -55,7 +49,7 @@ namespace _detail
 		->	decltype( std::declval<V>().size() ) { return _base.size(); }
 
 		OEL_ALWAYS_INLINE constexpr decltype(auto) operator[](difference_type index)
-			OEL_REQUIRES(iter_is_random_access<_iter>)  { return begin()[index]; }
+			OEL_REQUIRES(iter_is_random_access< iterator_t<InputView> >)  { return begin()[index]; }
 
 		constexpr InputView         base() &&      { return std::move(_base); }
 		constexpr const InputView & base() const & { return _base; }

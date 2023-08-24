@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2015 Ole Erik Peistorpet
+// Copyright 2019 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,20 +11,20 @@
 /** @file
 */
 
-namespace oel
+namespace oel::view
 {
 
 /** @brief Wrapper for iterator and size
 *
 * Satisfies the std::ranges::range concept only if Iterator is random-access. */
 template< typename Iterator >
-class counted_view
+class counted
 {
 public:
 	using difference_type = iter_difference_t<Iterator>;
 
-	counted_view() = default;
-	constexpr counted_view(Iterator f, difference_type n)   : _begin{std::move(f)}, _size{n} {}
+	counted() = default;
+	constexpr counted(Iterator first, difference_type n)   : _begin{std::move(first)}, _size{n} {}
 
 	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_begin); }
 	//! Provided only if Iterator is random-access
@@ -41,28 +41,20 @@ public:
 	constexpr decltype(auto) operator[](difference_type index) const   OEL_ALWAYS_INLINE
 		OEL_REQUIRES(iter_is_random_access<Iterator>)          { return _begin[index]; }
 
-protected:
+private:
 	Iterator       _begin;
 	difference_type _size;
 };
 
-namespace view
-{
-
-//! Create a counted_view from iterator and count (convertible to iter_difference_t for iterator)
-inline constexpr auto counted =
-	[](auto iterator, auto count) { return counted_view(std::move(iterator), count); };
-
 }
 
-} // namespace oel
 
 #if OEL_STD_RANGES
 
 template< typename I >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::counted_view<I> > = true;
+inline constexpr bool std::ranges::enable_borrowed_range< oel::view::counted<I> > = true;
 
 template< typename I >
-inline constexpr bool std::ranges::enable_view< oel::counted_view<I> > = true;
+inline constexpr bool std::ranges::enable_view< oel::view::counted<I> > = true;
 
 #endif

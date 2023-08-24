@@ -410,7 +410,7 @@ TEST_F(dynarrayTest, insertRTrivial)
 {
 	// Should hit static_assert
 	//dynarray<double> d;
-	//d.insert_range( d.begin(), oel::basic_view< std::istream_iterator<double> >({}, {}) );
+	//d.insert_range( d.begin(), oel::view::subrange(std::istream_iterator<double>{}, std::istream_iterator<double>{}) );
 
 	size_t const initSize = 2;
 	auto toInsert = {-1.0, -2.0};

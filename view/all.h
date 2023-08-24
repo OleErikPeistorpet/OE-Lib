@@ -26,11 +26,11 @@ namespace _detail
 		}
 	#endif
 
-		template< typename I, typename S >
-		constexpr auto operator()(basic_view<I, S> v) const { return v; }
-
 		template< typename I >
-		constexpr auto operator()(counted_view<I> v) const { return v; }
+		constexpr auto operator()(view::counted<I> v) const { return v; }
+
+		template< typename I, typename S >
+		constexpr auto operator()(view::subrange<I, S> v) const { return v; }
 
 		template< typename SizedRange >
 		constexpr auto operator()(SizedRange & r) const
@@ -49,6 +49,7 @@ namespace _detail
 }
 
 
+//! View types and view creation functions. Trying to mimic subset of C++20 ranges
 namespace view
 {
 //! Substitute for std::views::all
