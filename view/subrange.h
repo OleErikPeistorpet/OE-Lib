@@ -51,8 +51,8 @@ namespace view
 {
 
 //! Create a basic_view from iterator pair, or iterator and sentinel
-template< typename Iterator, typename Sentinel >
-constexpr basic_view<Iterator, Sentinel> subrange(Iterator first, Sentinel last)  { return {std::move(first), last}; }
+inline constexpr auto subrange =
+	[](auto first, auto last) { return basic_view{std::move(first), last}; };
 
 }
 

@@ -72,11 +72,9 @@ class dynarray;
 
 
 
-template< bool Val >
-using bool_constant = std::integral_constant<bool, Val>;
-
-using std::true_type; // equals bool_constant<true>
+using std::bool_constant;
 using std::false_type;
+using std::true_type;
 
 
 /**
@@ -107,7 +105,7 @@ class Outer {
 };
 @endcode  */
 template< typename T >
-bool_constant< std::is_trivially_move_constructible<T>::value and std::is_trivially_destructible<T>::value >
+bool_constant< std::is_trivially_move_constructible_v<T> and std::is_trivially_destructible_v<T> >
 	specify_trivial_relocate(T &&);
 
 /** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)

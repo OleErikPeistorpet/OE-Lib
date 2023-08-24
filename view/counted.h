@@ -49,9 +49,9 @@ protected:
 namespace view
 {
 
-//! Create a counted_view from iterator and count, with type deduced from first
-template< typename Iterator >
-constexpr counted_view<Iterator> counted(Iterator first, iter_difference_t<Iterator> n)  { return {std::move(first), n}; }
+//! Create a counted_view from iterator and count (convertible to iter_difference_t for iterator)
+inline constexpr auto counted =
+	[](auto iterator, auto count) { return counted_view(std::move(iterator), count); };
 
 }
 

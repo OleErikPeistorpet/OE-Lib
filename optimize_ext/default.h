@@ -16,7 +16,11 @@
 #include <memory>
 #include <tuple>
 
-#ifndef OEL_NO_BOOST
+#if __has_include(<boost/config.hpp>)
+	#define OEL_HAS_BOOST  1
+#endif
+
+#ifdef OEL_HAS_BOOST
 
 #include <boost/circular_buffer_fwd.hpp>
 #include <boost/container/container_fwd.hpp>
@@ -62,7 +66,7 @@ struct is_trivially_relocatable< std::shared_ptr<T> > : true_type {};
 template< typename T >
 struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 
-#ifndef OEL_NO_BOOST
+#ifdef OEL_HAS_BOOST
 	template< typename T >
 	struct is_trivially_relocatable< boost::container::pmr::polymorphic_allocator<T> > : true_type {};
 
@@ -81,15 +85,15 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 
 	template< typename... Ts >
 	struct is_trivially_relocatable< boost::variant<Ts...> >
-	 :	all_< is_trivially_relocatable<Ts>... > {};
+	 :	std::conjunction< is_trivially_relocatable<Ts>... > {};
 #endif
 
 template< typename T, typename U >
 struct is_trivially_relocatable< std::pair<T, U> >
- :	all_< is_trivially_relocatable<T>, is_trivially_relocatable<U> > {};
+ :	std::conjunction< is_trivially_relocatable<T>, is_trivially_relocatable<U> > {};
 
 template< typename... Ts >
 struct is_trivially_relocatable< std::tuple<Ts...> >
- :	all_< is_trivially_relocatable<Ts>... > {};
+ :	std::conjunction< is_trivially_relocatable<Ts>... > {};
 
 }

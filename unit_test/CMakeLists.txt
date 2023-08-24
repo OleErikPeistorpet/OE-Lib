@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 project(oel-test CXX)
 
-set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to use, tested up to 20")
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to use, minimum 17")
 
 
 option(BUILD_GMOCK   "" off)
@@ -39,7 +39,7 @@ if(MSVC)
 	add_definitions(/D_SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING)
 	target_compile_options(oel-test PRIVATE /W4)
 else()
-	target_compile_options(oel-test PRIVATE -Wall -Wextra -Wshadow -Wconversion -Wno-sign-conversion)
+	target_compile_options(oel-test PRIVATE -Wall -Wextra -Wold-style-cast -Wshadow -Wconversion -Wno-sign-conversion)
 endif()
 
 target_link_libraries(oel-test gtest_main)

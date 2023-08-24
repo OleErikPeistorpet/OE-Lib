@@ -30,7 +30,7 @@ class transform_iterator
 
 public:
 	using iterator_category = std::conditional_t<
-			std::is_copy_constructible<UnaryFunc>::value,
+			std::is_copy_constructible_v<UnaryFunc>,
 			std::conditional_t<
 				_isBidirectional,
 				std::bidirectional_iterator_tag,
@@ -63,20 +63,18 @@ public:
 
 	constexpr transform_iterator & operator++()   OEL_ALWAYS_INLINE { ++_m.first;  return *this; }
 	//! Post-increment: return type is transform_iterator if iterator_category is-a forward_iterator_tag, else void
-	template< typename T = transform_iterator,
-	          enable_if< iter_is_forward<T> > = 0
-	>
-	constexpr transform_iterator   operator++(int) &
+	constexpr auto                 operator++(int) &
 		{
-			auto tmp = *this;
-			++_m.first;
-			return tmp;
+			if constexpr (iter_is_forward<transform_iterator>)
+			{
+				auto tmp = *this;
+				++_m.first;
+				return tmp;
+			}
+			else
+			{	++_m.first;
+			}
 		}
-	template< typename T = transform_iterator,
-	          enable_if< ! iter_is_forward<T> > = 0
-	>	OEL_ALWAYS_INLINE
-	constexpr void                 operator++(int) &   { ++_m.first; }
-
 	constexpr transform_iterator & operator--()   OEL_ALWAYS_INLINE
 		OEL_REQUIRES(_isBidirectional)          { --_m.first;  return *this; }
 

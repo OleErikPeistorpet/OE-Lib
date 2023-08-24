@@ -16,15 +16,11 @@
 namespace oel
 {
 
-//! If an IteratorSource range can be copied to an IteratorDest range with memmove, is-a true_type, else false_type
-template< typename IteratorDest, typename IteratorSource >
-struct can_memmove_with;
-
-
 #if __cpp_lib_concepts >= 201907
-	template< std::contiguous_iterator T >
-	constexpr auto to_pointer_contiguous(T it) noexcept  { return std::to_address(it); }
-
+	constexpr auto to_pointer_contiguous(std::contiguous_iterator auto it) noexcept
+	{
+		return std::to_address(it);
+	}
 #else
 	namespace _detail
 	{
@@ -55,24 +51,16 @@ struct can_memmove_with;
 		constexpr T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return it.base(); }
 
 	#elif _CPPLIB_VER
-		#if _MSVC_STL_UPDATE < 201805
-		#define OEL_UNWRAP(iter)  _Unchecked(iter)
-		#else
-		#define OEL_UNWRAP(iter)  iter._Unwrapped()
-		#endif
-
 		template< typename ContiguousIterator,
-			enable_if
-			<	std::is_same<
-					decltype( OEL_UNWRAP(ContiguousIterator{}) ),
-					typename ContiguousIterator::pointer >::value
+			enable_if<
+				std::is_same_v< decltype(ContiguousIterator{}._Unwrapped()),
+				                typename ContiguousIterator::pointer >
 			> = 0
 		>
 		constexpr auto to_pointer_contiguous(const ContiguousIterator & it) noexcept
 		{
-			return _detail::ToAddress(OEL_UNWRAP(it));
+			return _detail::ToAddress(it._Unwrapped());
 		}
-		#undef OEL_UNWRAP
 	#endif
 #endif
 
@@ -81,11 +69,7 @@ constexpr auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
 ->	decltype( to_pointer_contiguous(it.base()) )
 	 { return to_pointer_contiguous(it.base()); }
 
-
-
 ////////////////////////////////////////////////////////////////////////////////
-
-
 
 namespace _detail
 {
@@ -99,7 +83,7 @@ namespace _detail
 		> = 0 >
 	constexpr auto Size(Range && r, None...)
 	->	decltype(end(r) - begin(r))
-		{ return end(r) - begin(r); }
+	{	return   end(r) - begin(r); }
 
 
 
@@ -114,12 +98,13 @@ namespace _detail
 	false_type CanMemmoveWith(...);
 }
 
-} // namespace oel
 
-//! @cond FALSE
-
+//! Is true if an IteratorSource range can be copied to an IteratorDest range with memmove
 template< typename IteratorDest, typename IteratorSource >
-struct oel::can_memmove_with :
-	decltype( _detail::CanMemmoveWith(std::declval<IteratorDest>(),
-	                                  std::declval<IteratorSource>()) ) {};
-//! @endcond
+inline constexpr bool can_memmove_with =
+	decltype(
+		_detail::CanMemmoveWith(std::declval<IteratorDest>(),
+		                        std::declval<IteratorSource>())
+	)::value;
+
+} // namespace oel

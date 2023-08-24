@@ -23,8 +23,8 @@ namespace oel
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template< typename RandomAccessContainer >
-constexpr void erase_unstable(RandomAccessContainer & c, typename RandomAccessContainer::size_type index)
+template< typename RandomAccessContainer, typename Integral >
+constexpr void erase_unstable(RandomAccessContainer & c, Integral index)
 {
 	c[index] = std::move(c.back());
 	c.pop_back();
@@ -35,14 +35,14 @@ constexpr void erase_unstable(RandomAccessContainer & c, typename RandomAccessCo
 *
 * This mimics `std::erase_if` (C++20) for sequence containers  */
 template< typename Container, typename UnaryPredicate >
-constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c, p, int{}); }
+constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c, p); }
 /**
 * @brief Erase consecutive duplicate elements in container
 *
 * Calls Container::unique if available (with fallback std::unique).
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
 template< typename Container >
-constexpr void erase_adjacent_dup(Container & c)   { _detail::Unique(c, int{}); }
+constexpr void erase_adjacent_dup(Container & c)   { _detail::Unique(c); }
 
 
 
@@ -57,7 +57,7 @@ struct copy_return
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
 * Requires that  `source.size()` or `end(source) - begin(source)` is valid, and that dest models random_access_iterator.
-* To move instead of copy, pass `view::move(source)`. To mimic std::copy_n, use view::counted.
+* To move instead of copy, wrap source with view::move. To mimic std::copy_n, use view::counted.
 * (Views can be used for all functions taking a range as source)  */
 template< typename SizedInputRange, typename RandomAccessIter >  inline
 auto copy_unsafe(SizedInputRange && source, RandomAccessIter dest)

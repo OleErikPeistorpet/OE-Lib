@@ -17,6 +17,6 @@ namespace oel
 
 template< typename... Ts >
 struct is_trivially_relocatable< boost::variant2::variant<Ts...> >
- :	all_< is_trivially_relocatable<Ts>... > {};
+ :	std::conjunction< is_trivially_relocatable<Ts>... > {};
 
 }

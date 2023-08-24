@@ -14,36 +14,45 @@
 
 namespace oel
 {
-namespace view
+namespace _detail
 {
-#if OEL_STD_RANGES
-	template< std::ranges::viewable_range R >
-	constexpr auto all(R && r)
+	struct All
+	{
+	#if OEL_STD_RANGES
+		template< std::ranges::viewable_range R >
+		constexpr auto operator()(R && r) const
 		{
 			return std::views::all(static_cast<R &&>(r));
 		}
-#endif
+	#endif
 
-template< typename I, typename S >
-constexpr auto all(basic_view<I, S> v)  { return v; }
+		template< typename I, typename S >
+		constexpr auto operator()(basic_view<I, S> v) const { return v; }
 
-template< typename I >
-constexpr auto all(counted_view<I> v)   { return v; }
+		template< typename I >
+		constexpr auto operator()(counted_view<I> v) const { return v; }
 
-template< typename SizedRange >
-constexpr auto all(SizedRange & r)
-->	decltype( view::counted(begin(r), oel::ssize(r)) )
-	 { return view::counted(begin(r), oel::ssize(r)); }
+		template< typename SizedRange >
+		constexpr auto operator()(SizedRange & r) const
+		->	decltype( view::counted(begin(r), oel::ssize(r)) )
+		{	return    view::counted(begin(r), oel::ssize(r)); }
 
-template< typename Range, typename... None >
-constexpr auto all(Range & r, None...)
-	{
-		return view::subrange(begin(r), end(r));
-	}
+		template< typename Range, typename... None >
+		constexpr auto operator()(Range & r, None...) const
+		{
+			return view::subrange(begin(r), end(r));
+		}
 
-template< typename R >
-constexpr void all(R &&) = delete;
+		template< typename R >
+		void operator()(R &&) const = delete;
+	};
+}
 
+
+namespace view
+{
+//! Substitute for std::views::all
+inline constexpr _detail::All all;
 }
 
 } // oel

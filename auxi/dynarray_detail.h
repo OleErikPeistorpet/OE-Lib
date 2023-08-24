@@ -10,9 +10,8 @@
 
 #include <cstdint> // for uintptr_t
 
-namespace oel
-{
-namespace _detail
+
+namespace oel::_detail
 {
 	template< typename Ptr >
 	struct DynarrBase
@@ -30,7 +29,7 @@ namespace _detail
 		size_t   nObjects;
 	};
 
-	constexpr DebugAllocationHeader headerNoAllocation{0, 0};
+	inline constexpr DebugAllocationHeader headerNoAllocation{};
 
 	OEL_ALWAYS_INLINE inline auto DebugHeaderOf(void * data)
 	{
@@ -125,5 +124,3 @@ namespace _detail
 	#endif
 	};
 }
-
-} // namespace oel

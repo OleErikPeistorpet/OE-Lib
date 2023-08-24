@@ -25,7 +25,7 @@ TEST(viewTest, basicView)
 {
 	using BV = oel::basic_view<int *>;
 
-	static_assert(std::is_trivially_constructible<BV, BV &>::value, "?");
+	static_assert(std::is_trivially_constructible<BV, BV &>::value);
 
 #if OEL_STD_RANGES
 	static_assert(std::ranges::contiguous_range<BV>);
@@ -46,7 +46,7 @@ TEST(viewTest, countedView)
 {
 	using CV = oel::counted_view<int *>;
 
-	static_assert(std::is_trivially_constructible<CV, CV &>::value, "?");
+	static_assert(std::is_trivially_constructible<CV, CV &>::value);
 
 #if OEL_STD_RANGES
 	static_assert(std::ranges::contiguous_range<CV>);
@@ -82,9 +82,9 @@ TEST(viewTest, viewTransformBasics)
 	using IEmptyLambda = decltype(v.begin());
 	using IMoveOnly = decltype(itMoveOnly);
 
-	static_assert(std::is_same< IEmptyLambda::iterator_category, std::bidirectional_iterator_tag >(), "?");
-	static_assert(std::is_same< IMoveOnly::iterator_category, std::input_iterator_tag >(), "?");
-	static_assert(std::is_same< decltype(itMoveOnly++), void >(), "?");
+	static_assert(std::is_same_v< IEmptyLambda::iterator_category, std::bidirectional_iterator_tag >);
+	static_assert(std::is_same_v< IMoveOnly::iterator_category, std::input_iterator_tag >);
+	static_assert(std::is_same_v< decltype(itMoveOnly++), void >);
 	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
 #if OEL_STD_RANGES
 	static_assert(std::ranges::bidirectional_range<decltype(v)>);
@@ -114,8 +114,6 @@ TEST(viewTest, viewTransformBasics)
 	EXPECT_FALSE(it != r + 0);
 }
 
-#if __cplusplus > 201500 or _HAS_CXX17
-
 using StdArrInt2 = std::array<int, 2>;
 
 constexpr auto multBy2(StdArrInt2 a)
@@ -140,7 +138,6 @@ void testViewTransformConstexpr()
 	static_assert(res[1] == 6);
 }
 
-#endif
 
 struct Square
 {	int operator()(int i) const
@@ -168,7 +165,7 @@ TEST(viewTest, viewTransformSizedRange)
 	EXPECT_EQ(4, dest[2]);
 	EXPECT_EQ(li.end(), last.base());
 
-	static_assert(std::is_same< decltype(last)::iterator_category, std::forward_iterator_tag >(), "?");
+	static_assert(std::is_same_v< decltype(last)::iterator_category, std::forward_iterator_tag >);
 }
 
 TEST(viewTest, viewTransformNonSizedRange)
@@ -190,7 +187,7 @@ TEST(viewTest, viewTransformMutableLambda)
 	auto v = view::transform(dummy, iota);
 	using I = decltype(v.begin());
 
-	static_assert(std::is_same<I::iterator_category, std::bidirectional_iterator_tag>(), "?");
+	static_assert(std::is_same_v<I::iterator_category, std::bidirectional_iterator_tag>);
 #if OEL_STD_RANGES
 	static_assert(std::input_or_output_iterator<I>);
 	static_assert(std::ranges::range<decltype(v)>);
@@ -232,7 +229,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 	auto nonEmpty = [i = -1](int j) { return i + j; };
 	int src[1];
 	oel::transform_iterator it{nonEmpty, src + 0};
-	auto v = view::subrange(it, src + 1) | view::move();
+	auto v = view::subrange(it, src + 1) | view::move;
 
 	EXPECT_NE(v.begin(), v.end());
 	EXPECT_EQ(src + 1, v.end().base());
@@ -243,7 +240,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 TEST(viewTest, viewMoveMutableEmptyAndSize)
 {
 	int src[] {0, 1};
-	auto v = src | std::views::drop_while([](int i) { return i <= 0; }) | view::move();
+	auto v = src | std::views::drop_while([](int i) { return i <= 0; }) | view::move;
 	EXPECT_FALSE(v.empty());
 	EXPECT_EQ(1U, v.size());
 }
@@ -253,9 +250,9 @@ TEST(viewTest, chainWithStd)
 	auto f = [](int i) { return -i; };
 	int src[] {0, 1};
 
-	src | view::move() | std::views::drop_while([](int i) { return i <= 0; });
+	src | view::move | std::views::drop_while([](int i) { return i <= 0; });
 	src | std::views::reverse | view::transform(f) | std::views::take(1);
-	src | view::transform(f) | std::views::drop(1) | view::move();
+	src | view::transform(f) | std::views::drop(1) | view::move;
 }
 
 #endif

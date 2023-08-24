@@ -194,11 +194,8 @@ Ptr to_pointer_contiguous(const dynarray_iterator<Ptr> & it) noexcept  { return 
 
 } // namespace oel
 
-namespace std
-{
-
 template< typename Ptr >
-struct pointer_traits< oel::dynarray_iterator<Ptr> >
+struct std::pointer_traits< oel::dynarray_iterator<Ptr> >
 {
     using pointer         = oel::dynarray_iterator<Ptr>;
     using difference_type = typename pointer::difference_type;
@@ -207,17 +204,13 @@ struct pointer_traits< oel::dynarray_iterator<Ptr> >
     static element_type * to_address(const pointer & it) noexcept  { return it._pElem; }
 };
 
-}
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
 
 
-namespace oel
-{
-namespace _detail
+namespace oel::_detail
 {
 	template< typename Ptr, typename ContainerBase >
 	auto MakeDynarrIter(const ContainerBase & parent, Ptr const pos) noexcept
@@ -237,6 +230,4 @@ namespace _detail
 		return pos;
 	#endif
 	}
-}
-
 }

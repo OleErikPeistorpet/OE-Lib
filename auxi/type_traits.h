@@ -22,26 +22,17 @@
 #include <ranges>
 #endif
 
-#if !__has_include(<boost/config.hpp>)
-	#define OEL_NO_BOOST  1
-#endif
-
 namespace oel
 {
 namespace _detail
 {
 	template< typename Alloc >  // pass dummy int to prefer this overload
-	bool_constant<Alloc::can_reallocate()> CanRealloc(int);
+	constexpr auto CanRealloc(int)
+	->	decltype(Alloc::can_reallocate())
+	{	return   Alloc::can_reallocate(); }
 
 	template< typename >
-	false_type CanRealloc(long);
-
-
-	template< typename T >
-	typename T::is_always_equal IsAlwaysEqual(int);
-
-	template< typename T >
-	std::is_empty<T> IsAlwaysEqual(long);
+	constexpr bool CanRealloc(long) { return false; }
 
 
 
@@ -60,34 +51,17 @@ namespace _detail
 	template< typename Iter, typename Tag >
 	constexpr bool IterIs()
 	{
-		if (!std::is_copy_constructible<Iter>::value)
+		if constexpr (!std::is_copy_constructible_v<Iter>)
 			return false;
 
-		return std::is_base_of< Tag, decltype(_detail::IterCat<Iter>(0)) >::value
-		    or std::is_base_of< Tag, decltype(_detail::IterConcept<Iter>(0)) >::value;
+		return std::is_base_of_v< Tag, decltype(_detail::IterCat<Iter>(0)) >
+		    or std::is_base_of_v< Tag, decltype(_detail::IterConcept<Iter>(0)) >;
 	}
 }
 
+
 template< typename Alloc >
-struct allocator_can_realloc   : decltype( _detail::CanRealloc<Alloc>(0) ) {};
-
-//! Part of std::allocator_traits for C++17
-template< typename T >
-using is_always_equal   = decltype( _detail::IsAlwaysEqual<T>(0) );
-
-
-template< bool... > struct bool_pack_t;
-
-/** @brief Similar to std::conjunction, but is not short-circuiting
-*
-* Example: @code
-template< typename... Ts >
-struct Numbers {
-	static_assert(oel::all_< std::is_arithmetic<Ts>... >::value, "Only arithmetic types, please");
-@endcode  */
-template< typename... BoolConstants >
-struct all_   : std::is_same< bool_pack_t<true, BoolConstants::value...>,
-                              bool_pack_t<BoolConstants::value..., true> > {};
+inline constexpr bool allocator_can_realloc   = _detail::CanRealloc<Alloc>(0);
 
 
 using std::ptrdiff_t;
@@ -132,20 +106,20 @@ using borrowed_iterator_t =
 #endif
 
 template< typename Iterator >
-constexpr bool iter_is_forward       = _detail::IterIs<Iterator, std::forward_iterator_tag>();
+inline constexpr bool iter_is_forward       = _detail::IterIs<Iterator, std::forward_iterator_tag>();
 
 template< typename Iterator >
-constexpr bool iter_is_bidirectional = _detail::IterIs<Iterator, std::bidirectional_iterator_tag>();
+inline constexpr bool iter_is_bidirectional = _detail::IterIs<Iterator, std::bidirectional_iterator_tag>();
 
 template< typename Iterator >
-constexpr bool iter_is_random_access = _detail::IterIs<Iterator, std::random_access_iterator_tag>();
+inline constexpr bool iter_is_random_access = _detail::IterIs<Iterator, std::random_access_iterator_tag>();
 
 /** @brief Partial emulation of std::sized_sentinel_for (C++20)
 *
 * Let i be an Iterator and s a Sentinel. If `s - i` is well-formed, then this value specifies whether
 * that subtraction is invalid or not O(1). Must be specialized for some iterator, sentinel pairs. */
 template< typename Sentinel, typename Iterator >
-constexpr bool disable_sized_sentinel_for =
+inline constexpr bool disable_sized_sentinel_for =
 	#if __cpp_lib_concepts >= 201907
 		std::disable_sized_sentinel_for<Sentinel, Iterator>;
 	#else
@@ -165,14 +139,11 @@ using enable_if = typename std::enable_if<Condition, int>::type;
 
 namespace _detail
 {
-	template< typename B0, typename B1 >
-	constexpr bool conjunctionV = std::conditional_t<B0::value, B1, B0>::value;
-
-
-	template< typename > constexpr bool isUnboundedArray = false;
+	template< typename >
+	inline constexpr bool isUnboundedArray = false;
 
 	template< typename T >
-	constexpr bool isUnboundedArray<T[]> = true;
+	inline constexpr bool isUnboundedArray<T[]> = true;
 }
 
 } // namespace oel
@@ -183,10 +154,6 @@ struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::d
 
 
 //! @cond INTERNAL
-
-#if __cpp_deduction_guides or (_MSC_VER >= 1914 and _HAS_CXX17)
-	#define OEL_HAS_DEDUCTION_GUIDES  1
-#endif
 
 #if __cpp_lib_concepts >= 201907
 	#define OEL_REQUIRES(...) requires(__VA_ARGS__)

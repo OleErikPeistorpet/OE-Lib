@@ -24,7 +24,7 @@ namespace _detail
 		TightPair< View, typename _detail::AssignableWrap<Func>::Type > _m;
 
 		template< typename F_ = Func,
-		          enable_if< std::is_empty<F_>::value > = 0
+		          enable_if< std::is_empty_v<F_> > = 0
 		>
 		constexpr _iter _makeSent(iterator_t<View> last)
 		{
@@ -74,8 +74,7 @@ namespace _detail
 		template< typename Range >
 		friend constexpr auto operator |(Range && r, TransfPartial t)
 		{
-			using V = decltype(view::all( static_cast<Range &&>(r) ));
-			return TransformView<V, F>{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
+			return TransformView{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
 		}
 	};
 }
@@ -84,21 +83,28 @@ namespace _detail
 namespace view
 {
 
-/** @brief Given a source range, transform each element when dereferenced, using operator | (like std::views)
-@code
-std::bitset<8> arr[] { 3, 5, 7, 11 };
-dynarray<std::string> result( arr | view::transform([](const auto & bs) { return bs.to_string(); }) );
-@endcode  */
-template< typename UnaryFunc >
-constexpr auto transform(UnaryFunc f)    { return _detail::TransfPartial<UnaryFunc>{std::move(f)}; }
-/**
-* @brief Create a view that transforms each element of the range when dereferenced, normal function style
-*
-* Similar to boost::adaptors::transform, but stores just one copy of f and has no size overhead for stateless
-* function objects. Also accepts a lambda as long as any by-value captures are trivially copy constructible
-* and trivially destructible. Moreover, UnaryFunc can have non-const operator() (such as mutable lambda). */
-template< typename UnaryFunc, typename Range >
-constexpr auto transform(Range && r, UnaryFunc f)  { return static_cast<Range &&>(r) | view::transform(std::move(f)); }
+struct _transformFn
+{
+	/** @brief Given a source range, transform each element when dereferenced, using operator | (like std::views)
+	@code
+	std::bitset<8> arr[] { 3, 5, 7, 11 };
+	dynarray<std::string> result( arr | view::transform([](const auto & bs) { return bs.to_string(); }) );
+	@endcode  */
+	template< typename UnaryFunc >
+	constexpr auto operator()(UnaryFunc f) const   { return _detail::TransfPartial<UnaryFunc>{std::move(f)}; }
+	/**
+	* @brief Create a view that transforms each element of the range when dereferenced, normal function style
+	*
+	* Similar to boost::adaptors::transform, but stores just one copy of f and has no size overhead for stateless
+	* function objects. Also accepts a lambda as long as any by-value captures are trivially copy constructible
+	* and trivially destructible. Moreover, UnaryFunc can have non-const operator() (such as mutable lambda). */
+	template< typename Range, typename UnaryFunc >
+	constexpr auto operator()(Range && r, UnaryFunc f) const
+		{
+			return static_cast<Range &&>(r) | (*this)(std::move(f));
+		}
+};
+inline constexpr _transformFn transform;
 
 }
 

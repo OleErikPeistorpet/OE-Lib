@@ -8,28 +8,25 @@
 
 #include "../../auxi/type_traits.h"
 
-namespace oel
-{
-namespace _detail
-{
-	template< typename T,
-		enable_if< std::is_copy_constructible<T>::value > = 0
-	> OEL_ALWAYS_INLINE
-	constexpr const T & MoveIfNotCopyable(T & ob) { return ob; }
 
-	template< typename T, typename... None >
-	constexpr T MoveIfNotCopyable(T & ob, None...)
+namespace oel::_detail
+{
+	template< typename T >
+	constexpr T MoveIfNotCopyable(T & ob)
 	{
-		return static_cast<T &&>(ob);
+		if constexpr (std::is_copy_constructible_v<T>)
+			return ob;
+		else
+			return static_cast<T &&>(ob);
 	}
 
 
 
 	template< typename T,
-	          bool = std::is_move_assignable<T>::value >
+	          bool = std::is_move_assignable_v<T> >
 	class AssignableWrap
 	{
-		static_assert( std::is_trivially_copy_constructible<T>::value and std::is_trivially_destructible<T>::value,
+		static_assert( std::is_trivially_copy_constructible_v<T> and std::is_trivially_destructible_v<T>,
 			"The user-supplied function must be move assignable, or trivially copy constructible and trivially destructible" );
 
 		union Impl
@@ -65,7 +62,7 @@ namespace _detail
 		};
 
 	public:
-		using Type = std::conditional_t< std::is_empty<T>::value, ImplEmpty, Impl >;
+		using Type = std::conditional_t< std::is_empty_v<T>, ImplEmpty, Impl >;
 	};
 
 	template< typename T >
@@ -75,5 +72,3 @@ namespace _detail
 		using Type = T;
 	};
 }
-
-} // oel
