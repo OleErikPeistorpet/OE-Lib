@@ -11,7 +11,7 @@
 
 
 #ifndef HAS_STD_PMR
-	#if __has_include(<memory_resource>) and (__cplusplus > 201500 or _HAS_CXX17)
+	#if __has_include(<memory_resource>)
 	#define HAS_STD_PMR  1
 	#else
 	#define HAS_STD_PMR  0
@@ -168,8 +168,8 @@ struct TrivialDefaultConstruct
 	TrivialDefaultConstruct() = default;
 	TrivialDefaultConstruct(const TrivialDefaultConstruct &) {}
 };
-static_assert(std::is_trivially_default_constructible<TrivialDefaultConstruct>::value, "?");
-static_assert( !std::is_trivially_copyable<TrivialDefaultConstruct>::value, "?" );
+static_assert(std::is_trivially_default_constructible<TrivialDefaultConstruct>::value);
+static_assert( !std::is_trivially_copyable<TrivialDefaultConstruct>::value );
 
 struct NontrivialConstruct : MyCounter
 {
@@ -183,7 +183,7 @@ struct NontrivialConstruct : MyCounter
 
 	~NontrivialConstruct() { ++nDestruct; }
 };
-static_assert( !std::is_trivially_default_constructible<NontrivialConstruct>::value, "?" );
+static_assert( !std::is_trivially_default_constructible<NontrivialConstruct>::value );
 
 
 struct AllocCounter
@@ -267,7 +267,7 @@ struct StatefulAllocator : std::conditional_t< UseConstruct, TrackingAllocator<T
 
 	int id;
 
-	StatefulAllocator(int id_ = 0) : id(id_) {}
+	explicit StatefulAllocator(int id_ = 0) : id(id_) {}
 
 	template<typename U>
 	friend bool operator==(StatefulAllocator a, StatefulAllocator<U, PropagateOnMoveAssign, UseConstruct> b)

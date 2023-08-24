@@ -247,7 +247,6 @@ TEST_F(dynarrayConstructTest, constructInitList)
 	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 
-#if OEL_HAS_DEDUCTION_GUIDES
 TEST_F(dynarrayConstructTest, deductionGuides)
 {
 	using Base = std::array<int, 2>;
@@ -271,17 +270,12 @@ TEST_F(dynarrayConstructTest, deductionGuides)
 	static_assert(std::is_same<decltype(sizeAndVal)::value_type, float>());
 	EXPECT_TRUE(sizeAndVal.at(1) == 1.f);
 }
-#endif
 
 TEST_F(dynarrayConstructTest, constructContiguousRange)
 {
 	std::string str = "AbCd";
-#if OEL_HAS_DEDUCTION_GUIDES
 	dynarray test(str);
 	static_assert(std::is_same<decltype(test)::value_type, char>());
-#else
-	dynarray<char> test(str);
-#endif
 	EXPECT_TRUE( 0 == str.compare(0, 4, test.data(), test.size()) );
 }
 
@@ -364,7 +358,8 @@ TEST_F(dynarrayConstructTest, moveConstructWithAlloc)
 
 TEST_F(dynarrayConstructTest, moveConstructWithStatefulAlloc)
 {
-	testMoveConstruct< StatefulAllocator<MoveOnly, false> >({0}, {0});
+	using Al = StatefulAllocator<MoveOnly, false>;
+	testMoveConstruct(Al(0), Al(0));
 }
 
 struct NonAssignable
@@ -469,7 +464,9 @@ TEST_F(dynarrayConstructTest, moveAssign)
 
 TEST_F(dynarrayConstructTest, moveAssignStatefulAlloc)
 {
-	testMoveAssign< StatefulAllocator<MoveOnly, true> >({0}, {1});
+	using PropagateAlloc = StatefulAllocator<MoveOnly, true>;
+	static_assert(std::is_nothrow_move_assignable< dynarray<MoveOnly, PropagateAlloc> >::value);
+	testMoveAssign(PropagateAlloc(0), PropagateAlloc(1));
 }
 
 template<typename T>
@@ -540,6 +537,8 @@ using PmrDynarray = dynarray< T, std::pmr::polymorphic_allocator<T> >;
 
 TEST_F(dynarrayConstructTest, moveAssignPolymorphicAlloc)
 {
+	static_assert(!std::is_nothrow_move_assignable_v< PmrDynarray<int> >);
+
 	using Nested = PmrDynarray< PmrDynarray<int> >;
 	std::pmr::monotonic_buffer_resource bufRes{};
 	auto a = Nested(1);

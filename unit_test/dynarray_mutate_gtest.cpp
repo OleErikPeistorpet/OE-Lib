@@ -31,7 +31,6 @@ struct throwingAlloc : public oel::allocator<T>
 		return oel::allocator<T>::allocate(nObjs);
 	}
 };
-static_assert( !oel::is_always_equal<throwingAlloc<int>>::value, "?" );
 
 // The fixture for testing dynarray.
 class dynarrayTest : public ::testing::Test
@@ -185,7 +184,7 @@ struct ConstructFromRef
 	template< typename T >
 	ConstructFromRef(UPtr &, T &&, int(&)())
 	{
-		static_assert(std::is_const<T>(), "?");
+		static_assert(std::is_const<T>());
 	}
 };
 
@@ -212,7 +211,7 @@ TEST_F(dynarrayTest, assign)
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(view::subrange(src, src) | view::move());
+		test.assign(view::subrange(src, src) | view::move);
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
@@ -377,7 +376,7 @@ TEST_F(dynarrayTest, appendSizeOverflow)
 {
 	dynarray<char> c(1);
 	EXPECT_THROW(
-		c.append((size_t)-1, '\0'),
+		c.append(SIZE_MAX, '\0'),
 		std::length_error );
 }
 #endif
@@ -565,20 +564,34 @@ TEST_F(dynarrayTest, moveOnlyIterator)
 {
 	dynarray<int> dest;
 	{
-		std::istringstream ss{"1 2 3"};
-		dest.append(std::views::istream<int>(ss));
+		std::istringstream ss{"1 2 3 4"};
+		auto v = std::views::istream<int>(ss);
+
+		auto it = dest.append(view::counted(v.begin(), 3));
 		EXPECT_EQ(3u, dest.size());
 		EXPECT_EQ(1, dest[0]);
 		EXPECT_EQ(2, dest[1]);
 		EXPECT_EQ(3, dest[2]);
+
+		it = dest.assign( view::subrange(std::move(it), v.end()) );
+		EXPECT_EQ(v.end(), it);
+		EXPECT_EQ(1u, dest.size());
+		EXPECT_EQ(4, dest[0]);
 	}
-	{
-		std::istringstream ss{"2 1"};
-		dest.assign(std::views::istream<int>(ss));
-		EXPECT_EQ(2u, dest.size());
-		EXPECT_EQ(2, dest[0]);
-		EXPECT_EQ(1, dest[1]);
-	}
+	std::istringstream ss{"5 6 7 8"};
+	auto v = std::views::istream<int>(ss);
+
+	auto it = dest.assign(view::counted(v.begin(), 2));
+	EXPECT_EQ(2u, dest.size());
+	EXPECT_EQ(5, dest[0]);
+	EXPECT_EQ(6, dest[1]);
+
+	dest.insert_range(dest.begin() + 1, view::counted(std::move(it), 2));
+	EXPECT_EQ(4u, dest.size());
+	EXPECT_EQ(5, dest[0]);
+	EXPECT_EQ(7, dest[1]);
+	EXPECT_EQ(8, dest[2]);
+	EXPECT_EQ(6, dest[3]);
 }
 #endif
 
@@ -876,9 +889,9 @@ TEST_F(dynarrayTest, greaterThanMax)
 	};
 
 	dynarray<Size2> d;
-	size_t const n = std::numeric_limits<size_t>::max() / 2 + 1;
+	auto const n = std::numeric_limits<size_t>::max() / 2 + 1;
 
-	EXPECT_THROW(d.reserve((size_t) -1), std::length_error);
+	EXPECT_THROW(d.reserve(SIZE_MAX), std::length_error);
 	EXPECT_THROW(d.reserve(n), std::length_error);
 	EXPECT_THROW(d.resize(n), std::length_error);
 	EXPECT_THROW(d.resize_for_overwrite(n), std::length_error);

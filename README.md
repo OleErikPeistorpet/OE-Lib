@@ -1,4 +1,4 @@
-# Obscure Efficient Library (v2)
+# Obscure Efficient Library
 
 A cross-platform, very fast substitute for C++ std::vector (and std::copy) with a range-based interface.
 
@@ -6,10 +6,10 @@ Features relocation optimizations similar to [Folly fbvector](https://github.com
 
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
-C++14 is required. Supported compilers:
-* Visual Studio 2017 and later
-* GCC 5 and later
-* Clang (tested regularly, but minimum version is unknown)
+C++17 is required. Oldest supported compilers:
+* Visual Studio 2017 (15.8)
+* GCC 7
+* Clang 5
 
 ### Append
 

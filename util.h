@@ -42,7 +42,7 @@ constexpr auto ssize(SizedRangeLike && r)
 template< typename Integral, typename SizedRangeLike >
 constexpr bool index_valid(SizedRangeLike & r, Integral index)
 	{
-		static_assert( sizeof(Integral) >= sizeof _detail::Size(r) or std::is_unsigned<Integral>::value,
+		static_assert( sizeof(Integral) >= sizeof _detail::Size(r) or std::is_unsigned_v<Integral>,
 			"Mismatched index type, please use a wider integer (or unsigned)" );
 		return as_unsigned(index) < as_unsigned(_detail::Size(r));
 	}
@@ -53,14 +53,23 @@ struct reserve_tag
 {
 	explicit constexpr reserve_tag() {}
 };
-constexpr reserve_tag reserve; //!< An instance of reserve_tag for convenience
+inline constexpr reserve_tag reserve; //!< An instance of reserve_tag for convenience
 
 //! Tag to specify default initialization
 struct for_overwrite_t
 {
 	explicit constexpr for_overwrite_t() {}
 };
-constexpr for_overwrite_t for_overwrite;  //!< An instance of for_overwrite_t for convenience
+inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrite_t for convenience
+
+
+
+//! Same as `begin(range)` with a previous `using std::begin;`. For use in classes with a member named begin
+inline constexpr auto adl_begin =
+	[](auto && range) -> decltype(begin(range)) { return begin(range); };
+//! Same as `end(range)` with a previous `using std::end;`. For use in classes with a member named end
+inline constexpr auto adl_end =
+	[](auto && range) -> decltype(end(range)) { return end(range); };
 
 
 
@@ -69,16 +78,10 @@ constexpr for_overwrite_t for_overwrite;  //!< An instance of for_overwrite_t fo
 // The rest of the file is not for users (implementation)
 
 
-// Cannot do ADL `begin(r)` in implementation of class with begin member
-template< typename Range >  OEL_ALWAYS_INLINE
-constexpr auto adl_begin(Range && r) -> decltype(begin(r)) { return begin(r); }
-
-
-
 template< typename T >
 struct
 #ifdef __GNUC__
-	__attribute__((may_alias))
+	[[gnu::may_alias]]
 #endif
 	storage_for
 {
@@ -89,7 +92,7 @@ struct
 namespace _detail
 {
 	template< typename T, typename U,
-	          bool = std::is_empty<U>::value >
+	          bool = std::is_empty_v<U> >
 	struct TightPair
 	{
 		T first;

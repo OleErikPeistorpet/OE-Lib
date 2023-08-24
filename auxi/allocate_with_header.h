@@ -10,9 +10,8 @@
 
 #include <cstdint> // for uintptr_t
 
-namespace oel
-{
-namespace _detail
+
+namespace oel::_detail
 {
 	struct DebugAllocationHeader
 	{
@@ -20,7 +19,7 @@ namespace _detail
 		size_t   nObjects;
 	};
 
-	constexpr DebugAllocationHeader headerNoAllocation{0, 0};
+	inline constexpr DebugAllocationHeader headerNoAllocation{};
 
 	#define OEL_DEBUG_HEADER_OF(ptr)   (      (DebugAllocationHeader *)static_cast<void *>(ptr) - 1)
 	#define OEL_DEBUG_HEADER_OF_C(ptr) ((const DebugAllocationHeader *)static_cast<const void *>(ptr) - 1)
@@ -120,5 +119,3 @@ namespace _detail
 		Ptr reservEnd;
 	};
 }
-
-} // namespace oel

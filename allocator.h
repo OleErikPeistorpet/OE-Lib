@@ -58,7 +58,7 @@ struct allocator
 
 namespace _detail
 {
-	constexpr size_t defaultAlign =
+	inline constexpr size_t defaultAlign =
 		#if defined __STDCPP_DEFAULT_NEW_ALIGNMENT__
 			__STDCPP_DEFAULT_NEW_ALIGNMENT__;
 		#elif _WIN64 or defined __x86_64__ // then assuming 16 byte aligned from malloc
@@ -67,7 +67,7 @@ namespace _detail
 			alignof(std::max_align_t);
 		#endif
 
-	constexpr auto * allocFailMsg = "No memory oel::allocator";
+	inline constexpr auto allocFailMsg = "No memory oel::allocator";
 
 	struct BadAlloc
 	{
@@ -99,7 +99,7 @@ namespace _detail
 	{
 		void * operator()(size_t const nBytes) const
 		{
-			OEL_CONST_COND if (Align > defaultAlign)
+			if constexpr (Align > defaultAlign)
 			{
 				void * p = std::malloc(nBytes + Align);
 				return AlignAndStore<Align>(p);
@@ -117,7 +117,7 @@ namespace _detail
 
 		void * operator()(size_t const nBytes) const
 		{
-			OEL_CONST_COND if (Align > defaultAlign)
+			if constexpr (Align > defaultAlign)
 			{
 				void * p = old ?
 						static_cast<void **>(old)[-1] :

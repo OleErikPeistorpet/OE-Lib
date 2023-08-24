@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -12,9 +12,7 @@
 #include <stdexcept>
 
 
-namespace oel
-{
-namespace _detail
+namespace oel::_detail
 {
 	struct Throw
 	{	// Exception throwing has been split out from templates to avoid bloat
@@ -32,9 +30,9 @@ namespace _detail
 ////////////////////////////////////////////////////////////////////////////////
 
 	template< typename T >
-	void Destroy(T * first, const T * last) noexcept
+	void Destroy([[maybe_unused]] T * first, [[maybe_unused]] const T * last) noexcept
 	{	// first > last is OK, does nothing
-		if (!std::is_trivially_destructible<T>::value) // for speed with non-optimized builds
+		if constexpr (!std::is_trivially_destructible_v<T>) // for speed with non-optimized builds
 		{
 			for (; first < last; ++first)
 				first-> ~T();
@@ -62,70 +60,65 @@ namespace _detail
 	}
 
 
-	template< typename T,
-		enable_if< is_trivially_relocatable<T>::value > = 0
-	>
-	inline T * Relocate(T *__restrict src, size_t const n, T *__restrict dest)
+	template< typename T >
+	T * Relocate(T *__restrict src, size_t const n, T *__restrict dest)
 	{
-		T *const dLast = dest + n;
-	#if OEL_CHECK_NULL_MEMCPY
-		if (src)
-	#endif
-		{	std::memcpy(
-				static_cast<void *>(dest),
-				static_cast<const void *>(src),
-				sizeof(T) * n );
-		}
-		return dLast;
-	}
-
-	template< typename T, typename... None >
-	T * Relocate(T *__restrict src, size_t const n, T *__restrict dest, None...)
-	{
-	#if OEL_HAS_EXCEPTIONS
-		static_assert( std::is_nothrow_move_constructible<T>::value,
-			"dynarray requires that T is noexcept move constructible or trivially relocatable" );
-	#endif
-		for (size_t i{}; i < n; ++i)
+		if constexpr (is_trivially_relocatable<T>::value)
 		{
-			::new(static_cast<void *>(dest + i)) T( std::move(src[i]) );
-			src[i].~T();
+			T *const dLast = dest + n;
+		#if OEL_CHECK_NULL_MEMCPY
+			if (src)
+		#endif
+			{	std::memcpy(
+					static_cast<void *>(dest),
+					static_cast<const void *>(src),
+					sizeof(T) * n );
+			}
+			return dLast;
 		}
-		return dest + n;
+		else
+		{
+		#if OEL_HAS_EXCEPTIONS
+			static_assert( std::is_nothrow_move_constructible_v<T>,
+				"dynarray requires that T is noexcept move constructible or trivially relocatable" );
+		#endif
+			for (size_t i{}; i < n; ++i)
+			{
+				::new(static_cast<void *>(dest + i)) T( std::move(src[i]) );
+				src[i].~T();
+			}
+			return dest + n;
+		}
 	}
 	#undef OEL_CHECK_NULL_MEMCPY
 
 
-	template< typename Alloc, typename ContiguousIter, typename T,
-	          enable_if< can_memmove_with<T *, ContiguousIter>::value > = 0
-	>
-	inline ContiguousIter UninitCopy(ContiguousIter const src, T *__restrict dFirst, T *const dLast, Alloc &)
+	template< typename Alloc, typename InputIter, typename T >
+	InputIter UninitCopy(InputIter src, T *__restrict dest, T *const dLast, [[maybe_unused]] Alloc & allo)
 	{
-		auto const n = dLast - dFirst;
-		_detail::MemcpyCheck(src, n, dFirst);
-		return src + n;
-	}
-
-	template< typename Alloc, typename InputIter, typename T,
-	          enable_if< ! can_memmove_with<T *, InputIter>::value > = 0
-	>
-	InputIter UninitCopy(InputIter src, T *__restrict dest, T *const dLast, Alloc & allo)
-	{
-		T *const dFirst = dest;
-		OEL_TRY_
+		if constexpr (can_memmove_with<T *, InputIter>)
 		{
-			while (dest != dLast)
+			auto const n = dLast - dest;
+			_detail::MemcpyCheck(src, n, dest);
+			return src + n;
+		}
+		else
+		{	T *const dFirst = dest;
+			OEL_TRY_
 			{
-				std::allocator_traits<Alloc>::construct(allo, dest, *src);
-				++src; ++dest;
+				while (dest != dLast)
+				{
+					std::allocator_traits<Alloc>::construct(allo, dest, *src);
+					++src; ++dest;
+				}
 			}
+			OEL_CATCH_ALL
+			{
+				_detail::Destroy(dFirst, dest);
+				OEL_RETHROW;
+			}
+			return src;
 		}
-		OEL_CATCH_ALL
-		{
-			_detail::Destroy(dFirst, dest);
-			OEL_RETHROW;
-		}
-		return src;
 	}
 
 
@@ -133,11 +126,11 @@ namespace _detail
 	struct UninitFill
 	{
 		template< typename T >
-		using IsByte = bool_constant< sizeof(T) == 1 and
-			(std::is_integral<T>::value or std::is_enum<T>::value) >;
+		static constexpr auto isByte =
+			sizeof(T) == 1 and (std::is_integral_v<T> or std::is_enum_v<T>);
 
 		template< typename T, typename... Args,
-		          enable_if< !IsByte<T>::value > = 0
+		          enable_if< !isByte<T> > = 0
 		>
 		static void call(T *__restrict first, T *const last, Alloc & allo, const Args &... args)
 		{
@@ -155,7 +148,7 @@ namespace _detail
 		}
 
 		template< typename T,
-		          enable_if< IsByte<T>::value > = 0
+		          enable_if< isByte<T> > = 0
 		>
 		static void call(T *const first, T * last, Alloc &, T val)
 		{
@@ -163,7 +156,7 @@ namespace _detail
 		}
 
 		template< typename T,
-		          enable_if< std::is_trivial<T>::value > = 0
+		          enable_if< std::is_trivial_v<T> > = 0
 		>
 		static void call(T *const first, T * last, Alloc &)
 		{
@@ -176,35 +169,34 @@ namespace _detail
 		template< typename Alloc, typename T >
 		static void call(T *__restrict first, T *const last, Alloc & a)
 		{
-			if (!std::is_trivially_default_constructible<T>::value)
+			if constexpr (!std::is_trivially_default_constructible_v<T>)
+			{
 				UninitFill<Alloc>::call(first, last, a);
+			}
+			else
+			{	(void) first; (void) last; (void) a; // avoid VC++ 2017 warning C4100
+			}
 		}
 	};
 
 
 
-	template< typename Range,
-		enable_if<
-			iter_is_forward< iterator_t<Range> >
-		> = 0 >
-	size_t CountOrEndNoSize(Range & r, int)
-	{
-		size_t n = 0;
-		auto it = begin(r);
-		auto const last = end(r);
-		while (it != last) { ++it; ++n; }
-
-		return n;
-	}
-
-	template< typename Range >
-	auto CountOrEndNoSize(Range & r, long) { return end(r); }
-
 	// If r is sized or multi-pass, returns element count as size_t, else end(r)
 	template< typename Range, typename... None >
 	inline auto CountOrEnd(Range & r, None...)
 	{
-		return _detail::CountOrEndNoSize(r, 0);
+		if constexpr (iter_is_forward< iterator_t<Range> >)
+		{
+			size_t n{};
+			auto it = begin(r);
+			auto const l = end(r);
+			while (it != l) { ++it; ++n; }
+
+			return n;
+		}
+		else
+		{	return end(r);
+		}
 	}
 
 	template< typename Range >
@@ -212,5 +204,3 @@ namespace _detail
 	->	decltype( static_cast<size_t>(_detail::Size(r)) )
 	{	return    static_cast<size_t>(_detail::Size(r)); }
 }
-
-} // namespace oel

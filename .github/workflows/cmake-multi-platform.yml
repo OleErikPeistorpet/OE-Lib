@@ -23,7 +23,7 @@ jobs:
             cpp_standard: 17
           - os: ubuntu-20.04
             gcc_version: 8
-            cpp_standard: 14
+            cpp_standard: 17
             mem_bound_debug: on
           - os: ubuntu-20.04
             gcc_version: 9
@@ -39,11 +39,12 @@ jobs:
             gcc_version: 12
             cpp_standard: 20
           - os: macos-latest
-            cpp_standard: 14
+            cpp_standard: 17
             mem_bound_debug: on
         exclude:
           - os: macos-latest
             cpp_standard: 17
+            mem_bound_debug: off
 
     steps:
     - if: runner.os == 'Linux'

@@ -17,25 +17,29 @@ namespace oel
 namespace view
 {
 
-/** @brief Given a source range, transform each element when dereferenced, using operator | (like std::views)
-@code
-std::bitset<8> arr[] { 3, 5, 7, 11 };
-dynarray<std::string> result( arr | view::transform([](const auto & bs) { return bs.to_string(); }) );
-@endcode
+struct _transformFn
+{
+	//! Used with operator |
+	template< typename UnaryFunc >
+	constexpr auto operator()(UnaryFunc f) const;
+
+	template< typename Range, typename UnaryFunc >
+	constexpr auto operator()(Range && r, UnaryFunc f) const
+		{
+			return static_cast<Range &&>(r) | (*this)(std::move(f));
+		}
+};
+/** @brief Similar to std::views::transform
+*
 * Unlike std::views::transform, copies or moves the function into the iterator rather than
 * storing it just in the view, thus saving one indirection when dereferencing the iterator.
 * When used in OE-Lib, the function does not need to model std::regular_invocable,
-* meaning it's all right to return different results for the same input. */
-template< typename UnaryFunc >
-constexpr auto transform(UnaryFunc f);
-/*
-* @brief Similar to `std::views::transform(r, f)`
+* meaning it's all right to return different results for the same input.
 *
-* See view::transform(UnaryFunc) above. */
-template< typename UnaryFunc, typename Range >
-constexpr auto transform(Range && r, UnaryFunc f)  { return static_cast<Range &&>(r) | view::transform(std::move(f)); }
+* https://en.cppreference.com/w/cpp/ranges/transform_view  */
+inline constexpr _transformFn transform;
 
-}
+} // view
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -49,7 +53,7 @@ namespace _detail
 		TightPair< View, typename _detail::AssignableWrap<Func>::Type > _m;
 
 		template< typename F_ = Func,
-		          enable_if< std::is_empty<F_>::value > = 0
+		          enable_if< std::is_empty_v<F_> > = 0
 		>
 		constexpr _iter _makeSent(iterator_t<View> last)
 		{
@@ -99,14 +103,13 @@ namespace _detail
 		template< typename Range >
 		friend constexpr auto operator |(Range && r, TransfPartial t)
 		{
-			using V = decltype(view::all( static_cast<Range &&>(r) ));
-			return TransformView<V, F>{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
+			return TransformView{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
 		}
 	};
 }
 
 template< typename UnaryFunc >
-constexpr auto view::transform(UnaryFunc f)
+constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 {
 	return _detail::TransfPartial<UnaryFunc>{std::move(f)};
 }

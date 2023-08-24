@@ -8,9 +8,8 @@
 
 #include "type_traits.h"
 
-namespace oel
-{
-namespace _detail
+
+namespace oel::_detail
 {
 	// Note: false for arrays, they aren't copy/move constructible
 	template< typename T, typename SansRef, bool IsConst >
@@ -21,28 +20,24 @@ namespace _detail
 				(std::is_move_constructible_v<SansRef> and !IsConst) ) // !IsConst implies rvalue due to check in ForwardT
 			and sizeof(SansRef) <= 2 * sizeof(int)
 		#else
-			std::is_trivially_copy_constructible<SansRef>::value and std::is_trivially_destructible<SansRef>::value
+			std::is_trivially_copy_constructible_v<SansRef> and std::is_trivially_destructible_v<SansRef>
 			and sizeof(SansRef) <= 2 * sizeof(void *)
 		#endif
 		> {};
 
 	template< typename T,
 		typename SansRef = std::remove_reference_t<T>,
-		bool IsConst = std::is_const<SansRef>::value
+		bool IsConst = std::is_const_v<SansRef>
 	>
 	using ForwardT =
 		std::conditional_t<
-			conjunctionV<
+			std::conjunction_v<
 				// Forwarding a function or mutable lvalue reference by value would break
-				bool_constant<
-					(!std::is_lvalue_reference<T>::value or IsConst)
-					and !std::is_function<SansRef>::value
-				>,
+				bool_constant< !std::is_lvalue_reference_v<T> or IsConst >,
+				std::negation< std::is_function<SansRef> >,
 				PassByValueIsBetter<T, SansRef, IsConst>
 			>,
 			std::remove_cv_t<SansRef>,
 			T &&
 		>;
-}
-
 }

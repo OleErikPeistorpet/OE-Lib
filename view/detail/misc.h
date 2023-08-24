@@ -18,24 +18,22 @@ struct sentinel_wrapper   { Sentinel _s; };
 
 namespace _detail
 {
-	template< typename T,
-		enable_if< std::is_copy_constructible<T>::value > = 0
-	> OEL_ALWAYS_INLINE
-	constexpr const T & MoveIfNotCopyable(T & ob) { return ob; }
-
-	template< typename T, typename... None >
-	constexpr T MoveIfNotCopyable(T & ob, None...)
+	template< typename T >
+	constexpr T MoveIfNotCopyable(T & ob)
 	{
-		return static_cast<T &&>(ob);
+		if constexpr (std::is_copy_constructible_v<T>)
+			return ob;
+		else
+			return static_cast<T &&>(ob);
 	}
 
 
 
 	template< typename T,
-	          bool = std::is_move_assignable<T>::value >
+	          bool = std::is_move_assignable_v<T> >
 	class AssignableWrap
 	{
-		static_assert( std::is_trivially_copy_constructible<T>::value and std::is_trivially_destructible<T>::value,
+		static_assert( std::is_trivially_copy_constructible_v<T> and std::is_trivially_destructible_v<T>,
 			"The user-supplied function must be move assignable, or trivially copy constructible and trivially destructible" );
 
 		union Impl
@@ -71,7 +69,7 @@ namespace _detail
 		};
 
 	public:
-		using Type = std::conditional_t< std::is_empty<T>::value, ImplEmpty, Impl >;
+		using Type = std::conditional_t< std::is_empty_v<T>, ImplEmpty, Impl >;
 	};
 
 	template< typename T >
@@ -86,11 +84,10 @@ namespace _detail
 
 
 #if !OEL_STD_RANGES
-namespace std
-{
+
 // Small hack to let std::move_iterator< sentinel_wrapper<S> > compile
 template< typename S >
-struct iterator_traits< oel::sentinel_wrapper<S> > : iterator_traits<S> {};
+struct std::iterator_traits< oel::sentinel_wrapper<S> >
+ :	std::iterator_traits<S> {};
 
-}
 #endif

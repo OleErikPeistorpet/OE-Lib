@@ -3,6 +3,7 @@
 
 #include "test_classes.h"
 #include "dynarray.h"
+#include "optimize_ext/std_variant.h"
 #include "view/move.h"
 
 #include "gtest/gtest.h"
@@ -12,7 +13,7 @@
 
 #include <memory_resource>
 
-static_assert(oel::is_trivially_relocatable< std::pmr::polymorphic_allocator<int> >::value, "?");
+static_assert(oel::is_trivially_relocatable< std::pmr::polymorphic_allocator<int> >::value);
 
 #endif
 
@@ -33,22 +34,22 @@ namespace
 	static_assert(std::sized_sentinel_for<Iter, ConstIter>);
 #endif
 
-	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>(), "?");
+	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>());
 
-	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
-	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
-	static_assert(oel::can_memmove_with< float *, std::move_iterator<Iter> >::value, "?");
-	static_assert( !oel::can_memmove_with<int *, Iter>::value, "?" );
+	static_assert(oel::can_memmove_with<Iter, ConstIter>);
+	static_assert(oel::can_memmove_with<Iter, const float *>);
+	static_assert(oel::can_memmove_with< float *, std::move_iterator<Iter> >);
+	static_assert( !oel::can_memmove_with<int *, Iter> );
 
-	static_assert(std::is_trivially_copyable<Iter>::value, "?");
-	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
-	static_assert( !std::is_convertible<ConstIter, Iter>::value, "?" );
+	static_assert(std::is_trivially_copyable<Iter>::value);
+	static_assert(std::is_convertible<Iter, ConstIter>::value);
+	static_assert( !std::is_convertible<ConstIter, Iter>::value );
 
 	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
 				  "Not critical, this assert can be removed");
 
-	static_assert(oel::allocator_can_realloc< TrackingAllocator<double> >::value, "?");
-	static_assert(!oel::allocator_can_realloc< oel::allocator<MoveOnly> >::value, "?");
+	static_assert(oel::allocator_can_realloc< TrackingAllocator<double> >);
+	static_assert(!oel::allocator_can_realloc< oel::allocator<MoveOnly> >);
 }
 
 TEST(dynarrayOtherTest, zeroBitRepresentation)
@@ -92,7 +93,7 @@ TEST(dynarrayOtherTest, allocAndIterEquality)
 }
 
 using MyAllocStr = oel::allocator<std::string>;
-static_assert(std::is_trivially_copyable<MyAllocStr>::value, "?");
+static_assert(std::is_trivially_copyable<MyAllocStr>::value);
 
 TEST(dynarrayOtherTest, stdDequeWithOelAlloc)
 {
@@ -131,10 +132,6 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
-#if __has_include(<variant>) and (__cplusplus > 201500 or _HAS_CXX17)
-
-#include "optimize_ext/std_variant.h"
-
 TEST(dynarrayOtherTest, stdVariant)
 {
 	using Inner = std::conditional_t< oel::is_trivially_relocatable<std::string>{}, std::string, dynarray<char> >;
@@ -150,7 +147,6 @@ TEST(dynarrayOtherTest, stdVariant)
 	EXPECT_TRUE(std::strcmp( "abc", std::get<Inner>(a[0]).data() ) == 0);
 	EXPECT_EQ( 3.3, *std::get<0>(a[1]) );
 }
-#endif
 
 TEST(dynarrayOtherTest, withReferenceWrapper)
 {

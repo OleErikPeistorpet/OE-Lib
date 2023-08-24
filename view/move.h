@@ -16,11 +16,24 @@ namespace oel
 namespace view
 {
 
-//! Wrap an input range with std::move_iterator (and conditionally std::move_sentinel), using operator | (like std::views)
-constexpr auto move();
-//! Create a view with std::move_iterator (and conditionally std::move_sentinel) from a range, normal function style
-template< typename InputRange >
-constexpr auto move(InputRange && r);
+struct _moveFn
+{
+	/** @brief Create view, for chaining like std::views
+	@code
+	std::string moveFrom[2] {"abc", "def"};
+	dynarray movedStrings(moveFrom | view::move);
+	@endcode  */
+	template< typename InputRange >
+	friend constexpr auto operator |(InputRange && r, _moveFn)
+		{
+			return _moveFn{}(static_cast<InputRange &&>(r));
+		}
+	//! Same as `std::views::as_rvalue(r)` (C++23)
+	template< typename InputRange >
+	constexpr auto operator()(InputRange && r) const;
+};
+//! Very similar to views::move in the Range-v3 library and std::views::as_rvalue
+inline constexpr _moveFn move;
 
 }
 
@@ -73,27 +86,12 @@ namespace _detail
 		constexpr InputView         base() &&      { return std::move(_base); }
 		constexpr const InputView & base() const & { return _base; }
 	};
-
-	struct MovePartial
-	{
-		template< typename InputRange >
-		friend constexpr auto operator |(InputRange && r, MovePartial)
-		{
-			using V = decltype(view::all( static_cast<InputRange &&>(r) ));
-			return MoveView<V>{view::all( static_cast<InputRange &&>(r) )};
-		}
-	};
-}
-
-constexpr auto view::move()
-{
-	return _detail::MovePartial{};
 }
 
 template< typename InputRange >
-constexpr auto view::move(InputRange && r)
+constexpr auto view::_moveFn::operator()(InputRange && r) const
 {
-	return static_cast<InputRange &&>(r) | _detail::MovePartial{};
+	return _detail::MoveView{all( static_cast<InputRange &&>(r) )};
 }
 
 } // oel

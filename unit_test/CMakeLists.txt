@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 project(oel-test CXX)
 
-set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to use, tested up to 20")
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to use, minimum 17")
 
 option(MEM_BOUND_DEBUG "Set OEL_MEM_BOUND_DEBUG_LVL=2" off)
 
