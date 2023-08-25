@@ -13,26 +13,22 @@
 
 namespace oel
 {
-namespace _detail
+
+template< typename View >
+class _moveView
 {
-	template< typename InputView >
-	class MoveView
-	{
-		InputView _base;
+	View _base;
 
-	public:
-		using difference_type = iter_difference_t< iterator_t<InputView> >;
+public:
+	using difference_type = iter_difference_t< iterator_t<View> >;
 
-		MoveView() = default;
-		constexpr explicit MoveView(InputView v) : _base{std::move(v)} {}
+	_moveView() = default;
+	constexpr explicit _moveView(View v)   : _base{std::move(v)} {}
 
-		constexpr auto begin()
-		{
-			return std::move_iterator{_base.begin()};
-		}
+	constexpr auto begin()   { return std::move_iterator{_base.begin()}; }
 
-		template< typename V = InputView, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
-		constexpr auto end()
+	template< typename V = View, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
+	constexpr auto end()
 		{
 		#if __cpp_lib_concepts >= 201907
 			if constexpr (!std::is_same_v< iterator_t<V>, sentinel_t<V> >)
@@ -42,29 +38,18 @@ namespace _detail
 				return std::move_iterator{_base.end()};
 		}
 
-		constexpr bool empty()  { return _base.empty(); }
+	template< typename V = View >  OEL_ALWAYS_INLINE
+	constexpr auto size()
+	->	decltype( std::declval<V>().size() )  { return _base.size(); }
 
-		template< typename V = InputView >
-		OEL_ALWAYS_INLINE constexpr auto size()
-		->	decltype( std::declval<V>().size() ) { return _base.size(); }
+	constexpr bool empty()   { return _base.empty(); }
 
-		OEL_ALWAYS_INLINE constexpr decltype(auto) operator[](difference_type index)
-			OEL_REQUIRES(iter_is_random_access< iterator_t<InputView> >)  { return begin()[index]; }
+	constexpr decltype(auto) operator[](difference_type index)    OEL_ALWAYS_INLINE
+		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)   { return begin()[index]; }
 
-		constexpr InputView         base() &&               { return std::move(_base); }
-		constexpr const InputView & base() const & noexcept { return _base; }
-	};
-
-	struct MovePartial
-	{
-		template< typename InputRange >
-		friend constexpr auto operator |(InputRange && r, MovePartial)
-		{
-			return MoveView{view::all( static_cast<InputRange &&>(r) )};
-		}
-	};
-}
-
+	constexpr View         base() &&                { return std::move(_base); }
+	constexpr const View & base() const & noexcept  { return _base; }
+};
 
 namespace view
 {
@@ -79,7 +64,7 @@ struct _moveFn
 	template< typename InputRange >
 	friend constexpr auto operator |(InputRange && r, _moveFn)
 		{
-			return _detail::MoveView{view::all( static_cast<InputRange &&>(r) )};
+			return _moveView{all( static_cast<InputRange &&>(r) )};
 		}
 	//! Same as `std::views::as_rvalue(r)` (C++23)
 	template< typename InputRange >
@@ -96,10 +81,10 @@ inline constexpr _moveFn move;
 #if OEL_STD_RANGES
 
 template< typename V >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::_detail::MoveView<V> >
+inline constexpr bool std::ranges::enable_borrowed_range< oel::_moveView<V> >
 	= std::ranges::enable_borrowed_range< std::remove_cv_t<V> >;
 
 template< typename V >
-inline constexpr bool std::ranges::enable_view< oel::_detail::MoveView<V> > = true;
+inline constexpr bool std::ranges::enable_view< oel::_moveView<V> > = true;
 
 #endif

@@ -5,7 +5,7 @@
 
 
 /** @file
-* @brief A small subset of the functionality of C++20 ranges, in addition to views that move
+* @brief A small subset of the functionality of C++ 20/23 ranges
 *
 * The views are mostly intended as input for dynarray and the oel::copy functions.
 */
