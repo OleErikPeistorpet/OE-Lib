@@ -123,16 +123,19 @@ public:
 
 	dynarray(dynarray && other) noexcept        : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, Alloc a);
-	dynarray(const dynarray & other)            : dynarray(other,
-	                                                       _alloTrait::select_on_container_copy_construction(other._m)) {}
+	dynarray(const dynarray & other) OEL_REQUIRES(std::copy_constructible<T>)
+		 :	dynarray(other, _alloTrait::select_on_container_copy_construction(other._m)) {}
+
 	dynarray(const dynarray & other, Alloc a)   : _m(a) { append(other); }
 
 	~dynarray() noexcept;
 
 	dynarray & operator =(dynarray && other) &
-		noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value);
+		noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value)
+		OEL_REQUIRES(std::movable<T>);
 	//! Requires that allocator_type is always equal or does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other) &
+		OEL_REQUIRES(std::copyable<T>)
 		{
 			static_assert(!_alloTrait::propagate_on_container_copy_assignment::value or _alloTrait::is_always_equal::value,
 			              "Alloc propagate_on_container_copy_assignment unsupported");
@@ -768,6 +771,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)
 template< typename T, typename Alloc >
 dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value)
+	OEL_REQUIRES(std::movable<T>)
 {
 	Alloc & myA = _m;
 	OEL_CONST_COND if (!_alloTrait::propagate_on_container_move_assignment::value and myA != other._m)
