@@ -24,7 +24,7 @@ namespace oel
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template< typename RandomAccessContainer, typename Integral >
-constexpr void erase_unstable(RandomAccessContainer & c, Integral index)
+constexpr void unordered_erase(RandomAccessContainer & c, Integral index)
 {
 	c[index] = std::move(c.back());
 	c.pop_back();
