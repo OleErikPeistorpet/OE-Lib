@@ -36,10 +36,10 @@ struct allocator
 	static constexpr size_t max_size() noexcept;
 
 	//! count greater than max_size() causes overflow and undefined behavior
-	T *  allocate(size_t count);
+	[[nodiscard]] T * allocate(size_t count);
 	//! newCount greater than max_size() causes overflow and undefined behavior
-	T *  reallocate(T * ptr, size_t newCount);
-	void deallocate(T * ptr, size_t) noexcept;
+	[[nodiscard]] T * reallocate(T * ptr, size_t newCount);
+	void              deallocate(T * ptr, size_t) noexcept;
 
 	allocator() = default;
 	template< typename U >  OEL_ALWAYS_INLINE

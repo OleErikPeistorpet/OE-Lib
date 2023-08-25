@@ -21,6 +21,28 @@ std::unordered_map<void *, std::size_t> AllocCounter::sizeFromPtr;
 
 using namespace oel;
 
+struct NonAssignable
+{
+	NonAssignable() {}
+	NonAssignable(NonAssignable &&) = default;
+	NonAssignable(const NonAssignable &) = default;
+	void operator =(NonAssignable &&) = delete;
+};
+
+#if __cpp_lib_concepts >= 201907
+namespace
+{
+
+static_assert(std::copyable< dynarray<int> >);
+static_assert(std::movable< dynarray<MoveOnly> >);
+static_assert( !std::copy_constructible< dynarray<MoveOnly> > );
+static_assert( !std::is_copy_assignable_v< dynarray<MoveOnly> > );
+static_assert( !std::is_move_assignable_v< dynarray<NonAssignable> > );
+static_assert(std::copy_constructible< dynarray<NonAssignable> >);
+
+}
+#endif
+
 class dynarrayConstructTest : public ::testing::Test
 {
 protected:
@@ -279,10 +301,10 @@ TEST_F(dynarrayConstructTest, constructContiguousRange)
 	EXPECT_TRUE( 0 == str.compare(0, 4, test.data(), test.size()) );
 }
 
-TEST_F(dynarrayConstructTest, constructRangeNoCopyAssign)
+TEST_F(dynarrayConstructTest, constructRangeNoAssign)
 {
-	auto il = { 1.2, 3.4 };
-	dynarray<MoveOnly> test(il);
+	NonAssignable src[2]{};
+	dynarray<NonAssignable> test(view::move(src));
 	EXPECT_TRUE(test.size() == 2);
 }
 
@@ -361,12 +383,6 @@ TEST_F(dynarrayConstructTest, moveConstructWithStatefulAlloc)
 	using Al = StatefulAllocator<MoveOnly, false>;
 	testMoveConstruct(Al(0), Al(0));
 }
-
-struct NonAssignable
-{
-	NonAssignable(NonAssignable &&) = default;
-	void operator =(NonAssignable &&) = delete;
-};
 
 TEST_F(dynarrayConstructTest, moveConstructNonAssignable)
 {	// just to check that it compiles

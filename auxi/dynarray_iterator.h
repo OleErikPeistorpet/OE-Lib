@@ -108,22 +108,22 @@ public:
 		return *this;
 	}
 
-	friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)
+	[[nodiscard]] friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)
 	{
 		return it += offset;
 	}
 
-	friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
+	[[nodiscard]] friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
 	{
 		return it += offset;
 	}
 
-	friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
+	[[nodiscard]] friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
 	{
 		return it -= offset;
 	}
 
-	difference_type operator -(const const_iterator & right) const
+	[[nodiscard]] difference_type operator -(const const_iterator & right) const
 	{	// difference of iterators
 		OEL_ITER_CHECK_COMPATIBLE(right);
 		return _pElem - right._pElem;
