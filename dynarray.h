@@ -772,7 +772,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
  :	_m(a)
 {
 	OEL_CONST_COND if (!_alloTrait::is_always_equal::value and a != other._m)
-		append(view::move(other));
+		append(other | view::move);
 	else
 		_moveInternBase(other._m);
 }
@@ -784,7 +784,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	Alloc & myA = _m;
 	OEL_CONST_COND if (!_alloTrait::propagate_on_container_move_assignment::value and myA != other._m)
 	{
-		assign(view::move(other));
+		assign(other | view::move);
 	}
 	else // take allocated memory from other
 	{
