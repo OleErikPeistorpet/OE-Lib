@@ -8,6 +8,7 @@
 
 #include "counted.h"
 #include "subrange.h"
+#include "detail/owning.h"
 
 /** @file
 */
@@ -26,25 +27,19 @@ namespace _detail
 		}
 	#endif
 
-		template< typename I >
-		constexpr auto operator()(view::counted<I> v) const { return v; }
-
-		template< typename I, typename S >
-		constexpr auto operator()(view::subrange<I, S> v) const { return v; }
-
 		template< typename SizedRange >
 		constexpr auto operator()(SizedRange & r) const
 		->	decltype( view::counted(begin(r), oel::ssize(r)) )
 		{	return    view::counted(begin(r), oel::ssize(r)); }
 
-		template< typename Range, typename... None >
-		constexpr auto operator()(Range & r, None...) const
+		template< typename Range >
+		constexpr auto operator()(Range && r) const
 		{
-			return view::subrange(begin(r), end(r));
+			if constexpr (std::is_lvalue_reference_v<Range>)
+				return view::subrange(begin(r), end(r));
+			else
+				return OwningView{static_cast<Range &&>(r)};
 		}
-
-		template< typename R >
-		void operator()(R &&) const = delete;
 	};
 }
 

@@ -62,8 +62,8 @@ namespace _detail
 		OEL_ALWAYS_INLINE constexpr auto size()
 		->	decltype( std::declval<V_>().size() ) { return _m.first.size(); }
 
-		constexpr View         base() &&      { return std::move(_m.first); }
-		constexpr const View & base() const & { return _m.first; }
+		constexpr View         base() &&               { return std::move(_m.first); }
+		constexpr const View & base() const & noexcept { return _m.first; }
 	};
 
 	template< typename F >
