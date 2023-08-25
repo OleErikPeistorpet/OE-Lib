@@ -77,8 +77,8 @@ namespace _detail
 		OEL_ALWAYS_INLINE constexpr decltype(auto) operator[](difference_type index)
 			OEL_REQUIRES(iter_is_random_access< iterator_t<InputView> >)  { return begin()[index]; }
 
-		constexpr InputView         base() &&      { return std::move(_base); }
-		constexpr const InputView & base() const & { return _base; }
+		constexpr InputView         base() &&               { return std::move(_base); }
+		constexpr const InputView & base() const & noexcept { return _base; }
 	};
 }
 
