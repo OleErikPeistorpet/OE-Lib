@@ -25,9 +25,9 @@ namespace oel
 template< typename T, typename Alloc >
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
-//! Overloads generic erase_unstable(RandomAccessContainer &, Integral) (in range_algo.h)
+//! Overloads generic unordered_erase(RandomAccessContainer &, Integral) (in range_algo.h)
 template< typename T, typename A >  inline
-void erase_unstable(dynarray<T, A> & d, size_t index)  { d.erase_unstable(d.begin() + index); }
+void unordered_erase(dynarray<T, A> & d, size_t index)  { d.unordered_erase(d.begin() + index); }
 
 //! @name GenericContainerInsert
 //!@{
@@ -212,7 +212,7 @@ public:
 	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
-	iterator  erase_unstable(iterator pos) &;
+	iterator  unordered_erase(iterator pos) &;
 
 	iterator  erase(iterator pos) &;
 
@@ -894,7 +894,7 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 }
 
 template< typename T, typename Alloc >
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase_unstable(iterator pos) &
+inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_erase(iterator pos) &
 {
 	if constexpr (is_trivially_relocatable<T>::value)
 	{

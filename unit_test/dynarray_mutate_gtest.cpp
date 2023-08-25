@@ -798,12 +798,12 @@ TEST_F(dynarrayTest, erasePrecondCheck)
 TEST_F(dynarrayTest, unorderErasePrecondCheck)
 {
 	dynarray<int> di{1};
-	ASSERT_DEATH( di.erase_unstable(di.end()), "" );
+	ASSERT_DEATH( di.unordered_erase(di.end()), "" );
 }
 #endif
 
 template< typename T >
-void testEraseUnstable()
+void testUnorderedErase()
 {
 	T::clearCount();
 	{
@@ -811,30 +811,30 @@ void testEraseUnstable()
 		d.emplace_back(1);
 		d.emplace_back(-2);
 
-		auto it = d.erase_unstable(d.begin());
+		auto it = d.unordered_erase(d.begin());
 		EXPECT_EQ(1U, d.size());
 		EXPECT_EQ(-2, *(*it));
-		it = d.erase_unstable(it);
+		it = d.unordered_erase(it);
 		EXPECT_EQ(end(d), it);
 
 		d.emplace_back(-1);
 		d.emplace_back(2);
-		erase_unstable(d, 1);
+		unordered_erase(d, 1);
 		EXPECT_EQ(-1, *d.back());
-		erase_unstable(d, 0);
+		unordered_erase(d, 0);
 		EXPECT_TRUE(d.empty());
 	}
 	EXPECT_EQ(T::nConstructions, T::nDestruct);
 }
 
-TEST_F(dynarrayTest, eraseUnstable)
+TEST_F(dynarrayTest, unorderedErase)
 {
-	testEraseUnstable<MoveOnly>();
+	testUnorderedErase<MoveOnly>();
 }
 
-TEST_F(dynarrayTest, eraseUnstableTrivialReloc)
+TEST_F(dynarrayTest, unorderedEraseTrivialReloc)
 {
-	testEraseUnstable<TrivialRelocat>();
+	testUnorderedErase<TrivialRelocat>();
 }
 
 TEST_F(dynarrayTest, shrinkToFit)
@@ -867,8 +867,8 @@ TEST_F(dynarrayTest, overAligned)
 	for (const auto & v : special)
 		EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&v) % testAlignment);
 
-	special.erase_unstable(special.end() - 1);
-	special.erase_unstable(special.begin());
+	special.unordered_erase(special.end() - 1);
+	special.unordered_erase(special.begin());
 	special.shrink_to_fit();
 	EXPECT_TRUE(special.capacity() < 3U);
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
