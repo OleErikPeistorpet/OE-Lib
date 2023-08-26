@@ -507,7 +507,7 @@ private:
 			return src + count;
 		}
 		else
-		{	auto copy = [](InputIter src_, size_t const n, T *const dest)
+		{	auto cpy = [](InputIter src_, size_t const n, T *const dest)
 			{
 				for (size_t i{}; i < n; )
 				{
@@ -527,7 +527,7 @@ private:
 				}
 				else
 				{	// assign to old elements as far as we can
-					src = copy(std::move(src), _m.size, _m.data);
+					src = cpy(std::move(src), _m.size, _m.data);
 				}
 				do
 				{	_alloTrait::construct(_m, _pEnd(), *src);
@@ -537,7 +537,7 @@ private:
 			}
 			else
 			{	// assign new and destroy rest
-				src = copy(std::move(src), count, _m.data);
+				src = cpy(std::move(src), count, _m.data);
 				_detail::Destroy(_m.data + count, _m.size - count);
 				_m.size = count;
 			}
