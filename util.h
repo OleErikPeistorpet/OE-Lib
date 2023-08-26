@@ -17,12 +17,12 @@
 namespace oel
 {
 
-//! Passed val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
-template< typename T >  OEL_ALWAYS_INLINE
-constexpr std::make_signed_t<T>   as_signed(T val) noexcept    { return std::make_signed_t<T>(val); }
-//! Passed val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
-template< typename T >  OEL_ALWAYS_INLINE
-constexpr std::make_unsigned_t<T> as_unsigned(T val) noexcept  { return std::make_unsigned_t<T>(val); }
+//! Passed val of integral or enumeration type, returns val cast to the corresponding signed integer type
+inline constexpr auto as_signed =
+	[](auto val) noexcept -> std::make_signed_t<decltype(val)>    { return std::make_signed_t<decltype(val)>(val); };
+//! Passed val of integral or enumeration type, returns val cast to the corresponding unsigned integer type
+inline constexpr auto as_unsigned =
+	[](auto val) noexcept -> std::make_unsigned_t<decltype(val)>  { return std::make_unsigned_t<decltype(val)>(val); };
 
 
 /** @brief More generic than std::ssize, close to std::ranges::ssize

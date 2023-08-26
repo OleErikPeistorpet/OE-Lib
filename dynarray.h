@@ -505,7 +505,7 @@ private:
 			return src + count;
 		}
 		else
-		{	auto copy = [](InputIter src_, T * dest, T * dLast)
+		{	auto cpy = [](InputIter src_, T * dest, T * dLast)
 			{
 				while (dest != dLast)
 				{
@@ -529,11 +529,11 @@ private:
 			{	newEnd = _m.data + count;
 				if (newEnd < _m.end)
 				{	// downsizing, assign new and destroy rest
-					src = copy(std::move(src), _m.data, newEnd);
+					src = cpy(std::move(src), _m.data, newEnd);
 					erase_to_end(_detail::MakeDynarrIter(_m, newEnd));
 				}
 				else // assign to old elements as far as we can
-				{	src = copy(std::move(src), _m.data, _m.end);
+				{	src = cpy(std::move(src), _m.data, _m.end);
 				}
 			}
 			while (_m.end < newEnd)
