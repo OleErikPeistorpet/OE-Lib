@@ -22,6 +22,27 @@ constexpr auto transformIterFromIntPtr(const int * p)
 	return oel::transform_iterator<F, const int *>{F{}, p};
 }
 
+TEST(viewTest, subscript)
+{
+	std::array<int, 2> src{7, 8};
+	auto v0 = view::counted(begin(src), ssize(src));
+	auto v1 = view::subrange(begin(src), end(src));
+	auto v2 = view::move(src);
+	auto v3 = view::owning(std::move(src));
+
+	EXPECT_EQ(7, v0[0]);
+	EXPECT_EQ(8, v1[1]);
+	EXPECT_EQ(7, v2[0]);
+	EXPECT_EQ(8, v3[1]);
+}
+
+TEST(viewTest, nestedEmpty)
+{
+	oel::dynarray<int> src{};
+	auto v = view::owning(view::subrange( begin(src), end(src) )) | view::move;
+	EXPECT_TRUE(v.empty());
+}
+
 TEST(viewTest, viewSubrange)
 {
 	using V = view::subrange<int *, int *>;
