@@ -7,8 +7,8 @@
 
 
 #include "counted.h"
+#include "owning.h"
 #include "subrange.h"
-#include "detail/owning.h"
 
 /** @file
 */
@@ -38,7 +38,7 @@ namespace _detail
 			if constexpr (std::is_lvalue_reference_v<Range>)
 				return view::subrange(begin(r), end(r));
 			else
-				return OwningView{static_cast<Range &&>(r)};
+				return view::owning(static_cast<Range &&>(r));
 		}
 	};
 }

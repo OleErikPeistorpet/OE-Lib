@@ -13,5 +13,6 @@
 
 #include "view/counted.h"
 #include "view/move.h"
+#include "view/owning.h"
 #include "view/subrange.h"
 #include "view/transform.h"
