@@ -13,7 +13,7 @@
 /** @file
 * @brief specify_trivial_relocate for user classes, error handling macros, forward declarations
 *
-* Notably provides forward declarations of dynarray and fixcap_array
+* Notably provides forward declarations of dynarray and inplace_dynarr
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
@@ -77,7 +77,7 @@ class dynarray;
 #endif
 
 template<typename T, size_t Capacity, typename Size = size_t>
-class fixcap_array;
+class inplace_dynarr;
 
 
 

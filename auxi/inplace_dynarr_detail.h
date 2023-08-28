@@ -15,22 +15,22 @@ namespace oel
 {
 namespace _detail
 {
-	template<typename InputIter, typename T>
+	template< typename InputIter, typename T >
 	void UninitCopyA(InputIter src, size_t n, T * dest, false_type)
 	{
 		struct {} a;
 		_detail::UninitCopy(src, dest, dest + n, a);
 	}
 
-	template<typename ContiguousIter, typename T>
+	template< typename ContiguousIter, typename T >
 	void UninitCopyA(ContiguousIter src, size_t n, T * dest, true_type)
 	{
 		_detail::MemcpyCheck(src, n, dest);
 	}
 
 
-	template<typename T, typename Size>
-	struct FixcapArrProxy
+	template< typename T, typename Size >
+	struct InplaceDynarrProxy
 	{
 		Size size;
 		T    data[1];
@@ -41,8 +41,8 @@ namespace _detail
 		}
 	};
 
-	template<typename T, size_t Capacity, typename Size>
-	struct FixcapArrBase
+	template< typename T, size_t Capacity, typename Size >
+	struct InplaceDynarrBase
 	{
 		Size _size{};
 		aligned_union_t<T> _data[Capacity];
@@ -52,7 +52,7 @@ namespace _detail
 		const T * data() const noexcept { return reinterpret_cast<const T *>(_data); }
 
 
-		template<typename ContiguousIter>
+		template< typename ContiguousIter >
 		ContiguousIter doAssign(ContiguousIter first, Size const count, true_type)
 		{	// fastest assign
 			_size = count;
@@ -62,7 +62,7 @@ namespace _detail
 			return first + count;
 		}
 
-		template<typename InputIter>
+		template< typename InputIter >
 		InputIter doAssign(InputIter src, Size const count, false_type)
 		{	// cannot use memcpy
 			auto copy = [](InputIter src_, T * dest, T * dLast)
@@ -96,22 +96,22 @@ namespace _detail
 
 	template< typename T, size_t C, typename S,
 		bool = is_trivially_copyable<T>::value >
-	struct FixcapArrSpecial : FixcapArrBase<T, C, S> {};
+	struct InplaceDynarrSpecial : InplaceDynarrBase<T, C, S> {};
 
-	template<typename T, size_t Capacity, typename Size>
-	struct FixcapArrSpecial<T, Capacity, Size, false>
-	 :	FixcapArrBase<T, Capacity, Size>
+	template< typename T, size_t Capacity, typename Size >
+	struct InplaceDynarrSpecial<T, Capacity, Size, false>
+	 :	InplaceDynarrBase<T, Capacity, Size>
 	{
-		constexpr FixcapArrSpecial() = default;
+		constexpr InplaceDynarrSpecial() = default;
 
-		FixcapArrSpecial(const FixcapArrSpecial & other)
+		InplaceDynarrSpecial(const InplaceDynarrSpecial & other)
 		{
 			this->_size = other._size;
 			struct {} a;
 			_detail::UninitCopy(other.data(), data(), data() + _size, a);
 		}
 
-		FixcapArrSpecial(FixcapArrSpecial && other)
+		InplaceDynarrSpecial(InplaceDynarrSpecial && other)
 			noexcept(std::is_nothrow_move_constructible<T>::value or is_trivially_relocatable<T>::value)
 		{
 			this->_size = other._size;
@@ -121,20 +121,20 @@ namespace _detail
 			other.setEmptyIf(is_trivially_relocatable<T>());
 		}
 
-		FixcapArrSpecial & operator =(FixcapArrSpecial && other) &
+		InplaceDynarrSpecial & operator =(InplaceDynarrSpecial && other) &
 		{
 			this->doAssign(std::make_move_iterator(other.data()), other._size, is_trivially_relocatable<T>());
 			other.setEmptyIf(is_trivially_relocatable<T>());
 			return *this;
 		}
 
-		FixcapArrSpecial & operator =(const FixcapArrSpecial & other) &
+		InplaceDynarrSpecial & operator =(const InplaceDynarrSpecial & other) &
 		{
 			this->doAssign(other.data(), other._size, is_trivially_copyable<T>());
 			return *this;
 		}
 
-		~FixcapArrSpecial() noexcept
+		~InplaceDynarrSpecial() noexcept
 		{
 			_detail::Destroy(data(), data() + this->_size);
 		}

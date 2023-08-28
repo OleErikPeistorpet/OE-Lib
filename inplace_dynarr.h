@@ -7,7 +7,7 @@
 
 
 #include "auxi/array_iterator.h"
-#include "auxi/fixcap_array_detail.h"
+#include "auxi/inplace_dynarr_detail.h"
 
 #include <algorithm>
 
@@ -18,25 +18,25 @@
 namespace oel
 {
 
-//! Overloads generic erase_unstable(RandomAccessContainer &, RandomAccessContainer::size_type) (in range_algo.h)
-template<typename T, size_t C, typename Size>  inline
-void erase_unstable(fixcap_array<T, C, Size> & a, Size index)  { a.erase_unstable(a.begin() + index); }
+//! Overloads generic unordered_erase(RandomAccessContainer &, Integral) (in range_algo.h)
+template< typename T, size_t C, typename Size >  inline
+void unordered_erase(inplace_dynarr<T, C, Size> & a, Size index)  { a.unordered_erase(a.begin() + index); }
 
 //! @name GenericContainerInsert
 //!@{
 // Overloads of generic functions for inserting into container (in range_algo.h)
-template<typename T, size_t C, typename S, typename InputRange>  inline
-void assign(fixcap_array<T, C, S> & dest, const InputRange & source)  { dest.assign(source); }
+template< typename T, size_t C, typename S, typename InputRange >  inline
+void assign(inplace_dynarr<T, C, S> & dest, const InputRange & source)  { dest.assign(source); }
 
-template<typename T, size_t C, typename S, typename InputRange>  inline
-void append(fixcap_array<T, C, S> & dest, const InputRange & source)  { dest.append(source); }
+template< typename T, size_t C, typename S, typename InputRange >  inline
+void append(inplace_dynarr<T, C, S> & dest, const InputRange & source)  { dest.append(source); }
 
-template<typename T, size_t C, typename S>  inline
-void append(fixcap_array<T, C, S> & dest, S count, const T & val)  { dest.append(count, val); }
+template< typename T, size_t C, typename S >  inline
+void append(inplace_dynarr<T, C, S> & dest, S count, const T & val)  { dest.append(count, val); }
 
-template<typename T, size_t C, typename S, typename ForwardRange>  inline
-typename fixcap_array<T, C, S>::iterator
-	insert(fixcap_array<T, C, S> & dest, typename fixcap_array<T, C, S>::const_iterator pos, const ForwardRange & source)
+template< typename T, size_t C, typename S, typename ForwardRange >  inline
+typename inplace_dynarr<T, C, S>::iterator
+	insert(inplace_dynarr<T, C, S> & dest, typename inplace_dynarr<T, C, S>::const_iterator pos, const ForwardRange & source)
 	{
 		return dest.insert_r(pos, source);
 	}
@@ -46,12 +46,12 @@ typename fixcap_array<T, C, S>::iterator
 * @brief Resizable array, statically allocated. Specify maximum size as template argument.
 *
 * Behaviour which equals that of std::vector is mostly not documented. */
-template<typename T, size_t Capacity, typename Size/* = size_t*/>
-class fixcap_array   : private _detail::FixcapArrSpecial<T, Capacity, Size>
+template< typename T, size_t Capacity, typename Size/* = size_t*/ >
+class inplace_dynarr   : private _detail::InplaceDynarrSpecial<T, Capacity, Size>
 {
 	static_assert(Capacity <= std::numeric_limits<Size>::max(), "Capacity does not fit in type Size");
 
-	using _base = typename fixcap_array::FixcapArrBase;
+	using _base = typename inplace_dynarr::InplaceDynarrBase;
 
 public:
 	using value_type      = T;
@@ -61,8 +61,8 @@ public:
 	using difference_type = ptrdiff_t;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
-	using iterator       = debug::array_iterator< T *, _detail::FixcapArrProxy<T, Size> >;
-	using const_iterator = debug::array_iterator< const T *, _detail::FixcapArrProxy<T, Size> >;
+	using iterator       = debug::array_iterator< T *, _detail::InplaceDynarrProxy<T, Size> >;
+	using const_iterator = debug::array_iterator< const T *, _detail::InplaceDynarrProxy<T, Size> >;
 #else
 	using iterator       = T *;
 	using const_iterator = const T *;
@@ -71,28 +71,28 @@ public:
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 
-	constexpr fixcap_array() noexcept = default;
+	constexpr inplace_dynarr() noexcept = default;
 
 	/** @brief Elements are default initialized, meaning non-class T produces indeterminate values
 	* @throw length_error if size > Capacity  */
-	fixcap_array(size_type size, default_init_t);
+	inplace_dynarr(size_type size, for_overwrite_t);
 	//! Throws length_error if size > Capacity. (Elements are value-initialized, same as std::vector)
-	explicit fixcap_array(size_type size);
+	explicit inplace_dynarr(size_type size);
 	//! Throws length_error if size > Capacity
-	fixcap_array(size_type size, const T & fillVal)   { append(size, fillVal); }
+	inplace_dynarr(size_type size, const T & fillVal)   { append(size, fillVal); }
 
 	template< typename InputRange,
 	          typename /*EnableIfRange*/ = iterator_t<InputRange> >
-	explicit fixcap_array(const InputRange & range)   { append(range); }
+	explicit inplace_dynarr(const InputRange & range)   { append(range); }
 
-	fixcap_array(std::initializer_list<T> init)       { append<>(init); }
+	inplace_dynarr(std::initializer_list<T> init)       { append<>(init); }
 
-	fixcap_array & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
+	inplace_dynarr & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
 	/**
 	* @brief Replace the contents with source
 	* @throw length_error if count > Capacity  */
-	template<typename InputRange>
+	template< typename InputRange >
 	auto assign(const InputRange & source)
 	->  iterator_t<InputRange const>              { return _assign(_getSize(source, 0), source); }
 	void assign(size_type count, const T & val)   { clear(); append(count, val); }
@@ -104,7 +104,7 @@ public:
 	*
 	* Any previous end iterator will point to the first element added.
 	* Strong exception safety, aka. commit or rollback semantics  */
-	template<typename InputRange>
+	template< typename InputRange >
 	auto append(const InputRange & source)
 	->  iterator_t<InputRange const>            { return _append(_getSize(source, 0), source); }
 	//! Same as `std::vector::insert(end(), il)`
@@ -115,11 +115,11 @@ public:
 	/**
 	* @brief Added elements are default initialized, meaning non-class T produces indeterminate values
 	* @throw length_error if n > Capacity  */
-	void      resize_default_init(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstructA<T>); }
+	void      resize_for_overwrite(size_type n)   { _resizeImpl(n, _detail::UninitDefaultConstructA<T>); }
 	//! Throws length_error if n > Capacity. (Value-initializes added elements, same as std::vector::resize)
-	void      resize(size_type n)                { _resizeImpl(n, _detail::UninitFillA{}); }
+	void      resize(size_type n)                 { _resizeImpl(n, _detail::UninitFillA{}); }
 
-	template<typename ForwardRange>
+	template< typename ForwardRange >
 	iterator  insert_r(const_iterator pos, const ForwardRange & source) &;
 
 	iterator  insert(const_iterator pos, std::initializer_list<T> il) &  { return insert_r(pos, il); }
@@ -127,10 +127,10 @@ public:
 	iterator  insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
 	iterator  insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
 
-	template<typename... Args>
+	template< typename... Args >
 	iterator  emplace(const_iterator pos, Args &&... elemInitArgs) &;  //!< Throws length_error when full
 
-	template<typename... Args>
+	template< typename... Args >
 	reference emplace_back(Args &&... args) &;  //!< Throws length_error when full
 
 	//! Throws length_error when full
@@ -140,9 +140,9 @@ public:
 
 	void      pop_back() noexcept(nodebug);
 
-	iterator  erase_unstable(iterator pos) &   { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  unordered_erase(iterator pos) &   { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
 
-	iterator  erase(iterator pos) &            { _erase(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator  erase(iterator pos) &             { _erase(pos, is_trivially_relocatable<T>());  return pos; }
 
 	iterator  erase(iterator first, const_iterator last) &;
 	//! Equivalent to erase(first, end()) (but potentially faster), making first the new end
@@ -185,22 +185,22 @@ public:
 	reference       operator[](size_type index) noexcept(nodebug);
 	const_reference operator[](size_type index) const noexcept(nodebug);
 
-	template<size_t C1>
-	friend bool operator==(const fixcap_array & left, const fixcap_array<T, C1, Size> & right)
+	template< size_t C1 >
+	friend bool operator==(const inplace_dynarr & left, const inplace_dynarr<T, C1, Size> & right)
 		{
 			return left.size() == right.size() and
 			       std::equal(left.begin(), left.end(), right.begin());
 		}
-	template<size_t C1>
-	friend bool operator!=(const fixcap_array & left, const fixcap_array<T, C1, Size> & right)
+	template< size_t C1 >
+	friend bool operator!=(const inplace_dynarr & left, const inplace_dynarr<T, C1, Size> & right)
 		{	return !(left == right); }
-	template<size_t C1>
-	friend bool operator <(const fixcap_array & left, const fixcap_array<T, C1, Size> & right)
+	template< size_t C1 >
+	friend bool operator <(const inplace_dynarr & left, const inplace_dynarr<T, C1, Size> & right)
 		{
 			return std::lexicographical_compare(left.begin(), left.end(), right.begin(), right.end());
 		}
-	template<size_t C1>
-	friend bool operator >(const fixcap_array & left, const fixcap_array<T, C1, Size> & right)  { return right < left; }
+	template< size_t C1 >
+	friend bool operator >(const inplace_dynarr & left, const inplace_dynarr<T, C1, Size> & right)  { return right < left; }
 
 
 
@@ -216,33 +216,33 @@ private:
 	{
 		return _detail::ArrayIteratorMaker<iterator>
 		{	reinterpret_cast<T *>(pos),
-			reinterpret_cast<const _detail::FixcapArrProxy<T, Size> *>(this)
+			reinterpret_cast<const _detail::InplaceDynarrProxy<T, Size> *>(this)
 		};
 	}
 	const_iterator _makeConstIter(const aligned_union_t<T> * pos) const
 	{
 		return _detail::ArrayIteratorMaker<const_iterator>
 		{	reinterpret_cast<const T *>(pos),
-			reinterpret_cast<const _detail::FixcapArrProxy<T, Size> *>(this)
+			reinterpret_cast<const _detail::InplaceDynarrProxy<T, Size> *>(this)
 		};
 	}
 
 	[[noreturn]] static void _throwLackCap()
 	{
-		_detail::Throw::LengthError("Not enough space in fixcap_array");
+		_detail::Throw::LengthError("Not enough space in inplace_dynarr");
 	}
 
 
-	template<typename Range> // pass dummy int to prefer this overload
+	template< typename Range > // pass dummy int to prefer this overload
 	static auto _getSize(const Range & r, int) -> decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
 
-	template<typename Range>
+	template< typename Range >
 	static false_type _getSize(const Range &, long) { return {}; }
 
-	template<typename Range>
+	template< typename Range >
 	static auto _count(const Range & r, int) -> decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
 
-	template<typename Range>
+	template< typename Range >
 	static size_t _count(const Range & r, long)
 	{
 		auto first = oel::adl_begin(r);
@@ -299,7 +299,7 @@ private:
 	}
 
 
-	template<typename UninitFillFunc>
+	template< typename UninitFillFunc >
 	void _resizeImpl(size_type newSize, UninitFillFunc initAdded)
 	{
 		if (Capacity < newSize)
@@ -315,7 +315,7 @@ private:
 		_size = newSize;
 	}
 
-	template<typename SizedRange>
+	template< typename SizedRange >
 	auto _assign(size_t count, const SizedRange & src) -> iterator_t<SizedRange const>
 	{
 		if (Capacity >= count)
@@ -326,14 +326,14 @@ private:
 		_throwLackCap();
 	}
 
-	template<typename InputRange>
+	template< typename InputRange >
 	auto _assign(false_type, const InputRange & src) -> iterator_t<InputRange const>
 	{	// no fast way of getting size
 		clear();
 		return append<>(src);
 	}
 
-	template<typename ContiguousIter>
+	template< typename ContiguousIter >
 	ContiguousIter _appendImpl(ContiguousIter first, size_type const count, std::true_type)
 	{	// use memcpy
 		_detail::MemcpyCheck(first, count, data() + _size);
@@ -342,7 +342,7 @@ private:
 		return first + count;
 	}
 
-	template<typename InputIter>
+	template< typename InputIter >
 	InputIter _appendImpl(InputIter src, size_type const count, std::false_type)
 	{	// slower copy
 		size_type newSize = _size + count;
@@ -352,7 +352,7 @@ private:
 		return src;
 	}
 
-	template<typename SizedRange>
+	template< typename SizedRange >
 	auto _append(size_t count, const SizedRange & src) -> iterator_t<SizedRange const>
 	{
 		if (_unusedCapacity() >= count)
@@ -363,7 +363,7 @@ private:
 		_throwLackCap();
 	}
 
-	template<typename InputRange>
+	template< typename InputRange >
 	auto _append(false_type, const InputRange & src) -> iterator_t<InputRange const>
 	{	// number of items unknown (slowest)
 		auto f = oel::adl_begin(src); auto l = oel::adl_end(src);
@@ -374,8 +374,8 @@ private:
 	}
 };
 
-template<typename T, size_t Capacity, typename Size>
-fixcap_array<T, Capacity, Size>::fixcap_array(size_type size, default_init_t)
+template< typename T, size_t Capacity, typename Size >
+inplace_dynarr<T, Capacity, Size>::inplace_dynarr(size_type size, for_overwrite_t)
 {
 	if (Capacity < size)
 		_throwLackCap();
@@ -384,8 +384,8 @@ fixcap_array<T, Capacity, Size>::fixcap_array(size_type size, default_init_t)
 	_size = size;
 }
 
-template<typename T, size_t Capacity, typename Size>
-fixcap_array<T, Capacity, Size>::fixcap_array(size_type size)
+template< typename T, size_t Capacity, typename Size >
+inplace_dynarr<T, Capacity, Size>::inplace_dynarr(size_type size)
 {
 	if (Capacity < size)
 		_throwLackCap();
@@ -395,8 +395,8 @@ fixcap_array<T, Capacity, Size>::fixcap_array(size_type size)
 }
 
 
-template<typename T, size_t Capacity, typename Size>
-void fixcap_array<T, Capacity, Size>::append(size_type n, const T & val)
+template< typename T, size_t Capacity, typename Size >
+void inplace_dynarr<T, Capacity, Size>::append(size_type n, const T & val)
 {
 	if (_unusedCapacity() < n)
 		_throwLackCap();
@@ -406,8 +406,8 @@ void fixcap_array<T, Capacity, Size>::append(size_type n, const T & val)
 	_size = newSize;
 }
 
-template<typename T, size_t Capacity, typename Size> template<typename... Args>
-T & fixcap_array<T, Capacity, Size>::emplace_back(Args &&... args) &
+template< typename T, size_t Capacity, typename Size> template<typename... Args >
+T & inplace_dynarr<T, Capacity, Size>::emplace_back(Args &&... args) &
 {
 	if (Capacity > _size)
 	{
@@ -419,8 +419,8 @@ T & fixcap_array<T, Capacity, Size>::emplace_back(Args &&... args) &
 	_throwLackCap();
 }
 
-template<typename T, size_t Capacity, typename Size> template<typename... Args>
-typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
+template< typename T, size_t Capacity, typename Size> template<typename... Args >
+typename inplace_dynarr<T, Capacity, Size>::iterator  inplace_dynarr<T, Capacity, Size>::
 	emplace(const_iterator pos, Args &&... args) &
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
@@ -444,8 +444,8 @@ typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Si
 	_throwLackCap();
 }
 
-template<typename T, size_t Capacity, typename Size> template<typename ForwardRange>
-typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
+template< typename T, size_t Capacity, typename Size> template<typename ForwardRange >
+typename inplace_dynarr<T, Capacity, Size>::iterator  inplace_dynarr<T, Capacity, Size>::
 	insert_r(const_iterator pos, const ForwardRange & src) &
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
@@ -492,16 +492,16 @@ typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Si
 }
 
 
-template<typename T, size_t Capacity, typename Size>
-inline void fixcap_array<T, Capacity, Size>::pop_back() noexcept(nodebug)
+template< typename T, size_t Capacity, typename Size >
+inline void inplace_dynarr<T, Capacity, Size>::pop_back() noexcept(nodebug)
 {
 	OEL_ASSERT(0 < _size);
 	--_size;
 	data()[_size].~T();
 }
 
-template<typename T, size_t Capacity, typename Size>
-typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Size>::
+template< typename T, size_t Capacity, typename Size >
+typename inplace_dynarr<T, Capacity, Size>::iterator  inplace_dynarr<T, Capacity, Size>::
 	erase(iterator first, const_iterator last) &
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
@@ -526,8 +526,8 @@ typename fixcap_array<T, Capacity, Size>::iterator  fixcap_array<T, Capacity, Si
 #pragma GCC diagnostic pop
 #endif
 
-template<typename T, size_t Capacity, typename Size>
-void fixcap_array<T, Capacity, Size>::erase_to_end(iterator newEnd) noexcept(nodebug)
+template< typename T, size_t Capacity, typename Size >
+void inplace_dynarr<T, Capacity, Size>::erase_to_end(iterator newEnd) noexcept(nodebug)
 {
 	T *const first = to_pointer_contiguous(newEnd);
 	OEL_ASSERT(data() <= first and first <= data() + _size);
@@ -536,14 +536,14 @@ void fixcap_array<T, Capacity, Size>::erase_to_end(iterator newEnd) noexcept(nod
 }
 
 
-template<typename T, size_t Capacity, typename Size>
-inline T & fixcap_array<T, Capacity, Size>::operator[](size_type index) noexcept(nodebug)
+template< typename T, size_t Capacity, typename Size >
+inline T & inplace_dynarr<T, Capacity, Size>::operator[](size_type index) noexcept(nodebug)
 {
 	OEL_ASSERT(static_cast<size_t>(index) < static_cast<size_t>(_size));
 	return data()[index];
 }
-template<typename T, size_t Capacity, typename Size>
-inline const T & fixcap_array<T, Capacity, Size>::operator[](size_type index) const noexcept(nodebug)
+template< typename T, size_t Capacity, typename Size >
+inline const T & inplace_dynarr<T, Capacity, Size>::operator[](size_type index) const noexcept(nodebug)
 {
 	OEL_ASSERT(static_cast<size_t>(index) < static_cast<size_t>(_size));
 	return data()[index];

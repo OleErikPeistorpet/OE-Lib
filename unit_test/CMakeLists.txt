@@ -50,13 +50,13 @@ add_executable(oel-test
 	dynarray_construct_assignop_swap_gtest.cpp
 	dynarray_mutate_gtest.cpp
 	dynarray_other_gtest.cpp
-	fixcaparray_gtest.cpp
 	forward_decl_test.cpp
 	gtest_mem_main.cpp
+	inplace_dynarr_gtest.cpp
 	range_algo_gtest.cpp
 	util_gtest.cpp
 	incl_dynarray.cpp
-	incl_fixcap_array.cpp
+	incl_inplace_dynarr.cpp
 	incl_make_unique.cpp
 	incl_range_algo.cpp
 	incl_range_view.cpp
