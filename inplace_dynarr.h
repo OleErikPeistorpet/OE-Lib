@@ -11,7 +11,6 @@
 
 #include <algorithm>
 
-
 /** @file
 */
 
@@ -26,17 +25,16 @@ void unordered_erase(inplace_dynarr<T, C, Size> & a, Size index)  { a.unordered_
 //!@{
 // Overloads of generic functions for inserting into container (in range_algo.h)
 template< typename T, size_t C, typename S, typename InputRange >  inline
-void assign(inplace_dynarr<T, C, S> & dest, const InputRange & source)  { dest.assign(source); }
+void assign(inplace_dynarr<T, C, S> & dest, InputRange && source)  { dest.assign(source); }
 
 template< typename T, size_t C, typename S, typename InputRange >  inline
-void append(inplace_dynarr<T, C, S> & dest, const InputRange & source)  { dest.append(source); }
+void append(inplace_dynarr<T, C, S> & dest, InputRange && source)  { dest.append(source); }
 
 template< typename T, size_t C, typename S >  inline
 void append(inplace_dynarr<T, C, S> & dest, S count, const T & val)  { dest.append(count, val); }
 
 template< typename T, size_t C, typename S, typename ForwardRange >  inline
-typename inplace_dynarr<T, C, S>::iterator
-	insert(inplace_dynarr<T, C, S> & dest, typename inplace_dynarr<T, C, S>::const_iterator pos, const ForwardRange & source)
+auto insert(inplace_dynarr<T, C, S> & dest, typename inplace_dynarr<T, C, S>::const_iterator pos, ForwardRange && source)
 	{
 		return dest.insert_r(pos, source);
 	}
@@ -79,23 +77,26 @@ public:
 	//! Throws length_error if size > Capacity. (Elements are value-initialized, same as std::vector)
 	explicit inplace_dynarr(size_type size);
 	//! Throws length_error if size > Capacity
-	inplace_dynarr(size_type size, const T & fillVal)   { append(size, fillVal); }
+	inplace_dynarr(size_type size, const T & fillVal)  { append(size, fillVal); }
 
 	template< typename InputRange,
 	          typename /*EnableIfRange*/ = iterator_t<InputRange> >
-	explicit inplace_dynarr(const InputRange & range)   { append(range); }
+	explicit inplace_dynarr(InputRange && source)      { append(source); }
 
-	inplace_dynarr(std::initializer_list<T> init)       { append<>(init); }
+	inplace_dynarr(std::initializer_list<T> init)      { append<>(init); }
 
 	inplace_dynarr & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
+
+    // TODO: try_ version of most functions that add multiple elements, unchecked_ version for push_back, emplace_back, insert, emplace
 
 	/**
 	* @brief Replace the contents with source
 	* @throw length_error if count > Capacity  */
 	template< typename InputRange >
-	auto assign(const InputRange & source)
-	->  iterator_t<InputRange const>              { return _assign(_getSize(source, 0), source); }
-	void assign(size_type count, const T & val)   { clear(); append(count, val); }
+	auto assign(InputRange && source)
+	->  iterator_t<InputRange>                    { return _assign(_getSize(source, 0), source); }
+
+	void assign(size_type count, const T & val)   { clear();  append(count, val); }
 
 	/**
 	* @brief Add at end the elements from range (in order)
@@ -105,10 +106,10 @@ public:
 	* Any previous end iterator will point to the first element added.
 	* Strong exception safety, aka. commit or rollback semantics  */
 	template< typename InputRange >
-	auto append(const InputRange & source)
-	->  iterator_t<InputRange const>            { return _append(_getSize(source, 0), source); }
+	auto append(InputRange && source)
+	->  iterator_t<InputRange>                { return _append(_getSize(source, 0), source); }
 	//! Same as `std::vector::insert(end(), il)`
-	void append(std::initializer_list<T> il)    { append<>(il); }
+	void append(std::initializer_list<T> il)  { append<>(il); }
 	//! Same as `std::vector::insert(end(), count, val)`
 	void append(size_type count, const T & val);
 
@@ -120,9 +121,7 @@ public:
 	void      resize(size_type n)                 { _resizeImpl(n, _detail::UninitFillA{}); }
 
 	template< typename ForwardRange >
-	iterator  insert_r(const_iterator pos, const ForwardRange & source) &;
-
-	iterator  insert(const_iterator pos, std::initializer_list<T> il) &  { return insert_r(pos, il); }
+	iterator  insert_r(const_iterator pos, ForwardRange && source) &;
 
 	iterator  insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
 	iterator  insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
@@ -182,8 +181,16 @@ public:
 	reference       back() noexcept(nodebug)         { return operator[](_size - 1); }
 	const_reference back() const noexcept(nodebug)   { return operator[](_size - 1); }
 
-	reference       operator[](size_type index) noexcept(nodebug);
-	const_reference operator[](size_type index) const noexcept(nodebug);
+	reference       operator[](size_type index) noexcept(nodebug)
+		{
+			OEL_ASSERT(static_cast<size_t>(index) < static_cast<size_t>(_size));
+			return data()[index];
+		}
+	const_reference operator[](size_type index) const noexcept(nodebug)
+		{
+			OEL_ASSERT(static_cast<size_t>(index) < static_cast<size_t>(_size));
+			return data()[index];
+		}
 
 	template< size_t C1 >
 	friend bool operator==(const inplace_dynarr & left, const inplace_dynarr<T, C1, Size> & right)
@@ -193,14 +200,14 @@ public:
 		}
 	template< size_t C1 >
 	friend bool operator!=(const inplace_dynarr & left, const inplace_dynarr<T, C1, Size> & right)
-		{	return !(left == right); }
-	template< size_t C1 >
-	friend bool operator <(const inplace_dynarr & left, const inplace_dynarr<T, C1, Size> & right)
+		{
+			return !(left == right);
+		}
+	friend bool operator <(const inplace_dynarr & left, const inplace_dynarr & right)
 		{
 			return std::lexicographical_compare(left.begin(), left.end(), right.begin(), right.end());
 		}
-	template< size_t C1 >
-	friend bool operator >(const inplace_dynarr & left, const inplace_dynarr<T, C1, Size> & right)  { return right < left; }
+	friend bool operator >(const inplace_dynarr & left, const inplace_dynarr & right)  { return right < left; }
 
 
 
@@ -234,16 +241,16 @@ private:
 
 
 	template< typename Range > // pass dummy int to prefer this overload
-	static auto _getSize(const Range & r, int) -> decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
+	static auto _getSize(Range & r, int) -> decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
 
 	template< typename Range >
-	static false_type _getSize(const Range &, long) { return {}; }
+	static false_type _getSize(Range &, long) { return {}; }
 
 	template< typename Range >
-	static auto _count(const Range & r, int) -> decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
+	static auto _count(Range & r, int) -> decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
 
 	template< typename Range >
-	static size_t _count(const Range & r, long)
+	static size_t _count(Range & r, long)
 	{
 		auto first = oel::adl_begin(r);
 		static_assert(std::is_base_of< std::forward_iterator_tag, iter_category<decltype(first)> >::value,
@@ -316,7 +323,7 @@ private:
 	}
 
 	template< typename SizedRange >
-	auto _assign(size_t count, const SizedRange & src) -> iterator_t<SizedRange const>
+	iterator_t<SizedRange> _assign(size_t count, SizedRange & src)
 	{
 		if (Capacity >= count)
 		{
@@ -327,7 +334,7 @@ private:
 	}
 
 	template< typename InputRange >
-	auto _assign(false_type, const InputRange & src) -> iterator_t<InputRange const>
+	iterator_t<InputRange> _assign(false_type, InputRange & src)
 	{	// no fast way of getting size
 		clear();
 		return append<>(src);
@@ -353,7 +360,7 @@ private:
 	}
 
 	template< typename SizedRange >
-	auto _append(size_t count, const SizedRange & src) -> iterator_t<SizedRange const>
+	iterator_t<SizedRange> _append(size_t count, SizedRange & src)
 	{
 		if (_unusedCapacity() >= count)
 		{
@@ -364,7 +371,7 @@ private:
 	}
 
 	template< typename InputRange >
-	auto _append(false_type, const InputRange & src) -> iterator_t<InputRange const>
+	iterator_t<InputRange> _append(false_type, InputRange & src)
 	{	// number of items unknown (slowest)
 		auto f = oel::adl_begin(src); auto l = oel::adl_end(src);
 		for (; f != l; ++f)
@@ -446,7 +453,7 @@ typename inplace_dynarr<T, Capacity, Size>::iterator  inplace_dynarr<T, Capacity
 
 template< typename T, size_t Capacity, typename Size> template<typename ForwardRange >
 typename inplace_dynarr<T, Capacity, Size>::iterator  inplace_dynarr<T, Capacity, Size>::
-	insert_r(const_iterator pos, const ForwardRange & src) &
+	insert_r(const_iterator pos, ForwardRange && src) &
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
 	OEL_ASSERT(begin() <= pos and pos <= end());
@@ -533,20 +540,6 @@ void inplace_dynarr<T, Capacity, Size>::erase_to_end(iterator newEnd) noexcept(n
 	OEL_ASSERT(data() <= first and first <= data() + _size);
 	_detail::Destroy(first, data() + _size);
 	_size = first - data();
-}
-
-
-template< typename T, size_t Capacity, typename Size >
-inline T & inplace_dynarr<T, Capacity, Size>::operator[](size_type index) noexcept(nodebug)
-{
-	OEL_ASSERT(static_cast<size_t>(index) < static_cast<size_t>(_size));
-	return data()[index];
-}
-template< typename T, size_t Capacity, typename Size >
-inline const T & inplace_dynarr<T, Capacity, Size>::operator[](size_type index) const noexcept(nodebug)
-{
-	OEL_ASSERT(static_cast<size_t>(index) < static_cast<size_t>(_size));
-	return data()[index];
 }
 
 } // namespace oel
