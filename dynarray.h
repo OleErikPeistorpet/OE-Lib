@@ -756,10 +756,14 @@ dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)
  :	_m(a) // moves from a
 {
 	const allocator_type & myA = _m;
-	OEL_CONST_COND if (!_alloTrait::is_always_equal::value and myA != other._m)
-		append(other | view::move);
-	else
-		_moveInternBase(other._m);
+	if constexpr (!_alloTrait::is_always_equal::value)
+		if (myA != other._m)
+		{
+			append(other | view::move);
+			return;
+		}
+
+	_moveInternBase(other._m);
 }
 
 template< typename T, typename Alloc >
@@ -767,21 +771,23 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value)
 {
 	allocator_type & myA = _m;
-	OEL_CONST_COND if (!_alloTrait::propagate_on_container_move_assignment::value and myA != other._m)
-	{
-		assign(other | view::move);
-	}
-	else // take allocated memory from other
-	{
-		if (_m.data)
+	if constexpr( !(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value) )
+	    if (myA != other._m)
 		{
-			_detail::Destroy(_m.data, _m.end);
-			_allocateWrap::dealloc(_m, _m.data, capacity());
+			assign(other | view::move);
+			return *this;
 		}
-		_moveInternBase(other._m);
-		if constexpr (_alloTrait::propagate_on_container_move_assignment::value)
-			myA = static_cast<allocator_type &&>(other._m);
+
+	// Take allocated memory from other
+	if (_m.data)
+	{
+		_detail::Destroy(_m.data, _m.end);
+		_allocateWrap::dealloc(_m, _m.data, capacity());
 	}
+	_moveInternBase(other._m);
+	if constexpr (_alloTrait::propagate_on_container_move_assignment::value)
+		myA = static_cast<allocator_type &&>(other._m);
+
 	return *this;
 }
 

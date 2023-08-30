@@ -37,12 +37,6 @@
 	#define OEL_ALWAYS_INLINE
 #endif
 
-#ifdef _MSC_VER
-	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
-#else
-	#define OEL_CONST_COND
-#endif
-
 
 #if defined _CPPUNWIND or defined __EXCEPTIONS
 	#define OEL_HAS_EXCEPTIONS        1
@@ -55,7 +49,7 @@
 	#define OEL_THROW(exc, message)   OEL_ABORT(message)
 	#define OEL_RETHROW
 	#define OEL_TRY_
-	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
+	#define OEL_CATCH_ALL             if (false)
 #endif
 
 //! @endcond
