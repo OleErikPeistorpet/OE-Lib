@@ -2,10 +2,12 @@ cmake_minimum_required(VERSION 3.1)
 
 project(oel-test CXX)
 
-set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to use, tested up to 20")
 
 
-set(INSTALL_GTEST OFF)
+option(BUILD_GMOCK   "" off)
+option(INSTALL_GTEST "" off)
+option(gtest_force_shared_crt "" on)
 add_subdirectory(googletest)
 
 
