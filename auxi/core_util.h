@@ -83,6 +83,19 @@ using enable_if = typename std::enable_if<Condition, int>::type;
 
 namespace _detail
 {
+	template< size_t I >
+	struct Get
+	{
+		template< typename TupleLike >
+		constexpr decltype(auto) operator()(TupleLike && t) const
+		{
+			using std::get;
+			return get<I>( static_cast<TupleLike &&>(t) );
+		}
+	};
+
+
+
 	template< typename T >
 	constexpr T MoveIfNotCopyable(T & ob)
 	{

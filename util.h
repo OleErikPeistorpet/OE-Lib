@@ -88,6 +88,13 @@ using oel::index_valid;
 
 
 
+//! `key(t)` returns the first element of the tuple-like object `t`
+inline constexpr auto key   = _detail::Get<0>{};
+//! `value(t)` returns the second element of the tuple-like object `t`
+inline constexpr auto value = _detail::Get<1>{};
+
+
+
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {

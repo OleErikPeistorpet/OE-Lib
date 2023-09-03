@@ -370,6 +370,21 @@ void testTransformIterWithConceptOnly()
 }
 #endif
 
+TEST(viewTest, viewElements)
+{
+	std::pair<int, int> arr[]{ {1, 2}, {3, 4} };
+	auto keys   = view::move(arr) | view::elements<0>;
+	auto values = view::elements<1>(arr) | view::move;
+
+	static_assert(std::is_same_v< decltype(*keys.begin()), int && >);
+	static_assert(std::is_same_v< decltype(*values.begin()), int && >);
+
+	EXPECT_EQ( 1, *keys.begin() );
+	EXPECT_EQ( 2, *values.begin() );
+	EXPECT_EQ( 3, *std::prev(keys.end()) );
+	EXPECT_EQ( 4, *std::prev(values.end()) );
+}
+
 constexpr StdArrInt2 generatedArray()
 {
 	StdArrInt2 res{};
