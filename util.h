@@ -6,8 +6,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/type_traits.h"
-#include "auxi/contiguous_iterator_to_ptr.h"
+#include "auxi/contiguous_iterator_to_ptr.h" // just convenient
+#include "auxi/core_util.h"
+#include "auxi/range_traits.h"
+
+#include <stdexcept>
 
 
 /** @file
@@ -88,6 +91,12 @@ inline constexpr auto adl_end =
 
 
 
+//! Tells whether we can call member `reallocate(pointer, size_type)` on an instance of Alloc
+template< typename Alloc >
+inline constexpr bool allocator_can_realloc   = _detail::CanRealloc<Alloc>(0);
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is not for users (implementation)
@@ -106,6 +115,16 @@ struct
 
 namespace _detail
 {
+	struct OutOfRange
+	{	// Exception throwing has been split out from templates to avoid bloat
+		[[noreturn]] static void raise(const char * what)
+		{
+			OEL_THROW(std::out_of_range(what), what);
+		}
+	};
+
+
+
 	template< typename T, typename U,
 	          bool = std::is_empty_v<U> >
 	struct TightPair

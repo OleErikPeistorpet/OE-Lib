@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "allocate_with_header.h"
-#include "contiguous_iterator_to_ptr.h"
+#include "dynarray_detail.h"
+#include "range_traits.h"
 
 
 #ifdef _MSC_VER

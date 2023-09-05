@@ -11,7 +11,7 @@
 * @brief This is included by dynarray.h, so should not be needed in user code
 */
 
-#include "../auxi/type_traits.h"
+#include "../auxi/core_util.h"
 
 #include <memory>
 #include <tuple>

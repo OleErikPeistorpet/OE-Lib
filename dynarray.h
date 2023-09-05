@@ -247,7 +247,11 @@ public:
 	reference       back() noexcept         { return *_detail::MakeDynarrIter           (_m, _m.end - 1); }
 	const_reference back() const noexcept   { return *_detail::MakeDynarrIter<const T *>(_m, _m.end - 1); }
 
-	reference       at(size_type index);
+	reference       at(size_type index)   OEL_ALWAYS_INLINE
+		{
+			const auto & cSelf = *this;
+			return const_cast<reference>(cSelf.at(index));
+		}
 	const_reference at(size_type index) const;
 
 	reference       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
@@ -366,8 +370,6 @@ private:
 	}
 
 
-	static constexpr auto _lenErrorMsg = "Going over dynarray max_size";
-
 	size_type _unusedCapacity() const
 	{
 		return _m.reservEnd - _m.end;
@@ -383,7 +385,7 @@ private:
 		if (newSize <= max_size())
 			return _calcCapUnchecked(newSize);
 		else
-			_detail::Throw::lengthError(_lenErrorMsg);
+			_detail::LengthError::raise();
 	}
 
 	size_type _calcCapAdd(size_type const nAdd, size_type const oldSize) const
@@ -391,7 +393,7 @@ private:
 		if (nAdd <= SIZE_MAX / 2 / sizeof(T)) // assumes that allocating greater than SIZE_MAX / 2 always fails
 			return _calcCapUnchecked(oldSize + nAdd);
 		else
-			_detail::Throw::lengthError(_lenErrorMsg);
+			_detail::LengthError::raise();
 	}
 
 	size_type _calcCapAddOne() const
@@ -407,7 +409,7 @@ private:
 		if (n <= max_size())
 			return _allocateWrap::allocate(_m, n);
 		else
-			_detail::Throw::lengthError(_lenErrorMsg);
+			_detail::LengthError::raise();
 	}
 
 
@@ -937,18 +939,12 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 
 
 template< typename T, typename Alloc >
-OEL_ALWAYS_INLINE inline T & dynarray<T, Alloc>::at(size_type i)
-{
-	const auto & cSelf = *this;
-	return const_cast<reference>(cSelf.at(i));
-}
-template< typename T, typename Alloc >
 const T & dynarray<T, Alloc>::at(size_type i) const
 {
 	if (i < size()) // would be unsafe with signed size_type
 		return _m.data[i];
 	else
-		_detail::Throw::outOfRange("Bad index dynarray::at");
+		_detail::OutOfRange::raise("Bad index dynarray::at");
 }
 
 

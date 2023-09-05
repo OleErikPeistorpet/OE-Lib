@@ -6,29 +6,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../../auxi/type_traits.h"
+#include "core_util.h"
 
-namespace oel
+
+namespace oel::_detail
 {
-
-template< typename Sentinel >
-struct sentinel_wrapper   { Sentinel _s; };
-
-
-
-namespace _detail
-{
-	template< typename T >
-	constexpr T MoveIfNotCopyable(T & ob)
-	{
-		if constexpr (std::is_copy_constructible_v<T>)
-			return ob;
-		else
-			return static_cast<T &&>(ob);
-	}
-
-
-
 	template< typename T,
 	          bool = std::is_move_assignable_v<T> >
 	class AssignableWrap
@@ -59,7 +41,7 @@ namespace _detail
 
 		struct ImplEmpty : Empty_type_MSVC_unique_name
 		{
-			constexpr ImplEmpty(const Empty_type_MSVC_unique_name & src) noexcept
+			constexpr ImplEmpty(Empty_type_MSVC_unique_name src) noexcept
 			 :	Empty_type_MSVC_unique_name(src) {}
 
 			ImplEmpty() = default;
@@ -79,15 +61,3 @@ namespace _detail
 		using Type = T;
 	};
 }
-
-} // oel
-
-
-#if !OEL_HAS_STD_MOVE_SENTINEL
-
-// Small hack to let std::move_iterator< sentinel_wrapper<S> > compile
-template< typename S >
-struct std::iterator_traits< oel::sentinel_wrapper<S> >
- :	std::iterator_traits<S> {};
-
-#endif
