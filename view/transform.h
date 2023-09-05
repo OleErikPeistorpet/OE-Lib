@@ -66,6 +66,12 @@ namespace _detail
 		{
 			return _transformView{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
 		}
+
+		template< typename Range >
+		constexpr auto operator()(Range && r) const
+		{
+			return static_cast<Range &&>(r) | *this;
+		}
 	};
 }
 
@@ -76,31 +82,27 @@ namespace view
 
 struct _transformFn
 {
-	/** @brief Used with operator | (like std::views)
-	@code
-	std::bitset<8> arr[] { 3, 5, 7, 11 };
-	dynarray<std::string> result( arr | view::transform([](const auto & bs) { return bs.to_string(); }) );
-	@endcode  */
+	//! Used with operator |
 	template< typename UnaryFunc >
 	constexpr auto operator()(UnaryFunc f) const   { return _detail::TransfPartial<UnaryFunc>{std::move(f)}; }
-	//! Like `std::views::transform(r, f)`
+
 	template< typename Range, typename UnaryFunc >
 	constexpr auto operator()(Range && r, UnaryFunc f) const
 		{
 			return static_cast<Range &&>(r) | (*this)(std::move(f));
 		}
 };
-/**
-* @brief Given a source range, create a view that transforms each element when dereferenced
+/** @brief Similar to std::views::transform, same call signature
 *
-* Similar to std::views::transform, but moves the function into the iterator rather than
-* keeping it just in the view, thus saving one indirection when dereferencing the iterator.
-* Moreover, function objects can have non-const `operator()` (such as mutable lambda). */
+* Unlike std::views::transform, copies or moves the function into the iterator rather than
+* storing it just in the view, thus saving one indirection when dereferencing the iterator.
+* Note that function objects can have non-const `operator()` (such as mutable lambda).
+* https://en.cppreference.com/w/cpp/ranges/transform_view  */
 inline constexpr _transformFn transform;
 
-}
+} // view
 
-} // namespace oel
+}
 
 
 #if OEL_STD_RANGES

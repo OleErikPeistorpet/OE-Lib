@@ -56,21 +56,21 @@ namespace view
 
 struct _moveFn
 {
-	/** @brief Create view, for chaining like std::views
-	@code
-	std::string moveFrom[2] {"abc", "def"};
-	dynarray movedStrings(moveFrom | view::move);
-	@endcode  */
 	template< typename InputRange >
 	friend constexpr auto operator |(InputRange && r, _moveFn)
 		{
 			return _moveView{all( static_cast<InputRange &&>(r) )};
 		}
-	//! Same as `std::views::as_rvalue(r)` (C++23)
+
 	template< typename InputRange >
 	constexpr auto operator()(InputRange && r) const   { return static_cast<InputRange &&>(r) | _moveFn{}; }
 };
-//! Very similar to views::move in the Range-v3 library and std::views::as_rvalue
+/** @brief Very similar to views::move in the Range-v3 library and std::views::as_rvalue
+@code
+std::string moveFrom[2] {"abc", "def"};
+oel::dynarray movedStrings(moveFrom | view::move);
+@endcode
+* Expect compile error if passed a transform having function with `non-const operator()` */
 inline constexpr _moveFn move;
 
 }

@@ -118,8 +118,14 @@ public:
 	friend constexpr bool operator!=(S left, const transform_iterator & right)   { return right._m.first != left; }
 };
 
-template< typename F, typename I >
-inline constexpr bool disable_sized_sentinel_for< transform_iterator<F, I>, transform_iterator<F, I> >
-	= !iter_is_random_access<I>;
+#if __cpp_lib_concepts < 201907
+	template< typename F, typename I >
+	inline constexpr bool disable_sized_sentinel_for< transform_iterator<F, I>, transform_iterator<F, I> >
+		= disable_sized_sentinel_for<I, I>;
+
+	template< typename S, typename F, typename I >
+	inline constexpr bool disable_sized_sentinel_for< S, transform_iterator<F, I> >
+		= disable_sized_sentinel_for<S, I>;
+#endif
 
 } // namespace oel
