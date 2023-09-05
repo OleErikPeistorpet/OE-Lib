@@ -58,14 +58,14 @@ public:
 		{
 			return {_detail::MoveIfNotCopyable(_m.second()), _m.first.begin()};
 		}
-	//! Return type either same as `begin()` or oel::sentinel_wrapper
+	//! Return type either same as `begin()` or sentinel_t<View>
 	template< typename V = View, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
 	constexpr auto end()
 		{
 			if constexpr (std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> >)
 				return _iter(_m.second(), _m.first.end());
 			else
-				return sentinel_wrapper< sentinel_t<V> >{_m.first.end()};
+				return _m.first.end();
 		}
 
 	template< typename V = View >  OEL_ALWAYS_INLINE

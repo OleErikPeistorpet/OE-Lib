@@ -121,11 +121,6 @@ inline constexpr bool disable_sized_sentinel_for =
 
 
 
-template< typename Sentinel >
-struct sentinel_wrapper   { Sentinel _s; };
-
-
-
 namespace _detail
 {
 	template< typename Range >
@@ -143,13 +138,3 @@ namespace _detail
 }
 
 } // oel
-
-
-#if !OEL_HAS_STD_MOVE_SENTINEL
-
-// Small hack to let std::move_iterator< sentinel_wrapper<S> > compile
-template< typename S >
-struct std::iterator_traits< oel::sentinel_wrapper<S> >
- :	std::iterator_traits<S> {};
-
-#endif
