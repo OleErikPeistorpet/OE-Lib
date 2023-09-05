@@ -29,7 +29,7 @@ struct _transformFn
 			return static_cast<Range &&>(r) | (*this)(std::move(f));
 		}
 };
-/** @brief Similar to std::views::transform
+/** @brief Similar to std::views::transform, same call signature
 *
 * Unlike std::views::transform, copies or moves the function into the iterator rather than
 * storing it just in the view, thus saving one indirection when dereferencing the iterator.
@@ -95,6 +95,12 @@ namespace _detail
 		friend constexpr auto operator |(Range && r, TransfPartial t)
 		{
 			return _transformView{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
+		}
+
+		template< typename Range >
+		constexpr auto operator()(Range && r) const
+		{
+			return static_cast<Range &&>(r) | *this;
 		}
 	};
 }
