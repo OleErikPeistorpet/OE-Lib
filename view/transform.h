@@ -29,10 +29,19 @@ class _transformView
 			return (... or std::get<Ns>(_m.first).empty());
 		}
 
+	template< typename R >
+	static constexpr auto _size(R & r)
+	->	decltype(r.size()) { return r.size(); }
+
+	template< typename R,
+		enable_if< enable_infinite_range<R> > = 0
+	>
+	static constexpr auto _size(R &)  { return size_t(-1); }
+	// FIXME: incorrect if all are unbounded
 	template< typename Tuple, size_t... Ns >
-	static constexpr auto _size(Tuple & views, std::index_sequence<Ns...>)
-	->	decltype( std::min({std::get<Ns>(views).size()...}) )
-		 { return std::min({std::get<Ns>(views).size()...}); }
+	static constexpr auto _mySize(Tuple & views, std::index_sequence<Ns...>)
+	->	decltype( std::min({_size(std::get<Ns>(views))...}) )
+		 { return std::min({_size(std::get<Ns>(views))...}); }
 
 	template< size_t... Ns >
 	constexpr _iter _begin(std::index_sequence<Ns...>)
@@ -65,7 +74,7 @@ public:
 
 	template< typename T = tuple<Views...> >  OEL_ALWAYS_INLINE
 	constexpr auto size()
-	->	decltype( _size(std::declval<T &>(), _iSeq{}) )  { return _size(_m.first, _iSeq{}); }
+	->	decltype( _mySize(std::declval<T &>(), _iSeq{}) )  { return _mySize(_m.first, _iSeq{}); }
 
 	constexpr bool empty()   OEL_ALWAYS_INLINE { return _empty(_iSeq{}); }
 
@@ -141,8 +150,11 @@ inline constexpr auto zip_transform_n =
 
 } // view
 
-}
+template< bool Z, typename F, typename... Vs >
+inline constexpr bool enable_infinite_range< _transformView<Z, F, Vs...> >
+	= (... and enable_infinite_range< std::remove_cv_t<Vs> >);
 
+}
 
 #if OEL_STD_RANGES
 

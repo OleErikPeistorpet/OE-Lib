@@ -229,9 +229,37 @@ TEST(viewTest, viewMoveEndDifferentType)
 	EXPECT_EQ(se, v.end().base());
 }
 
+TEST(viewTest, viewEnumerate)
+{
+	double arr[] {1.1, 2.2};
+	auto v = arr | view::move | view::enumerate;
+	auto it = v.begin();
+
+	static_assert(std::is_same_v< decltype(*it), std::pair<std::ptrdiff_t, double &&> >);
+	EXPECT_EQ(2u, v.size());
+	{
+		auto && [i, e] = *it++;
+		EXPECT_EQ(0, i);
+		EXPECT_EQ(1.1, e);
+	}
+	auto && [i, e] = *it;
+	EXPECT_EQ(1, i);
+	EXPECT_EQ(2.2, e);
+	EXPECT_EQ(++it, v.end());
+}
+
 #if OEL_STD_RANGES
 
 static_assert(std::random_access_iterator< oel::iota_iterator<int> >);
+
+void testEnableInfiniteRange()
+{
+	std::forward_list<int> li{};
+	auto bounded = std::ranges::subrange(li);
+	auto unbound = std::ranges::subrange(li.begin(), std::unreachable_sentinel);
+	static_assert(not oel::enable_infinite_range< decltype(bounded) >);
+	static_assert(oel::enable_infinite_range< decltype(unbound) >);
+}
 
 TEST(viewTest, viewMoveMutableEmptyAndSize)
 {

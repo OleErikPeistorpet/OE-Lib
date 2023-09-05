@@ -55,7 +55,7 @@ constexpr bool index_valid(SizedRangeLike & r, Integral index)
 	}
 
 
-//! Equivalent to std::make_unique_for_overwrite (C++20), for array types with unknown bound
+//! Equivalent to std::make_unique_for_overwrite, for array types with unknown bound
 template< typename T,
           enable_if< _detail::isUnboundedArray<T> > = 0
 >  inline
