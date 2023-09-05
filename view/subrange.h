@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h" // for as_unsigned
+#include "../util.h"
 
 /** @file
 */
@@ -22,27 +22,26 @@ public:
 	using difference_type = iter_difference_t<Iterator>;
 
 	subrange() = default;
-	constexpr subrange(Iterator first, Sentinel last)   : _begin{std::move(first)}, _end{last} {}
+	constexpr subrange(Iterator first, Sentinel last)   : _m{std::move(first), last} {}
 
-	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_begin); }
+	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_m.first); }
 
-	constexpr Sentinel end() const   OEL_ALWAYS_INLINE { return _end; }
+	constexpr Sentinel end() const   { return _m.second(); }
 
 	//! Provided only if begin() can be subtracted from end()
 	template< typename I = Iterator,
 	          enable_if< !disable_sized_sentinel_for<Sentinel, I> > = 0
 	>
 	constexpr auto size() const
-	->	decltype( as_unsigned(std::declval<Sentinel>() - std::declval<I>()) )  { return _end - _begin; }
+	->	decltype( as_unsigned(std::declval<Sentinel>() - std::declval<I>()) )  { return _m.second() - _m.first; }
 
-	constexpr bool empty() const   { return _begin == _end; }
+	constexpr bool empty() const   { return _m.first == _m.second(); }
 
 	constexpr decltype(auto) operator[](difference_type index) const
-		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE { return _begin[index]; }
+		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE { return _m.first[index]; }
 
 private:
-	Iterator _begin;
-	Sentinel _end;
+	_detail::TightPair<Iterator, Sentinel> _m;
 };
 
 }
