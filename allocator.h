@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/type_traits.h"
+#include "auxi/core_util.h"
 
 #include <algorithm> // for max
 #include <cstdint>  // for uintptr_t

@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "type_traits.h"
+#include "core_util.h"
 
 #include <memory> // for pointer_traits
 
@@ -73,20 +73,6 @@ constexpr auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
 
 namespace _detail
 {
-	template< typename Range >
-	constexpr auto Size(Range && r)
-	->	decltype(r.size()) { return r.size(); }
-
-	template< typename Range, typename... None,
-		enable_if<
-			!disable_sized_sentinel_for< sentinel_t<Range>, iterator_t<Range> >
-		> = 0 >
-	constexpr auto Size(Range && r, None...)
-	->	decltype(end(r) - begin(r))
-	{	return   end(r) - begin(r); }
-
-
-
 	template< typename T >
 	std::is_trivially_copyable<T> CanMemmoveArrays(T * /*dest*/, const T *);
 

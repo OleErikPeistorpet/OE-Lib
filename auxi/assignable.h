@@ -6,22 +6,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../../auxi/type_traits.h"
+#include "core_util.h"
 
 
 namespace oel::_detail
 {
-	template< typename T >
-	constexpr T MoveIfNotCopyable(T & ob)
-	{
-		if constexpr (std::is_copy_constructible_v<T>)
-			return ob;
-		else
-			return static_cast<T &&>(ob);
-	}
-
-
-
 	template< typename T,
 	          bool = std::is_move_assignable_v<T> >
 	class AssignableWrap
@@ -52,7 +41,7 @@ namespace oel::_detail
 
 		struct ImplEmpty : Empty_type_MSVC_unique_name
 		{
-			constexpr ImplEmpty(const Empty_type_MSVC_unique_name & src) noexcept
+			constexpr ImplEmpty(Empty_type_MSVC_unique_name src) noexcept
 			 :	Empty_type_MSVC_unique_name(src) {}
 
 			ImplEmpty() = default;

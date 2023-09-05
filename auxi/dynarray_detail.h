@@ -6,13 +6,25 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "type_traits.h"
+#include "core_util.h"
 
-#include <cstdint> // for uintptr_t
+#include <cstdint>  // for uintptr_t
+#include <stdexcept>
 
 
 namespace oel::_detail
 {
+	struct LengthError
+	{
+		[[noreturn]] static void raise()
+		{
+			constexpr auto what = "Going over dynarray max_size";
+			OEL_THROW(std::length_error(what), what);
+		}
+	};
+
+////////////////////////////////////////////////////////////////////////////////
+
 	template< typename Ptr >
 	struct DynarrBase
 	{

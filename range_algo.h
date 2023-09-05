@@ -76,7 +76,7 @@ inline constexpr auto copy =
 		if (as_unsigned( _detail::Size(source) ) <= as_unsigned( _detail::Size(dest) ))
 			return copy_unsafe(source, begin(dest));
 		else
-			_detail::Throw::outOfRange("Too small dest oel::copy");
+			_detail::OutOfRange::raise("Too small dest oel::copy");
 	};
 /**
 * @brief Copies as many elements from source as will fit in dest

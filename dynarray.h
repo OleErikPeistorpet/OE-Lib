@@ -396,8 +396,6 @@ private:
 	}
 
 
-	static constexpr auto _lenErrorMsg = "Going over dynarray max_size";
-
 	T * _pEnd() const noexcept { return _m.data + _m.size; }
 
 	size_type _unusedCapacity() const
@@ -415,7 +413,7 @@ private:
 		if (newSize <= max_size())
 			return _calcCapUnchecked(newSize);
 		else
-			_detail::Throw::lengthError(_lenErrorMsg);
+			_detail::LengthError::raise();
 	}
 
 	size_type _calcCapAdd(size_type const nAdd) const
@@ -423,7 +421,7 @@ private:
 		if (nAdd <= SIZE_MAX / 2 / sizeof(T)) // assumes that allocating greater than SIZE_MAX / 2 always fails
 			return _calcCapUnchecked(_m.size + nAdd);
 		else
-			_detail::Throw::lengthError(_lenErrorMsg);
+			_detail::LengthError::raise();
 	}
 
 	size_type _calcCapAddOne() const
@@ -439,7 +437,7 @@ private:
 		if (n <= max_size())
 			return _allocateWrap::allocate(_m, n);
 		else
-			_detail::Throw::lengthError(_lenErrorMsg);
+			_detail::LengthError::raise();
 	}
 
 
@@ -973,7 +971,7 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 	if (i < _m.size) // would be unsafe with signed size_type
 		return _m.data[i];
 	else
-		_detail::Throw::outOfRange("Bad index dynarray::at");
+		_detail::OutOfRange::raise("Bad index dynarray::at");
 }
 
 
