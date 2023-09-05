@@ -8,7 +8,7 @@
 * @brief Must be included manually in user code
 */
 
-#include "../auxi/type_traits.h"
+#include "../auxi/core_util.h"
 
 #include <variant>
 

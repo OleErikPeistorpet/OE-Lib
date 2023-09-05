@@ -7,7 +7,7 @@
 
 
 #include "../util.h"  // for TightPair
-#include "detail/misc.h"
+#include "../auxi/assignable.h"
 
 /** @file
 */

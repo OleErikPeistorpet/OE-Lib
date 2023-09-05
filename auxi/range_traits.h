@@ -6,9 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../fwd.h"
-
-#include <iterator>
+#include "core_util.h"
 
 //! Users can define (to override __cpp_lib_ranges or to not pay for include)
 #ifndef OEL_STD_RANGES
@@ -18,24 +16,19 @@
 	#define OEL_STD_RANGES  1
 	#endif
 #endif
+
 #if OEL_STD_RANGES
 #include <ranges>
 #endif
+#include <iterator>
+
+/** @file
+*/
 
 namespace oel
 {
 namespace _detail
 {
-	template< typename Alloc >  // pass dummy int to prefer this overload
-	constexpr auto CanRealloc(int)
-	->	decltype(Alloc::can_reallocate())
-	{	return   Alloc::can_reallocate(); }
-
-	template< typename >
-	constexpr bool CanRealloc(long) { return false; }
-
-
-
 	template< typename Iter >
 	typename std::iterator_traits<Iter>::iterator_category IterCat(int);
 
@@ -58,10 +51,6 @@ namespace _detail
 		    or std::is_base_of_v< Tag, decltype(_detail::IterConcept<Iter>(0)) >;
 	}
 }
-
-
-template< typename Alloc >
-inline constexpr bool allocator_can_realloc   = _detail::CanRealloc<Alloc>(0);
 
 
 using std::ptrdiff_t;
@@ -127,74 +116,40 @@ inline constexpr bool disable_sized_sentinel_for =
 	#endif
 
 
-//! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
-template< bool Condition >
-using enable_if = typename std::enable_if<Condition, int>::type;
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
 
 
+template< typename Sentinel >
+struct sentinel_wrapper   { Sentinel _s; };
+
+
+
 namespace _detail
 {
-	template< typename >
-	inline constexpr bool isUnboundedArray = false;
+	template< typename Range >
+	constexpr auto Size(Range && r)
+	->	decltype(r.size()) { return r.size(); }
 
-	template< typename T >
-	inline constexpr bool isUnboundedArray<T[]> = true;
+	template< typename Range, typename... None,
+		enable_if<
+			!disable_sized_sentinel_for< sentinel_t<Range>, iterator_t<Range> >
+		> = 0
+	>
+	constexpr auto Size(Range && r, None...)
+	->	decltype(end(r) - begin(r))
+	{	return   end(r) - begin(r); }
 }
 
-} // namespace oel
+} // oel
 
 
-template< typename T >
-struct oel::is_trivially_relocatable : decltype( specify_trivial_relocate(std::declval<T>()) ) {};
+#if !OEL_HAS_STD_MOVE_SENTINEL
 
+// Small hack to let std::move_iterator< sentinel_wrapper<S> > compile
+template< typename S >
+struct std::iterator_traits< oel::sentinel_wrapper<S> >
+ :	std::iterator_traits<S> {};
 
-//! @cond INTERNAL
-
-#if __cpp_lib_concepts < 201907
-	#define OEL_REQUIRES(...)
-#else
-	#define OEL_REQUIRES(...) requires(__VA_ARGS__)
-
-	#if !defined _LIBCPP_VERSION or _LIBCPP_VERSION >= 15000
-	#define OEL_HAS_STD_MOVE_SENTINEL  1
-	#endif
 #endif
-
-#ifndef OEL_HAS_STD_MOVE_SENTINEL
-#define OEL_HAS_STD_MOVE_SENTINEL  0
-#endif
-
-
-#ifdef __GNUC__
-	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
-#else
-	#define OEL_ALWAYS_INLINE
-#endif
-
-#ifdef _MSC_VER
-	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
-#else
-	#define OEL_CONST_COND
-#endif
-
-
-#if defined _CPPUNWIND or defined __EXCEPTIONS
-	#define OEL_HAS_EXCEPTIONS        1
-	#define OEL_THROW(exception, msg) throw exception
-	#define OEL_RETHROW               throw
-	#define OEL_TRY_                  try
-	#define OEL_CATCH_ALL             catch (...)
-#else
-	#define OEL_HAS_EXCEPTIONS        0
-	#define OEL_THROW(exc, message)   OEL_ABORT(message)
-	#define OEL_RETHROW
-	#define OEL_TRY_
-	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
-#endif
-
-//! @endcond

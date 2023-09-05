@@ -6,29 +6,14 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h"
+#include "contiguous_iterator_to_ptr.h"
+#include "range_traits.h"
 
 #include <cstring>
-#include <stdexcept>
 
 
 namespace oel::_detail
 {
-	struct Throw
-	{	// Exception throwing has been split out from templates to avoid bloat
-		[[noreturn]] static void outOfRange(const char * what)
-		{
-			OEL_THROW(std::out_of_range(what), what);
-		}
-
-		[[noreturn]] static void lengthError(const char * what)
-		{
-			OEL_THROW(std::length_error(what), what);
-		}
-	};
-
-////////////////////////////////////////////////////////////////////////////////
-
 	template< typename T >
 	void Destroy([[maybe_unused]] T * first, [[maybe_unused]] const T * last) noexcept
 	{	// first > last is OK, does nothing
