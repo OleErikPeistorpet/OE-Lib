@@ -53,7 +53,7 @@
 namespace oel
 {
 
-template< typename T > struct allocator;
+template< typename T > class allocator;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug

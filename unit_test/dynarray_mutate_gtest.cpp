@@ -853,7 +853,7 @@ TEST_F(dynarrayTest, shrinkToFit)
 
 TEST_F(dynarrayTest, overAligned)
 {
-	constexpr auto testAlignment = oel::_detail::defaultAlign * 2;
+	constexpr auto testAlignment = OEL_MALLOC_ALIGNMENT * 2;
 	struct alignas(testAlignment) Type {};
 
 	dynarray<Type> special(oel::reserve, 1);
