@@ -14,6 +14,10 @@
 /** @file
 */
 
+#ifndef OEL_MALLOC_ALIGNMENT
+#define OEL_MALLOC_ALIGNMENT  __STDCPP_DEFAULT_NEW_ALIGNMENT__
+#endif
+
 #ifndef OEL_NEW_HANDLER
 #define OEL_NEW_HANDLER  !OEL_HAS_EXCEPTIONS
 #endif
@@ -21,25 +25,31 @@
 namespace oel
 {
 
-/** @brief Automatically handles over-aligned T. Has reallocate method in addition to standard functionality
+/** @brief Has reallocate method in addition to standard functionality
 *
-* Either throws std::bad_alloc or calls standard new_handler on failure, depending on value of OEL_NEW_HANDLER  */
+* Either throws std::bad_alloc or calls standard new_handler on failure, depending on value of OEL_NEW_HANDLER.
+* (Automatically handles over-aligned T, like std::allocator does from C++17) */
 template< typename T >
-struct allocator
+class allocator
 {
+public:
 	using value_type = T;
 
 	using propagate_on_container_move_assignment = std::true_type;
 
 	static constexpr bool   can_reallocate() noexcept  { return is_trivially_relocatable<T>::value; }
 
-	static constexpr size_t max_size() noexcept;
+	static constexpr size_t max_size() noexcept
+		{
+			constexpr auto n = SIZE_MAX - (alignof(T) > OEL_MALLOC_ALIGNMENT ? alignof(T) : 0);
+			return n / sizeof(T);
+		}
 
 	//! count greater than max_size() causes overflow and undefined behavior
-	T *  allocate(size_t count);
+	[[nodiscard]] static T * allocate(size_t count);
 	//! newCount greater than max_size() causes overflow and undefined behavior
-	T *  reallocate(T * ptr, size_t newCount);
-	void deallocate(T * ptr, size_t) noexcept;
+	[[nodiscard]] static T * reallocate(T * ptr, size_t newCount);
+	static void              deallocate(T * ptr, size_t) noexcept;
 
 	allocator() = default;
 	template< typename U >  OEL_ALWAYS_INLINE
@@ -47,7 +57,6 @@ struct allocator
 
 	friend constexpr bool operator==(allocator, allocator) noexcept  { return true; }
 	friend constexpr bool operator!=(allocator, allocator) noexcept  { return false; }
-};
 
 
 
@@ -56,17 +65,15 @@ struct allocator
 // Implementation only in rest of the file
 
 
+private:
+	static constexpr size_t _alignment()
+	{
+		return std::max(alignof(T), size_t(OEL_MALLOC_ALIGNMENT));
+	}
+};
+
 namespace _detail
 {
-	inline constexpr size_t defaultAlign =
-		#if defined __STDCPP_DEFAULT_NEW_ALIGNMENT__
-			__STDCPP_DEFAULT_NEW_ALIGNMENT__;
-		#elif _WIN64 or defined __x86_64__ // then assuming 16 byte aligned from malloc
-			16;
-		#else
-			alignof(std::max_align_t);
-		#endif
-
 	inline constexpr auto allocFailMsg = "No memory oel::allocator";
 
 	struct BadAlloc
@@ -97,11 +104,11 @@ namespace _detail
 	template< size_t Align >
 	struct Malloc
 	{
-		void * operator()(size_t const nBytes) const
+		static void * call(size_t const nBytes)
 		{
-			if constexpr (Align > defaultAlign)
+			if constexpr (Align > OEL_MALLOC_ALIGNMENT)
 			{
-				void * p = std::malloc(nBytes + Align);
+				auto p = std::malloc(nBytes + Align);
 				return AlignAndStore<Align>(p);
 			}
 			else
@@ -113,16 +120,14 @@ namespace _detail
 	template< size_t Align >
 	struct Realloc
 	{
-		void * old;
-
-		void * operator()(size_t const nBytes) const
+		static void * call(size_t const nBytes, void * old)
 		{
-			if constexpr (Align > defaultAlign)
+			if constexpr (Align > OEL_MALLOC_ALIGNMENT)
 			{
-				void * p = old ?
-						static_cast<void **>(old)[-1] :
-						old;
-				p = std::realloc(p, nBytes + Align);
+				if (old)
+					old = static_cast<void **>(old)[-1];
+
+				auto p = std::realloc(old, nBytes + Align);
 				return AlignAndStore<Align>(p);
 			}
 			else
@@ -131,45 +136,47 @@ namespace _detail
 		}
 	};
 
-	inline void Free(void * p, false_type) noexcept
+	template< size_t Align >
+	void Free(void * p) noexcept
 	{
-		if (p) // replace with assert for malloc known to return non-null for 0 size?
+		if constexpr (Align > OEL_MALLOC_ALIGNMENT)
 		{
-			p = static_cast<void **>(p)[-1];
-			std::free(p);
+			if (p)
+			{
+				p = static_cast<void **>(p)[-1];
+				std::free(p);
+			}
+		}
+		else
+		{	std::free(p);
 		}
 	}
 
-	inline void Free(void * p, true_type) noexcept
-	{
-		std::free(p);
-	}
-
-	template< typename AllocFunc >
+	template< typename AllocFunc, typename... Ptr > // should pass void * for fewer template instantiations
 #ifdef _MSC_VER
 	__declspec(restrict)
 #elif __GNUC__
-	__attribute__(( malloc ))
+	[[gnu::malloc]]
 #endif
-	void * AllocAndHandleFail(size_t const nBytes, AllocFunc const doAlloc)
+	void * AllocAndHandleFail(size_t const nBytes, Ptr const... old)
 	{
 		if (nBytes > 0) // could be removed for implementations known not to return null
 		{
 		#if OEL_NEW_HANDLER
 			for (;;)
 			{
-				void * p = doAlloc(nBytes);
+				auto p = AllocFunc::call(nBytes, old...);
 				if (p)
 					return p;
 
-				auto handler = std::get_new_handler();
+				auto const handler = std::get_new_handler();
 				if (!handler)
 					OEL_ABORT(allocFailMsg);
 
 				(*handler)();
 			}
 		#else
-			void * p = doAlloc(nBytes);
+			auto p = AllocFunc::call(nBytes, old...);
 			if (p)
 				return p;
 			else
@@ -188,8 +195,8 @@ T * allocator<T>::allocate(size_t count)
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	OEL_ASSERT(count <= max_size());
 #endif
-	_detail::Malloc< std::max(alignof(T), _detail::defaultAlign) > fn; // max used to reduce template instantiations
-	return static_cast<T *>( _detail::AllocAndHandleFail(sizeof(T) * count, fn) );
+	using F = _detail::Malloc<_alignment()>; // just alignof(T) would increase template instantiations
+	return static_cast<T *>( _detail::AllocAndHandleFail<F>(sizeof(T) * count) );
 }
 
 template< typename T >
@@ -198,21 +205,15 @@ T * allocator<T>::reallocate(T * ptr, size_t count)
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	OEL_ASSERT(count <= max_size());
 #endif
-	_detail::Realloc< std::max(alignof(T), _detail::defaultAlign) > fn{ptr};
-	return static_cast<T *>( _detail::AllocAndHandleFail(sizeof(T) * count, fn) );
+	using F = _detail::Realloc<_alignment()>;
+	void * vp{ptr};
+	return static_cast<T *>( _detail::AllocAndHandleFail<F>(sizeof(T) * count, vp) );
 }
 
 template< typename T >
 inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
 {
-	_detail::Free(ptr, bool_constant<alignof(T) <= _detail::defaultAlign>{});
-}
-
-template< typename T >
-constexpr size_t allocator<T>::max_size() noexcept
-{
-	constexpr auto n = size_t(-1) - (alignof(T) > _detail::defaultAlign ? alignof(T) : 0);
-	return n / sizeof(T);
+	_detail::Free<_alignment()>(ptr);
 }
 
 } // namespace oel

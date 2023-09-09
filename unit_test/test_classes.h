@@ -269,13 +269,9 @@ struct StatefulAllocator : std::conditional_t< UseConstruct, TrackingAllocator<T
 
 	explicit StatefulAllocator(int id_ = 0) : id(id_) {}
 
-	template<typename U>
-	friend bool operator==(StatefulAllocator a, StatefulAllocator<U, PropagateOnMoveAssign, UseConstruct> b)
-	{ return a.id == b.id; }
+	friend bool operator==(StatefulAllocator a, StatefulAllocator b) { return a.id == b.id; }
 
-	template<typename U>
-	friend bool operator!=(StatefulAllocator a, StatefulAllocator<U, PropagateOnMoveAssign, UseConstruct> b)
-	{ return !(a == b); }
+	friend bool operator!=(StatefulAllocator a, StatefulAllocator b) { return !(a == b); }
 
 	using allocator_type = StatefulAllocator;
 };

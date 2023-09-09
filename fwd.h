@@ -58,7 +58,7 @@
 namespace oel
 {
 
-template< typename T > struct allocator;
+template< typename T > class allocator;
 
 #ifdef OEL_DYNARRAY_IN_DEBUG
 inline namespace debug
