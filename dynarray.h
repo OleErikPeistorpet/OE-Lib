@@ -404,7 +404,7 @@ private:
 
 	_span _allocateAdd(size_type const nAdd, size_type const oldSize)
 	{
-		if (nAdd <= std::numeric_limits<size_type>::max() / sizeof(T) / 2)
+		if (nAdd <= SIZE_MAX / 2 / sizeof(T)) // assumes that allocating greater than SIZE_MAX / 2 always fails
 		{
 			size_type newCap = _calcNewCap(oldSize + nAdd);
 			return {_allocateWrap::Allocate(_m, newCap), newCap};
