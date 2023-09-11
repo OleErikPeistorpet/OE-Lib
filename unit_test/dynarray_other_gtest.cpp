@@ -54,8 +54,7 @@ TEST(dynarrayOtherTest, zeroBitRepresentation)
 {
 	{
 		void * ptr = nullptr;
-		void * ptrToPtr = &ptr;
-		ASSERT_TRUE(0U == *static_cast<const std::uintptr_t *>(ptrToPtr));
+		ASSERT_TRUE(0U == reinterpret_cast<std::uintptr_t>(ptr));
 	}
 	float f = 0.f;
 	for (unsigned i = 0; i < sizeof f; ++i)
