@@ -64,18 +64,21 @@ using iterator_t = decltype( begin(std::declval<Range &>()) );
 template< typename Range >
 using sentinel_t = decltype( end(std::declval<Range &>()) );
 
+template< typename Range >
+inline constexpr bool range_is_borrowed = std::is_lvalue_reference_v<Range>
+	#if OEL_STD_RANGES
+		or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >
+	#endif
+		;
+
 //! Like std::ranges::borrowed_iterator_t, but doesn't require that Range has end()
 template< typename Range >
 using borrowed_iterator_t =
-#if OEL_STD_RANGES
-	std::conditional_t<
-		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
-		iterator_t<Range>,
-		std::ranges::dangling
-	>;
-#else
-	iterator_t<Range>;
-#endif
+	#if OEL_STD_RANGES
+		std::conditional_t< range_is_borrowed<Range>, iterator_t<Range>, std::ranges::dangling >;
+	#else
+		iterator_t<Range>;
+	#endif
 
 #if __cpp_lib_concepts < 201907
 	template< typename Iterator >

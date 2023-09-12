@@ -11,6 +11,7 @@
 * but to provide input for dynarray and the oel::copy functions in a way that optimizes really well.
 */
 
+#include "view/adjacent_transform.h"
 #include "view/counted.h"
 #include "view/generate.h"
 #include "view/move.h"

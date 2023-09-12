@@ -248,6 +248,38 @@ TEST(viewTest, viewTransformAsOutput)
 	EXPECT_EQ(-2, test[1].second);
 }
 
+TEST(viewTest, viewAdjacentTransform)
+{
+	auto const pairwiseDiff = view::adjacent_transform<2>([](int x, int y) { return y - x; });
+
+	{	int * p{};
+	#if OEL_STD_RANGES
+		auto v = view::subrange(p, p) | pairwiseDiff;
+		static_assert(std::ranges::bidirectional_range<decltype(v)>);
+	#else
+		auto sr = view::subrange(p, p);
+		auto v = sr | pairwiseDiff;
+	#endif
+		EXPECT_TRUE(v.empty());
+		EXPECT_EQ(0, v.size());
+	}
+	{	int arr[1]{};
+		auto v = pairwiseDiff(arr);
+		EXPECT_TRUE(v.empty());
+		EXPECT_EQ(0, v.size());
+		EXPECT_EQ(v.begin(), v.end());
+	}
+	int arr[]{-1, 1};
+	auto v = arr | pairwiseDiff;
+#if OEL_STD_RANGES
+	static_assert(std::ranges::bidirectional_range<decltype(v)>);
+#endif
+	EXPECT_FALSE(v.empty());
+	EXPECT_EQ(1, ssize(v));
+	for (auto i : v)
+		EXPECT_EQ(2, i);
+}
+
 TEST(viewTest, viewZipTransformN)
 {
 	int a[]{0, 1};
