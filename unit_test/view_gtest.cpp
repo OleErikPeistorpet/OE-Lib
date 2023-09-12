@@ -365,8 +365,76 @@ void testTransformIterWithConceptOnly()
 }
 #endif
 
-TEST(viewTest, viewZipTransformN)
+TEST(viewTest, viewAdjacentTransform)
 {
+	auto const pairwiseDiff = view::adjacent_transform<2>([](int x, int y) { return y - x; });
+
+	{	int * p{};
+	#if OEL_STD_RANGES
+		auto v = view::subrange(p, p) | pairwiseDiff;
+		static_assert(std::ranges::forward_range< decltype(v) >);
+	#else
+		auto sr = view::subrange(p, p);
+		auto v = sr | pairwiseDiff;
+	#endif
+		EXPECT_TRUE(v.empty());
+		EXPECT_EQ(0, v.size());
+	}
+	{	int arr[1]{};
+		auto v = pairwiseDiff(arr);
+		EXPECT_TRUE(v.empty());
+		EXPECT_EQ(0, v.size());
+		EXPECT_EQ(v.begin(), v.end());
+	}
+	int arr[]{-1, 1};
+	auto v = arr | pairwiseDiff;
+#if OEL_STD_RANGES
+	static_assert(std::ranges::forward_range< decltype(v) >);
+	static_assert(std::ranges::borrowed_range< decltype(v) >);
+	static_assert(std::ranges::view< decltype(v) >);
+#endif
+	EXPECT_FALSE(v.empty());
+	EXPECT_EQ(1, ssize(v));
+	for (auto i : v)
+		EXPECT_EQ(2, i);
+}
+
+void testZipTransformDisableSized()
+{
+	int ar[1]{};
+	std::forward_list<int> const li{};
+	auto innerFn = [](int) { return 7; };
+	oel::transform_iterator arIt{innerFn, std::begin(ar)};
+	oel::transform_iterator liIt{innerFn, li.begin()};
+	auto f = [](int a, int b) { return a + b; };
+
+	{	auto zt = view::zip_transform_n(f, 0, liIt, arIt);
+		using I = decltype(zt.begin());
+
+	#if __cpp_lib_concepts < 201907
+		static_assert(!oel::disable_sized_sentinel_for<I, I>);
+		static_assert(!oel::disable_sized_sentinel_for< oel::sentinel_wrapper< decltype(arIt) >, I >);
+		static_assert( std::is_same_v< decltype(arIt), typename I::master_iterator > );
+		// TODO?
+	//	static_assert( oel::disable_sized_sentinel_for< oel::sentinel_wrapper< decltype(liIt) >, I >);
+	#else
+		static_assert( std::sized_sentinel_for<I, I>);
+		static_assert( std::sized_sentinel_for< oel::sentinel_wrapper< decltype(arIt) >, I >);
+		static_assert(!std::sized_sentinel_for< oel::sentinel_wrapper< decltype(liIt) >, I >);
+	#endif
+	}
+	auto zt = view::zip_transform_n(f, 0, arIt, liIt);
+	using I = decltype(zt.begin());
+
+#if __cpp_lib_concepts < 201907
+	static_assert(oel::disable_sized_sentinel_for<I, I>);
+	static_assert(oel::disable_sized_sentinel_for< oel::sentinel_wrapper< decltype(arIt) >, I >);
+	static_assert(oel::disable_sized_sentinel_for< oel::sentinel_wrapper< decltype(liIt) >, I >);
+#else
+	static_assert(!std::sized_sentinel_for<I, I>);
+	static_assert(!std::sized_sentinel_for< oel::sentinel_wrapper< decltype(arIt) >, I >);
+	static_assert(!std::sized_sentinel_for< oel::sentinel_wrapper< decltype(liIt) >, I >);
+#endif
 	int a[]{6};
 	int b[]{7};
 	auto res = view::zip_transform_n([](int x, int y) { return x + y; }, 1, a, b) | oel::to_dynarray();

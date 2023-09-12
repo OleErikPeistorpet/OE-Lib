@@ -43,13 +43,13 @@ public:
 		 :	_begin{std::move(f), std::move(is)...}, _size{n} {}
 
 	constexpr _iter begin()   { return _detail::MoveIfNotCopyable(_begin); }
-	//! Provided only if first of Iterators is random-access
+	//! Provided only if last of Iterators is random-access
 	template< typename I = _iter,
 	          enable_if< iter_is_random_access<typename I::master_iterator> > = 0
 	>
 	constexpr auto end() const
 		{
-			return sentinel_wrapper<typename I::master_iterator>{std::get<0>(_begin.base()) + _size};
+			return sentinel_wrapper<typename I::master_iterator>{std::get<I::master_index>(_begin.base()) + _size};
 		}
 
 	constexpr auto size() const noexcept   OEL_ALWAYS_INLINE { return std::make_unsigned_t<difference_type>(_size); }
@@ -71,7 +71,8 @@ class zip_transform_iterator
 	_detail::TightPair< _tuple, typename _detail::AssignableWrap<Func>::Type > _m;
 
 public:
-	using master_iterator = std::tuple_element_t<0, _tuple>;
+	static constexpr auto master_index = std::tuple_size_v<_tuple> - 1;
+	using master_iterator              = std::tuple_element_t<master_index, _tuple>;
 
 	using iterator_category =
 		std::conditional_t
@@ -114,41 +115,43 @@ public:
 	friend constexpr difference_type operator -(const zip_transform_iterator & left, const zip_transform_iterator & right)
 		OEL_REQUIRES(std::sized_sentinel_for<master_iterator, master_iterator>)
 		{
-			return std::get<0>(left._m.first) - std::get<0>(right._m.first);
+			return std::get<master_index>(left._m.first) - std::get<master_index>(right._m.first);
 		}
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, master_iterator>)
 	friend constexpr difference_type operator -(sentinel_wrapper<S> left, const zip_transform_iterator & right)
 		{
-			return left.se - std::get<0>(right._m.first);
+			return left.se - std::get<master_index>(right._m.first);
 		}
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, master_iterator>)
 	friend constexpr difference_type operator -(const zip_transform_iterator & left, sentinel_wrapper<S> right)
 		{
-			return std::get<0>(left._m.first) - right.se;
+			return std::get<master_index>(left._m.first) - right.se;
 		}
 
-	friend constexpr bool operator==(const zip_transform_iterator & left, const zip_transform_iterator & right)
+	constexpr bool operator==(const zip_transform_iterator & right) const
 		{
-			return std::get<0>(left._m.first) == std::get<0>(right._m.first);
+			return std::get<master_index>(_m.first) == std::get<master_index>(right._m.first);
 		}
-	friend constexpr bool operator!=(const zip_transform_iterator & left, const zip_transform_iterator & right)
+	constexpr bool operator!=(const zip_transform_iterator & right) const
 		{
-			return std::get<0>(left._m.first) != std::get<0>(right._m.first);
+			return std::get<master_index>(_m.first) != std::get<master_index>(right._m.first);
 		}
 	template< typename S >
-	friend constexpr bool operator==
-		(const zip_transform_iterator & left, sentinel_wrapper<S> right)   { return std::get<0>(left._m.first) == right.se; }
-
+	friend constexpr bool operator==(const zip_transform_iterator & left, sentinel_wrapper<S> right)
+		{
+			return std::get<master_index>(left._m.first) == right.se;
+		}
 	template< typename S >
 	friend constexpr bool operator==
 		(sentinel_wrapper<S> left, const zip_transform_iterator & right)   { return right == left; }
 
 	template< typename S >
-	friend constexpr bool operator!=
-		(const zip_transform_iterator & left, sentinel_wrapper<S> right)   { return std::get<0>(left._m.first) != right.se; }
-
+	friend constexpr bool operator!=(const zip_transform_iterator & left, sentinel_wrapper<S> right)
+		{
+			return std::get<master_index>(left._m.first) != right.se;
+		}
 	template< typename S >
 	friend constexpr bool operator!=
 		(sentinel_wrapper<S> left, const zip_transform_iterator & right)   { return right != left; }
@@ -177,14 +180,18 @@ private:
 };
 
 #if __cpp_lib_concepts < 201907
-	template< typename F, typename I0, typename... Is >
+	template< typename F, typename... Is >
 	inline constexpr bool disable_sized_sentinel_for<
-		zip_transform_iterator<F, I0, Is...>, zip_transform_iterator<F, I0, Is...>
-	>	= disable_sized_sentinel_for<I0, I0>;
+		zip_transform_iterator<F, Is...>, zip_transform_iterator<F, Is...>
+	>	=
+		disable_sized_sentinel_for
+		<	typename zip_transform_iterator<F, Is...>::master_iterator,
+			typename zip_transform_iterator<F, Is...>::master_iterator
+		>;
 
-	template< typename S, typename F, typename I0, typename... Is >
-	inline constexpr bool disable_sized_sentinel_for< sentinel_wrapper<S>, zip_transform_iterator<F, I0, Is...> >
-		= disable_sized_sentinel_for<S, I0>;
+	template< typename S, typename F, typename... Is >
+	inline constexpr bool disable_sized_sentinel_for< sentinel_wrapper<S>, zip_transform_iterator<F, Is...> >
+		= disable_sized_sentinel_for< S, typename zip_transform_iterator<F, Is...>::master_iterator >;
 #endif
 
 } // oel
