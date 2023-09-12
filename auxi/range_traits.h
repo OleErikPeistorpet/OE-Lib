@@ -27,6 +27,31 @@
 
 namespace oel
 {
+namespace _detail
+{
+	template< typename Iter >
+	typename std::iterator_traits<Iter>::iterator_category IterCat(int);
+
+	template< typename > void IterCat(long);
+
+
+	template< typename Iter >
+	typename Iter::iterator_concept IterConcept(int);
+
+	template< typename > void IterConcept(long);
+
+
+	template< typename Iter, typename Tag >
+	constexpr bool IterIs()
+	{
+		if constexpr (!std::is_copy_constructible_v<Iter>)
+			return false;
+
+		return std::is_base_of_v< Tag, decltype(_detail::IterCat<Iter>(0)) >
+		    or std::is_base_of_v< Tag, decltype(_detail::IterConcept<Iter>(0)) >;
+	}
+}
+
 
 using std::ptrdiff_t;
 using std::size_t;
@@ -78,48 +103,6 @@ using borrowed_iterator_t =
 	iterator_t<Range>;
 #endif
 
-////////////////////////////////////////////////////////////////////////////////
-
-namespace _detail
-{
-	template< typename Range >
-	sentinel_t<Range> SentinelOrVoid(int);
-
-	template< typename > void SentinelOrVoid(long);
-
-
-	template< typename Iter >
-	typename std::iterator_traits<Iter>::iterator_category IterCat(int);
-
-	template< typename > void IterCat(long);
-
-
-	template< typename Iter >
-	typename Iter::iterator_concept IterConcept(int);
-
-	template< typename > void IterConcept(long);
-
-
-	template< typename Iter, typename Tag >
-	constexpr bool IterIs()
-	{
-		if constexpr (!std::is_copy_constructible_v<Iter>)
-			return false;
-
-		return std::is_base_of_v< Tag, decltype(_detail::IterCat<Iter>(0)) >
-		    or std::is_base_of_v< Tag, decltype(_detail::IterConcept<Iter>(0)) >;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-/** @brief Used to specify that a range is infinite, like Range-v3 cardinality
-*
-* This enables some composed views to model std::ranges::sized_range, which can be important for performance. */
-template< typename Range >
-inline constexpr bool enable_infinite_range =
-	std::is_same_v< decltype(_detail::SentinelOrVoid<Range>(0)), unreachable_sentinel_t >;
-
 
 #if __cpp_lib_concepts < 201907
 	template< typename Iterator >
@@ -156,6 +139,23 @@ inline constexpr bool disable_sized_sentinel_for =
 	#else
 		!(iter_is_random_access<Sentinel> or iter_is_random_access<Iterator>);
 	#endif
+
+/** @brief Used to specify that a sentinel makes its range infinite, like Range-v3 cardinality
+*
+* This enables some composed views to model std::ranges::sized_range, which can be important for performance. */
+template< typename >
+inline constexpr bool enable_unbounded_sentinel = false;
+
+template<>
+inline constexpr bool enable_unbounded_sentinel<unreachable_sentinel_t> = true;
+
+template< typename S >
+#if __cpp_lib_concepts < 201907
+	inline constexpr bool enable_unbounded_sentinel< std::move_iterator<S> >
+#else
+	inline constexpr bool enable_unbounded_sentinel< std::move_sentinel<S> >
+#endif
+		= enable_unbounded_sentinel<S>;
 
 
 

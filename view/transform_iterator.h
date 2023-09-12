@@ -191,6 +191,10 @@ private:
 		= (... or disable_sized_sentinel_for<Ss, Is>);
 #endif
 
+template< typename... Ss >
+inline constexpr bool enable_unbounded_sentinel< tuple<Ss...> >
+	= (... and enable_unbounded_sentinel<Ss>);
+
 ////////////////////////////////////////////////////////////////////////////////
 
 template< typename F, typename I >

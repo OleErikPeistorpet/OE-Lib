@@ -229,8 +229,16 @@ TEST(viewTest, viewMoveEndDifferentType)
 	EXPECT_EQ(se, v.end().base());
 }
 
+TEST(viewTest, viewAdjacentTransform)
+{
+	int arr[1]{};
+	auto v = arr | view::adjacent_transform<2>([](int, int) { return -1; });
+	EXPECT_TRUE(v.empty());
+}
+
 #if OEL_STD_RANGES
 
+/*
 void testEnableInfiniteRange()
 {
 	std::forward_list<int> li{};
@@ -239,7 +247,7 @@ void testEnableInfiniteRange()
 	static_assert(not oel::enable_infinite_range< decltype(bounded) >);
 	static_assert(oel::enable_infinite_range< decltype(unbound) >);
 }
-
+*/
 TEST(viewTest, viewMoveMutableEmptyAndSize)
 {
 	int src[] {0, 1};

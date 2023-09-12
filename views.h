@@ -10,6 +10,7 @@
 * The views are mostly intended as input for dynarray and the oel::copy functions.
 */
 
+#include "view/adjacent_transform.h"
 #include "view/counted.h"
 #include "view/move.h"
 #include "view/owning.h"

@@ -34,7 +34,9 @@ class _transformView
 	->	decltype(r.size()) { return r.size(); }
 
 	template< typename R,
-		enable_if< enable_infinite_range<R> > = 0
+		enable_if<
+			enable_unbounded_sentinel< sentinel_t<R> >
+		> = 0
 	>
 	static constexpr auto _size(R &)  { return size_t(-1); }
 	// FIXME: incorrect if all are unbounded
@@ -102,13 +104,10 @@ inline constexpr auto zip_transform_n =
 		return counted(make_zip_transform_iter( std::move(func), std::move(iterators)... ), count);
 	};
 
-} // view
-
-template< bool Z, typename F, typename... Vs >
-inline constexpr bool enable_infinite_range< _transformView<Z, F, Vs...> >
-	= (... and enable_infinite_range< std::remove_cv_t<Vs> >);
-
 }
+
+} // oel
+
 
 #if OEL_STD_RANGES
 
