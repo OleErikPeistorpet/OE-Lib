@@ -19,7 +19,6 @@ namespace view
 
 struct _transformFn
 {
-	//! Right-hand side of operator |
 	template< typename UnaryFunc >
 	constexpr auto operator()(UnaryFunc f) const;
 

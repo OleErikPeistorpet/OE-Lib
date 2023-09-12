@@ -1,0 +1,151 @@
+#pragma once
+
+// Copyright 2021 Ole Erik Peistorpet
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
+#include "all.h"
+#include "auxi/transform_iterator.h"
+
+/** @file
+*/
+
+namespace oel
+{
+namespace view
+{
+
+template< ptrdiff_t N >
+struct _adjacentTransformFn
+{
+	//! Right-hand side of operator |
+	template< typename Func >
+	constexpr auto operator()(Func f) const;
+
+	template< typename Range, typename Func >
+	constexpr auto operator()(Range && r, Func f) const
+		{
+			return static_cast<Range &&>(r) | (*this)(std::move(f));
+		}
+};
+//! Similar to std::views::adjacent_transform, same call signature
+/**
+* Requires that the range is random-access.
+*
+* https://en.cppreference.com/w/cpp/ranges/adjacent_transform_view  */
+template< ptrdiff_t N >
+inline constexpr _adjacentTransformFn<N> adjacent_transform{};
+
+} // view
+
+template< typename View, typename Func, ptrdiff_t N >
+struct _adjacentTransformView
+{
+	_detail::TightPair< View, typename _detail::AssignableWrap<Func>::Type > _m;
+
+
+	using difference_type = iter_difference_t< iterator_t<View> >;
+
+	constexpr auto begin()
+		{
+			Func & f          = _m.second();
+			auto const offset = std::min<difference_type>(_detail::Size(_m.first), N - 1);
+			return _iterTransformIterator{
+				_wrapFn{_detail::MoveIfNotCopyable(f)},
+				_m.first.begin() + offset };
+		}
+	//! Return type either same as `begin()` or _sentinelWrapper
+	template
+	<	typename V = View,
+		typename /*EnableIfHasEnd*/ = sentinel_t<V>
+	>
+	constexpr auto end()
+		{
+			if constexpr( std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> > )
+				return _iterTransformIterator{ _wrapFn{_m.second()}, _m.first.end() };
+			else
+				return _sentinelWrapper< sentinel_t<V> >{_m.first.end()};
+		}
+
+	constexpr auto size()
+		{
+			constexpr std::make_unsigned_t<difference_type> min{N - 1};
+			auto s = static_cast< decltype(min) >(_detail::Size(_m.first));
+			return std::max(s, min) - min;
+		}
+
+	constexpr bool empty()     { return size() == 0; }
+
+	constexpr View         base() &&                 { return std::move(_m.first); }
+	constexpr const View & base() const & noexcept   { return _m.first; }
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+private:
+	using _fn_7KQw = Func; // guarding against name collision due to inheritance (MSVC)
+	using _it_7KQw = iterator_t<View>;
+	static constexpr auto _n_7KQw = N;
+
+	struct _wrapFn : public Func
+	{
+		template< ::std::ptrdiff_t... Ns >
+		OEL_ALWAYS_INLINE constexpr decltype(auto) apply_7KQw
+			(_it_7KQw it, ::std::integer_sequence<::std::ptrdiff_t, Ns...>) const
+		{
+			const _fn_7KQw & f = *this;
+			return f(it[Ns - _n_7KQw + 1]...);
+		}
+
+		constexpr decltype(auto) operator()(_it_7KQw it) const
+		{
+			return apply_7KQw(it, ::std::make_integer_sequence<::std::ptrdiff_t, _n_7KQw>{});
+		}
+	};
+};
+
+namespace _detail
+{
+	template< typename F, ptrdiff_t N >
+	struct AdjacentPartial
+	{
+		F _f;
+
+		template< typename R >
+		friend constexpr auto operator |(R && range, AdjacentPartial a)
+		{
+			auto v = view::all(static_cast<R &&>(range));
+			return _adjacentTransformView< decltype(v), F, N >{{ std::move(v), std::move(a)._f }};
+		}
+
+		template< typename R >
+		constexpr auto operator()(R && range) const
+		{
+			return static_cast<R &&>(range) | *this;
+		}
+	};
+}
+
+template< ptrdiff_t N >
+template< typename Func >
+constexpr auto view::_adjacentTransformFn<N>::operator()(Func f) const
+{
+	return _detail::AdjacentPartial<Func, N>{std::move(f)};
+}
+
+} // oel
+
+template< typename V, typename F, std::ptrdiff_t N >
+inline constexpr bool oel::enable_view< oel::_adjacentTransformView<V, F, N> > = true;
+
+#if OEL_STD_RANGES
+
+template< typename V, typename F, std::ptrdiff_t N >
+inline constexpr bool std::ranges::enable_borrowed_range< oel::_adjacentTransformView<V, F, N> >
+	= enable_borrowed_range< std::remove_cv_t<V> >;
+#endif
