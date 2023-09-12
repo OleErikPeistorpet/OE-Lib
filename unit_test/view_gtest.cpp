@@ -244,14 +244,61 @@ TEST(viewTest, viewTransformAsOutput)
 	EXPECT_EQ(-2, test[1].second);
 }
 
-TEST(viewTest, viewZipTransformN)
+TEST(viewTest, viewAdjacentTransform)
 {
-	int a[]{0};
-	int b[]{1};
-	auto v = view::zip_transform_n([](int, int) { return 1; }, 1, a, b);
-	// TODO
+	auto const pairwiseDiff = view::adjacent_transform<2>([](int x, int y) { return y - x; });
+
+	{	int * p{};
+	#if OEL_STD_RANGES
+		auto v = view::subrange(p, p) | pairwiseDiff;
+		static_assert(std::ranges::bidirectional_range<decltype(v)>);
+	#else
+		auto sr = view::subrange(p, p);
+		auto v = sr | pairwiseDiff;
+	#endif
+		EXPECT_TRUE(v.empty());
+		EXPECT_EQ(0, v.size());
+	}
+	{	int arr[1]{};
+		auto v = pairwiseDiff(arr);
+		EXPECT_TRUE(v.empty());
+		EXPECT_EQ(0, v.size());
+		EXPECT_EQ(v.begin(), v.end());
+	}
+	int arr[]{-1, 1};
+	auto v = arr | pairwiseDiff;
+#if OEL_STD_RANGES
+	static_assert(std::ranges::bidirectional_range<decltype(v)>);
+	static_assert(std::ranges::borrowed_range<decltype(v)>);
+	static_assert(std::ranges::view<decltype(v)>);
+#endif
+	EXPECT_FALSE(v.empty());
+	EXPECT_EQ(1, ssize(v));
 	for (auto i : v)
-		;
+		EXPECT_EQ(2, i);
+}
+
+void testZipTransformDisableSized()
+{
+	int ar[1]{};
+	std::forward_list<int> const li{};
+	auto f = [](int) { return 7; };
+	oel::transform_iterator arIt{f, std::begin(ar)};
+	oel::transform_iterator liIt{f, li.begin()};
+
+	{	auto zt = view::zip_transform_n([](int, int) {}, 0, liIt, arIt);
+		using I = decltype(zt.begin());
+
+		static_assert(!oel::disable_sized_sentinel_for<I, I>);
+		static_assert(!oel::disable_sized_sentinel_for< oel::sentinel_wrapper<decltype(arIt)>, I >);
+		static_assert( oel::disable_sized_sentinel_for< oel::sentinel_wrapper<decltype(liIt)>, I >);
+	}
+	auto zt = view::zip_transform_n([](int, int) {}, 0, arIt, liIt);
+	using I = decltype(zt.begin());
+
+	static_assert(oel::disable_sized_sentinel_for<I, I>);
+	static_assert(oel::disable_sized_sentinel_for< oel::sentinel_wrapper<decltype(arIt)>, I >);
+	static_assert(oel::disable_sized_sentinel_for< oel::sentinel_wrapper<decltype(liIt)>, I >);
 }
 
 struct Ints

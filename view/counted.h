@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h" // for SentinelAt
+#include "../auxi/range_traits.h"
 
 /** @file
 */
@@ -26,11 +26,12 @@ public:
 	counted() = default;
 	constexpr counted(Iterator first, difference_type n)   : _begin{std::move(first)}, _size{n} {}
 
-	constexpr Iterator begin()     { return _detail::MoveIfNotCopyable(_begin); }
-	//! Provided only if Iterator is random-access or special case
-	template< typename I = Iterator >
-	constexpr auto end() const
-	->	decltype( _detail::SentinelAt(std::declval<I>(), difference_type{}) )  { return _detail::SentinelAt(_begin, _size); }
+	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_begin); }
+	//! Provided only if Iterator is random-access
+	template< typename I = Iterator,
+	          enable_if< iter_is_random_access<I> > = 0
+	>
+	constexpr Iterator end() const   { return _begin + _size; }
 
 	constexpr auto size() const noexcept   OEL_ALWAYS_INLINE { return std::make_unsigned_t<difference_type>(_size); }
 

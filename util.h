@@ -144,29 +144,8 @@ struct
 };
 
 
-
-template< typename Func, typename... Iterators >
-class zip_transform_iterator;
-
 namespace _detail
 {
-	template< typename RandomAccessIter,
-		enable_if< iter_is_random_access<RandomAccessIter> > = 0
-	>
-	constexpr RandomAccessIter SentinelAt(RandomAccessIter it, iter_difference_t<RandomAccessIter> n)
-	{
-		return it + n;
-	}
-
-	template< typename Integer, typename F, typename... Iterators >
-	constexpr auto SentinelAt(const zip_transform_iterator<F, Iterators...> & it, Integer n)
-	->	sentinel_wrapper< decltype( _detail::SentinelAt(std::get<0>(it.base()), n) ) >
-	{
-		return{ _detail::SentinelAt(std::get<0>(it.base()), n) };
-	}
-
-
-
 	struct OutOfRange
 	{	// Exception throwing has been split out from templates to avoid bloat
 		[[noreturn]] static void raise(const char * what)
