@@ -14,10 +14,22 @@
 
 namespace oel
 {
+
+//! Similar to boost::make_transform_iterator
+/**
+* But unlike boost::transform_iterator:
+* - Has no size overhead for stateless function objects
+* - Accepts a lambda as long as any by-value captures are trivially copy constructible and trivially destructible
+* - Move-only UnaryFunc and Iterator supported (then the returned iterator itself becomes move-only)
+* - Function objects (including lambda) can have non-const `operator()`, then merely std::input_iterator is modeled  */
+template< typename UnaryFunc, typename Iterator >
+constexpr auto make_transform_iterator(UnaryFunc f, Iterator it);
+
+
 namespace _detail
 {
 	template< typename Func, typename Iter,
-		bool = std::is_invocable_v< const Func &, decltype(*std::declval<Iter const>()) >
+		bool = std::is_invocable_v< const Func &, decltype(std::declval<Iter const>()) >
 	>
 	struct TransformIterBase
 	{
@@ -40,18 +52,12 @@ namespace _detail
 }
 
 
-/** @brief Similar to boost::transform_iterator
-*
-* But unlike boost::transform_iterator:
-* - Has no size overhead for stateless function objects
-* - Accepts a lambda as long as any by-value captures are trivially copy constructible and trivially destructible
-* - Move-only UnaryFunc and Iterator supported (then transform_iterator itself becomes move-only)
-* - Function objects (including lambda) can have non-const `operator()`, then merely std::input_iterator is modeled  */
+//! Similar to iterator of views::iter_transform in the Range-v3 library
 template< typename UnaryFunc, typename Iterator >
-class transform_iterator
+class iter_transform_iterator
  :	private _detail::TransformIterBase<UnaryFunc, Iterator>
 {
-	using _super = typename transform_iterator::TransformIterBase;
+	using _super = typename iter_transform_iterator::TransformIterBase;
 
 	using _super::m;
 
@@ -69,12 +75,12 @@ public:
 			std::input_iterator_tag
 		>;
 	using difference_type = iter_difference_t<Iterator>;
-	using reference       = decltype( std::declval<typename _super::FnRef>()(*m.first) );
+	using reference       = decltype( std::declval<typename _super::FnRef>()(m.first) );
 	using pointer         = void;
 	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
 
-	transform_iterator() = default;
-	constexpr transform_iterator(UnaryFunc f, Iterator it)   : _super{{std::move(it), std::move(f)}} {}
+	iter_transform_iterator() = default;
+	constexpr iter_transform_iterator(UnaryFunc f, Iterator it)   : _super{{std::move(it), std::move(f)}} {}
 
 	constexpr Iterator         base() &&                       { return std::move(m.first); }
 	constexpr Iterator         base() const &&                            { return m.first; }
@@ -83,12 +89,12 @@ public:
 	constexpr reference operator*() const
 		{
 			typename _super::FnRef f = m.second();
-			return f(*m.first);
+			return f(m.first);
 		}
 
-	constexpr transform_iterator & operator++()   OEL_ALWAYS_INLINE { ++m.first;  return *this; }
-	//! Post-increment: return type is transform_iterator if iterator_category is-a forward_iterator_tag, else void
-	constexpr auto                 operator++(int) &
+	constexpr iter_transform_iterator & operator++()   OEL_ALWAYS_INLINE { ++m.first;  return *this; }
+	//! Post-increment: return type is iter_transform_iterator if iterator_category is-a forward_iterator_tag, else void
+	constexpr auto                      operator++(int) &
 		{
 			if constexpr (std::is_same_v<iterator_category, std::input_iterator_tag>)
 			{
@@ -100,10 +106,10 @@ public:
 				return tmp;
 			}
 		}
-	constexpr transform_iterator & operator--()
-		OEL_REQUIRES(_isBidirectional)          OEL_ALWAYS_INLINE { --m.first;  return *this; }
+	constexpr iter_transform_iterator & operator--()
+		OEL_REQUIRES(_isBidirectional)               OEL_ALWAYS_INLINE { --m.first;  return *this; }
 
-	constexpr transform_iterator   operator--(int) &
+	constexpr iter_transform_iterator   operator--(int) &
 		OEL_REQUIRES(_isBidirectional)
 		{
 			auto tmp = *this;
@@ -111,48 +117,77 @@ public:
 			return tmp;
 		}
 
-	constexpr difference_type operator -(const transform_iterator & right) const
-		OEL_REQUIRES(std::sized_sentinel_for<Iterator, Iterator>)        { return m.first - right.m.first; }
+	constexpr difference_type operator -(const iter_transform_iterator & right) const
+		OEL_REQUIRES(std::sized_sentinel_for<Iterator, Iterator>)           { return m.first - right.m.first; }
 
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
 	friend constexpr difference_type operator -
-		(sentinel_wrapper<S> left, const transform_iterator & right)   { return left._s - right.m.first; }
+		(sentinel_wrapper<S> left, const iter_transform_iterator & right)   { return left._s - right.m.first; }
 
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
 	friend constexpr difference_type operator -
-		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first - right._s; }
+		(const iter_transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first - right._s; }
 
-	constexpr bool operator==(const transform_iterator & right) const   { return m.first == right.m.first; }
+	constexpr bool operator==(const iter_transform_iterator & right) const   { return m.first == right.m.first; }
 	// These are not hidden friends because MSC 2017 gives error C3615
-	constexpr bool operator!=(const transform_iterator & right) const   { return m.first != right.m.first; }
+	constexpr bool operator!=(const iter_transform_iterator & right) const   { return m.first != right.m.first; }
 
 	template< typename S >
 	friend constexpr bool operator==
-		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first == right._s; }
+		(const iter_transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first == right._s; }
 
 	template< typename S >
 	friend constexpr bool operator==
-		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right == left; }
+		(sentinel_wrapper<S> left, const iter_transform_iterator & right)   { return right == left; }
 
 	template< typename S >
 	friend constexpr bool operator!=
-		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first != right._s; }
+		(const iter_transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first != right._s; }
 
 	template< typename S >
 	friend constexpr bool operator!=
-		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right.m.first != left._s; }
+		(sentinel_wrapper<S> left, const iter_transform_iterator & right)   { return right.m.first != left._s; }
 };
 
 #if __cpp_lib_concepts < 201907
 	template< typename F, typename I >
-	inline constexpr bool disable_sized_sentinel_for< transform_iterator<F, I>, transform_iterator<F, I> >
+	inline constexpr bool disable_sized_sentinel_for< iter_transform_iterator<F, I>, iter_transform_iterator<F, I> >
 		= disable_sized_sentinel_for<I, I>;
 
 	template< typename S, typename F, typename I >
-	inline constexpr bool disable_sized_sentinel_for< sentinel_wrapper<S>, transform_iterator<F, I> >
+	inline constexpr bool disable_sized_sentinel_for< sentinel_wrapper<S>, iter_transform_iterator<F, I> >
 		= disable_sized_sentinel_for<S, I>;
 #endif
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+namespace _detail
+{
+	template< typename Func_7KQwa >
+	struct DerefArg : public Func_7KQwa
+	{
+		template< typename T >
+		constexpr auto operator()(T && arg)
+		->	decltype( static_cast<Func_7KQwa &>(*this)(*arg) )
+		{	return    static_cast<Func_7KQwa &>(*this)(*arg); }
+
+		template< typename T >
+		constexpr auto operator()(T && arg) const
+		->	decltype( static_cast<const Func_7KQwa &>(*this)(*arg) )
+		{	return    static_cast<const Func_7KQwa &>(*this)(*arg); }
+	};
+}
+
 } // namespace oel
+
+template< typename UnaryFunc, typename Iterator >
+constexpr auto oel::make_transform_iterator(UnaryFunc f, Iterator it)
+	{
+		return iter_transform_iterator{ _detail::DerefArg<UnaryFunc>{std::move(f)}, std::move(it) };
+	}
