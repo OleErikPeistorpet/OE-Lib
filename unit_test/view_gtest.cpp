@@ -364,6 +364,37 @@ void testTransformIterWithConceptOnly()
 }
 #endif
 
+TEST(viewTest, viewAdjacentTransform)
+{
+	auto const pairwiseDiff = view::adjacent_transform<2>([](int x, int y) { return y - x; });
+
+	{	int * p{};
+		auto v = view::subrange(p, p) | pairwiseDiff;
+	#if OEL_STD_RANGES
+		static_assert(std::ranges::bidirectional_range<decltype(v)>);
+		static_assert(std::ranges::borrowed_range<decltype(v)>);
+	#endif
+		EXPECT_TRUE(v.empty());
+		EXPECT_EQ(0, v.size());
+	}
+	{	int arr[1]{};
+		auto v = pairwiseDiff(arr);
+		EXPECT_TRUE(v.empty());
+		EXPECT_EQ(0, v.size());
+		EXPECT_EQ(v.begin(), v.end());
+	}
+	int arr[]{-1, 1};
+	auto v = arr | pairwiseDiff;
+#if OEL_STD_RANGES
+	static_assert(std::ranges::bidirectional_range<decltype(v)>);
+	static_assert(std::ranges::view<decltype(v)>);
+#endif
+	EXPECT_FALSE(v.empty());
+	EXPECT_EQ(1, ssize(v));
+	for (auto i : v)
+		EXPECT_EQ(2, i);
+}
+
 constexpr StdArrInt2 generatedArray()
 {
 	StdArrInt2 res{};
