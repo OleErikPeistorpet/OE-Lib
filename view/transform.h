@@ -17,18 +17,20 @@ namespace oel
 namespace view
 {
 
+template< size_t NAdjacent >
 struct _transformFn
 {
 	//! Used with operator |
-	template< typename UnaryFunc >
-	constexpr auto operator()(UnaryFunc f) const;
+	template< typename Func >
+	constexpr auto operator()(Func f) const;
 
-	template< typename Range, typename UnaryFunc >
-	constexpr auto operator()(Range && r, UnaryFunc f) const
+	template< typename Range, typename Func >
+	constexpr auto operator()(Range && r, Func f) const
 		{
 			return static_cast<Range &&>(r) | (*this)(std::move(f));
 		}
 };
+
 /** @brief Similar to std::views::transform, same call signature
 *
 * Unlike std::views::transform, copies or moves the function into the iterator rather than
@@ -37,7 +39,7 @@ struct _transformFn
 * for the same input. This is at least true when used in OE-Lib, and probably anywhere that accepts an input_range.
 *
 * https://en.cppreference.com/w/cpp/ranges/transform_view  */
-inline constexpr _transformFn transform;
+inline constexpr _transformFn<1> transform;
 
 } // view
 
@@ -85,17 +87,24 @@ public:
 
 
 
+template< typename View, typename Func, size_t N >
+class _adjacentTransformView;
+
 namespace _detail
 {
-	template< typename F >
-	struct TransfPartial
+	template< typename F, size_t N >
+	struct TransformPartial
 	{
 		F _f;
 
 		template< typename Range >
-		friend constexpr auto operator |(Range && r, TransfPartial t)
+		friend constexpr auto operator |(Range && r, TransformPartial t)
 		{
-			return _transformView{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
+			auto v = view::all(static_cast<Range &&>(r));
+			if constexpr (N <= 1)
+				return _transformView{std::move(v), std::move(t)._f};
+			else
+				return _adjacentTransformView<decltype(v), F, N>{std::move(v), std::move(t)._f};
 		}
 
 		template< typename Range >
@@ -106,10 +115,11 @@ namespace _detail
 	};
 }
 
-template< typename UnaryFunc >
-constexpr auto view::_transformFn::operator()(UnaryFunc f) const
+template< size_t NAdjacent >
+template< typename Func >
+constexpr auto view::_transformFn<NAdjacent>::operator()(Func f) const
 {
-	return _detail::TransfPartial<UnaryFunc>{std::move(f)};
+	return _detail::TransformPartial<Func, NAdjacent>{std::move(f)};
 }
 
 } // oel

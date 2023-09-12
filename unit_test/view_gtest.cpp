@@ -19,7 +19,7 @@ constexpr auto transformIterFromIntPtr(const int * p)
 	{
 		auto operator()(int i) const { return i; }
 	};
-	return oel::transform_iterator<F, const int *>{F{}, p};
+	return oel::transform_iterator{F{}, p};
 }
 
 template< typename S >
@@ -242,6 +242,29 @@ TEST(viewTest, viewTransformAsOutput)
 	EXPECT_EQ(3, test[1].first);
 	EXPECT_EQ(-1, test[0].second);
 	EXPECT_EQ(-2, test[1].second);
+}
+
+TEST(viewTest, viewAdjacentTransform)
+{
+	auto const pairwiseDiff = view::adjacent_transform<2>([](int x, int y) { return y - x; });
+
+	{	int * p{};
+		auto v = view::subrange(p, p) | pairwiseDiff;
+		EXPECT_TRUE(v.empty());
+		EXPECT_EQ(0, v.size());
+	}
+	{	int arr[1]{};
+		auto v = pairwiseDiff(arr);
+		EXPECT_TRUE(v.empty());
+		EXPECT_EQ(0, v.size());
+		EXPECT_EQ(v.begin(), v.end());
+	}
+	int arr[]{-1, 1};
+	auto v = arr | pairwiseDiff;
+	EXPECT_FALSE(v.empty());
+	EXPECT_EQ(1, ssize(v));
+	for (auto i : v)
+		EXPECT_EQ(2, i);
 }
 
 struct Ints
