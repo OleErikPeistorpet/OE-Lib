@@ -110,7 +110,7 @@ TEST(viewTest, viewTransformBasics)
 	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
 #if OEL_STD_RANGES
 	static_assert(std::ranges::bidirectional_range<decltype(v)>);
-	static_assert(std::input_iterator<IMoveOnly>);
+	static_assert(std::ranges::input_range<decltype(v2)>);
 	{
 		constexpr IEmptyLambda valueInit{};
 		constexpr auto copy = valueInit;
@@ -197,35 +197,6 @@ TEST(viewTest, viewTransformNonSizedRange)
 	EXPECT_EQ(2U, dest.size());
 	EXPECT_EQ(4, dest[0]);
 	EXPECT_EQ(9, dest[1]);
-}
-
-TEST(viewTest, viewTransformMutableLambda)
-{
-	auto iota = [i = 0](int) mutable
-	{
-		return i++;
-	};
-	int dummy[3];
-	auto v = view::transform(dummy, iota);
-	using I = decltype(v.begin());
-
-	static_assert(std::is_same_v<I::iterator_category, std::bidirectional_iterator_tag>);
-#if OEL_STD_RANGES
-	static_assert(std::input_or_output_iterator<I>);
-	static_assert(std::ranges::range<decltype(v)>);
-	{
-		constexpr I valueInit{};
-		constexpr auto copy = valueInit;
-	}
-#endif
-
-	oel::dynarray<int> test(oel::reserve, 3);
-	test.resize(1);
-
-	test.assign(v);
-	EXPECT_EQ(0, test[0]);
-	EXPECT_EQ(1, test[1]);
-	EXPECT_EQ(2, test[2]);
 }
 
 TEST(viewTest, viewTransformAsOutput)

@@ -39,7 +39,7 @@ public:
 			std::input_iterator_tag
 		>;
 	using difference_type = iter_difference_t<Iterator>;
-	using reference       = decltype( std::declval<UnaryFunc &>()(*_m.first) );
+	using reference       = decltype( std::declval<const UnaryFunc &>()(*_m.first) );
 	using pointer         = void;
 	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
 
@@ -50,14 +50,8 @@ public:
 	constexpr const Iterator & base() const & noexcept  OEL_ALWAYS_INLINE { return _m.first; }
 
 	constexpr reference operator*() const
-		OEL_REQUIRES(std::invocable< UnaryFunc const, decltype(*_m.first) >)
 		{
 			const UnaryFunc & f = _m.second();
-			return f(*_m.first);
-		}
-	constexpr reference operator*()
-		{
-			UnaryFunc & f = _m.second();
 			return f(*_m.first);
 		}
 

@@ -94,9 +94,10 @@ struct _transformFn
 };
 /** @brief Similar to std::views::transform, same call signature
 *
-* Unlike std::views::transform, copies or moves the function into the iterator rather than
-* storing it just in the view, thus saving one indirection when dereferencing the iterator.
-* Note that function objects can have non-const `operator()` (such as mutable lambda).
+* Function objects are required to have const `operator()`, unlike std::views::transform.
+* This is because the function is copied or moved into the iterator rather than storing it
+* just in the view, in order to save one indirection when dereferencing the iterator.
+*
 * https://en.cppreference.com/w/cpp/ranges/transform_view  */
 inline constexpr _transformFn transform;
 

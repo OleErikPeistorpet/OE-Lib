@@ -69,8 +69,7 @@ struct _moveFn
 @code
 std::string moveFrom[2] {"abc", "def"};
 oel::dynarray movedStrings(moveFrom | view::move);
-@endcode
-* Expect compile error if passed a transform having function with `non-const operator()` */
+@endcode  */
 inline constexpr _moveFn move;
 
 }
