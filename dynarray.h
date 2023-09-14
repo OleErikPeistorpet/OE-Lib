@@ -119,8 +119,8 @@ public:
 	constexpr dynarray() noexcept                : _m(Alloc{}) {}
 	explicit dynarray(const Alloc & a) noexcept  : _m(a) {}
 
-	//! Construct empty dynarray with space reserved for at least minCap elements
-	dynarray(reserve_tag, size_type minCap, const Alloc & a = Alloc{})   : _m(a, minCap) {}
+	//! Construct empty dynarray with space reserved for exactly capacity elements
+	dynarray(reserve_tag, size_type capacity, const Alloc & a = Alloc{})   : _m(a, capacity) {}
 
 	/** @brief Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
 	*
@@ -128,7 +128,7 @@ public:
 	dynarray(size_type size, default_init_t, const Alloc & a = Alloc{});
 	//! (Value-initializes elements, same as std::vector)
 	explicit dynarray(size_type size, const Alloc & a = Alloc{});
-	dynarray(size_type size, const T & fillVal, const Alloc & a = Alloc{});
+	dynarray(size_type size, const T & val, const Alloc & a = Alloc{})   : _m(a) { append(size, val); }
 
 	/** @brief Equivalent to `std::vector(begin(r), end(r), a)`, where `end(r)` is not needed if r.size() exists
 	*
@@ -144,14 +144,14 @@ public:
 	          typename /*EnableIfRange*/ = iterator_t<InputRange> >
 	explicit dynarray(const InputRange & r, const Alloc & a = Alloc{})   : _m(a) { append(r); }
 
-	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})   : _m(a, il.size())
-	                                                                   { _initReserved(il.begin()); }
+	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})    : _m(a) { append(il); }
+
 	dynarray(dynarray && other) noexcept                : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, const Alloc & a);
 	dynarray(const dynarray & other)                    : dynarray(other,
 	                                                     _allocTrait::select_on_container_copy_construction(other._m)) {}
-	dynarray(const dynarray & other, const Alloc & a)   : _m(a, other.size())
-	                                                    { _initReserved(other.data()); }
+	dynarray(const dynarray & other, const Alloc & a)   : _m(a) { append(other); }
+
 	~dynarray() noexcept;
 
 	dynarray & operator =(dynarray && other) &
@@ -430,15 +430,6 @@ private:
 	}
 
 
-	void _initReserved(const T * src)
-	{
-		_debugSizeUpdater guard{_m};
-
-		_m.end = _m.reservEnd;
-		_detail::UninitCopy<Alloc>(src, _m.data, _m.end, _m);
-	}
-
-
 	size_type _unusedCapacity() const
 	{
 		return _m.reservEnd - _m.end;
@@ -496,8 +487,8 @@ private:
 		_m.reservEnd = p + newCap;
 	}
 
-	template< typename A = Alloc, enable_if< not allocator_can_realloc<A>::value > = 0 >
-	void _realloc(size_type const newCap, size_type const oldSize)
+	template< typename... None >
+	void _realloc(size_type const newCap, size_type const oldSize, None...)
 	{
 		pointer const newData = _allocateWrap::Allocate(_m, newCap);
 		_m.end = _relocateData(newData, oldSize, is_trivially_relocatable<T>());
@@ -505,14 +496,6 @@ private:
 		_m.reservEnd = newData + newCap;
 	}
 
-
-	void _growTo(size_type const newCap)
-	{
-		if (newCap <= max_size())
-			_realloc(newCap, size());
-		else
-			_detail::Throw::LengthError(lenErrorMsg);
-	}
 
 #ifdef _MSC_VER
 	__declspec(noinline) // to get the compiler to inline calling function
@@ -542,8 +525,7 @@ private:
 	{	// note: initAdded cannot hold a reference to element of this
 		_debugSizeUpdater guard{_m};
 
-		if (capacity() < newSize)
-			_growTo(_calcCap(newSize));
+		reserve(newSize);
 
 		T *const newEnd = _m.data + newSize;
 		if (_m.end < newEnd)
@@ -922,16 +904,6 @@ dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
 }
 
 template<typename T, typename Alloc>
-dynarray<T, Alloc>::dynarray(size_type n, const T & val, const Alloc & a)
- :	_m(a, n)
-{
-	_debugSizeUpdater guard{_m};
-
-	_m.end = _m.reservEnd;
-	_uninitFill{}(_m.data, _m.end, _m, val);
-}
-
-template<typename T, typename Alloc>
 dynarray<T, Alloc>::~dynarray() noexcept
 {
 	_detail::Destroy(_m.data, _m.end);
@@ -955,7 +927,11 @@ void dynarray<T, Alloc>::reserve(size_type minCap)
 	{
 		_debugSizeUpdater guard{_m};
 
-		_growTo(minCap);
+		size_type const newCap = _calcCap(minCap);
+		if (newCap <= max_size())
+			_realloc(newCap, size());
+		else
+			_detail::Throw::LengthError(lenErrorMsg);
 	}
 }
 
