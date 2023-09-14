@@ -118,7 +118,7 @@ namespace _detail
 			::new(static_cast<void *>(dest + i)) T( std::move(src[i]) );
 			src[i].~T();
 		}
-		return dest;
+		return dest + n;
 	}
 	#undef OEL_CHECK_NULL_MEMCPY
 
