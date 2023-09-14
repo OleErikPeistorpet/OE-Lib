@@ -644,15 +644,19 @@ void testEraseOne()
 	EXPECT_EQ(1, static_cast<double>(d.front()));
 }
 
-TEST_F(dynarrayTest, eraseSingle)
+TEST_F(dynarrayTest, eraseSingleInt)
 {
 	testEraseOne<int>();
+}
 
-	TrivialRelocat::ClearCount();
+TEST_F(dynarrayTest, eraseSingleTrivialReloc)
+{
 	testEraseOne<TrivialRelocat>();
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
+}
 
-	MoveOnly::ClearCount();
+TEST_F(dynarrayTest, eraseSingle)
+{
 	testEraseOne<MoveOnly>();
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
@@ -674,15 +678,19 @@ void testErase()
 	EXPECT_EQ(s, static_cast<double>(d.back()));
 }
 
-TEST_F(dynarrayTest, eraseRange)
+TEST_F(dynarrayTest, eraseRangeInt)
 {
 	testErase<int>();
+}
 
-	TrivialRelocat::ClearCount();
+TEST_F(dynarrayTest, eraseRangeTrivialReloc)
+{
 	testErase<TrivialRelocat>();
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
+}
 
-	MoveOnly::ClearCount();
+TEST_F(dynarrayTest, eraseRange)
+{
 	testErase<MoveOnly>();
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
@@ -737,7 +745,25 @@ void testEraseUnstable()
 TEST_F(dynarrayTest, eraseUnstable)
 {
 	testEraseUnstable<MoveOnly>();
+}
+
+TEST_F(dynarrayTest, eraseUnstableTrivialReloc)
+{
 	testEraseUnstable<TrivialRelocat>();
+}
+
+TEST_F(dynarrayTest, shrinkToFit)
+{
+	{
+		dynarray<MoveOnly> d(oel::reserve, 9);
+		d.emplace_back(-5);
+
+		d.shrink_to_fit();
+
+		EXPECT_GT(9u, d.capacity());
+		EXPECT_EQ(1u, d.size());
+	}
+	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
 
 TEST_F(dynarrayTest, overAligned)
