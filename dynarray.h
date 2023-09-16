@@ -96,7 +96,7 @@ public:
 	explicit dynarray(const Alloc & a) noexcept  : _m(a) {}
 
 	//! Construct empty dynarray with space reserved for exactly capacity elements
-	dynarray(reserve_tag, size_type capacity, const Alloc & a = Alloc{})   : _m(a, capacity) {}
+	dynarray(reserve_tag, size_type capacity, const Alloc & a = Alloc{})   : _m(a) { _initReserve(capacity); }
 
 	/** @brief Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
 	*
@@ -306,12 +306,6 @@ private:
 		constexpr _memOwner(const allocator_type & a)
 		 :	_internBase(), allocator_type(a) {
 		}
-		_memOwner(const allocator_type & a, size_type const capToCheck)
-		 :	allocator_type(a)
-		{
-			end = data = _allocateChecked(*this, capToCheck);
-			reservEnd = data + capToCheck;
-		}
 
 		_memOwner(_memOwner && other) noexcept
 		 :	_internBase(other), allocator_type(std::move(other))
@@ -364,6 +358,12 @@ private:
 		using std::swap;
 		swap(_m.data, s.data);
 		swap(_m.reservEnd, s.bufEnd);
+	}
+
+	void _initReserve(size_type const capToCheck)
+	{
+		_m.end = _m.data = _allocateChecked(capToCheck);
+		_m.reservEnd = _m.data + capToCheck;
 	}
 
 
@@ -441,10 +441,10 @@ private:
 		return c + std::max(c, minGrow); // growth factor is 2
 	}
 
-	static pointer _allocateChecked(Alloc & a, size_type const n)
+	pointer _allocateChecked(size_type const n)
 	{
-		if (n <= _allocTrait::max_size(a) - _allocateWrap::sizeForHeader)
-			return _allocateWrap::allocate(a, n);
+		if (n <= max_size())
+			return _allocateWrap::allocate(_m, n);
 		else
 			_detail::Throw::lengthError(_lenErrorMsg);
 	}
@@ -533,7 +533,7 @@ private:
 		if (capacity() < count)
 		{
 			// Deallocating first might be better, but then the _m pointers would have to be nulled in case allocate throws
-			_resetData(_allocateChecked(_m, count));
+			_resetData(_allocateChecked(count));
 			_m.end = _m.reservEnd = _m.data + count;
 		}
 		else
@@ -562,7 +562,7 @@ private:
 		T * newEnd;
 		if (capacity() < count)
 		{
-			T *const newData = _allocateChecked(_m, count);
+			T *const newData = _allocateChecked(count);
 			// Old elements might hold some limited resource, destroying them before constructing new is probably good
 			_detail::Destroy(_m.data, _m.end);
 			_resetData(newData);
@@ -617,18 +617,18 @@ private:
 	}
 
 	template< typename InputIter >
-	InputIter _append(InputIter const first, size_type const n)
+	InputIter _append(InputIter src, size_type const n)
 	{
 		return _appendImpl(
-			[first](T * dest, size_type n_, decltype(_m) & alloc)
+			[src_ = std::move(src)](T * dest, size_type n_, decltype(_m) & alloc) mutable
 			{
-				return _detail::UninitCopy(first, dest, dest + n_, alloc);
+				return _detail::UninitCopy(std::move(src_), dest, dest + n_, alloc);
 			},
 			n );
 	}
 
 	template< typename MakeFuncAppend >
-	auto _appendImpl(MakeFuncAppend const makeNew, size_type const count)
+	auto _appendImpl(MakeFuncAppend makeNew, size_type const count)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -834,20 +834,22 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 
 template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, const Alloc & a)
- :	_m(a, n)
+ :	_m(a)
 {
 	_debugSizeUpdater guard{_m};
 
+	_initReserve(n);
 	_m.end = _m.reservEnd;
 	_detail::UninitDefaultConstruct::call(_m.data, _m.reservEnd, _m);
 }
 
 template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
- :	_m(a, n)
+ :	_m(a)
 {
 	_debugSizeUpdater guard{_m};
 
+	_initReserve(n);
 	_m.end = _m.reservEnd;
 	_uninitFill::call(_m.data, _m.reservEnd, _m);
 }
