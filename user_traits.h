@@ -158,15 +158,17 @@ struct is_trivially_relocatable;
 
 
 #if defined _CPPUNWIND or defined __EXCEPTIONS
+	#define OEL_HAS_EXCEPTIONS        1
 	#define OEL_THROW(exception, msg) throw exception
+	#define OEL_RETHROW               throw
 	#define OEL_TRY_                  try
 	#define OEL_CATCH_ALL             catch (...)
-	#define OEL_WHEN_EXCEPTIONS_ON(x) x
 #else
+	#define OEL_HAS_EXCEPTIONS        0
 	#define OEL_THROW(exc, message)   OEL_ABORT(message)
+	#define OEL_RETHROW
 	#define OEL_TRY_
 	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
-	#define OEL_WHEN_EXCEPTIONS_ON(x)
 #endif
 
 //! @endcond

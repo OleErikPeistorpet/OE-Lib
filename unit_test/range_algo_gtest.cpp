@@ -78,9 +78,9 @@ TEST(rangeTest, copy)
 	constexpr int N = 4;
 	test2[N] = -7;
 
-OEL_WHEN_EXCEPTIONS_ON(
+#if OEL_HAS_EXCEPTIONS
 	EXPECT_THROW(oel::copy(test, view::counted(std::begin(test2), N)), std::out_of_range);
-)
+#endif
 	auto success = oel::copy_fit(test, view::counted(std::begin(test2), N));
 	EXPECT_TRUE(std::equal(begin(test), begin(test) + N, test2));
 	EXPECT_EQ(-7, test2[N]);

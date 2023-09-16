@@ -109,10 +109,10 @@ namespace _detail
 	template< typename T, typename... None >
 	T * Relocate(T *__restrict src, size_t const n, T *__restrict dest, None...)
 	{
-		OEL_WHEN_EXCEPTIONS_ON(
-			static_assert( std::is_nothrow_move_constructible<T>::value,
-				"dynarray requires that T is noexcept move constructible or trivially relocatable" );
-		)
+	#if OEL_HAS_EXCEPTIONS
+		static_assert( std::is_nothrow_move_constructible<T>::value,
+			"dynarray requires that T is noexcept move constructible or trivially relocatable" );
+	#endif
 		for (size_t i{}; i < n; ++i)
 		{
 			::new(static_cast<void *>(dest + i)) T( std::move(src[i]) );
@@ -126,9 +126,11 @@ namespace _detail
 	template< typename Alloc, typename ContiguousIter, typename T,
 	          enable_if< can_memmove_with<T *, ContiguousIter>::value > = 0
 	>
-	inline void UninitCopy(ContiguousIter src, T * dFirst, T * dLast, Alloc &)
+	inline ContiguousIter UninitCopy(ContiguousIter const src, T *__restrict dFirst, T *const dLast, Alloc &)
 	{
-		_detail::MemcpyCheck(src, dLast - dFirst, dFirst);
+		auto const n = dLast - dFirst;
+		_detail::MemcpyCheck(src, n, dFirst);
+		return src + n;
 	}
 
 	template< typename Alloc, typename InputIter, typename T,
@@ -148,7 +150,7 @@ namespace _detail
 		OEL_CATCH_ALL
 		{
 			_detail::Destroy(dFirst, dest);
-			OEL_WHEN_EXCEPTIONS_ON(throw);
+			OEL_RETHROW;
 		}
 		return src;
 	}
@@ -175,7 +177,7 @@ namespace _detail
 			OEL_CATCH_ALL
 			{
 				_detail::Destroy(init, first);
-				OEL_WHEN_EXCEPTIONS_ON(throw);
+				OEL_RETHROW;
 			}
 		}
 

@@ -19,6 +19,13 @@ namespace oel
 {
 namespace _detail
 {
+	template< typename Alloc >
+	bool_constant<Alloc::can_reallocate()> CanRealloc(int);
+
+	template< typename >
+	false_type CanRealloc(long);
+
+
 	template< typename T >
 	typename T::is_always_equal IsAlwaysEqual(int);
 
@@ -47,6 +54,8 @@ namespace _detail
 	}
 }
 
+template< typename Alloc >
+struct allocator_can_realloc   : decltype( _detail::CanRealloc<Alloc>(0) ) {};
 
 //! Part of std::allocator_traits for C++17
 template< typename T >

@@ -8,6 +8,7 @@
 #include <array>
 #include <string>
 #include <forward_list>
+#include <sstream>
 
 int MyCounter::nConstructions;
 int MyCounter::nDestruct;
@@ -55,7 +56,7 @@ struct NonConstexprAlloc : oel::allocator<int>
 };
 }
 
-TEST_F(dynarrayConstructTest, nonConstexprCompileTest)
+void testNonConstexprCompile()
 {
 	dynarray<int, NonConstexprAlloc> d;
 }
@@ -359,7 +360,10 @@ TEST_F(dynarrayConstructTest, moveConstructWithAlloc)
 {
 	TrackingAllocator<MoveOnly> a;
 	testMoveConstruct(a, a);
+}
 
+TEST_F(dynarrayConstructTest, moveConstructWithStatefulAlloc)
+{
 	testMoveConstruct< StatefulAllocator<MoveOnly, false> >({0}, {0});
 }
 
@@ -461,15 +465,16 @@ TEST_F(dynarrayConstructTest, moveAssign)
 {
 	TrackingAllocator<MoveOnly> a;
 	testMoveAssign(a, a);
+}
 
+TEST_F(dynarrayConstructTest, moveAssignStatefulAlloc)
+{
 	testMoveAssign< StatefulAllocator<MoveOnly, true> >({0}, {1});
 }
 
 template<typename T>
 void testAssignMoveElements()
 {
-	AllocCounter::clearAll();
-	T::clearCount();
 	// not propagating, not equal, cannot steal the memory
 	for (auto const na : {0, 1, 101})
 	{
@@ -510,12 +515,19 @@ void testAssignMoveElements()
 	}
 }
 
-TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
+TEST_F(dynarrayConstructTest, moveAssignNoPropagateEqualAlloc)
 {
 	using Alloc = StatefulAllocator<MoveOnly, false>;
 	testMoveAssign(Alloc{}, Alloc{});
+}
 
+TEST_F(dynarrayConstructTest, moveAssignNoPropagateAlloc)
+{
 	testAssignMoveElements<MoveOnly>();
+}
+
+TEST_F(dynarrayConstructTest, moveAssignNoPropagateAllocTrivialReloc)
+{
 	testAssignMoveElements<TrivialRelocat>();
 }
 
@@ -581,11 +593,23 @@ TEST_F(dynarrayConstructTest, selfCopyAssign)
 	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 }
 
+#if OEL_HAS_EXCEPTIONS
+
+TEST_F(dynarrayConstructTest, constructInputRangeThrowing)
+{
+	std::stringstream ss("1 2");
+	std::istream_iterator<double> f{ss}, l{};
+	MoveOnly::countToThrowOn = 1;
+
+	ASSERT_THROW(
+		dynarray<MoveOnly>(view::subrange(f, l)),
+		TestException );
+	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
+}
 
 template<typename T, typename... Arg>
 void testConstructNThrowing(const Arg &... arg)
 {
-OEL_WHEN_EXCEPTIONS_ON(
 	for (auto i : {0, 1, 99})
 	{
 		AllocCounter::nConstructCalls = 0;
@@ -602,10 +626,7 @@ OEL_WHEN_EXCEPTIONS_ON(
 
 		ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 	}
-)
 }
-
-OEL_WHEN_EXCEPTIONS_ON(
 
 TEST_F(dynarrayConstructTest, constructNDefaultThrowing)
 {
@@ -647,7 +668,7 @@ TEST_F(dynarrayConstructTest, copyConstructThrowing)
 		ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
 	}
 }
-) // OEL_WHEN_EXCEPTIONS_ON
+#endif
 
 TEST_F(dynarrayConstructTest, swap)
 {

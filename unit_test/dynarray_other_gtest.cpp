@@ -44,6 +44,9 @@ namespace
 
 	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
 				  "Not critical, this assert can be removed");
+
+	static_assert(oel::allocator_can_realloc< TrackingAllocator<double> >::value, "?");
+	static_assert(!oel::allocator_can_realloc< oel::allocator<MoveOnly> >::value, "?");
 }
 
 TEST(dynarrayOtherTest, zeroBitRepresentation)
@@ -117,25 +120,25 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 {
 	MoveOnly::clearCount();
 	{
-		dynarray< MoveOnly, std::allocator<MoveOnly> > v;
+		auto v = dynarray< MoveOnly, std::allocator<MoveOnly> >(oel::reserve, 2);
 
 		v.emplace_back(-1.0);
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( v.emplace_back(), TestException );
-	)
+	#endif
 		EXPECT_EQ(1, MoveOnly::nConstructions);
 		EXPECT_EQ(0, MoveOnly::nDestruct);
 
 		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
 		v.assign(oel::view::move(arr));
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( v.emplace_back(), TestException );
-	)
-		EXPECT_EQ(2, ssize(v));
+	#endif
+		EXPECT_EQ(2, oel::ssize(v));
 		EXPECT_TRUE(1.0 == *v[0]);
 		EXPECT_TRUE(2.0 == *v[1]);
 	}
