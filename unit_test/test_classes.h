@@ -257,13 +257,22 @@ struct TrackingAllocator : TrackingAllocatorBase<T>
 		new(raw) T(std::forward<Args>(args)...);;
 	}
 
+	// Testing collision with internal names in dynarray
+	using allocator_type = TrackingAllocatorBase<T>;
 	using Alloc = void;
+	struct oel {};
+	struct _detail {};
+	struct _internBase {};
+	struct _allocateWrap
+	{
+		void dealloc(TrackingAllocator, void *, std::size_t);
+	};
 };
 
 template<typename T, bool PropagateOnMoveAssign = false, bool UseConstruct = true>
 struct StatefulAllocator : std::conditional_t< UseConstruct, TrackingAllocator<T>, TrackingAllocatorBase<T> >
 {
-	using propagate_on_container_move_assignment = oel::bool_constant<PropagateOnMoveAssign>;
+	using propagate_on_container_move_assignment = std::bool_constant<PropagateOnMoveAssign>;
 
 	int id;
 
@@ -272,8 +281,6 @@ struct StatefulAllocator : std::conditional_t< UseConstruct, TrackingAllocator<T
 	friend bool operator==(StatefulAllocator a, StatefulAllocator b) { return a.id == b.id; }
 
 	friend bool operator!=(StatefulAllocator a, StatefulAllocator b) { return !(a == b); }
-
-	using allocator_type = StatefulAllocator;
 };
 
 

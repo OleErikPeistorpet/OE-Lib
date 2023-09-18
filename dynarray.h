@@ -92,19 +92,19 @@ public:
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 
-	constexpr dynarray() noexcept(noexcept(Alloc{}))        : _m(Alloc{}) {}
-	constexpr explicit dynarray(const Alloc & a) noexcept   : _m(a) {}
+	constexpr dynarray() noexcept(noexcept(Alloc{}))   : dynarray(Alloc{}) {}
+	constexpr explicit dynarray(Alloc a) noexcept      : _m(a) {}
 
 	//! Construct empty dynarray with space reserved for exactly capacity elements
-	dynarray(reserve_tag, size_type capacity, const Alloc & a = Alloc{})   : _m(a) { _initReserve(capacity); }
+	dynarray(reserve_tag, size_type capacity, Alloc a = Alloc{})   : _m(a) { _initReserve(capacity); }
 
 	/** @brief Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
 	*
 	* @copydetails resize_for_overwrite(size_type)  */
-	dynarray(size_type size, for_overwrite_t, const Alloc & a = Alloc{});
+	dynarray(size_type size, for_overwrite_t, Alloc a = Alloc{});
 	//! (Value-initializes elements, same as std::vector)
-	explicit dynarray(size_type size, const Alloc & a = Alloc{});
-	dynarray(size_type size, const T & val, const Alloc & a = Alloc{})   : _m(a) { append(size, val); }
+	explicit dynarray(size_type size, Alloc a = Alloc{});
+	dynarray(size_type size, const T & val, Alloc a = Alloc{})   : _m(a) { append(size, val); }
 
 	/** @brief Equivalent to `std::vector(begin(r), end(r), a)`, where `end(r)` is not needed if `r.size()` exists
 	*
@@ -117,15 +117,16 @@ public:
 	@endcode  */
 	template< typename InputRange,
 	          typename /*EnableIfRange*/ = iterator_t<InputRange> >
-	explicit dynarray(InputRange && r, const Alloc & a = Alloc{})      : _m(a) { append(r); }
+	explicit dynarray(InputRange && r, Alloc a = Alloc{})      : _m(a) { append(r); }
 
-	dynarray(std::initializer_list<T> il, const Alloc & a = Alloc{})   : _m(a) { append(il); }
+	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})   : _m(a) { append(il); }
 
-	dynarray(dynarray && other) noexcept                       : _m(std::move(other._m)) {}
-	dynarray(dynarray && other, const Alloc & a);
+	dynarray(dynarray && other) noexcept                  : _m{std::move(other._m)} {}
+	dynarray(dynarray && other, Alloc a);
 	dynarray(const dynarray & other) OEL_REQUIRES(std::copy_constructible<T>)
 		 :	dynarray(other, _alloTrait::select_on_container_copy_construction(other._m)) {}
-	dynarray(const dynarray & other, const Alloc & a)   : _m(a) { append(other); }
+
+	dynarray(const dynarray & other, Alloc a)   : _m(a) { append(other); }
 
 	~dynarray() noexcept    { clear(); }
 
@@ -296,22 +297,22 @@ public:
 
 private:
 	using _allocateWrap = _detail::DebugAllocateWrapper<Alloc, pointer>;
-	using _internBase = _detail::DynarrBase<pointer>;
+	using _internBase   = _detail::DynarrBase<pointer>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
+	using _alloc_7KQWe  = Alloc; // guarding against name collision due to inheritance (MSVC)
 
-	template< typename > // template to allow constexpr constructor when Alloc copy constructor is not constexpr
-	struct _memOwner : public _internBase, public allocator_type
+	struct _memOwner : public _internBase, public _alloc_7KQWe
 	{
-		using _internBase::data;  // Owning pointer to beginning of data buffer
-		using _internBase::size;
-		using _internBase::capacity;
+		using ::oel::_detail::DynarrBase<pointer>::data;
+		using ::oel::_detail::DynarrBase<pointer>::size;
+		using ::oel::_detail::DynarrBase<pointer>::capacity;
 
-		constexpr _memOwner(const allocator_type & a) noexcept
-		 :	_internBase(), allocator_type(a) {
+		constexpr _memOwner(_alloc_7KQWe & a) noexcept
+		 :	::oel::_detail::DynarrBase<pointer>{}, _alloc_7KQWe{std::move(a)} {
 		}
 
 		_memOwner(_memOwner && other) noexcept
-		 :	_internBase(other), allocator_type(std::move(other))
+		 :	::oel::_detail::DynarrBase<pointer>{other}, _alloc_7KQWe{std::move(other)}
 		{
 			other.data = nullptr;
 			other.capacity = other.size = 0;
@@ -320,21 +321,18 @@ private:
 		~_memOwner()
 		{
 			if (data)
-				_allocateWrap::dealloc(*this, data, capacity);
+				::oel::_detail::DebugAllocateWrapper<_alloc_7KQWe, pointer>::dealloc(*this, data, capacity);
 		}
-	};
-	_memOwner<Alloc> _m; // the only non-static data member
+	}
+	_m; // the only non-static data member
 
-	// Should be very careful with potential name collisions because of inheriting from allocator
-	struct _scopedPtr : private allocator_type
+	struct _scopedPtr : private _alloc_7KQWe
 	{
 		pointer   data;  // owner
 		size_type capacity;
 
-		_scopedPtr(const allocator_type & a, size_type const capPrechecked)
-		 :	allocator_type(a),
-			data{_allocateWrap::allocate(*this, capPrechecked)},
-			capacity{capPrechecked} {
+		_scopedPtr(const _alloc_7KQWe & a, pointer buf, size_type cap)
+		 :	_alloc_7KQWe{a}, data{buf}, capacity{cap} {
 		}
 
 		_scopedPtr(_scopedPtr &&) = delete;
@@ -342,11 +340,11 @@ private:
 		~_scopedPtr()
 		{
 			if (data)
-				_allocateWrap::dealloc(*this, data, capacity);
+				::oel::_detail::DebugAllocateWrapper<_alloc_7KQWe, pointer>::dealloc(*this, data, capacity);
 		}
 	};
 
-	using _uninitFill = _detail::UninitFill<decltype(_m)>;
+	using _uninitFill = _detail::UninitFill<_memOwner>;
 
 	void _resetData(T *const newData, size_type const newCap)
 	{
@@ -574,7 +572,7 @@ private:
 	InputIter _append(InputIter src, size_type const n)
 	{
 		return _appendImpl(
-			[src_ = std::move(src)](size_type n_, T * dest, decltype(_m) & alloc) mutable
+			[src_ = std::move(src)](size_type n_, T * dest, _memOwner & alloc) mutable
 			{
 				return _detail::UninitCopy(std::move(src_), n_, dest, alloc);
 			},
@@ -598,7 +596,8 @@ private:
 	template< typename InsertHelper, typename... Args >
 	T * _insertRealloc(T *const pos, Args... args)
 	{
-		_scopedPtr newBuf{_m, InsertHelper::calcCap(*this, args...)};
+		auto const newCap = InsertHelper::calcCap(*this, args...);
+		_scopedPtr newBuf{_m, _allocateWrap::allocate(_m, newCap), newCap};
 
 		auto const nBefore = pos - _m.data;
 		T *const newPos = newBuf.data + nBefore;
@@ -622,7 +621,7 @@ private:
 		}
 
 		template< typename... Args >
-		static T * construct(decltype(_m) & alloc, T *const newPos, Args... args)
+		static T * construct(_memOwner & alloc, T *const newPos, Args... args)
 		{
 			_alloTrait::construct(alloc, newPos, static_cast<Args &&>(args)...);
 			return newPos + 1;
@@ -638,7 +637,7 @@ private:
 		}
 
 		template< typename InputIter, typename >
-		static T * construct(decltype(_m) & alloc, T *const newPos, InputIter first, size_type count)
+		static T * construct(_memOwner & alloc, T *const newPos, InputIter first, size_type count)
 		{
 			_detail::UninitCopy(std::move(first), count, newPos, alloc);
 			return newPos + count;
@@ -758,10 +757,11 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 
 
 template< typename T, typename Alloc >
-dynarray<T, Alloc>::dynarray(dynarray && other, const Alloc & a)
- :	_m(a)
+dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)
+ :	_m(a) // moves from a
 {
-	OEL_CONST_COND if (!_alloTrait::is_always_equal::value and a != other._m)
+	Alloc & myA = _m;
+	OEL_CONST_COND if (!_alloTrait::is_always_equal::value and myA != other._m)
 		append(other | view::move);
 	else
 		_moveInternBase(other._m);
@@ -792,7 +792,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 }
 
 template< typename T, typename Alloc >
-dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, const Alloc & a)
+dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
  :	_m(a)
 {
 	_initReserve(n);
@@ -803,7 +803,7 @@ dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, const Alloc & a)
 }
 
 template< typename T, typename Alloc >
-dynarray<T, Alloc>::dynarray(size_type n, const Alloc & a)
+dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
  :	_m(a)
 {
 	_initReserve(n);
@@ -840,7 +840,7 @@ inline void dynarray<T, Alloc>::append(size_type n, const T & val)
 	{
 		_detail::ForwardT<const T &> val_;
 
-		auto operator()(size_type n_, T * p, decltype(_m) & alloc) const
+		auto operator()(size_type n_, T * p, _memOwner & alloc) const
 		{
 			_uninitFill::call(p, n_, alloc, val_);
 			return nullptr; // returned by _appendImpl
