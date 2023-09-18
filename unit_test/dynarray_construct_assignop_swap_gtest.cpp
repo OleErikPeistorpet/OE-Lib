@@ -56,9 +56,17 @@ struct NonConstexprAlloc : oel::allocator<int>
 };
 }
 
+#if __cpp_constinit
+void testConstInitCompile()
+{
+	constinit static dynarray<int> d;
+}
+#endif
+
 void testNonConstexprCompile()
 {
-	dynarray<int, NonConstexprAlloc> d;
+	static dynarray<int, NonConstexprAlloc> d;
+	[[maybe_unused]] auto d2 = dynarray<int, NonConstexprAlloc>(NonConstexprAlloc{});
 }
 
 TEST_F(dynarrayConstructTest, emptyBracesArg)
