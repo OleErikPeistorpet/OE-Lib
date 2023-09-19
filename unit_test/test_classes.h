@@ -295,6 +295,15 @@ struct StatefulAllocator : std::conditional_t< UseConstruct, TrackingAllocator<T
 
 	explicit StatefulAllocator(int id_ = 0) : id(id_) {}
 
+	template< typename U >
+	StatefulAllocator(StatefulAllocator<U> other) : id{other.id} {}
+
+	template< typename U >
+	struct rebind
+	{
+		using other = StatefulAllocator<U, PropagateOnMoveAssign, UseConstruct>;
+	};
+
 	friend bool operator==(StatefulAllocator a, StatefulAllocator b) { return a.id == b.id; }
 
 	friend bool operator!=(StatefulAllocator a, StatefulAllocator b) { return !(a == b); }

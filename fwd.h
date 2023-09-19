@@ -53,7 +53,8 @@
 namespace oel
 {
 
-template< typename T > class allocator;
+template< typename T = unsigned char >
+class allocator;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug
@@ -63,7 +64,7 @@ inline namespace debug
 {
 #endif
 
-template< typename T, typename Alloc = allocator<T> >
+template< typename T, typename Alloc = allocator<> >
 class dynarray;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
@@ -84,7 +85,7 @@ using std::true_type;
 * must not need to update external state during move construction. (The same recursively for sub-objects)
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1144r4.html
+* https://isocpp.org/files/papers/P1144R8.html
 *
 * Already true for trivially copyable types. For others, declare a function in the namespace of the type like this:
 @code

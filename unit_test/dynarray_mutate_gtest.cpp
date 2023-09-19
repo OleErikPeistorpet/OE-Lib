@@ -13,7 +13,8 @@
 using oel::dynarray;
 namespace view = oel::view;
 
-struct noDefaultConstructAlloc : public oel::allocator<int>
+template< typename T = int >
+struct noDefaultConstructAlloc : public oel::allocator<T>
 {
 	noDefaultConstructAlloc(int) {}
 };
@@ -680,9 +681,10 @@ struct NonPowerOfTwo
 	char data[(sizeof(void *) * 3) / 2];
 };
 
+template< typename T = NonPowerOfTwo >
 struct StaticBufAlloc
 {
-	using value_type = NonPowerOfTwo;
+	using value_type = T;
 	using is_always_equal = std::true_type;
 
 	value_type * buff = nullptr;
@@ -692,6 +694,10 @@ struct StaticBufAlloc
 	StaticBufAlloc(value_type (&array)[N])
 	 :	buff(array), size(N) {
 	}
+
+	template< typename U >
+	StaticBufAlloc(const StaticBufAlloc<U> & other)
+	 :	buff{other.buff}, size{other.size} {}
 
 	size_t max_size() const { return size; }
 
@@ -734,9 +740,9 @@ TEST_F(dynarrayTest, statefulAlwaysEqualDefaultConstructibleAlloc)
 		}
 	}
 	mem;
-	StaticBufAlloc a{mem.use};
+	StaticBufAlloc<> a{mem.use};
 
-	dynarray<NonPowerOfTwo, StaticBufAlloc> d(a);
+	dynarray<NonPowerOfTwo, StaticBufAlloc<>> d(a);
 	d.resize(d.max_size());
 
 	EXPECT_TRUE(Mem::isValid(mem.prefix));
@@ -926,6 +932,13 @@ TEST_F(dynarrayTest, greaterThanMax)
 }
 #endif
 
+TEST_F(dynarrayTest, noDefaultConstructAlloc)
+{
+	dynarray<int, noDefaultConstructAlloc<>> test(noDefaultConstructAlloc<>(0));
+	test.push_back(1);
+	EXPECT_EQ(1u, test.size());
+}
+
 TEST_F(dynarrayTest, misc)
 {
 	size_t fASrc[] = { 2, 3 };
@@ -961,11 +974,6 @@ TEST_F(dynarrayTest, misc)
 	dest1.pop_back();
 	dest1.shrink_to_fit();
 	EXPECT_GT(cap, dest1.capacity());
-
-	{
-		dynarray<int, noDefaultConstructAlloc> test(noDefaultConstructAlloc(0));
-		test.push_back(1);
-	}
 }
 
 #if OEL_STD_RANGES

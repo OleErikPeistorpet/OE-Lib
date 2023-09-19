@@ -101,8 +101,8 @@ TEST(dynarrayOtherTest, compare)
 
 TEST(dynarrayOtherTest, allocAndIterEquality)
 {
-	oel::allocator<int> a;
-	ASSERT_FALSE(oel::allocator<int>{} != a);
+	oel::allocator<> a;
+	ASSERT_FALSE(oel::allocator<>{} != a);
 
 	EXPECT_TRUE(dynarray<int>::const_iterator() == dynarray<int>::iterator{});
 }

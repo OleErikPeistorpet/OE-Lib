@@ -51,12 +51,11 @@ inline namespace debug
 template< typename T, typename Alloc/* = oel::allocator*/ >
 class dynarray
 {
-	using _alloTrait = std::allocator_traits<Alloc>;
-	using pointer    = typename _alloTrait::pointer;
+	using _alloTrait = typename std::allocator_traits<Alloc>::template rebind_traits<T>;
 
 public:
 	using value_type      = T;
-	using allocator_type  = Alloc;
+	using allocator_type  = typename _alloTrait::allocator_type;
 	using reference       = T &;
 	using const_reference = const T &;
 	using difference_type = ptrdiff_t;
@@ -274,23 +273,24 @@ public:
 
 
 private:
-	using _allocateWrap = _detail::DebugAllocateWrapper<Alloc, pointer>;
-	using _internBase   = _detail::DynarrBase<pointer>;
+	using _allocateWrap = _detail::DebugAllocateWrapper<allocator_type, T *>;
+	using _internBase   = _detail::DynarrBase<T *>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
-	using _alloc_7KQWe  = Alloc; // guarding against name collision due to inheritance (MSVC)
+	using _argAlloc_7KQw  = Alloc; // guarding against name collision due to inheritance (MSVC)
+	using _usedAlloc_7KQw = allocator_type;
 
-	struct _memOwner : public _internBase, public _alloc_7KQWe
+	struct _memOwner : public _internBase, public _usedAlloc_7KQw
 	{
-		using ::oel::_detail::DynarrBase<pointer>::data;  // owner
-		using ::oel::_detail::DynarrBase<pointer>::end;
-		using ::oel::_detail::DynarrBase<pointer>::reservEnd;
+		using ::oel::_detail::DynarrBase<value_type *>::data;  // owner
+		using ::oel::_detail::DynarrBase<value_type *>::end;
+		using ::oel::_detail::DynarrBase<value_type *>::reservEnd;
 
-		constexpr _memOwner(_alloc_7KQWe & a) noexcept
-		 :	::oel::_detail::DynarrBase<pointer>{}, _alloc_7KQWe{std::move(a)} {
+		constexpr _memOwner(_argAlloc_7KQw & a) noexcept
+		 :	::oel::_detail::DynarrBase<value_type *>{}, _usedAlloc_7KQw{std::move(a)} {
 		}
 
 		_memOwner(_memOwner && other) noexcept
-		 :	::oel::_detail::DynarrBase<pointer>{other}, _alloc_7KQWe{std::move(other)}
+		 :	::oel::_detail::DynarrBase<value_type *>{other}, _usedAlloc_7KQw{std::move(other)}
 		{
 			other.reservEnd = other.end = other.data = nullptr;
 		}
@@ -298,7 +298,7 @@ private:
 		~_memOwner()
 		{
 			if (data)
-				::oel::_detail::DebugAllocateWrapper<_alloc_7KQWe, pointer>::dealloc(*this, data, reservEnd - data);
+				::oel::_detail::DebugAllocateWrapper<_usedAlloc_7KQw, value_type *>::dealloc(*this, data, reservEnd - data);
 		}
 	}
 	_m; // the only non-static data member
@@ -327,9 +327,9 @@ private:
 		src.reservEnd = src.end = src.data = nullptr;
 	}
 
-	void _swapAlloc([[maybe_unused]] Alloc & other) noexcept
+	void _swapAlloc([[maybe_unused]] allocator_type & other) noexcept
 	{
-		[[maybe_unused]] Alloc & a = _m;
+		[[maybe_unused]] allocator_type & a = _m;
 		if constexpr (_alloTrait::propagate_on_container_swap::value)
 		{
 			using std::swap;
@@ -376,7 +376,7 @@ private:
 		return c + std::max(c, minGrow); // growth factor is 2
 	}
 
-	pointer _allocateChecked(size_type const n)
+	T * _allocateChecked(size_type const n)
 	{
 		if (n <= max_size())
 			return _allocateWrap::allocate(_m, n);
@@ -387,15 +387,15 @@ private:
 
 	void _realloc(size_type const newCap, size_type const oldSize)
 	{
-		if constexpr (allocator_can_realloc<Alloc>)
+		if constexpr (allocator_can_realloc<allocator_type>)
 		{
-			pointer const p = _allocateWrap::realloc(_m, _m.data, newCap);
+			T *const p = _allocateWrap::realloc(_m, _m.data, newCap);
 			_m.data = p;
 			_m.end = p + oldSize;
 			_m.reservEnd = p + newCap;
 		}
 		else
-		{	pointer const newData = _allocateWrap::allocate(_m, newCap);
+		{	T *const newData = _allocateWrap::allocate(_m, newCap);
 			_m.end = _detail::Relocate(_m.data, oldSize, newData);
 			_resetData(newData, newCap);
 		}
@@ -693,7 +693,7 @@ template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)
  :	_m(a) // moves from a
 {
-	Alloc & myA = _m;
+	const allocator_type & myA = _m;
 	OEL_CONST_COND if (!_alloTrait::is_always_equal::value and myA != other._m)
 		append(other | view::move);
 	else
@@ -704,7 +704,7 @@ template< typename T, typename Alloc >
 dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value)
 {
-	Alloc & myA = _m;
+	allocator_type & myA = _m;
 	OEL_CONST_COND if (!_alloTrait::propagate_on_container_move_assignment::value and myA != other._m)
 	{
 		assign(other | view::move);
@@ -718,7 +718,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 		}
 		_moveInternBase(other._m);
 		if constexpr (_alloTrait::propagate_on_container_move_assignment::value)
-			myA = static_cast<Alloc &&>(other._m);
+			myA = static_cast<allocator_type &&>(other._m);
 	}
 	return *this;
 }
@@ -909,15 +909,12 @@ const T & dynarray<T, Alloc>::at(size_type i) const
 }
 
 
-template<
-	typename InputRange,
-	typename Alloc = allocator<
-			iter_value_t< iterator_t<InputRange> >
-      > >
+template< typename InputRange, typename Alloc = allocator<> >
 explicit dynarray(InputRange &&, Alloc = {})
 ->	dynarray<
 		iter_value_t< iterator_t<InputRange> >,
-		Alloc >;
+		Alloc
+	>;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 } // namespace debug
