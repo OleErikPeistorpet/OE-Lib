@@ -46,7 +46,7 @@ namespace oel::_detail
 
 
 	template< typename T >
-	void Relocate(T *__restrict src, size_t const n, T *__restrict dest)
+	void Relocate(T *__restrict src, size_t const n, T *__restrict dest) noexcept
 	{
 		if constexpr (is_trivially_relocatable<T>::value)
 		{
