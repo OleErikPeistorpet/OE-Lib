@@ -135,12 +135,7 @@ public:
 		OEL_REQUIRES(std::movable<T>);
 	//! Requires that allocator_type is always equal or does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other) &
-		OEL_REQUIRES(std::copyable<T>)
-		{
-			static_assert(!_alloTrait::propagate_on_container_copy_assignment::value or _alloTrait::is_always_equal::value,
-			              "Alloc propagate_on_container_copy_assignment unsupported");
-			assign(other);  return *this;
-		}
+		OEL_REQUIRES(std::copyable<T>);
 	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
 	void        swap(dynarray & other) noexcept;
@@ -497,7 +492,6 @@ private:
 				_resetData(_allocateChecked(count), count);
 			}
 			_m.size = count;
-			// UB for self assign, but found to work. Add check in operator = or use memmove?
 			_detail::MemcpyCheck(src, count, _m.data);
 
 			return src + count;
@@ -788,6 +782,18 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 		if constexpr (_alloTrait::propagate_on_container_move_assignment::value)
 			myA = static_cast<Alloc &&>(other._m);
 	}
+	return *this;
+}
+
+template< typename T, typename Alloc >
+dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(const dynarray & other) &
+	OEL_REQUIRES(std::copyable<T>)
+{
+	static_assert(!_alloTrait::propagate_on_container_copy_assignment::value or _alloTrait::is_always_equal::value,
+	              "Alloc propagate_on_container_copy_assignment unsupported");
+	if (this != &other) // avoid memcpy data to itself
+		assign(other);
+
 	return *this;
 }
 
