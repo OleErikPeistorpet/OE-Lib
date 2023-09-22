@@ -135,9 +135,10 @@ public:
 	{	conditionalThrow();
 		++nConstructions;
 	}
-	explicit TrivialRelocat(double v) noexcept
-	 :	val(new double{v})
-	{	++nConstructions;
+	explicit TrivialRelocat(double v)
+	 :	val{( conditionalThrow(), new double{v} )}
+	{
+		++nConstructions;
 	}
 
 	TrivialRelocat(const TrivialRelocat & other)
@@ -186,23 +187,35 @@ struct NontrivialConstruct : MyCounter
 static_assert( !std::is_trivially_default_constructible<NontrivialConstruct>::value );
 
 
-struct AllocCounter
+struct TrackingAllocData
 {
-	static int nAllocations;
-	static int nDeallocations;
-	static int nConstructCalls;
+	int nAllocations;
+	int nDeallocations;
+	int nConstructCalls;
+	int countToThrowOn = -1;
 
-	static std::unordered_map<void *, std::size_t> sizeFromPtr;
+	std::unordered_map<void *, std::size_t> sizeFromPtr;
 
-	static void clearAll()
+	void clear()
 	{
 		nAllocations = 0;
 		nDeallocations = 0;
 		nConstructCalls = 0;
+		countToThrowOn = -1;
 
 		sizeFromPtr.clear();
 	}
+
+	void conditionalThrow()
+	{
+		if (0 <= countToThrowOn)
+		{
+			if (0 == countToThrowOn--)
+				OEL_THROW(TestException{}, "");
+		}
+	}
 };
+extern TrackingAllocData g_allocCount;
 
 template<typename T>
 struct TrackingAllocatorBase : oel::allocator<T>
@@ -213,35 +226,39 @@ struct TrackingAllocatorBase : oel::allocator<T>
 
 	T * allocate(size_type count)
 	{
+		g_allocCount.conditionalThrow();
+
 		auto const p = _base::allocate(count);
 		if (p)
-			++AllocCounter::nAllocations;
+			++g_allocCount.nAllocations;
 
-		AllocCounter::sizeFromPtr[p] = count;
+		g_allocCount.sizeFromPtr[p] = count;
 		return p;
 	}
 
 	T * reallocate(T * ptr, size_type count)
 	{
-		if (ptr)
-			++AllocCounter::nDeallocations;
+		g_allocCount.conditionalThrow();
 
-		++AllocCounter::nAllocations;
+		if (ptr)
+			++g_allocCount.nDeallocations;
+
+		++g_allocCount.nAllocations;
 		ptr = _base::reallocate(ptr, count);
-		AllocCounter::sizeFromPtr[ptr] = count;
+		g_allocCount.sizeFromPtr[ptr] = count;
 		return ptr;
 	}
 
 	void deallocate(T * ptr, size_type count)
 	{
 		if (ptr)
-			++AllocCounter::nDeallocations;
+			++g_allocCount.nDeallocations;
 
 		// verify that count matches earlier call to allocate
-		auto it = AllocCounter::sizeFromPtr.find(ptr);
-		ASSERT_TRUE(it != AllocCounter::sizeFromPtr.end());
+		auto it = g_allocCount.sizeFromPtr.find(ptr);
+		ASSERT_TRUE(it != g_allocCount.sizeFromPtr.end());
 		EXPECT_EQ(it->second, count);
-		AllocCounter::sizeFromPtr.erase(it);
+		g_allocCount.sizeFromPtr.erase(it);
 
 		_base::deallocate(ptr, count);
 	}
@@ -253,7 +270,7 @@ struct TrackingAllocator : TrackingAllocatorBase<T>
 	template<typename U, typename... Args>
 	void construct(U * raw, Args &&... args)
 	{
-		++AllocCounter::nConstructCalls;
+		++g_allocCount.nConstructCalls;
 		new(raw) T(std::forward<Args>(args)...);;
 	}
 

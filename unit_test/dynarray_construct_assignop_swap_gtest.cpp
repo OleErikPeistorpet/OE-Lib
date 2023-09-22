@@ -14,24 +14,19 @@ int MyCounter::nConstructions;
 int MyCounter::nDestruct;
 int MyCounter::countToThrowOn = -1;
 
-int AllocCounter::nAllocations;
-int AllocCounter::nDeallocations;
-int AllocCounter::nConstructCalls;
-std::unordered_map<void *, std::size_t> AllocCounter::sizeFromPtr;
+TrackingAllocData g_allocCount;
 
 using namespace oel;
 
 class dynarrayConstructTest : public ::testing::Test
 {
 protected:
-	std::array<unsigned, 3> sizes;
+	std::array<unsigned, 3> sizes{0, 1, 200};
 
 	dynarrayConstructTest()
 	{
-		AllocCounter::clearAll();
+		g_allocCount.clear();
 		MyCounter::clearCount();
-
-		sizes = {{0, 1, 200}};
 	}
 
 	template<typename T>
@@ -43,7 +38,7 @@ protected:
 		for (const auto & e : a)
 			EXPECT_EQ(val, e);
 
-		ASSERT_EQ(AllocCounter::nDeallocations + 1, AllocCounter::nAllocations);
+		ASSERT_EQ(g_allocCount.nDeallocations + 1, g_allocCount.nAllocations);
 	}
 };
 
@@ -81,8 +76,8 @@ TEST_F(dynarrayConstructTest, constructEmpty)
 
 	ASSERT_TRUE(a.get_allocator() == allocator<TrivialDefaultConstruct>());
 	EXPECT_EQ(0U, a.capacity());
-	EXPECT_EQ(0, AllocCounter::nAllocations);
-	ASSERT_EQ(0, AllocCounter::nDeallocations);
+	EXPECT_EQ(0, g_allocCount.nAllocations);
+	ASSERT_EQ(0, g_allocCount.nDeallocations);
 }
 
 #if defined _CPPUNWIND or defined __EXCEPTIONS
@@ -110,7 +105,7 @@ TEST_F(dynarrayConstructTest, constructReserve)
 {
 	for (auto const n : sizes)
 	{
-		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
+		auto const nExpectAlloc = g_allocCount.nAllocations + 1;
 
 		dynarrayTrackingAlloc<TrivialDefaultConstruct> a(reserve, n);
 
@@ -118,80 +113,80 @@ TEST_F(dynarrayConstructTest, constructReserve)
 		ASSERT_TRUE(a.capacity() >= n);
 
 		if (n > 0)
-		{	ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations); }
+		{	ASSERT_EQ(nExpectAlloc, g_allocCount.nAllocations); }
 	}
-	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	ASSERT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 
-	ASSERT_EQ(0, AllocCounter::nConstructCalls);
+	ASSERT_EQ(0, g_allocCount.nConstructCalls);
 }
 
 TEST_F(dynarrayConstructTest, constructNDefaultTrivial)
 {
 	for (auto const n : sizes)
 	{
-		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
+		auto const nExpectAlloc = g_allocCount.nAllocations + 1;
 
 		dynarrayTrackingAlloc<TrivialDefaultConstruct> a(n, for_overwrite);
 
 		ASSERT_EQ(a.size(), n);
 
 		if (n > 0)
-		{	ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations); }
+		{	ASSERT_EQ(nExpectAlloc, g_allocCount.nAllocations); }
 	}
-	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	ASSERT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 
-	EXPECT_EQ(0, AllocCounter::nConstructCalls);
+	EXPECT_EQ(0, g_allocCount.nConstructCalls);
 }
 
 TEST_F(dynarrayConstructTest, constructNDefault)
 {
 	for (auto const n : sizes)
 	{
-		AllocCounter::nConstructCalls = 0;
+		g_allocCount.nConstructCalls = 0;
 		NontrivialConstruct::clearCount();
 
-		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
+		auto const nExpectAlloc = g_allocCount.nAllocations + 1;
 		{
 			dynarrayTrackingAlloc<NontrivialConstruct> a(n, for_overwrite);
 
-			ASSERT_EQ(as_signed(n), AllocCounter::nConstructCalls);
+			ASSERT_EQ(as_signed(n), g_allocCount.nConstructCalls);
 			ASSERT_EQ(as_signed(n), NontrivialConstruct::nConstructions);
 
 			ASSERT_EQ(a.size(), n);
 
 			if (n > 0)
-			{	ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations); }
+			{	ASSERT_EQ(nExpectAlloc, g_allocCount.nAllocations); }
 		}
 		ASSERT_EQ(NontrivialConstruct::nConstructions, NontrivialConstruct::nDestruct);
 	}
-	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	ASSERT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 }
 
 TEST_F(dynarrayConstructTest, constructN)
 {
 	for (auto const n : sizes)
 	{
-		AllocCounter::nConstructCalls = 0;
+		g_allocCount.nConstructCalls = 0;
 
-		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
+		auto const nExpectAlloc = g_allocCount.nAllocations + 1;
 
 		dynarrayTrackingAlloc<TrivialDefaultConstruct> a(n);
 
-		ASSERT_EQ(as_signed(n), AllocCounter::nConstructCalls);
+		ASSERT_EQ(as_signed(n), g_allocCount.nConstructCalls);
 
 		ASSERT_EQ(a.size(), n);
 
 		if (n > 0)
-		{	ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations); }
+		{	ASSERT_EQ(nExpectAlloc, g_allocCount.nAllocations); }
 	}
-	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	ASSERT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 }
 
 TEST_F(dynarrayConstructTest, constructNChar)
 {
 	for (auto const n : sizes)
 	{
-		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
+		auto const nExpectAlloc = g_allocCount.nAllocations + 1;
 
 		dynarrayTrackingAlloc<unsigned char> a(n);
 
@@ -201,9 +196,9 @@ TEST_F(dynarrayConstructTest, constructNChar)
 			ASSERT_EQ(0, c);
 
 		if (n > 0)
-		{	ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations); }
+		{	ASSERT_EQ(nExpectAlloc, g_allocCount.nAllocations); }
 	}
-	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	ASSERT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 }
 
 TEST_F(dynarrayConstructTest, constructNFillTrivial)
@@ -227,11 +222,11 @@ TEST_F(dynarrayConstructTest, constructNFill)
 
 		EXPECT_EQ(1 + 11, TrivialRelocat::nConstructions);
 
-		ASSERT_EQ(AllocCounter::nDeallocations + 1, AllocCounter::nAllocations);
+		ASSERT_EQ(g_allocCount.nDeallocations + 1, g_allocCount.nAllocations);
 	}
 	ASSERT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 
-	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	ASSERT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 }
 
 
@@ -244,7 +239,7 @@ TEST_F(dynarrayConstructTest, constructInitList)
 		ASSERT_TRUE(std::equal( a.begin(), a.end(), begin(il) ));
 		ASSERT_EQ(4U, a.size());
 
-		ASSERT_EQ(1, AllocCounter::nAllocations);
+		ASSERT_EQ(1, g_allocCount.nAllocations);
 	}
 	{
 		dynarrayTrackingAlloc<TrivialRelocat> a(std::initializer_list<TrivialRelocat>{});
@@ -252,7 +247,7 @@ TEST_F(dynarrayConstructTest, constructInitList)
 		ASSERT_TRUE(a.empty());
 		EXPECT_EQ(0, TrivialRelocat::nConstructions);
 	}
-	ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	ASSERT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 }
 
 TEST_F(dynarrayConstructTest, deductionGuides)
@@ -339,7 +334,7 @@ void testMoveConstruct(Alloc a0, Alloc a1)
 		for (int i = 0; i < nr; ++i)
 			right.emplace_back(0.5);
 
-		auto const nAllocBefore = AllocCounter::nAllocations;
+		auto const nAllocBefore = g_allocCount.nAllocations;
 
 		auto const ptr = right.data();
 
@@ -347,7 +342,7 @@ void testMoveConstruct(Alloc a0, Alloc a1)
 
 		EXPECT_TRUE(left.get_allocator() == a1);
 
-		EXPECT_EQ(nAllocBefore, AllocCounter::nAllocations);
+		EXPECT_EQ(nAllocBefore, g_allocCount.nAllocations);
 		EXPECT_EQ(nr, MoveOnly::nConstructions - MoveOnly::nDestruct);
 
 		EXPECT_TRUE(right.empty());
@@ -355,7 +350,7 @@ void testMoveConstruct(Alloc a0, Alloc a1)
 		ASSERT_EQ(nr, ssize(left));
 		EXPECT_EQ(ptr, left.data());
 	}
-	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	EXPECT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 }
 
 TEST_F(dynarrayConstructTest, moveConstructWithAlloc)
@@ -384,7 +379,7 @@ TEST_F(dynarrayConstructTest, moveConstructNonAssignable)
 template<typename T>
 void testConstructMoveElements()
 {
-	AllocCounter::clearAll();
+	g_allocCount.clear();
 	T::clearCount();
 	// not propagating, not equal, cannot steal the memory
 	for (auto const na : {0, 1, 101})
@@ -397,7 +392,7 @@ void testConstructMoveElements()
 
 		auto const capBefore = a.capacity();
 
-		auto const nExpectAlloc = AllocCounter::nAllocations + (a.empty() ? 0 : 1);
+		auto const nExpectAlloc = g_allocCount.nAllocations + (a.empty() ? 0 : 1);
 
 		dynarray<T, Alloc> b(std::move(a), Alloc{2});
 
@@ -406,7 +401,7 @@ void testConstructMoveElements()
 		EXPECT_EQ(1, a.get_allocator().id);
 		EXPECT_EQ(2, b.get_allocator().id);
 
-		EXPECT_EQ(nExpectAlloc, AllocCounter::nAllocations);
+		EXPECT_EQ(nExpectAlloc, g_allocCount.nAllocations);
 
 		EXPECT_EQ(ssize(a) + ssize(b), T::nConstructions - T::nDestruct);
 
@@ -416,7 +411,7 @@ void testConstructMoveElements()
 			EXPECT_TRUE(b[i].hasValue() and *b[i] == i + 0.5);
 	}
 	EXPECT_EQ(T::nConstructions, T::nDestruct);
-	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	EXPECT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 }
 
 TEST_F(dynarrayConstructTest, moveConstructUnequalAlloc)
@@ -439,7 +434,7 @@ void testMoveAssign(Alloc a0, Alloc a1)
 		for (int i = 0; i < nl; ++i)
 			left.emplace_back(0.5);
 
-		auto const nAllocBefore = AllocCounter::nAllocations;
+		auto const nAllocBefore = g_allocCount.nAllocations;
 
 		auto const ptr = right.data();
 
@@ -450,7 +445,7 @@ void testMoveAssign(Alloc a0, Alloc a1)
 		else
 			EXPECT_TRUE(left.get_allocator() == a1);
 
-		EXPECT_EQ(nAllocBefore, AllocCounter::nAllocations);
+		EXPECT_EQ(nAllocBefore, g_allocCount.nAllocations);
 		EXPECT_EQ(9, MoveOnly::nConstructions - MoveOnly::nDestruct);
 
 		if (0 == nl)
@@ -461,7 +456,7 @@ void testMoveAssign(Alloc a0, Alloc a1)
 		ASSERT_EQ(9U, left.size());
 		EXPECT_EQ(ptr, left.data());
 	}
-	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	EXPECT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 }
 
 TEST_F(dynarrayConstructTest, moveAssign)
@@ -499,14 +494,14 @@ void testAssignMoveElements()
 
 			auto const capBefore = a.capacity();
 
-			auto const nExpectAlloc = AllocCounter::nAllocations + (b.size() < a.size() ? 1 : 0);
+			auto const nExpectAlloc = g_allocCount.nAllocations + (b.size() < a.size() ? 1 : 0);
 
 			b = std::move(a);
 
 			EXPECT_EQ(1, a.get_allocator().id);
 			EXPECT_EQ(2, b.get_allocator().id);
 
-			EXPECT_EQ(nExpectAlloc, AllocCounter::nAllocations);
+			EXPECT_EQ(nExpectAlloc, g_allocCount.nAllocations);
 
 			EXPECT_EQ(ssize(a) + ssize(b), T::nConstructions - T::nDestruct);
 
@@ -516,7 +511,7 @@ void testAssignMoveElements()
 				EXPECT_TRUE(b[i].hasValue() and *b[i] == i + 0.5);
 		}
 		EXPECT_EQ(T::nConstructions, T::nDestruct);
-		EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+		EXPECT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 	}
 }
 
@@ -597,7 +592,7 @@ TEST_F(dynarrayConstructTest, selfCopyAssign)
 		EXPECT_EQ(5, *nt[0]);
 	}
 	ASSERT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
-	EXPECT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+	EXPECT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 }
 
 #if OEL_HAS_EXCEPTIONS
@@ -619,7 +614,7 @@ void testConstructNThrowing(const Arg &... arg)
 {
 	for (auto i : {0, 1, 99})
 	{
-		AllocCounter::nConstructCalls = 0;
+		g_allocCount.nConstructCalls = 0;
 		T::clearCount();
 		T::countToThrowOn = i;
 
@@ -627,11 +622,11 @@ void testConstructNThrowing(const Arg &... arg)
 			dynarrayTrackingAlloc<T> a(100, arg...),
 			TestException );
 
-		ASSERT_EQ(i + 1, AllocCounter::nConstructCalls);
+		ASSERT_EQ(i + 1, g_allocCount.nConstructCalls);
 		ASSERT_EQ(i, T::nConstructions);
 		ASSERT_EQ(i, T::nDestruct);
 
-		ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+		ASSERT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 	}
 }
 
@@ -654,25 +649,25 @@ TEST_F(dynarrayConstructTest, copyConstructThrowing)
 {
 	dynarrayTrackingAlloc<TrivialRelocat> a(100, TrivialRelocat{0.5});
 
-	AllocCounter::nAllocations = 0;
+	g_allocCount.nAllocations = 0;
 	for (auto i : {0, 1, 99})
 	{
-		AllocCounter::nConstructCalls = 0;
+		g_allocCount.nConstructCalls = 0;
 		TrivialRelocat::clearCount();
 		TrivialRelocat::countToThrowOn = i;
 
-		auto const nExpectAlloc = AllocCounter::nAllocations + 1;
+		auto const nExpectAlloc = g_allocCount.nAllocations + 1;
 
 		ASSERT_THROW(
 			auto b(a),
 			TestException );
 
-		ASSERT_EQ(i + 1, AllocCounter::nConstructCalls);
+		ASSERT_EQ(i + 1, g_allocCount.nConstructCalls);
 		ASSERT_EQ(i, TrivialRelocat::nConstructions);
 		ASSERT_EQ(i, TrivialRelocat::nDestruct);
 
-		ASSERT_EQ(nExpectAlloc, AllocCounter::nAllocations);
-		ASSERT_EQ(AllocCounter::nAllocations, AllocCounter::nDeallocations);
+		ASSERT_EQ(nExpectAlloc, g_allocCount.nAllocations);
+		ASSERT_EQ(g_allocCount.nAllocations, g_allocCount.nDeallocations);
 	}
 }
 #endif
