@@ -4,6 +4,8 @@ project(oel-test CXX)
 
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to use, tested up to 20")
 
+option(MEM_BOUND_DEBUG "Set OEL_MEM_BOUND_DEBUG_LVL=2" off)
+
 
 option(BUILD_GMOCK   "" off)
 option(INSTALL_GTEST "" off)
@@ -31,11 +33,17 @@ target_include_directories(oel-test PRIVATE
 	${CMAKE_SOURCE_DIR}/..
 )
 
+if(MEM_BOUND_DEBUG)
+	add_definitions(-D OEL_MEM_BOUND_DEBUG_LVL=2)
+endif()
 if(MSVC)
 	add_definitions(/D_SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING)
 	target_compile_options(oel-test PRIVATE /W4)
 else()
-	target_compile_options(oel-test PRIVATE -Wall -Wextra -Wshadow -Wconversion -Wno-sign-conversion)
+	if(MEM_BOUND_DEBUG)
+		target_compile_options(oel-test PRIVATE -fno-strict-aliasing)
+	endif()
+	target_compile_options(oel-test PRIVATE -Wall -Wextra -Wold-style-cast -Wshadow -Wconversion -Wno-sign-conversion)
 endif()
 
 target_link_libraries(oel-test gtest_main)

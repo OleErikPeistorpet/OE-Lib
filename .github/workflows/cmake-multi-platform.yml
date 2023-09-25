@@ -14,10 +14,21 @@ jobs:
       fail-fast: false
 
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        build_type: [Release]
+        os: [ubuntu-20.04, ubuntu-latest, macos-latest]
+        mem_bound_debug: [off, on]
+        include:
+          - os: ubuntu-20.04
+            gcc_version: 7
+          - os: ubuntu-latest
+            gcc_version: 12
 
     steps:
+    - if: runner.os == 'Linux'
+      name: Set up GCC
+      uses: egor-tensin/setup-gcc@v1
+      with:
+        version: ${{ matrix.gcc_version }}
+
     - uses: actions/checkout@v4
       with:
         submodules: true
@@ -27,11 +38,12 @@ jobs:
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: >
         cmake -B ${{ github.workspace }}/build
-        -D CMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -D CMAKE_BUILD_TYPE=Release
+        -D MEM_BOUND_DEBUG=${{ matrix.mem_bound_debug }}
         -S ${{ github.workspace }}/unit_test
 
     - name: Build
-      run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}
+      run: cmake --build ${{ github.workspace }}/build --config Release
 
     - name: Test
       run: ${{ github.workspace }}/build/oel-test
