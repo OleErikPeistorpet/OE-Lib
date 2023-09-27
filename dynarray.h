@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -164,7 +164,7 @@ public:
 	* where `end(source)` is not needed if `source.size()` exists. */
 	template< typename InputRange >
 	auto append(InputRange && source)
-	->	borrowed_iterator_t<InputRange>    { return _append(adl_begin(source), _detail::CountOrEnd(source)); }
+	->	borrowed_iterator_t<InputRange>   { return _doAppend(adl_begin(source), _detail::CountOrEnd(source)); }
 	//! Equivalent to `std::vector::insert(end(), il)`
 	void append(std::initializer_list<T> il)   { append<>(il); }
 	/**
@@ -177,8 +177,8 @@ public:
 	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void resize_for_overwrite(size_type n)   { _resizeImpl<_detail::UninitDefaultConstruct>(n); }
-	void resize(size_type n)                 { _resizeImpl<_uninitFill>(n); }
+	void resize_for_overwrite(size_type n)   { _doResize< _detail::UninitDefaultConstruct<Alloc> >(n); }
+	void resize(size_type n)                 { _doResize<_uninitFill>(n); }
 
 	//! @brief Same as `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if `source.size()` exists
@@ -298,6 +298,7 @@ private:
 	using _allocateWrap = _detail::DebugAllocateWrapper<Alloc, pointer>;
 	using _internBase   = _detail::DynarrBase<pointer>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
+	using _uninitFill   = _detail::UninitFill<Alloc>;
 	using _alloc_7KQWe  = Alloc; // guarding against name collision due to inheritance (MSVC)
 
 	struct _memOwner : public _internBase, public _alloc_7KQWe
@@ -323,8 +324,6 @@ private:
 		}
 	}
 	_m; // the only non-static data member
-
-	using _uninitFill = _detail::UninitFill<_memOwner>;
 
 	void _resetData(T *const newData, size_type const newCap)
 	{
@@ -439,10 +438,8 @@ private:
 
 
 	template< typename UninitFiller >
-	void _resizeImpl(size_type const newSize)
+	void _doResize(size_type const newSize)
 	{
-		_debugSizeUpdater guard{_m};
-
 		reserve(newSize);
 
 		T *const newEnd = _m.data + newSize;
@@ -452,6 +449,7 @@ private:
 			_detail::Destroy(newEnd, _m.end);
 
 		_m.end = newEnd;
+		_debugSizeUpdater guard{_m};
 	}
 
 
@@ -526,7 +524,7 @@ private:
 	}
 
 	template< typename InputIter, typename Sentinel >
-	InputIter _append(InputIter first, Sentinel const last)
+	InputIter _doAppend(InputIter first, Sentinel const last)
 	{	// single-pass iterator and unknown count
 		auto const oldSize = size();
 		OEL_TRY_
@@ -543,27 +541,37 @@ private:
 	}
 
 	template< typename InputIter >
-	InputIter _append(InputIter src, size_type const n)
+	InputIter _doAppend(InputIter src, size_type const count)
 	{
-		return _appendImpl(
-			[src_ = std::move(src)](T * dest, size_type n_, _memOwner & alloc) mutable
-			{
-				return _detail::UninitCopy(std::move(src_), dest, dest + n_, alloc);
-			},
-			n );
-	}
-
-	template< typename MakeFuncAppend >
-	auto _appendImpl(MakeFuncAppend makeNew, size_type const count)
-	{
-		_debugSizeUpdater guard{_m};
-
 		if (_unusedCapacity() < count)
 			_growBy(count);
 
-		auto last = makeNew(_m.end, count, _m);
+		if constexpr (can_memmove_with<T *, InputIter>)
+		{
+			_detail::MemcpyCheck(src, count, _m.end);
+			src += count;
+		}
+		else
+		{	T *      dest  = _m.end;
+			T *const dLast = dest + count;
+			OEL_TRY_
+			{
+				while (dest != dLast)
+				{
+					_alloTrait::construct(_m, dest, *src);
+					++dest; ++src;
+				}
+			}
+			OEL_CATCH_ALL
+			{
+				_detail::Destroy(_m.end, dest);
+				OEL_RETHROW;
+			}
+		}
 		_m.end += count;
-		return last;
+		_debugSizeUpdater guard{_m};
+
+		return src;
 	}
 
 
@@ -699,12 +707,12 @@ template< typename T, typename Alloc >
 template< typename... Args >
 inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 {
-	_debugSizeUpdater guard{_m};
-
 	if (_m.end == _m.reservEnd)
 		_growByOne();
 
 	_alloTrait::construct(_m, _m.end, static_cast<Args &&>(args)...);
+
+	_debugSizeUpdater guard{_m};
 
 	return *(_m.end++);
 }
@@ -761,22 +769,22 @@ template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
  :	_m(a)
 {
-	_debugSizeUpdater guard{_m};
-
 	_initReserve(n);
 	_m.end = _m.reservEnd;
-	_detail::UninitDefaultConstruct::call(_m.data, _m.reservEnd, _m);
+	_detail::UninitDefaultConstruct<Alloc>::call(_m.data, _m.reservEnd, _m);
+
+	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
  :	_m(a)
 {
-	_debugSizeUpdater guard{_m};
-
 	_initReserve(n);
 	_m.end = _m.reservEnd;
 	_uninitFill::call(_m.data, _m.reservEnd, _m);
+
+	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
@@ -813,19 +821,16 @@ void dynarray<T, Alloc>::shrink_to_fit()
 
 
 template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::append(size_type n, const T & val)
+inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 {
-	struct Fill
-	{
-		_detail::ForwardT<const T &> val_;
+	if (_unusedCapacity() < count)
+		_growBy(count);
 
-		auto operator()(T * dest, size_type n_, _memOwner & alloc) const
-		{
-			_uninitFill::call(dest, dest + n_, alloc, val_);
-			return nullptr; // returned by _appendImpl
-		}
-	};
-	_appendImpl(Fill{val}, n);
+	T *const pos = _m.end;
+	_uninitFill::template call< _detail::ForwardT<const T &> >(pos, pos + count, _m, val);
+
+	_m.end += count;
+	_debugSizeUpdater guard{_m};
 }
 
 
@@ -833,21 +838,22 @@ template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::pop_back() noexcept
 {
 	OEL_ASSERT(_m.data < _m.end);
-	_debugSizeUpdater guard{_m};
-
 	--_m.end;
 	(*_m.end).~T();
+
+	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
+void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 {
-	_debugSizeUpdater guard{_m};
-
 	T *const newEnd = to_pointer_contiguous(first);
 	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
+
 	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
+
+	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
