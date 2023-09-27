@@ -140,7 +140,7 @@ public:
 	* where `end(source)` is not needed if `source.size()` exists. */
 	template< typename InputRange >
 	auto append(InputRange && source)
-	->	borrowed_iterator_t<InputRange>    { return _append(adl_begin(source), _detail::CountOrEnd(source)); }
+	->	borrowed_iterator_t<InputRange>   { return _doAppend(adl_begin(source), _detail::CountOrEnd(source)); }
 	//! Equivalent to `std::vector::insert(end(), il)`
 	void append(std::initializer_list<T> il)   { append<>(il); }
 	/**
@@ -153,8 +153,8 @@ public:
 	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void resize_for_overwrite(size_type n)   { _resizeImpl<_detail::UninitDefaultConstruct>(n); }
-	void resize(size_type n)                 { _resizeImpl<_uninitFill>(n); }
+	void resize_for_overwrite(size_type n)   { _doResize< _detail::DefaultInit<allocator_type> >(n); }
+	void resize(size_type n)                 { _doResize<_uninitFill>(n); }
 
 	//! @brief Same as `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if `source.size()` exists
@@ -275,6 +275,7 @@ public:
 private:
 	using _allocateWrap = _detail::DebugAllocateWrapper<allocator_type, T *>;
 	using _internBase   = _detail::DynarrBase<T *>;
+	using _uninitFill   = _detail::UninitFill<allocator_type>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 	using _argAlloc_7KQw  = Alloc; // guarding against name collision due to inheritance (MSVC)
 	using _usedAlloc_7KQw = allocator_type;
@@ -302,8 +303,6 @@ private:
 		}
 	}
 	_m; // the only non-static data member
-
-	using _uninitFill = _detail::UninitFill<_memOwner>;
 
 	void _resetData(T *const newData, size_type const newCap)
 	{
@@ -418,7 +417,7 @@ private:
 
 
 	template< typename UninitFiller >
-	void _resizeImpl(size_type const newSize)
+	void _doResize(size_type const newSize)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -435,7 +434,7 @@ private:
 
 
 	template< typename InputIter >
-	InputIter _doAssign(InputIter src, size_type const count)
+	InputIter _doAssign(InputIter src, size_type const count) __restrict
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -455,7 +454,7 @@ private:
 			return src + count;
 		}
 		else
-		{	auto cpy = [](InputIter src_, T * dest, T * dLast)
+		{	auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
 			{
 				while (dest != dLast)
 				{
@@ -495,7 +494,7 @@ private:
 	}
 
 	template< typename InputIter, typename Sentinel >
-	InputIter _doAssign(InputIter first, Sentinel const last)
+	InputIter _doAssign(InputIter first, Sentinel const last) __restrict
 	{	// single-pass iterator and unknown count
 		clear();
 		for (; first != last; ++first)
@@ -505,7 +504,7 @@ private:
 	}
 
 	template< typename InputIter, typename Sentinel >
-	InputIter _append(InputIter first, Sentinel const last)
+	InputIter _doAppend(InputIter first, Sentinel const last)
 	{	// single-pass iterator and unknown count
 		auto const oldSize = size();
 		OEL_TRY_
@@ -522,27 +521,38 @@ private:
 	}
 
 	template< typename InputIter >
-	InputIter _append(InputIter src, size_type const n)
+	InputIter _doAppend(InputIter src, size_type const count)
 	{
-		return _appendImpl(
-			[src_ = std::move(src)](T * dest, size_type n_, _memOwner & alloc) mutable
-			{
-				return _detail::UninitCopy(std::move(src_), dest, dest + n_, alloc);
-			},
-			n );
-	}
-
-	template< typename MakeFuncAppend >
-	auto _appendImpl(MakeFuncAppend makeNew, size_type const count)
-	{
-		_debugSizeUpdater guard{_m};
-
 		if (_unusedCapacity() < count)
 			_growBy(count);
 
-		auto last = makeNew(_m.end, count, _m);
-		_m.end += count;
-		return last;
+		if constexpr (can_memmove_with<T *, InputIter>)
+		{
+			_detail::MemcpyCheck(src, count, _m.end);
+			src += count;
+			_m.end += count;
+		}
+		else
+		{	T *__restrict dest = _m.end;
+			T *const     dLast = dest + count;
+			OEL_TRY_
+			{
+				while (dest != dLast)
+				{
+					_alloTrait::construct(_m, dest, *src);
+					++dest; ++src;
+				}
+			}
+			OEL_CATCH_ALL
+			{
+				_detail::Destroy(_m.end, dest);
+				OEL_RETHROW;
+			}
+			_m.end = dLast;
+		}
+		_debugSizeUpdater guard{_m};
+
+		return src;
 	}
 
 
@@ -655,7 +665,7 @@ typename dynarray<T, Alloc>::iterator
 		_detail::MemcpyCheck(first, count, pPos);
 	}
 	else
-	{	T * dest = pPos;
+	{	T *__restrict dest = pPos;
 		OEL_TRY_
 		{
 			while (dest != dLast)
@@ -742,7 +752,7 @@ dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
 
 	_initReserve(n);
 	_m.end = _m.reservEnd;
-	_detail::UninitDefaultConstruct::call(_m.data, _m.reservEnd, _m);
+	_detail::DefaultInit<allocator_type>::call(_m.data, _m.reservEnd, _m);
 }
 
 template< typename T, typename Alloc >
@@ -788,19 +798,16 @@ void dynarray<T, Alloc>::shrink_to_fit()
 
 
 template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::append(size_type n, const T & val)
+inline void dynarray<T, Alloc>::append(size_type count, const T &__restrict val)
 {
-	struct Fill
-	{
-		_detail::ForwardT<const T &> val_;
+	if (_unusedCapacity() < count)
+		_growBy(count);
 
-		auto operator()(T * dest, size_type n_, _memOwner & alloc) const
-		{
-			_uninitFill::call(dest, dest + n_, alloc, val_);
-			return nullptr; // returned by _appendImpl
-		}
-	};
-	_appendImpl(Fill{val}, n);
+	T *const pos = _m.end;
+	_uninitFill::template call< _detail::ForwardT<const T &> >(pos, pos + count, _m, val);
+
+	_debugSizeUpdater guard{_m};
+	_m.end += count;
 }
 
 
@@ -815,7 +822,7 @@ inline void dynarray<T, Alloc>::pop_back() noexcept
 }
 
 template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
+void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 {
 	_debugSizeUpdater guard{_m};
 
@@ -826,7 +833,7 @@ inline void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 }
 
 template< typename T, typename Alloc >
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_erase(iterator pos) &
+inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_erase(iterator pos) __restrict &
 {
 	if constexpr (is_trivially_relocatable<T>::value)
 	{
@@ -847,7 +854,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_eras
 }
 
 template< typename T, typename Alloc >
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) &
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) __restrict &
 {
 	_debugSizeUpdater guard{_m};
 
@@ -871,7 +878,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) &
 }
 
 template< typename T, typename Alloc >
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) __restrict &
 {
 	_debugSizeUpdater guard{_m};
 
