@@ -49,18 +49,13 @@
 #endif
 
 
-#if OEL_MEM_BOUND_DEBUG_LVL and !defined _MSC_VER
-	#define OEL_DYNARRAY_IN_DEBUG  1  // would not work with the .natvis
-#endif
-
-
 //! Obscure Efficient Library
 namespace oel
 {
 
 template< typename T > class allocator;
 
-#ifdef OEL_DYNARRAY_IN_DEBUG
+#if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug
 	#ifdef __GNUC__
 		__attribute__((abi_tag))
@@ -71,7 +66,7 @@ inline namespace debug
 template< typename T, typename Alloc = allocator<T> >
 class dynarray;
 
-#ifdef OEL_DYNARRAY_IN_DEBUG
+#if OEL_MEM_BOUND_DEBUG_LVL
 }
 #endif
 

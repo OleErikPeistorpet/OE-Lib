@@ -62,5 +62,5 @@ You can customize what happens when a check is triggered. This is done by defini
 
 ### Visual Studio visualizer
 
-For better display of dynarray and the iterators in the Visual Studio debugger, copy `oe_lib2.natvis` to:
-`Documents\Visual Studio 20**\Visualizers`. You can also just add `oe_lib2.natvis` to the project instead.
+For better display of dynarray and the iterators in the Visual Studio debugger, copy `oe_lib3.natvis` to:
+`Documents\Visual Studio 20**\Visualizers`. You can also just add `oe_lib3.natvis` to the project instead.
