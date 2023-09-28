@@ -33,7 +33,7 @@ void unordered_erase(dynarray<T, A> & d, size_t index)  { d.unordered_erase(d.be
 template< typename T, typename A, typename InputRange >  inline
 void append(dynarray<T, A> & dest, InputRange && source)  { dest.append(static_cast<InputRange &&>(source)); }
 
-#ifdef OEL_DYNARRAY_IN_DEBUG
+#if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug
 {
 #endif
@@ -935,8 +935,8 @@ explicit dynarray(InputRange &&, Alloc = {})
 		iter_value_t< iterator_t<InputRange> >,
 		Alloc >;
 
-#ifdef OEL_DYNARRAY_IN_DEBUG
-}
+#if OEL_MEM_BOUND_DEBUG_LVL
+} // namespace debug
 #endif
 
-} // namespace oel
+} // oel
