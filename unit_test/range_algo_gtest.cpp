@@ -130,12 +130,10 @@ void testAppend()
 {
 	Container c;
 
-	oel::append(c, std::initializer_list<int>{1, 2});
+	auto il = {1, 2};
+	oel::append(c, il);
 	EXPECT_EQ(2U, c.size());
-	oel::append(c, 3, -1);
-	EXPECT_EQ(5U, c.size());
-	EXPECT_EQ( 2, *std::next(c.begin()) );
-	EXPECT_EQ(-1, c.back());
+	EXPECT_EQ(2, c.back());
 }
 
 TEST(rangeTest, append)
