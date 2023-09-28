@@ -29,25 +29,6 @@ is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 template< typename T, typename A >  inline
 void unordered_erase(dynarray<T, A> & d, size_t index)  { d.unordered_erase(d.begin() + index); }
 
-//! @name GenericContainerInsert
-//!@{
-// Overloads of generic functions for inserting into container (in range_algo.h)
-template< typename T, typename A, typename InputRange >  inline
-void assign(dynarray<T, A> & dest, InputRange && source)  { dest.assign(static_cast<InputRange &&>(source)); }
-
-template< typename T, typename A, typename InputRange >  inline
-void append(dynarray<T, A> & dest, InputRange && source)  { dest.append(static_cast<InputRange &&>(source)); }
-
-template< typename T, typename A >  inline
-void append(dynarray<T, A> & dest, size_t n, const T & val)  { dest.append(n, val); }
-
-template< typename T, typename A, typename ForwardRange >  inline
-auto insert_range(dynarray<T, A> & dest, typename dynarray<T, A>::const_iterator pos, ForwardRange && source)
-{
-	return dest.insert_range(pos, source);
-}
-//!@}
-
 #ifdef OEL_DYNARRAY_IN_DEBUG
 inline namespace debug
 {

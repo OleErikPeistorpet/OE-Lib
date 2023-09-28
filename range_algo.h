@@ -90,26 +90,11 @@ inline constexpr auto copy_fit =
 	[](auto && source, auto && dest) -> bool   { return _detail::CopyFit(source, dest); };
 
 
+/**
+* @brief Append source range at end of container
+*
+* Generic function for use with dynarray or a container with standard library interface. */
+inline constexpr auto append =
+	[](auto & container, auto && source) -> void   { _detail::Append(container, decltype(source)(source)); };
 
-/** @name GenericContainerInsert
-* @brief For generic code that may use either dynarray or std library container (overloaded in dynarray.h)  */
-//!@{
-template< typename Container, typename InputRange >
-constexpr void assign(Container & dest, InputRange && source)  { dest.assign(begin(source), end(source)); }
-
-template< typename Container, typename InputRange >
-constexpr void append(Container & dest, InputRange && source)  { dest.insert(dest.end(), begin(source), end(source)); }
-
-template< typename Container, typename T >
-constexpr void append(Container & dest, typename Container::size_type count, const T & val)
-{
-	dest.resize(dest.size() + count, val);
-}
-
-template< typename Container, typename ContainerIterator, typename InputRange >
-constexpr auto insert_range(Container & dest, ContainerIterator pos, InputRange && source)
-{
-	return dest.insert(pos, begin(source), end(source));
-}
-//!@}
 } // namespace oel
