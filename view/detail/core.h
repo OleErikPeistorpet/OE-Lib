@@ -22,6 +22,12 @@
 
 namespace oel
 {
+
+template< typename Sentinel >
+struct sentinel_wrapper   { Sentinel _s; };
+
+
+
 namespace _detail
 {
 	template< typename T,
@@ -89,3 +95,14 @@ namespace _detail
 }
 
 } // oel
+
+
+#if !OEL_STD_RANGES
+namespace std
+{
+// Small hack to let std::move_iterator< sentinel_wrapper<S> > compile
+template< typename S >
+struct iterator_traits< oel::sentinel_wrapper<S> > : iterator_traits<S> {};
+
+}
+#endif

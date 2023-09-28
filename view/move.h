@@ -41,7 +41,7 @@ namespace _detail
 			using S = std::conditional_t<
 					std::is_same_v< iterator_t<V>, sentinel_t<V> >,
 					_iter,
-					std::move_sentinel< sentinel_t<V> > // What is it good for?
+					std::move_sentinel< sentinel_t<V> >
 				>;
 		#else
 			using S = std::move_iterator< sentinel_t<V> >;

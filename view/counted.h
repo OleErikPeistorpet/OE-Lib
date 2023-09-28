@@ -45,8 +45,8 @@ public:
 
 	constexpr bool empty() const noexcept   { return 0 == _size; }
 
-	constexpr decltype(auto) operator[](difference_type index) const   OEL_ALWAYS_INLINE
-		OEL_REQUIRES(iter_is_random_access<Iterator>)          { return _begin[index]; }
+	constexpr decltype(auto) operator[](difference_type index) const
+		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE { return _begin[index]; }
 
 protected:
 	Iterator       _begin;

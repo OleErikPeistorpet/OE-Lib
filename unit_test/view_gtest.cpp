@@ -21,6 +21,9 @@ constexpr auto transformIterFromIntPtr(const int * p)
 	return oel::transform_iterator<F, const int *>{F{}, p};
 }
 
+template< typename S >
+constexpr oel::sentinel_wrapper<S> makeSentinel(S se) { return {se}; }
+
 TEST(viewTest, basicView)
 {
 	using BV = oel::basic_view<int *>;
@@ -38,7 +41,7 @@ TEST(viewTest, basicView)
 		EXPECT_EQ(2, ssize(v));
 	}
 	constexpr auto it = transformIterFromIntPtr(src);
-	constexpr auto v = view::subrange(it, src + 3);
+	constexpr auto v = view::subrange(it, makeSentinel(src + 3));
 	EXPECT_EQ(3, ssize(v));
 }
 
@@ -70,18 +73,21 @@ TEST(viewTest, viewTransformBasics)
 {
 	using Elem = double;
 
-	struct MoveOnly
+	struct MoveOnlyF
 	{	std::unique_ptr<double> p;
 		auto operator()(Elem &) const { return 0; }
 	};
 	Elem r[1];
 	auto v = view::transform(r, [](Elem &) { return 0; });
+	auto v2 = view::transform(r, MoveOnlyF{});
+	auto itMoveOnly = v2.begin();
 
 	using IEmptyLambda = decltype(v.begin());
-	using IMoveOnly = oel::transform_iterator<MoveOnly, Elem *>;
+	using IMoveOnly = decltype(itMoveOnly);
 
 	static_assert(std::is_same< IEmptyLambda::iterator_category, std::forward_iterator_tag >(), "?");
 	static_assert(std::is_same< IMoveOnly::iterator_category, std::input_iterator_tag >(), "?");
+	static_assert(std::is_same< decltype(itMoveOnly++), void >(), "?");
 	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
 #if OEL_STD_RANGES
 	static_assert(std::ranges::forward_range<decltype(v)>);
@@ -96,17 +102,17 @@ TEST(viewTest, viewTransformBasics)
 		EXPECT_TRUE( it++ == v.begin() );
 		EXPECT_TRUE( it != v.begin() );
 	}
-	EXPECT_TRUE( v.begin() == v.begin().base() );
-	EXPECT_FALSE( r + 1 == v.begin() );
-	EXPECT_FALSE( v.begin() != r + 0 );
-	EXPECT_TRUE( r + 1 != v.begin() );
+	EXPECT_TRUE( v.begin() == makeSentinel(v.begin().base()) );
+	EXPECT_FALSE( makeSentinel(r + 1) == v.begin() );
+	EXPECT_FALSE( v.begin() != makeSentinel(r + 0) );
+	EXPECT_TRUE( makeSentinel(r + 1) != v.begin() );
 
 	auto nested = view::transform(v, [](double d) { return d; });
 	auto const it = nested.begin();
-	EXPECT_TRUE(r + 0 == it);
-	EXPECT_TRUE(r + 1 != it);
-	EXPECT_FALSE(it == r + 1);
-	EXPECT_FALSE(it != r + 0);
+	EXPECT_TRUE(makeSentinel(r + 0) == it.base());
+	EXPECT_TRUE(makeSentinel(r + 1) != it.base());
+	EXPECT_FALSE(it.base() == makeSentinel(r + 1));
+	EXPECT_FALSE(it.base() != makeSentinel(r + 0));
 }
 
 #if __cplusplus > 201500 or _HAS_CXX17
@@ -118,7 +124,7 @@ constexpr auto multBy2(StdArrInt2 a)
 	StdArrInt2 res{};
 	struct
 	{	constexpr auto operator()(int i) const { return 2 * i; }
-	} mult2;
+	} mult2{};
 	auto v = view::transform(a, mult2);
 	std::ptrdiff_t i{};
 	for (auto val : v)
@@ -187,10 +193,6 @@ TEST(viewTest, viewTransformMutableLambda)
 #if OEL_STD_RANGES
 	static_assert(std::input_or_output_iterator<I>);
 	static_assert(std::ranges::range<decltype(v)>);
-	{
-		constexpr I valueInit{};
-		constexpr auto copy = valueInit;
-	}
 #endif
 
 	oel::dynarray<int> test(oel::reserve, 3);
@@ -225,10 +227,10 @@ TEST(viewTest, viewMoveEndDifferentType)
 	auto nonEmpty = [i = -1](int j) { return i + j; };
 	int src[1];
 	oel::transform_iterator<decltype(nonEmpty), int *> it{nonEmpty, src + 0};
-	auto v = view::move(view::subrange(it, src + 1));
+	auto v = view::move(view::subrange( it, makeSentinel(src + 1) ));
 
 	EXPECT_NE(v.begin(), v.end());
-	EXPECT_EQ(src + 1, v.end().base());
+	EXPECT_EQ(src + 1, v.end().base()._s);
 }
 
 #if OEL_STD_RANGES

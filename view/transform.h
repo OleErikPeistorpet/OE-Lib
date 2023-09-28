@@ -32,9 +32,9 @@ namespace _detail
 		}
 
 		template< typename Sentinel, typename... None >
-		constexpr Sentinel _makeSent(Sentinel last, None...)
+		constexpr sentinel_wrapper<Sentinel> _makeSent(Sentinel last, None...)
 		{
-			return last;
+			return {last};
 		}
 
 	public:

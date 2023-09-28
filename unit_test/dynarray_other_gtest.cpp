@@ -29,6 +29,8 @@ namespace
 #if __cpp_lib_concepts >= 201907
 	static_assert(std::contiguous_iterator<Iter>);
 	static_assert(std::contiguous_iterator<ConstIter>);
+	static_assert(std::sized_sentinel_for<ConstIter, Iter>);
+	static_assert(std::sized_sentinel_for<Iter, ConstIter>);
 #endif
 
 	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>(), "?");
