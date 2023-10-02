@@ -231,7 +231,8 @@ public:
 
 	iterator       end() noexcept          { return _detail::MakeDynarrIter           (_m, _m.end); }
 	const_iterator end() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.end); }
-	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
+	OEL_ALWAYS_INLINE
+	const_iterator cend() const noexcept   { return end(); }
 
 	reverse_iterator       rbegin() noexcept          { return       reverse_iterator{end()}; }
 	const_reverse_iterator rbegin() const noexcept    { return const_reverse_iterator{end()}; }
@@ -253,7 +254,8 @@ public:
 	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
 	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
 
-	T &       at(size_type index)   OEL_ALWAYS_INLINE
+	OEL_ALWAYS_INLINE
+	T &       at(size_type index)
 		{
 			const auto & cSelf = *this;
 			return const_cast<T &>(cSelf.at(index));

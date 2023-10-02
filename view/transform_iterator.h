@@ -81,7 +81,8 @@ public:
 	transform_iterator() = default;
 	constexpr transform_iterator(UnaryFunc f, Iterator it)   : _super{{std::move(it), std::move(f)}} {}
 
-	constexpr const Iterator & base() const & noexcept   OEL_ALWAYS_INLINE { return m.first; }
+	OEL_ALWAYS_INLINE
+	constexpr const Iterator & base() const & noexcept   { return m.first; }
 	constexpr Iterator         base() && noexcept
 		{
 			static_assert( std::is_nothrow_move_constructible_v<Iterator> );
@@ -100,10 +101,10 @@ public:
 			return f(m.first[offset]);
 		}
 
-	constexpr transform_iterator & operator++()   OEL_ALWAYS_INLINE { ++m.first;  return *this; }
-
+	OEL_ALWAYS_INLINE
+	constexpr transform_iterator & operator++()   { ++m.first;  return *this; }
 	//! Post-increment: return type is transform_iterator if iterator_category is-a forward_iterator_tag, else void
-	constexpr auto operator++(int) &
+	constexpr auto                 operator++(int) &
 		{
 			if constexpr( std::is_same_v<iterator_category, std::input_iterator_tag> )
 			{
@@ -115,7 +116,8 @@ public:
 				return tmp;
 			}
 		}
-	constexpr transform_iterator & operator--()   OEL_ALWAYS_INLINE { --m.first;  return *this; }
+	OEL_ALWAYS_INLINE
+	constexpr transform_iterator & operator--()   { --m.first;  return *this; }
 
 	constexpr transform_iterator   operator--(int) &
 		{
@@ -192,7 +194,7 @@ public:
 
 	template< typename S >
 	friend constexpr bool operator!=
-		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right.m.first != left.se; }
+		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right != left; }
 };
 
 #if __cpp_lib_concepts < 201907

@@ -32,9 +32,10 @@ public:
 	owning & operator =(owning &&)      = default;
 	owning & operator =(const owning &) = delete;
 
-	constexpr auto begin()   OEL_ALWAYS_INLINE { return adl_begin(_r); }
-
-	constexpr auto end()     OEL_ALWAYS_INLINE { return adl_end(_r); }
+	OEL_ALWAYS_INLINE
+	constexpr auto begin()   { return adl_begin(_r); }
+	OEL_ALWAYS_INLINE
+	constexpr auto end()     { return adl_end(_r); }
 
 	template
 	<	typename R = Range,
