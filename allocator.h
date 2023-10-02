@@ -11,8 +11,23 @@
 #include <algorithm> // for max
 #include <cstdint>  // for uintptr_t
 
-/** @file
-*/
+#ifndef OEL_HAS_FREE_SIZE
+	#if __STDC_VERSION_STDLIB_H__ < 202311
+	#define OEL_HAS_FREE_SIZE  0
+	#else
+	#define OEL_HAS_FREE_SIZE  1
+	#endif
+#endif
+
+#if !OEL_HAS_FREE_SIZE
+	#if __has_include("mi_malloc.h")
+	#include "mi_malloc.h"
+
+	#define OEL_HAS_MI_MALLOC  1
+	#else
+	#define OEL_HAS_MI_MALLOC  0
+	#endif
+#endif
 
 #ifndef OEL_MALLOC_ALIGNMENT
 #define OEL_MALLOC_ALIGNMENT  __STDCPP_DEFAULT_NEW_ALIGNMENT__
@@ -21,6 +36,9 @@
 #ifndef OEL_NEW_HANDLER
 #define OEL_NEW_HANDLER  !OEL_HAS_EXCEPTIONS
 #endif
+
+/** @file
+*/
 
 namespace oel
 {
@@ -47,9 +65,13 @@ public:
 
 	//! count greater than max_size() causes overflow and undefined behavior
 	[[nodiscard]] static T * allocate(size_t count);
-	//! newCount greater than max_size() causes overflow and undefined behavior
+	/**
+	* @brief Like C23 realloc except for failure handling (same as allocate, throws bad_alloc or calls new_handler)
+	* @pre Zero newCount causes undefined behavior,
+	*	newCount greater than max_size() causes overflow and undefined behavior. */
 	[[nodiscard]] static T * reallocate(T * ptr, size_t newCount);
-	static void              deallocate(T * ptr, size_t) noexcept;
+
+	static void              deallocate(T * ptr, size_t count) noexcept;
 
 	allocator() = default;
 	template< typename U >  OEL_ALWAYS_INLINE
@@ -108,11 +130,11 @@ namespace _detail
 		{
 			if constexpr (Align > OEL_MALLOC_ALIGNMENT)
 			{
-				auto p = std::malloc(nBytes + Align);
+				auto p = ::malloc(nBytes + Align);
 				return AlignAndStore<Align>(p);
 			}
 			else
-			{	return std::malloc(nBytes);
+			{	return ::malloc(nBytes);
 			}
 		}
 	};
@@ -127,42 +149,50 @@ namespace _detail
 				if (old)
 					old = static_cast<void **>(old)[-1];
 
-				auto p = std::realloc(old, nBytes + Align);
+				auto p = ::realloc(old, nBytes + Align);
 				return AlignAndStore<Align>(p);
 			}
 			else
-			{	return std::realloc(old, nBytes);
+			{	return ::realloc(old, nBytes);
 			}
 		}
 	};
 
 	template< size_t Align >
-	void Free(void * p) noexcept
+	void Free(void * p, [[maybe_unused]] size_t const nBytes) noexcept
 	{
 		if constexpr (Align > OEL_MALLOC_ALIGNMENT)
 		{
 			if (p)
-			{
 				p = static_cast<void **>(p)[-1];
-				std::free(p);
-			}
+			else
+				return;
 		}
-		else
-		{	std::free(p);
-		}
+	#if OEL_HAS_FREE_SIZE
+		::free_size(p, nBytes);
+	#elif OEL_HAS_MI_MALLOC
+		::mi_free_size(p, nBytes);
+	#else
+		::free(p);
+	#endif
 	}
 
-	template< typename AllocFunc, typename... Ptr > // should pass void * for fewer template instantiations
+	template< typename AllocFunc, bool CheckZero = true, typename... Ptr >
 #ifdef _MSC_VER
 	__declspec(restrict)
 #elif __GNUC__
 	[[gnu::malloc]]
 #endif
-	void * AllocAndHandleFail(size_t const nBytes, Ptr const... old)
+	void * AllocAndHandleFail(size_t const nBytes, Ptr const... old) // should pass void * for fewer template instantiations
 	{
-		if (nBytes > 0) // could be removed for implementations known not to return null
+	#if OEL_MEM_BOUND_DEBUG_LVL >= 2
+		if constexpr (!CheckZero)
+			OEL_ASSERT(nBytes > 0);
+	#endif
+		auto const zeroSize = CheckZero ? (nBytes == 0) : false;
+	#if OEL_NEW_HANDLER
+		if (!zeroSize)
 		{
-		#if OEL_NEW_HANDLER
 			for (;;)
 			{
 				auto p = AllocFunc::call(nBytes, old...);
@@ -175,17 +205,17 @@ namespace _detail
 
 				(*handler)();
 			}
-		#else
-			auto p = AllocFunc::call(nBytes, old...);
-			if (p)
-				return p;
-			else
-				BadAlloc::raise();
-		#endif
 		}
 		else
 		{	return nullptr;
 		}
+	#else
+		auto p = AllocFunc::call(nBytes, old...);
+		if (p or zeroSize)
+			return p;
+		else
+			BadAlloc::raise();
+	#endif
 	}
 }
 
@@ -207,13 +237,13 @@ T * allocator<T>::reallocate(T * ptr, size_t count)
 #endif
 	using F = _detail::Realloc<_alignment()>;
 	void * vp{ptr};
-	return static_cast<T *>( _detail::AllocAndHandleFail<F>(sizeof(T) * count, vp) );
+	return static_cast<T *>( _detail::AllocAndHandleFail<F, /*CheckZero*/ false>(sizeof(T) * count, vp) );
 }
 
 template< typename T >
-inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
+inline void allocator<T>::deallocate(T * ptr, size_t count) noexcept
 {
-	_detail::Free<_alignment()>(ptr);
+	_detail::Free<_alignment()>(ptr, sizeof(T) * count);
 }
 
 } // namespace oel
