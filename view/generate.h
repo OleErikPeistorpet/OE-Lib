@@ -34,8 +34,10 @@ public:
 			return static_cast<Generator &>(_g)();
 		}
 
-	constexpr _generateIterator & operator++()        OEL_ALWAYS_INLINE { return *this; }
-	constexpr void                operator++(int) &   OEL_ALWAYS_INLINE {}
+	OEL_ALWAYS_INLINE
+	constexpr _generateIterator & operator++()       { return *this; }
+	OEL_ALWAYS_INLINE
+	constexpr void                operator++(int) &  {}
 };
 
 

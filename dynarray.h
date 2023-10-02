@@ -7,8 +7,8 @@
 
 
 #include "allocator.h"
-#include "auxi/detail_forward.h"
 #include "auxi/dynarray_iterator.h"
+#include "auxi/forward_t.h"
 #include "auxi/impl_algo.h"
 #include "optimize_ext/default.h"
 #include "view/move.h"
@@ -118,7 +118,8 @@ public:
 	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
 	void        swap(dynarray & other) noexcept;
-	friend void swap(dynarray & a, dynarray & b) noexcept   OEL_ALWAYS_INLINE { a.swap(b); }
+	OEL_ALWAYS_INLINE
+	friend void swap(dynarray & a, dynarray & b) noexcept  { a.swap(b); }
 
 	/**
 	* @brief Replace the contents with source range
@@ -167,11 +168,13 @@ public:
 	iterator insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
 	iterator insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
 
-	template< typename... Args >
-	iterator emplace(const_iterator pos, Args &&... elemInitArgs) &;
+	template< typename... Args >  OEL_ALWAYS_INLINE
+	iterator emplace(const_iterator pos, Args &&... args) &
+		{
+			return _doEmplace< forward_t<Args>... >(pos, static_cast<Args &&>(args)...);
+		}
 
-	/**
-	* @brief Beware, passing an element of same array is often unsafe (otherwise same as std::vector::emplace_back)
+	/** @brief Beware, passing an element of same array is often unsafe (otherwise same as std::vector::emplace_back)
 	* @pre args shall not refer to any element of this dynarray, unless `size() < capacity()` */
 	template< typename... Args >
 	T &  emplace_back(Args &&... args) &;
@@ -222,19 +225,23 @@ public:
 
 	iterator       begin() noexcept          { return _detail::MakeDynarrIter           (_m, _m.data); }
 	const_iterator begin() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.data); }
-	const_iterator cbegin() const noexcept   OEL_ALWAYS_INLINE { return begin(); }
+	const_iterator cbegin() const noexcept   { return begin(); }
 
 	iterator       end() noexcept          { return _detail::MakeDynarrIter           (_m, _m.end); }
 	const_iterator end() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.end); }
-	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
+	OEL_ALWAYS_INLINE
+	const_iterator cend() const noexcept   { return end(); }
 
-	reverse_iterator       rbegin() noexcept         OEL_ALWAYS_INLINE { return       reverse_iterator{end()}; }
-	const_reverse_iterator rbegin() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
-	const_reverse_iterator crbegin() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
+	reverse_iterator       rbegin() noexcept         { return       reverse_iterator{end()}; }
+	const_reverse_iterator rbegin() const noexcept   { return const_reverse_iterator{end()}; }
+	const_reverse_iterator crbegin() const noexcept  { return const_reverse_iterator{end()}; }
 
-	reverse_iterator       rend() noexcept         OEL_ALWAYS_INLINE { return       reverse_iterator{begin()}; }
-	const_reverse_iterator rend() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
-	const_reverse_iterator crend() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
+	OEL_ALWAYS_INLINE
+	reverse_iterator       rend() noexcept         { return       reverse_iterator{begin()}; }
+	OEL_ALWAYS_INLINE
+	const_reverse_iterator rend() const noexcept   { return const_reverse_iterator{begin()}; }
+	OEL_ALWAYS_INLINE
+	const_reverse_iterator crend() const noexcept  { return const_reverse_iterator{begin()}; }
 
 	T *       data() noexcept         { return _m.data; }
 	const T * data() const noexcept   { return _m.data; }
@@ -248,7 +255,8 @@ public:
 	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
 	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
 
-	T &       at(size_type index)   OEL_ALWAYS_INLINE
+	OEL_ALWAYS_INLINE
+	T &       at(size_type index)
 		{
 			const auto & cSelf = *this;
 			return const_cast<T &>(cSelf.at(index));
@@ -592,43 +600,41 @@ private:
 		exit.destroy = nullptr;
 		return pos;
 	}
+
+	template< typename... Args >
+	iterator _doEmplace(const_iterator pos, Args... args)
+	{
+	#define OEL_DYNARR_INSERT_STEP1  \
+		static_assert(is_trivially_relocatable<T>::value,  \
+			"insert, emplace require trivially relocatable T, see declaration of is_trivially_relocatable");  \
+		\
+		_debugSizeUpdater guard{_m};  \
+		\
+		auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
+		OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);
+
+		OEL_DYNARR_INSERT_STEP1
+
+		// Temporary in case constructor throws or args refer to an element of this dynarray
+		storage_for<T> tmp;
+		_alloTrait::construct(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+		if (_m.end < _m.reservEnd)
+		{	// Relocate [pos, end) to [pos + 1, end + 1)
+			size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
+			std::memmove(
+				static_cast<void *>(pPos + 1),
+				static_cast<const void *>(pPos),
+				bytesAfterPos );
+			++_m.end;
+		}
+		else
+		{	pPos = _emplaceRealloc(pPos, reinterpret_cast<T &>(tmp));
+		}
+		std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
+
+		return _detail::MakeDynarrIter(_m, pPos);
+	}
 };
-
-template< typename T, typename Alloc >
-template< typename... Args >
-typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::emplace(const_iterator pos, Args &&... args) &
-{
-#define OEL_DYNARR_INSERT_STEP1  \
-	static_assert(is_trivially_relocatable<T>::value,  \
-		"insert, emplace require trivially relocatable T, see declaration of is_trivially_relocatable");  \
-	\
-	_debugSizeUpdater guard{_m};  \
-	\
-	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
-	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);
-
-	OEL_DYNARR_INSERT_STEP1
-
-	// Temporary in case constructor throws or args refer to an element of this dynarray
-	storage_for<T> tmp;
-	_alloTrait::construct(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
-	if (_m.end < _m.reservEnd)
-	{	// Relocate [pos, end) to [pos + 1, end + 1)
-		size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
-		std::memmove(
-			static_cast<void *>(pPos + 1),
-			static_cast<const void *>(pPos),
-			bytesAfterPos );
-		++_m.end;
-	}
-	else
-	{	pPos = _emplaceRealloc(pPos, reinterpret_cast<T &>(tmp));
-	}
-	std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
-
-	return _detail::MakeDynarrIter(_m, pPos);
-}
 
 template< typename T, typename Alloc >
 template< typename Range >
@@ -813,7 +819,7 @@ inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 		_growBy(count);
 
 	auto const pos = _m.end;
-	_uninitFill::template call< _detail::ForwardT<const T &> >(pos, pos + count, _m, val);
+	_uninitFill::template call< forward_t<const T &> >(pos, pos + count, _m, val);
 
 	_debugSizeUpdater guard{_m};
 	_m.end += count;

@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2020 Ole Erik Peistorpet
+// Copyright 2021 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,8 +8,9 @@
 
 #include "core_util.h"
 
-
-namespace oel::_detail
+namespace oel
+{
+namespace _detail
 {
 	// Note: false for arrays, they aren't copy/move constructible
 	template< typename SansRef, bool IsMutableRvalue >
@@ -24,20 +25,23 @@ namespace oel::_detail
 			and sizeof(SansRef) <= 2 * sizeof(void *)
 		#endif
 		> {};
-
-	template< typename T,
-		typename SansRef = std::remove_reference_t<T>,
-		bool IsConst = std::is_const_v<SansRef>
-	>
-	using ForwardT =
-		std::conditional_t<
-			std::conjunction_v<
-				// Forwarding by value: a mutable lvalue reference is wrong, a function won't compile
-				bool_constant< !std::is_lvalue_reference_v<T> or IsConst >,
-				std::negation< std::is_function<SansRef> >,
-				PassByValueLikelyFaster<SansRef, !IsConst> // !IsConst implies rvalue here
-			>,
-			std::remove_cv_t<SansRef>,
-			T &&
-		>;
 }
+
+
+template< typename T,
+	typename SansRef = std::remove_reference_t<T>,
+	bool IsConst = std::is_const_v<SansRef>
+>
+using forward_t =
+	std::conditional_t<
+		std::conjunction_v<
+			// Forwarding by value: a mutable lvalue reference is wrong, a function won't compile
+			bool_constant< !std::is_lvalue_reference_v<T> or IsConst >,
+			std::negation< std::is_function<SansRef> >,
+			_detail::PassByValueLikelyFaster<SansRef, !IsConst> // !IsConst implies rvalue here
+		>,
+		std::remove_cv_t<SansRef>,
+		T &&
+	>;
+
+} // oel
