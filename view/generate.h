@@ -54,8 +54,10 @@ public:
 			typename _base::FnRef g = this->f;  return g();
 		}
 
-	constexpr generate_iterator & operator++()        OEL_ALWAYS_INLINE { return *this; }
-	constexpr void                operator++(int) &   OEL_ALWAYS_INLINE {}
+	OEL_ALWAYS_INLINE
+	constexpr generate_iterator & operator++()       { return *this; }
+	OEL_ALWAYS_INLINE
+	constexpr void                operator++(int) &  {}
 };
 
 
