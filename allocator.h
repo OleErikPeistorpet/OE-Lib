@@ -183,17 +183,18 @@ namespace _detail
 	#endif
 	}
 
-	template< typename AllocFunc, typename... Ptr > // should pass void * for fewer template instantiations
+	template< typename AllocFunc, bool CheckZero = true, typename... Ptr >
 #ifdef _MSC_VER
 	__declspec(restrict)
 #elif __GNUC__
 	[[gnu::malloc]]
 #endif
-	void * AllocAndHandleFail(size_t const nBytes, Ptr const... old)
+	void * AllocAndHandleFail(size_t const nBytes, Ptr const... old) // should pass void * for fewer template instantiations
 	{
-		if (nBytes > 0) // could be removed for implementations known not to return null
+		auto const zeroSize = CheckZero ? (nBytes == 0) : false;
+	#if OEL_NEW_HANDLER
+		if (!zeroSize)
 		{
-		#if OEL_NEW_HANDLER
 			for (;;)
 			{
 				auto p = AllocFunc::call(nBytes, old...);
@@ -201,22 +202,22 @@ namespace _detail
 					return p;
 
 				auto const handler = std::get_new_handler();
-				if (!handler)
+				if (handler)
+					handler();
+				else
 					OEL_ABORT(allocFailMsg);
-
-				(*handler)();
 			}
-		#else
-			auto p = AllocFunc::call(nBytes, old...);
-			if (p)
-				return p;
-			else
-				BadAlloc::raise();
-		#endif
 		}
 		else
 		{	return nullptr;
 		}
+	#else
+		auto p = AllocFunc::call(nBytes, old...);
+		if (p or zeroSize)
+			return p;
+		else
+			BadAlloc::raise();
+	#endif
 	}
 }
 
@@ -234,11 +235,11 @@ template< typename T >
 T * allocator<T>::reallocate(T * ptr, size_t count)
 {
 #if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	OEL_ASSERT(count <= max_size());
+	OEL_ASSERT(0 < count and count <= max_size());
 #endif
 	using F = _detail::Realloc<_alignment()>;
 	void * vp{ptr};
-	return static_cast<T *>( _detail::AllocAndHandleFail<F>(sizeof(T) * count, vp) );
+	return static_cast<T *>( _detail::AllocAndHandleFail<F, /*CheckZero*/ false>(sizeof(T) * count, vp) );
 }
 
 template< typename T >
