@@ -11,8 +11,28 @@
 #include <algorithm> // for max
 #include <cstdint>  // for uintptr_t
 
-/** @file
-*/
+#ifndef OEL_HAS_FREE_SIZED
+	#if __STDC_VERSION_STDLIB_H__ < 202311
+	#define OEL_HAS_FREE_SIZED  0
+	#else
+	#define OEL_HAS_FREE_SIZED  1
+	#endif
+#endif
+
+#if !defined OEL_HAS_SDALLOCX and !OEL_HAS_FREE_SIZED
+	#if __has_include("jemalloc/jemalloc.h")
+	#include "jemalloc/jemalloc.h"
+
+	#define OEL_HAS_SDALLOCX  1
+
+	#elif __has_include("tcmalloc/malloc_extension.h")
+	#include "tcmalloc/malloc_extension.h"
+
+	#define OEL_HAS_SDALLOCX  1
+	#else
+	#define OEL_HAS_SDALLOCX  0
+	#endif
+#endif
 
 #ifndef OEL_MALLOC_ALIGNMENT
 #define OEL_MALLOC_ALIGNMENT  __STDCPP_DEFAULT_NEW_ALIGNMENT__
@@ -22,11 +42,14 @@
 #define OEL_NEW_HANDLER  !OEL_HAS_EXCEPTIONS
 #endif
 
+/** @file
+*/
+
 namespace oel
 {
 
-/** @brief Has reallocate method in addition to standard functionality
-*
+//! Has `reallocate` function in addition to standard functionality
+/**
 * Either throws std::bad_alloc or calls standard new_handler on failure, depending on value of OEL_NEW_HANDLER.
 * (Automatically handles over-aligned T, like std::allocator does from C++17) */
 template< typename T >
@@ -37,7 +60,7 @@ public:
 
 	using propagate_on_container_move_assignment = std::true_type;
 
-	static constexpr bool   can_reallocate() noexcept  { return is_trivially_relocatable<T>::value; }
+	static constexpr bool   can_reallocate() noexcept { return is_trivially_relocatable<T>::value; }
 
 	static constexpr size_t max_size() noexcept
 		{
@@ -45,15 +68,19 @@ public:
 			return n / sizeof(T);
 		}
 
-	//! count greater than max_size() causes overflow and undefined behavior
+	//! `count` greater than max_size() causes overflow and undefined behavior
 	[[nodiscard]] static T * allocate(size_t count);
-	//! newCount greater than max_size() causes overflow and undefined behavior
+
+	//! Like C23 `realloc` except for failure handling (same as allocate, throws bad_alloc or calls new_handler)
+	/** @pre If newCount is zero or greater than max_size(), the behavior is undefined  */
 	[[nodiscard]] static T * reallocate(T * ptr, size_t newCount);
-	static void              deallocate(T * ptr, size_t) noexcept;
+
+	static void              deallocate(T * ptr, size_t count) noexcept;
 
 	allocator() = default;
+
 	template< typename U >  OEL_ALWAYS_INLINE
-	constexpr allocator(const allocator<U> &) noexcept {}
+	constexpr allocator(allocator<U>) noexcept {}
 
 	friend constexpr bool operator==(allocator, allocator) noexcept  { return true; }
 	friend constexpr bool operator!=(allocator, allocator) noexcept  { return false; }
@@ -108,11 +135,11 @@ namespace _detail
 		{
 			if constexpr (Align > OEL_MALLOC_ALIGNMENT)
 			{
-				auto p = std::malloc(nBytes + Align);
+				auto p = ::malloc(nBytes + Align);
 				return AlignAndStore<Align>(p);
 			}
 			else
-			{	return std::malloc(nBytes);
+			{	return ::malloc(nBytes);
 			}
 		}
 	};
@@ -127,29 +154,33 @@ namespace _detail
 				if (old)
 					old = static_cast<void **>(old)[-1];
 
-				auto p = std::realloc(old, nBytes + Align);
+				auto p = ::realloc(old, nBytes + Align);
 				return AlignAndStore<Align>(p);
 			}
 			else
-			{	return std::realloc(old, nBytes);
+			{	return ::realloc(old, nBytes);
 			}
 		}
 	};
 
 	template< size_t Align >
-	void Free(void * p) noexcept
+	void Free(void * p, size_t const nBytes) noexcept
 	{
 		if constexpr (Align > OEL_MALLOC_ALIGNMENT)
 		{
 			if (p)
-			{
 				p = static_cast<void **>(p)[-1];
-				std::free(p);
-			}
+			else
+				return;
 		}
-		else
-		{	std::free(p);
-		}
+	#if OEL_HAS_FREE_SIZED
+		::free_sized(p, nBytes);
+	#elif OEL_HAS_SDALLOCX
+		::sdallocx(p, nBytes, {});
+	#else
+		::free(p);
+		(void) nBytes;
+	#endif
 	}
 
 	template< typename AllocFunc, typename... Ptr > // should pass void * for fewer template instantiations
@@ -211,9 +242,9 @@ T * allocator<T>::reallocate(T * ptr, size_t count)
 }
 
 template< typename T >
-inline void allocator<T>::deallocate(T * ptr, size_t) noexcept
+inline void allocator<T>::deallocate(T * ptr, size_t count) noexcept
 {
-	_detail::Free<_alignment()>(ptr);
+	_detail::Free<_alignment()>(ptr, sizeof(T) * count);
 }
 
 } // namespace oel
