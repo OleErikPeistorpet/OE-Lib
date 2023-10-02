@@ -23,15 +23,16 @@ class owning
 public:
 	using difference_type = iter_difference_t< iterator_t<Range> >;
 
+	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
+
 	owning() = default;
 	owning(owning &&) = default;
 	owning(const owning &) = delete;
 	owning & operator =(owning &&) = default;
 	owning & operator =(const owning &) = delete;
 
-	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
-
-	constexpr auto begin()    OEL_ALWAYS_INLINE { return adl_begin(_r); }
+	OEL_ALWAYS_INLINE
+	constexpr auto begin()   { return adl_begin(_r); }
 
 	template< typename R = Range >  OEL_ALWAYS_INLINE
 	constexpr auto end()

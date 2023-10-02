@@ -33,12 +33,13 @@ public:
 	>
 	constexpr Iterator end() const   { return _begin + _size; }
 
-	constexpr auto size() const noexcept   OEL_ALWAYS_INLINE { return std::make_unsigned_t<difference_type>(_size); }
+	OEL_ALWAYS_INLINE
+	constexpr auto size() const noexcept    { return std::make_unsigned_t<difference_type>(_size); }
 
 	constexpr bool empty() const noexcept   { return 0 == _size; }
 
 	constexpr decltype(auto) operator[](difference_type index) const
-		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE { return _begin[index]; }
+		OEL_REQUIRES(iter_is_random_access<Iterator>)          { return _begin[index]; }
 
 private:
 	Iterator       _begin;
