@@ -76,9 +76,10 @@ public:
 	transform_iterator() = default;
 	constexpr transform_iterator(UnaryFunc f, Iterator it)   : _super{{std::move(it), std::move(f)}} {}
 
-	constexpr Iterator         base() &&                       { return std::move(m.first); }
-	constexpr Iterator         base() const &&                            { return m.first; }
-	constexpr const Iterator & base() const & noexcept  OEL_ALWAYS_INLINE { return m.first; }
+	constexpr Iterator         base() &&                { return std::move(m.first); }
+	constexpr Iterator         base() const &&          { return m.first; }
+	OEL_ALWAYS_INLINE
+	constexpr const Iterator & base() const & noexcept  { return m.first; }
 
 	constexpr reference operator*() const
 		{
@@ -86,7 +87,8 @@ public:
 			return f(*m.first);
 		}
 
-	constexpr transform_iterator & operator++()   OEL_ALWAYS_INLINE { ++m.first;  return *this; }
+	OEL_ALWAYS_INLINE
+	constexpr transform_iterator & operator++()   { ++m.first;  return *this; }
 	//! Post-increment: return type is transform_iterator if iterator_category is-a forward_iterator_tag, else void
 	constexpr auto                 operator++(int) &
 		{
@@ -100,8 +102,9 @@ public:
 				return tmp;
 			}
 		}
+	OEL_ALWAYS_INLINE
 	constexpr transform_iterator & operator--()
-		OEL_REQUIRES(_isBidirectional)          OEL_ALWAYS_INLINE { --m.first;  return *this; }
+		OEL_REQUIRES(_isBidirectional)          { --m.first;  return *this; }
 
 	constexpr transform_iterator   operator--(int) &
 		OEL_REQUIRES(_isBidirectional)

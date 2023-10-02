@@ -43,7 +43,7 @@ public:
 	constexpr bool empty() const   { return _m.first == _m.second(); }
 
 	constexpr decltype(auto) operator[](difference_type index) const
-		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE { return _m.first[index]; }
+		OEL_REQUIRES(iter_is_random_access<Iterator>)          { return _m.first[index]; }
 };
 
 }

@@ -53,7 +53,7 @@ public:
 
 	using const_iterator = dynarray_iterator<const value_type *>;
 
-	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
+	operator const_iterator() const noexcept
 	{
 		return {_pElem, _header, _allocationId};
 	}
@@ -70,7 +70,8 @@ public:
 		return _pElem;
 	}
 
-	dynarray_iterator & operator++() &  OEL_ALWAYS_INLINE
+	OEL_ALWAYS_INLINE
+	dynarray_iterator & operator++() &
 	{
 		++_pElem;
 		return *this;
@@ -83,7 +84,8 @@ public:
 		return tmp;
 	}
 
-	dynarray_iterator & operator--() &  OEL_ALWAYS_INLINE
+	OEL_ALWAYS_INLINE
+	dynarray_iterator & operator--() &
 	{
 		--_pElem;
 		return *this;
@@ -96,13 +98,13 @@ public:
 		return tmp;
 	}
 
-	dynarray_iterator & operator+=(difference_type offset) &  OEL_ALWAYS_INLINE
+	dynarray_iterator & operator+=(difference_type offset) &
 	{
 		_pElem += offset;
 		return *this;
 	}
 
-	dynarray_iterator & operator-=(difference_type offset) &  OEL_ALWAYS_INLINE
+	dynarray_iterator & operator-=(difference_type offset) &
 	{
 		_pElem -= offset;
 		return *this;

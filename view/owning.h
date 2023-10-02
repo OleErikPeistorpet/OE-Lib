@@ -31,7 +31,7 @@ public:
 
 	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
 
-	constexpr auto begin()    OEL_ALWAYS_INLINE { return adl_begin(_r); }
+	constexpr auto begin()   { return adl_begin(_r); }
 
 	template< typename R = Range >  OEL_ALWAYS_INLINE
 	constexpr auto end()

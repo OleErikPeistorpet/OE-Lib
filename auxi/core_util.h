@@ -33,6 +33,8 @@
 
 #ifdef __GNUC__
 	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
+#elif _MSC_VER
+	#define OEL_ALWAYS_INLINE __forceinline
 #else
 	#define OEL_ALWAYS_INLINE
 #endif
