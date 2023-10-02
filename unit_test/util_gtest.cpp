@@ -53,64 +53,63 @@ TEST(utilTest, ForwardT)
 {
 	using oel::_detail::ForwardT;
 
-	static_assert(std::is_same< ForwardT<double const>, double >::value);
-	static_assert(std::is_same< ForwardT<double &&>, double >::value);
-	static_assert(std::is_same< ForwardT<const double &&>, double >::value);
-	static_assert(std::is_same< ForwardT<const double &>, double >::value);
-	static_assert(std::is_same< ForwardT<double &>, double & >::value);
+	static_assert(std::is_same_v< ForwardT<double const>, double >);
+	static_assert(std::is_same_v< ForwardT<double &&>, double >);
+	static_assert(std::is_same_v< ForwardT<const double &&>, double >);
+	static_assert(std::is_same_v< ForwardT<const double &>, double >);
+	static_assert(std::is_same_v< ForwardT<double &>, double & >);
 
-	static_assert(std::is_same< ForwardT<int[1]>, int(&&)[1] >::value);
-	static_assert(std::is_same< ForwardT<int(&&)[1]>, int(&&)[1] >::value);
-	static_assert(std::is_same< ForwardT<const int(&)[1]>, const int(&)[1] >::value);
+	static_assert(std::is_same_v< ForwardT<int[1]>, int(&&)[1] >);
+	static_assert(std::is_same_v< ForwardT<int(&&)[1]>, int(&&)[1] >);
+	static_assert(std::is_same_v< ForwardT<int(&)[1]>, int(&)[1] >);
+	static_assert(std::is_same_v< ForwardT<const int(&)[1]>, const int(&)[1] >);
 
 	using P = std::unique_ptr<int>;
-	static_assert(std::is_same< ForwardT<P const>, const P && >::value);
-	static_assert(std::is_same< ForwardT<const P &&>, const P && >::value);
-	static_assert(std::is_same< ForwardT<P &>, P & >::value);
-	static_assert(std::is_same< ForwardT<const P &>, const P & >::value);
+	static_assert(std::is_same_v< ForwardT<P const>, const P && >);
+	static_assert(std::is_same_v< ForwardT<const P &&>, const P && >);
+	static_assert(std::is_same_v< ForwardT<P &>, P & >);
+	static_assert(std::is_same_v< ForwardT<const P &>, const P & >);
 
 	// Small, non-trivial copy
-	static_assert(std::is_same< ForwardT<TrivialRelocat const>, const TrivialRelocat && >());
-	static_assert(std::is_same< ForwardT<const TrivialRelocat &&>, const TrivialRelocat && >());
-	static_assert(std::is_same< ForwardT<TrivialRelocat &>, TrivialRelocat & >());
-	static_assert(std::is_same< ForwardT<const TrivialRelocat &>, const TrivialRelocat & >());
+	static_assert(std::is_same_v< ForwardT<TrivialRelocat const>, const TrivialRelocat && >);
+	static_assert(std::is_same_v< ForwardT<const TrivialRelocat &&>, const TrivialRelocat && >);
+	static_assert(std::is_same_v< ForwardT<TrivialRelocat &>, TrivialRelocat & >);
+	static_assert(std::is_same_v< ForwardT<const TrivialRelocat &>, const TrivialRelocat & >);
 
 #ifdef _MSC_VER
-	static_assert(std::is_same< ForwardT<P>, P >::value);
-	static_assert(std::is_same< ForwardT<P &&>, P >::value);
+	static_assert(std::is_same_v< ForwardT<P>, P >);
+	static_assert(std::is_same_v< ForwardT<P &&>, P >);
 
-	static_assert(std::is_same< ForwardT<TrivialRelocat>, TrivialRelocat >::value);
-	static_assert(std::is_same< ForwardT<TrivialRelocat &&>, TrivialRelocat >::value);
+	static_assert(std::is_same_v< ForwardT<TrivialRelocat>, TrivialRelocat >);
+	static_assert(std::is_same_v< ForwardT<TrivialRelocat &&>, TrivialRelocat >);
 #else
-	static_assert(std::is_same< ForwardT<P>, P && >::value);
-	static_assert(std::is_same< ForwardT<P &&>, P && >::value);
+	static_assert(std::is_same_v< ForwardT<P>, P && >);
+	static_assert(std::is_same_v< ForwardT<P &&>, P && >);
 
-	static_assert(std::is_same< ForwardT<TrivialRelocat>, TrivialRelocat && >::value);
-	static_assert(std::is_same< ForwardT<TrivialRelocat &&>, TrivialRelocat && >::value);
+	static_assert(std::is_same_v< ForwardT<TrivialRelocat>, TrivialRelocat && >);
+	static_assert(std::is_same_v< ForwardT<TrivialRelocat &&>, TrivialRelocat && >);
 #endif
-
-#ifdef _MSC_VER
-	using A = std::array<double, 2>;
-	static_assert(std::is_same< ForwardT<A>, A && >::value);
-	static_assert(std::is_same< ForwardT<A &&>, A && >::value);
-	static_assert(std::is_same< ForwardT<A const>, const A && >::value);
-	static_assert(std::is_same< ForwardT<const A &&>, const A && >::value);
-	static_assert(std::is_same< ForwardT<A &>, A & >::value);
-	static_assert(std::is_same< ForwardT<const A &>, const A & >::value);
-#else
-	using A = std::array<int *, 2>;
-	static_assert(std::is_same< ForwardT<A const>, A >::value);
-	static_assert(std::is_same< ForwardT<A &&>, A >::value);
-	static_assert(std::is_same< ForwardT<const A &&>, A >::value);
-	static_assert(std::is_same< ForwardT<const A &>, A >::value);
-	static_assert(std::is_same< ForwardT<A &>, A & >::value);
-#endif
+	{
+		using A = std::array<std::size_t, 3>;
+		static_assert(std::is_same_v< ForwardT<A>, A && >);
+		static_assert(std::is_same_v< ForwardT<A &&>, A && >);
+		static_assert(std::is_same_v< ForwardT<A const>, const A && >);
+		static_assert(std::is_same_v< ForwardT<const A &&>, const A && >);
+		static_assert(std::is_same_v< ForwardT<A &>, A & >);
+		static_assert(std::is_same_v< ForwardT<const A &>, const A & >);
+	}
+	using A = std::array<double, 1>;
+	static_assert(std::is_same_v< ForwardT<A const>, A >);
+	static_assert(std::is_same_v< ForwardT<A &&>, A >);
+	static_assert(std::is_same_v< ForwardT<const A &&>, A >);
+	static_assert(std::is_same_v< ForwardT<const A &>, A >);
+	static_assert(std::is_same_v< ForwardT<A &>, A & >);
 
 #if HAS_STD_PMR
 	using Alloc = std::pmr::polymorphic_allocator<int>;
-	static_assert(std::is_same< ForwardT<Alloc>, Alloc >::value);
-	static_assert(std::is_same< ForwardT<Alloc &&>, Alloc >::value);
-	static_assert(std::is_same< ForwardT<const Alloc &>, Alloc >::value);
+	static_assert(std::is_same_v< ForwardT<Alloc>, Alloc >);
+	static_assert(std::is_same_v< ForwardT<Alloc &&>, Alloc >);
+	static_assert(std::is_same_v< ForwardT<const Alloc &>, Alloc >);
 #endif
 }
 

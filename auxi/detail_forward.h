@@ -12,13 +12,13 @@
 namespace oel::_detail
 {
 	// Note: false for arrays, they aren't copy/move constructible
-	template< typename T, typename SansRef, bool IsConst >
-	struct PassByValueIsBetter : bool_constant<
-		#if defined _MSC_VER and (_M_IX86 or _M_AMD64)
+	template< typename SansRef, bool IsMutableRvalue >
+	struct PassByValueLikelyFaster
+	 :	bool_constant<
+		#if defined _MSC_VER and (_M_IX86 or _M_X64)
 			// Small objects assumed cheap to move, so that unique_ptr can be passed in register
-			(	std::is_trivially_copy_constructible_v<SansRef> or
-				(std::is_move_constructible_v<SansRef> and !IsConst) ) // !IsConst implies rvalue due to check in ForwardT
-			and sizeof(SansRef) <= 2 * sizeof(int)
+			(std::is_move_constructible_v<SansRef> and IsMutableRvalue and sizeof(SansRef) <= sizeof(void *))
+			or (std::is_trivially_copy_constructible_v<SansRef> and sizeof(SansRef) <= 2 * sizeof(void *))
 		#else
 			std::is_trivially_copy_constructible_v<SansRef> and std::is_trivially_destructible_v<SansRef>
 			and sizeof(SansRef) <= 2 * sizeof(void *)
@@ -32,10 +32,10 @@ namespace oel::_detail
 	using ForwardT =
 		std::conditional_t<
 			std::conjunction_v<
-				// Forwarding a function or mutable lvalue reference by value would break
+				// Forwarding by value: a mutable lvalue reference is wrong, a function won't compile
 				bool_constant< !std::is_lvalue_reference_v<T> or IsConst >,
 				std::negation< std::is_function<SansRef> >,
-				PassByValueIsBetter<T, SansRef, IsConst>
+				PassByValueLikelyFaster<SansRef, !IsConst> // !IsConst implies rvalue here
 			>,
 			std::remove_cv_t<SansRef>,
 			T &&
