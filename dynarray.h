@@ -7,7 +7,7 @@
 
 
 #include "allocator.h"
-#include "auxi/detail_forward.h"
+#include "auxi/detail_const_param.h"
 #include "auxi/dynarray_iterator.h"
 #include "auxi/impl_algo.h"
 #include "optimize_ext/default.h"
@@ -691,7 +691,7 @@ inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 		_growBy(count);
 
 	auto const pos = _m.end;
-	_uninitFill::template call< _detail::ForwardT<const T &> >(pos, pos + count, _m, val);
+	_uninitFill::template call< _detail::ConstParam<T> >(pos, pos + count, _m, val);
 
 	_debugSizeUpdater guard{_m};
 	_m.end += count;
