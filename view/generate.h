@@ -7,6 +7,7 @@
 
 
 #include "counted.h"
+#include "subrange.h"
 #include "../auxi/assignable.h"
 
 /** @file
@@ -41,9 +42,16 @@ public:
 
 namespace view
 {
+
+#if OEL_STD_RANGES
 //! TODO
 inline constexpr auto generate =
+	[](auto generator)  { return subrange(_generateIterator{std::move(generator)}, std::unreachable_sentinel); };
+#endif
+//! TODO
+inline constexpr auto generate_n =
 	[](auto generator, ptrdiff_t count)  { return counted(_generateIterator{std::move(generator)}, count); };
-}
 
-} // oel
+} // view
+
+}

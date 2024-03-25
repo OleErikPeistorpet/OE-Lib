@@ -226,7 +226,7 @@ struct Ints
 
 TEST(viewTest, viewGenerate)
 {
-	auto d = oel::dynarray(view::generate(Ints{}, 2));
+	auto d = oel::dynarray(view::generate_n(Ints{}, 2));
 
 	ASSERT_EQ(2U, d.size());
 	EXPECT_EQ(0, d[0]);
@@ -254,7 +254,7 @@ TEST(viewTest, viewMoveMutableEmptyAndSize)
 	EXPECT_EQ(1U, v.size());
 }
 
-using IntIter = oel::iterator_t<decltype( view::generate(Ints{}, 0) )>;
+using IntIter = oel::iterator_t<decltype( view::generate(Ints{}) )>;
 
 static_assert(std::input_or_output_iterator<IntIter>);
 static_assert(std::sentinel_for<std::unreachable_sentinel_t, IntIter>);
