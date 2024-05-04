@@ -8,6 +8,7 @@
 
 #include "impl_algo.h"
 #include "../util.h" // for as_unsigned
+#include "../view/counted.h"
 
 #include <algorithm>
 
@@ -109,5 +110,27 @@ namespace oel::_detail
 
 		_detail::CopyUnsf(begin(src), n, begin(dest));
 		return success;
+	}
+
+////////////////////////////////////////////////////////////////////////////////
+
+	template< typename Alloc, typename... Ranges >
+	auto ConcatToDynarr(Alloc a, Ranges &&... rs)
+	{
+		using T = std::common_type_t<
+				iter_value_t< iterator_t<Ranges> >...
+			>;
+		size_t const counts[]{_detail::CountOrEnd(rs)...};
+
+		size_t sum{};
+		for (auto n : counts)
+			sum += n;
+
+		auto d = dynarray<T>(reserve, sum, std::move(a));
+
+		auto nIt = begin(counts);
+		(..., d.append( view::counted(begin(rs), *nIt++) ));
+
+		return d;
 	}
 }
