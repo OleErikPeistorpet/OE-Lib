@@ -322,22 +322,9 @@ private:
 
 	void _moveInternBase(_internBase & src) noexcept
 	{
-		static_cast<_internBase &>(_m) = src;
-		src.reservEnd = src.end = src.data = nullptr;
-	}
-
-	void _swapAlloc([[maybe_unused]] allocator_type & other) noexcept
-	{
-		[[maybe_unused]] allocator_type & a = _m;
-		if constexpr (_alloTrait::propagate_on_container_swap::value)
-		{
-			using std::swap;
-			swap(a, other);
-		}
-		else
-		{	// Standard says this is undefined if allocators compare unequal
-			OEL_ASSERT(a == other);
-		}
+		_internBase & dest = _m;
+		dest = src;
+		src  = {};
 	}
 
 
@@ -419,8 +406,6 @@ private:
 	template< typename UninitFiller >
 	void _doResize(size_type const newSize)
 	{
-		_debugSizeUpdater guard{_m};
-
 		reserve(newSize);
 
 		T *const newEnd = _m.data + newSize;
@@ -429,6 +414,7 @@ private:
 		else
 			_detail::Destroy(newEnd, _m.end);
 
+		_debugSizeUpdater guard{_m};
 		_m.end = newEnd;
 	}
 
@@ -688,12 +674,12 @@ template< typename T, typename Alloc >
 template< typename... Args >
 inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 {
-	_debugSizeUpdater guard{_m};
-
 	if (_m.end == _m.reservEnd)
 		_growByOne();
 
 	_alloTrait::construct(_m, _m.end, static_cast<Args &&>(args)...);
+
+	_debugSizeUpdater guard{_m};
 
 	return *(_m.end++);
 }
@@ -748,22 +734,22 @@ template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
  :	_m(a)
 {
-	_debugSizeUpdater guard{_m};
-
 	_initReserve(n);
 	_m.end = _m.reservEnd;
 	_detail::DefaultInit<allocator_type>::call(_m.data, _m.reservEnd, _m);
+
+	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
  :	_m(a)
 {
-	_debugSizeUpdater guard{_m};
-
 	_initReserve(n);
 	_m.end = _m.reservEnd;
 	_uninitFill::call(_m.data, _m.reservEnd, _m);
+
+	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
@@ -775,10 +761,21 @@ dynarray<T, Alloc>::~dynarray() noexcept
 template< typename T, typename Alloc >
 void dynarray<T, Alloc>::swap(dynarray & other) noexcept
 {
-	_internBase & a = _m;
-	_internBase & b = other._m;
-	std::swap(a, b);
-	_swapAlloc(other._m);
+	_internBase & x = _m;
+	_internBase & y = other._m;
+	std::swap(x, y);
+
+	[[maybe_unused]] allocator_type & a0 = _m;
+	[[maybe_unused]] allocator_type & a1 = other._m;
+	if constexpr (_alloTrait::propagate_on_container_swap::value)
+	{
+		using std::swap;
+		swap(a0, a1);
+	}
+	else
+	{	// Standard says this is undefined if allocators compare unequal
+		OEL_ASSERT(a0 == a1);
+	}
 }
 
 
@@ -815,21 +812,22 @@ template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::pop_back() noexcept
 {
 	OEL_ASSERT(_m.data < _m.end);
-	_debugSizeUpdater guard{_m};
-
 	--_m.end;
 	(*_m.end).~T();
+
+	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
 void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 {
-	_debugSizeUpdater guard{_m};
-
 	T *const newEnd = to_pointer_contiguous(first);
 	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
+
 	_detail::Destroy(newEnd, _m.end);
 	_m.end = newEnd;
+
+	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
