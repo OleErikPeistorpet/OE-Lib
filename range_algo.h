@@ -37,7 +37,7 @@ template< typename RandomAccessContainer, typename Integral >
 *
 * This mimics `std::erase_if` (C++20) for sequence containers  */
 template< typename Container, typename UnaryPredicate >
-constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c, p); }
+constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c, std::move(p)); }
 /**
 * @brief Erase consecutive duplicate elements in container
 *

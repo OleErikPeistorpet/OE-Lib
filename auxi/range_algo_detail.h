@@ -28,13 +28,16 @@ namespace oel::_detail
 
 	template< typename Container, typename UnaryPred >
 	constexpr auto RemoveIf(Container & c, UnaryPred p)
-	->	decltype(c.remove_if(p))
-	{	return   c.remove_if(p); }
+	->	decltype( c.remove_if(std::move(p)) )
+	{	return    c.remove_if(std::move(p)); }
 
 	template< typename Container, typename UnaryPred, typename... None >
 	constexpr void RemoveIf(Container & c, UnaryPred p, None...)
 	{
-		_detail::EraseEnd( c, std::remove_if(begin(c), end(c), p) );
+		_detail::EraseEnd
+		(	c,
+			std::remove_if(begin(c), end(c), std::move(p))
+		);
 	}
 
 	template< typename Container >
