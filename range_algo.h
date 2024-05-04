@@ -11,13 +11,39 @@
 
 
 /** @file
-* @brief Efficient range-based erase, copy functions and non-member append
+* @brief Efficient range-based erase, copy functions, concat_to_dynarray and non-member append
 *
 * Designed to interface with the standard library.
 */
 
 namespace oel
 {
+
+//! Concatenate multiple ranges into a dynarray using a single memory allocation
+/**
+* Requires that each of Ranges model std::ranges::forward_range or is a sized range.
+* Example:
+@code
+constexpr auto header = "v1\n"sv;
+std::string_view body();
+
+auto result = concat_to_dynarray(header, body());
+@endcode  */
+template< typename... Ranges >  inline
+auto concat_to_dynarray(Ranges &&... sources)
+	{
+		return _detail::ConcatToDynarr(allocator<>{}, static_cast<Ranges &&>(sources)...);
+	}
+//! Equivalent to oel::concat_to_dynarray with an allocator instance for the dynarray
+/** @param a will be rebound to the type deduced from Ranges, which is std::common_type_t of all range value types
+*
+* Has the same effect as `std::views::concat(sources...) | to_dynarray(a)`. */
+template< typename Alloc, typename... Ranges >  inline
+auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
+	{
+		return _detail::ConcatToDynarr(std::move(a), static_cast<Ranges &&>(sources)...);
+	}
+
 
 /** @brief Erase the element at index from container without maintaining order of elements after index.
 *
@@ -59,7 +85,7 @@ struct copy_return
 * @return `begin(source)` incremented by source size
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* Requires that  `source.size()` or `end(source) - begin(source)` is valid, and that iter models random_access_iterator.
+* Requires that `source.size()` or `end(source) - begin(source)` is valid, and that iter models random_access_iterator.
 * To move instead of copy, wrap source with view::move. To mimic std::copy_n, use view::counted.
 * (Views can be used for all functions taking a range as source)  */
 inline constexpr auto copy_unsafe =

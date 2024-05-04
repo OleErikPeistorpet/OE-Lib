@@ -72,7 +72,7 @@ TEST_F(dynarrayConstructTest, constructEmpty)
 {
 	dynarrayTrackingAlloc<TrivialDefaultConstruct> a;
 
-	ASSERT_TRUE(a.get_allocator() == allocator<TrivialDefaultConstruct>());
+	ASSERT_TRUE(a.get_allocator() == TrackingAllocator<TrivialDefaultConstruct>{});
 	EXPECT_EQ(0U, a.capacity());
 	EXPECT_EQ(0, g_allocCount.nAllocations);
 	ASSERT_EQ(0, g_allocCount.nDeallocations);

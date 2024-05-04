@@ -220,11 +220,17 @@ struct TrackingAllocData
 extern TrackingAllocData g_allocCount;
 
 template<typename T>
-struct TrackingAllocatorBase : oel::allocator<T>
+struct TrackingAllocatorBase : private oel::allocator<T>
 {
 	using _base = oel::allocator<T>;
 
+	using value_type = T;
+
 	using size_type = typename std::allocator_traits<_base>::size_type;
+
+	using _base::_base;
+
+	using _base::can_reallocate;
 
 	T * allocate(size_type count)
 	{
@@ -264,6 +270,9 @@ struct TrackingAllocatorBase : oel::allocator<T>
 
 		_base::deallocate(ptr, count);
 	}
+
+	friend constexpr bool operator==(TrackingAllocatorBase, TrackingAllocatorBase) noexcept  { return true; }
+	friend constexpr bool operator!=(TrackingAllocatorBase, TrackingAllocatorBase) noexcept  { return false; }
 };
 
 template<typename T>
@@ -277,7 +286,7 @@ struct TrackingAllocator : TrackingAllocatorBase<T>
 	}
 
 	// Testing collision with internal names in dynarray
-	using allocator_type = TrackingAllocatorBase<char>;
+	using allocator_type = std::allocator<float>;
 	using Alloc = void;
 	struct oel {};
 	struct _detail {};
@@ -298,7 +307,7 @@ struct StatefulAllocator : std::conditional_t< UseConstruct, TrackingAllocator<T
 	explicit StatefulAllocator(int id_ = 0) : id(id_) {}
 
 	template< typename U >
-	StatefulAllocator(StatefulAllocator<U> other) : id{other.id} {}
+	StatefulAllocator(StatefulAllocator<U, PropagateOnMoveAssign, UseConstruct> other) : id{other.id} {}
 
 	template< typename U >
 	struct rebind

@@ -38,14 +38,14 @@ constexpr auto to_dynarray(Alloc a = {})
 template< typename T, typename Alloc >
 is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
+
 #if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug
 {
 #endif
 
+//! Resizable array, dynamically allocated. Very similar to std::vector, but faster in some cases.
 /**
-* @brief Resizable array, dynamically allocated. Very similar to std::vector, but faster in many cases.
-*
 * In general, only that which differs from std::vector is documented.
 *
 * There is a general requirement that template argument T is trivially relocatable or noexcept move
@@ -54,8 +54,9 @@ inline namespace debug
 * Furthermore, a few functions require that T is trivially relocatable (noexcept movable is not enough):
 * emplace, insert, insert_range
 *
-* Note that the allocator model is not quite standard: `destroy` is never used,
-* `construct` may not be called if T is trivially constructible and is not called when relocating elements.
+* Note that the allocator model is not quite standard: `destroy` is never used, `construct` may not be called
+* if T is trivially constructible and is not called when relocating elements. Also, Alloc::value_type need not
+* be the same as T, it will be rebound, so you can use e.g. `std::pmr::polymorphic_allocator<>`.
 *
 * For any function which takes a range, `end(range)` is not needed if `range.size()` is valid.
 */

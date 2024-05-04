@@ -12,6 +12,7 @@
 #include <deque>
 #include <array>
 #include <valarray>
+#include <string_view>
 
 namespace view = oel::view;
 
@@ -76,6 +77,27 @@ TEST(rangeTest, eraseAdjacentDup)
 	EXPECT_EQ(4U, li.size());
 	erase_adjacent_dup(uniqueTest);
 	EXPECT_FALSE(uniqueTest != expect);
+}
+
+TEST(rangeTest, concatToDynarray)
+{
+	using namespace std::string_view_literals;
+
+	auto body = [] { return "Test"sv; };
+	char const header[]{'v', '1', '\n'};
+	{
+		auto result = oel::concat_to_dynarray(header, body());
+
+		std::string_view v{result.data(), result.size()};
+		EXPECT_EQ("v1\nTest"sv, v);
+	}
+
+	StatefulAllocator<char> a{7};
+	auto result = oel::concat_to_dynarray_with_alloc(a, header, body());
+
+	std::string_view v{result.data(), result.size()};
+	EXPECT_EQ("v1\nTest"sv, v);
+	EXPECT_EQ(7, result.get_allocator().id);
 }
 
 TEST(rangeTest, copyUnsafe)
