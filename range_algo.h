@@ -11,7 +11,7 @@
 
 
 /** @file
-* @brief Efficient range-based erase, copy functions and non-member append
+* @brief Efficient range-based erase, copy functions, concat_to_dynarray and non-member append
 *
 * Designed to interface with the standard library.
 */
@@ -47,6 +47,29 @@ constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c
 template< typename Container >
 constexpr void erase_adjacent_dup(Container & c)   { _detail::Unique(c); }
 
+
+
+//! TODO
+/**
+* Requires that Ranges all model std::ranges::forward_range or std::ranges::sized_range.
+* Example:
+@code
+constexpr auto header = "v1\n"sv;
+std::string_view body();
+
+auto result = concat_to_dynarray(header, body());
+@endcode  */
+template< typename... Ranges >  inline
+auto concat_to_dynarray(Ranges &&... sources)
+	{
+		return _detail::ConcatToDynarr(allocator<>{}, static_cast<Ranges &&>(sources)...);
+	}
+//! TODO
+template< typename Alloc, typename... Ranges >  inline
+auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
+	{
+		return _detail::ConcatToDynarr(std::move(a), static_cast<Ranges &&>(sources)...);
+	}
 
 
 template< typename Iterator >
