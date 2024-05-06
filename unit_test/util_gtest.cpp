@@ -166,6 +166,44 @@ TEST(utilTest, makeUnique)
 		a[i] = i;
 }
 
+TEST(utilTest, memberFn)
+{
+	struct Moo
+	{
+		int noParam() const & { return -2; }
+
+		const int & twoParam(int & y, const int && z) && { return y += z; }
+	};
+
+	auto f = OEL_MEMBER_FN(noParam);
+	auto g = OEL_MEMBER_FN(twoParam);
+
+	Moo const x{};
+	EXPECT_EQ(-2, f(x));
+
+	auto y = 1;
+	EXPECT_EQ(3, g(Moo{}, y, 2));
+	using T = decltype( g(Moo{}, y, 2) );
+	static_assert(std::is_same_v<T, const int &>);
+}
+
+TEST(utilTest, memberVar)
+{
+	struct Baz
+	{
+		int val;
+	} x{7};
+
+	auto f = OEL_MEMBER_VAR(val);
+
+	static_assert(std::is_same_v<decltype( f(x) ), int &>);
+
+	using T = decltype( f(static_cast<const Baz &&>(x)) );
+	static_assert(std::is_same_v<T, const int &&>);
+
+	EXPECT_EQ(7, f(x));
+}
+
 TEST(utilTest, toPointerContiguous)
 {
 	using namespace oel;

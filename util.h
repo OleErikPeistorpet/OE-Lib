@@ -17,6 +17,26 @@
 * @brief Contains make_unique_for_overwrite, as_signed/as_unsigned, index_valid, ssize and more
 */
 
+
+/** @brief Take the name of a member function and wrap it in a stateless function object
+*
+* `wrapped(object, args)` becomes the same as `object.func(args)`.
+* This macro works for function templates and overload sets, unlike std::mem_fn.
+* Note that passing a function or pointer to member often optimizes worse. */
+#define OEL_MEMBER_FN(func)  \
+	[](auto && ob_, auto &&... args_)  \
+	->	decltype( decltype(ob_)(ob_).func(decltype(args_)(args_)...) )  \
+		{  return decltype(ob_)(ob_).func(decltype(args_)(args_)...); }
+
+/** @brief Take the name of a member variable and wrap it in a stateless function object
+*
+* The call operator returns a forwarded reference like std::invoke. */
+#define OEL_MEMBER_VAR(var)  \
+	[](auto && ob_) noexcept  \
+	->	decltype( (decltype(ob_)(ob_).var) )  \
+		{  return (decltype(ob_)(ob_).var); }
+
+
 namespace oel
 {
 
