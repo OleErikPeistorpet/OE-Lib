@@ -3,6 +3,7 @@
 
 #include "test_classes.h"
 #include "dynarray.h"
+#include "auxi/detail_in_param.h"
 #include "optimize_ext/std_tuple.h"
 #include "optimize_ext/std_variant.h"
 
@@ -47,6 +48,28 @@ namespace
 	static_assert(oel::can_memmove_with< std::array<int, 1>::iterator, std::move_iterator<const int *> >);
 
 	static_assert(!oel::iter_is_random_access<ListI>);
+}
+
+TEST(utilTest, inParam)
+{
+	using oel::_detail::InParam;
+
+	static_assert(std::is_same_v< InParam<double>, double >);
+
+	static_assert(std::is_same_v< InParam<int const[1]>, const int(&&)[1] >);
+	// non-trivial copy, sizeof(double)
+	static_assert(std::is_same_v< InParam<TrivialRelocat>, TrivialRelocat && >);
+
+	{	using A = std::array<std::size_t, 3>;
+		static_assert(std::is_same_v< InParam<A>, A && >);
+	}
+	using A = std::array<std::size_t, 1>;
+	static_assert(std::is_same_v< InParam<A>, A >);
+
+#if HAS_STD_PMR
+	using Alloc = std::pmr::polymorphic_allocator<int>;
+	static_assert(std::is_same_v< InParam<Alloc>, Alloc >);
+#endif
 }
 
 template<typename SizeT>

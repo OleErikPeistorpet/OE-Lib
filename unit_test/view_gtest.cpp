@@ -402,6 +402,33 @@ TEST(viewTest, viewGenerate)
 	EXPECT_TRUE(d.empty());
 }
 
+TEST(viewTest, viewSingle)
+{
+	{	int i = 7;
+		auto v = view::single(i);
+		EXPECT_EQ(7, v[0]);
+		EXPECT_NE(&i, &v[0]);
+	}
+	{	oel::dynarray<int> d;
+		auto v = view::single(d);
+		EXPECT_EQ(&d, &v[0]);
+	}
+	{	oel::dynarray<int> d{7};
+		auto v = view::single(std::move(d));
+		EXPECT_EQ(7, v[0][0]);
+		EXPECT_NE(&d, &v[0]);
+	}
+	{	int a[] {7};
+		auto v = view::single(a);
+	#if __cpp_lib_span
+		static_assert(std::is_same_v< decltype(v), std::span<int[1], 1> >);
+	#else
+		static_assert(std::is_same_v< decltype(v), view::counted<int(*)[1]> >);
+	#endif
+		EXPECT_EQ(a, v[0]);
+	}
+}
+
 TEST(viewTest, viewMoveEndDifferentType)
 {
 	auto nonEmpty = [i = -1](int j) { return i + j; };

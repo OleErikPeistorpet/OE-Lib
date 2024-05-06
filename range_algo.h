@@ -82,7 +82,7 @@ void unordered_erase(dynarray<T, A> & d, Integer index)  { d.unordered_erase(d.b
 *
 * This mimics `std::erase_if` (C++20) for sequence containers  */
 template< typename Container, typename UnaryPredicate >
-constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c, std::move(p)); }
+constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf<UnaryPredicate>(c, std::move(p)); }
 /**
 * @brief Erase consecutive duplicate elements in container
 *

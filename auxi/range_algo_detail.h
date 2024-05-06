@@ -6,7 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "impl_algo.h" // for MemcpyCheck
+#include "detail_in_param.h"
+#include "impl_algo.h"  // for MemcpyCheck
 
 #include <algorithm>
 
@@ -25,19 +26,33 @@ namespace oel::_detail
 	}
 
 
-	template< typename Container, typename UnaryPred >
-	constexpr auto RemoveIf(Container & c, UnaryPred p)
-	->	decltype( c.remove_if(std::move(p)) )
-	{	return    c.remove_if(std::move(p)); }
+	template
+	<	typename Container, typename Predicate,
+		typename = void
+	>
+	inline constexpr bool hasRemoveIf = false;
 
-	template< typename Container, typename UnaryPred, typename... None >
-	constexpr void RemoveIf(Container & c, UnaryPred p, None...)
+	template< typename Container, typename Predicate >
+	inline constexpr bool hasRemoveIf
+	<	Container, Predicate,
+		std::void_t< decltype( std::declval<Container &>().remove_if(std::declval<Predicate>()) ) >
+	>	= true;
+
+	template< typename Predicate, typename Container >
+	constexpr auto RemoveIf(Container & c, _detail::InParam<Predicate> p)
 	{
-		_detail::EraseEnd
-		(	c,
-			std::remove_if( oel::begin_(c), oel::end_(c), std::move(p) )
-		);
+		if constexpr( hasRemoveIf<Container, Predicate> )
+		{
+			return c.remove_if(std::move(p));
+		}
+		else
+		{	_detail::EraseEnd
+			(	c,
+				std::remove_if( oel::begin_(c), oel::end_(c), std::move(p) )
+			);
+		}
 	}
+
 
 	template< typename Container >
 	constexpr auto Unique(Container & c)
