@@ -56,8 +56,6 @@ class dynarray
 public:
 	using value_type      = T;
 	using allocator_type  = typename _alloTrait::allocator_type;
-	using reference       = T &;
-	using const_reference = const T &;
 	using difference_type = ptrdiff_t;
 	using size_type       = size_t;
 
@@ -161,27 +159,27 @@ public:
 	//! @brief Same as `std::vector::insert(pos, begin(source), end(source))`,
 	//!	where `end(source)` is not needed if `source.size()` exists
 	template< typename ForwardRange >
-	iterator  insert_range(const_iterator pos, ForwardRange && source) &;
+	iterator insert_range(const_iterator pos, ForwardRange && source) &;
 
-	iterator  insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
-	iterator  insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
+	iterator insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
+	iterator insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
 
 	template< typename... Args >
-	iterator  emplace(const_iterator pos, Args &&... elemInitArgs) &;
+	iterator emplace(const_iterator pos, Args &&... elemInitArgs) &;
 
 	/**
 	* @brief Beware, passing an element of same array is often unsafe (otherwise same as std::vector::emplace_back)
 	* @pre args shall not refer to any element of this dynarray, unless `size() < capacity()` */
 	template< typename... Args >
-	reference emplace_back(Args &&... args) &;
+	T &  emplace_back(Args &&... args) &;
 
 	/** @brief Beware, passing an element of same array is often unsafe (otherwise same as std::vector::push_back)
 	* @pre val shall not be a reference to an element of this dynarray, unless `size() < capacity()` */
-	void      push_back(T && val)       { emplace_back(std::move(val)); }
+	void push_back(T && val)       { emplace_back(std::move(val)); }
 	//! @copydoc push_back(T &&)
-	void      push_back(const T & val)  { emplace_back(val); }
+	void push_back(const T & val)  { emplace_back(val); }
 
-	void      pop_back() noexcept;
+	void pop_back() noexcept;
 
 	/**
 	* @brief Erase the element at pos without maintaining order of elements after pos.
@@ -227,30 +225,32 @@ public:
 	const_iterator end() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.end); }
 	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
 
-	reverse_iterator       rbegin() noexcept        OEL_ALWAYS_INLINE { return       reverse_iterator{end()}; }
-	const_reverse_iterator rbegin() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
+	reverse_iterator       rbegin() noexcept         OEL_ALWAYS_INLINE { return       reverse_iterator{end()}; }
+	const_reverse_iterator rbegin() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
+	const_reverse_iterator crbegin() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
 
-	reverse_iterator       rend() noexcept        OEL_ALWAYS_INLINE { return       reverse_iterator{begin()}; }
-	const_reverse_iterator rend() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
+	reverse_iterator       rend() noexcept         OEL_ALWAYS_INLINE { return       reverse_iterator{begin()}; }
+	const_reverse_iterator rend() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
+	const_reverse_iterator crend() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
 
-	T *             data() noexcept         OEL_ALWAYS_INLINE { return _m.data; }
-	const T *       data() const noexcept   OEL_ALWAYS_INLINE { return _m.data; }
+	T *       data() noexcept         { return _m.data; }
+	const T * data() const noexcept   { return _m.data; }
 
-	reference       front() noexcept        { return (*this)[0]; }
-	const_reference front() const noexcept  { return (*this)[0]; }
+	T &       front() noexcept        { return (*this)[0]; }
+	const T & front() const noexcept  { return (*this)[0]; }
 
-	reference       back() noexcept         { return *_detail::MakeDynarrIter           (_m, _m.end - 1); }
-	const_reference back() const noexcept   { return *_detail::MakeDynarrIter<const T *>(_m, _m.end - 1); }
+	T &       back() noexcept         { return *_detail::MakeDynarrIter           (_m, _m.end - 1); }
+	const T & back() const noexcept   { return *_detail::MakeDynarrIter<const T *>(_m, _m.end - 1); }
 
-	reference       at(size_type index)   OEL_ALWAYS_INLINE
+	T &       at(size_type index)   OEL_ALWAYS_INLINE
 		{
 			const auto & cSelf = *this;
-			return const_cast<reference>(cSelf.at(index));
+			return const_cast<T &>(cSelf.at(index));
 		}
-	const_reference at(size_type index) const;
+	const T & at(size_type index) const;
 
-	reference       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
-	const_reference operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
+	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
+	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
 
 	friend bool operator==(const dynarray & left, const dynarray & right)
 		{
