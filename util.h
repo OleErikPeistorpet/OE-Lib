@@ -89,14 +89,14 @@ std::unique_ptr<T> make_unique_for_overwrite(size_t count)
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {
-	explicit constexpr reserve_tag() {}
+	explicit reserve_tag() = default;
 };
 inline constexpr reserve_tag reserve; //!< An instance of reserve_tag for convenience
 
 //! Tag to specify default initialization
 struct for_overwrite_t
 {
-	explicit constexpr for_overwrite_t() {}
+	explicit for_overwrite_t() = default;
 };
 inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrite_t for convenience
 
