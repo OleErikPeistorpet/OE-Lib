@@ -25,8 +25,9 @@
 * Note that passing a function or pointer to member often optimizes worse. */
 #define OEL_MEMBER_FN(func)  \
 	[](auto && ob_, auto &&... args_)  \
-	->	decltype( decltype(ob_)(ob_).func(decltype(args_)(args_)...) )  \
-		{  return decltype(ob_)(ob_).func(decltype(args_)(args_)...); }
+		noexcept(noexcept( decltype(ob_)(ob_).func(decltype(args_)(args_)...) ))  \
+	->	decltype(          decltype(ob_)(ob_).func(decltype(args_)(args_)...) )  \
+		{          return  decltype(ob_)(ob_).func(decltype(args_)(args_)...); }
 
 /** @brief Take the name of a member variable and wrap it in a stateless function object
 *
