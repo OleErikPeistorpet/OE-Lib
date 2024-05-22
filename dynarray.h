@@ -21,13 +21,26 @@
 namespace oel
 {
 
-//! dynarray is trivially relocatable if Alloc is
-template< typename T, typename Alloc >
-is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
+struct _toDynarrayFn
+{
+	template< typename Alloc = allocator<> >
+	constexpr auto operator()(Alloc a = {}) const
+		{
+			return _detail::ToDynarrPartial<Alloc>{std::move(a)};
+		}
+};
+//! Equivalent to `std::ranges::to<dynarray>` (piped)
+inline constexpr _toDynarrayFn to_dynarray;
+
 
 //! Overloads generic unordered_erase(RandomAccessContainer &, Integral) (in range_algo.h)
 template< typename T, typename A >  inline
 void unordered_erase(dynarray<T, A> & d, ptrdiff_t index)  { d.unordered_erase(d.begin() + index); }
+
+
+//! dynarray is trivially relocatable if Alloc is
+template< typename T, typename Alloc >
+is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug

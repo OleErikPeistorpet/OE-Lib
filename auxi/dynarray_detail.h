@@ -133,4 +133,18 @@ namespace oel::_detail
 		Ptr end;
 		Ptr reservEnd;
 	};
+
+
+
+	template< typename Alloc >
+	struct ToDynarrPartial
+	{
+		Alloc _a;
+
+		template< typename Range >
+		friend auto operator |(Range && r, ToDynarrPartial t)
+		{
+			return dynarray(static_cast<Range &&>(r), std::move(t)._a);
+		}
+	};
 }

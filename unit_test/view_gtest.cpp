@@ -176,7 +176,7 @@ TEST(viewTest, viewTransformSizedRange)
 	int src[] {1, 2};
 	auto tv = src | view::transform([](int & i) { return i++; });
 	auto tsr = view::subrange(tv.begin(), tv.end());
-	oel::dynarray<int> dest(tsr);
+	auto dest = tsr | oel::to_dynarray();
 	EXPECT_EQ(2U, tsr.size());
 	EXPECT_EQ(2U, dest.size());
 	EXPECT_EQ(1, dest[0]);
@@ -196,7 +196,7 @@ TEST(viewTest, viewTransformSizedRange)
 TEST(viewTest, viewTransformNonSizedRange)
 {
 	std::forward_list<int> const li{-2, -3};
-	oel::dynarray<int> dest( view::transform(li, Square{}) );
+	auto dest = view::transform(li, Square{}) | oel::to_dynarray();
 	EXPECT_EQ(2U, dest.size());
 	EXPECT_EQ(4, dest[0]);
 	EXPECT_EQ(9, dest[1]);

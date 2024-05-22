@@ -253,7 +253,7 @@ TEST_F(dynarrayConstructTest, deductionGuides)
 	}
 	ar;
 
-	auto d = dynarray(ar, StatefulAllocator<int>{});
+	auto d = ar | to_dynarray(StatefulAllocator<int>{});
 	static_assert(std::is_same< decltype(d)::allocator_type, StatefulAllocator<int> >());
 	EXPECT_EQ(d.size(), ar.size());
 
