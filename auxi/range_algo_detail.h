@@ -129,4 +129,10 @@ namespace oel::_detail
 	{
 		dest.append(static_cast<InputRange &&>(src));
 	}
+
+	template< typename T, size_t C, typename S, typename InputRange >
+	inline void Append(inplace_growarr<T, C, S> & dest, InputRange && src)
+	{
+		dest.append(static_cast<InputRange &&>(src));
+	}
 }

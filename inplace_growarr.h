@@ -17,28 +17,13 @@
 namespace oel
 {
 
+//! inplace_growarr is trivially relocatable if T is
+template< typename T, size_t C, typename S >
+is_trivially_relocatable<T> specify_trivial_relocate(inplace_growarr<T, C, S>);
+
 //! Overloads generic unordered_erase(RandomAccessContainer &, Integral) (in range_algo.h)
-template< typename T, size_t C, typename Size >  inline
-void unordered_erase(inplace_growarr<T, C, Size> & a, Size index)  { a.unordered_erase(a.begin() + index); }
-
-//! @name GenericContainerInsert
-//!@{
-// Overloads of generic functions for inserting into container (in range_algo.h)
-template< typename T, size_t C, typename S, typename InputRange >  inline
-void assign(inplace_growarr<T, C, S> & dest, InputRange && source)  { dest.assign(source); }
-
-template< typename T, size_t C, typename S, typename InputRange >  inline
-void append(inplace_growarr<T, C, S> & dest, InputRange && source)  { dest.append(source); }
-
 template< typename T, size_t C, typename S >  inline
-void append(inplace_growarr<T, C, S> & dest, S count, const T & val)  { dest.append(count, val); }
-
-template< typename T, size_t C, typename S, typename ForwardRange >  inline
-auto insert(inplace_growarr<T, C, S> & dest, typename inplace_growarr<T, C, S>::const_iterator pos, ForwardRange && source)
-	{
-		return dest.insert_range(pos, source);
-	}
-//!@}
+void unordered_erase(inplace_growarr<T, C, S> & a, ptrdiff_t index)  { a.unordered_erase(a.begin() + index); }
 
 /**
 * @brief Resizable array, statically allocated. Specify maximum size as template argument.
