@@ -30,7 +30,7 @@ namespace _detail
 
 
 	template< typename T, typename Size >
-	struct InplaceDynarrProxy
+	struct InplaceGrowarrProxy
 	{
 		Size size;
 		T    data[1];
@@ -42,7 +42,7 @@ namespace _detail
 	};
 
 	template< typename T, size_t Capacity, typename Size >
-	struct InplaceDynarrBase
+	struct InplaceGrowarrBase
 	{
 		Size _size{};
 		aligned_union_t<T> _data[Capacity];
@@ -96,22 +96,22 @@ namespace _detail
 
 	template< typename T, size_t C, typename S,
 		bool = is_trivially_copyable<T>::value >
-	struct InplaceDynarrSpecial : InplaceDynarrBase<T, C, S> {};
+	struct InplaceGrowarrSpecial : InplaceGrowarrBase<T, C, S> {};
 
 	template< typename T, size_t Capacity, typename Size >
-	struct InplaceDynarrSpecial<T, Capacity, Size, false>
-	 :	InplaceDynarrBase<T, Capacity, Size>
+	struct InplaceGrowarrSpecial<T, Capacity, Size, false>
+	 :	InplaceGrowarrBase<T, Capacity, Size>
 	{
-		constexpr InplaceDynarrSpecial() = default;
+		constexpr InplaceGrowarrSpecial() = default;
 
-		InplaceDynarrSpecial(const InplaceDynarrSpecial & other)
+		InplaceGrowarrSpecial(const InplaceGrowarrSpecial & other)
 		{
 			this->_size = other._size;
 			struct {} a;
 			_detail::UninitCopy(other.data(), data(), data() + _size, a);
 		}
 
-		InplaceDynarrSpecial(InplaceDynarrSpecial && other)
+		InplaceGrowarrSpecial(InplaceGrowarrSpecial && other)
 			noexcept(std::is_nothrow_move_constructible<T>::value or is_trivially_relocatable<T>::value)
 		{
 			this->_size = other._size;
@@ -121,20 +121,20 @@ namespace _detail
 			other.setEmptyIf(is_trivially_relocatable<T>());
 		}
 
-		InplaceDynarrSpecial & operator =(InplaceDynarrSpecial && other) &
+		InplaceGrowarrSpecial & operator =(InplaceGrowarrSpecial && other) &
 		{
 			this->doAssign(std::make_move_iterator(other.data()), other._size, is_trivially_relocatable<T>());
 			other.setEmptyIf(is_trivially_relocatable<T>());
 			return *this;
 		}
 
-		InplaceDynarrSpecial & operator =(const InplaceDynarrSpecial & other) &
+		InplaceGrowarrSpecial & operator =(const InplaceGrowarrSpecial & other) &
 		{
 			this->doAssign(other.data(), other._size, is_trivially_copyable<T>());
 			return *this;
 		}
 
-		~InplaceDynarrSpecial() noexcept
+		~InplaceGrowarrSpecial() noexcept
 		{
 			_detail::Destroy(data(), data() + this->_size);
 		}
