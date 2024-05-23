@@ -1,29 +1,66 @@
-# Obscure Efficient Library (v2)
+# Obscure Efficient Library
 
-A cross-platform, very fast substitute for C++ std::vector (and std::copy)
+A cross-platform, very fast substitute for C++ std::vector (and std::copy) with a range-based interface.
 
-Unlike the containers in many of the standard libraries in use, over-aligned types (as used by SSE and AVX instructions) are supported with no special action by the user. A runtime crash would be expected using std::vector, at least with older implementations.
-
-Features relocation optimizations similar to Folly fbvector and UnrealEngine TArray. Furthermore, OE-Lib has been optimized not only for release builds but also for execution speed in debug.
+Features relocation optimizations similar to [Folly fbvector](https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation) and UnrealEngine TArray.
 
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
-Supported compilers:
-* Visual Studio 2015 and later
-* GCC 4.8 (with `-std=c++1y`) and later
-* Clang is tested regularly (Travis CI), but minimum version is unknown
+C++17 is required. Oldest supported compilers:
+* Visual Studio 2017 (15.8)
+* GCC 7
+* Clang 5
 
-### Visual Studio specific
+### Append
 
-For better display of dynarray and the iterators in the Visual Studio debugger, copy `oe_lib2.natvis` to:
-`<My Documents>\Visual Studio 2015\Visualizers`. You can also just add `oe_lib2.natvis` to the project instead.
+You should use the `append` member function of dynarray instead of doing `insert` of multiple elements at the end. This is often substantially faster than with std::vector (likely due to inlining which lets the compiler optimize further). Example:
 
-While usually faster than the Visual C++ standard library, performance can be an issue even for debug builds. If so, try setting inline function expansion to `/Ob1`, Basic Runtime Checks to default, and/or an environment variable `_NO_DEBUG_HEAP=1`.
+	void moveAllToBackOf(std::vector<Foo> & dest)
+	{
+		dest.insert(dest.end(), std::move_iterator{fooList.begin()}, std::move_iterator{fooList.end()});
+	}
 
-### Other practical stuff
+Would be better as:
 
-If not using Boost, you need to manually define OEL_NO_BOOST for some older compilers.
+	void moveAllToBackOf(oel::dynarray<Foo> & dest)
+	{
+		dest.append(oel::view::move(fooList));
+	}
 
-To use dense matrixes, quaternions, etc. from the Eigen library efficiently in dynarray: include `optimize_ext/eigen_dense.h`
+Compared to calling `push_back` or `emplace_back` in a loop, `append` has major benefits, mainly because of fewer memory allocations without having to worry about manual `reserve`. Moreover, calling `reserve` inside a loop is a performance pitfall that many aren't aware of. For example, see here: <https://stackoverflow.com/questions/48535727/why-are-c-stl-vectors-1000x-slower-when-doing-many-reserves>
 
-You can customize what happens when a precondition violation is detected. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `user_traits.h`
+	for (int i{}; i < outerLimit; i++)
+	{
+		arr.reserve(arr.size() + innerLimit); // typically BAD inside loop, but easy to miss in more complex code
+		for (int j{}; j < innerLimit; j++)
+			arr.push_back(i * j);
+	}
+
+Should be something like:
+
+	for (int i{}; i < outerLimit; i++)
+	{
+		auto v = std::views::iota(0, innerLimit);
+		arr.append( oel::view::transform(v, [i](auto j) { return i * j; }) );
+	}
+
+Another good way, using `resize_for_overwrite`:
+
+	std::size_t arrIdx{};
+	for (int i{}; i < outerLimit; i++)
+	{
+		arr.resize_for_overwrite(arr.size() + innerLimit);
+		for (int j{}; j < innerLimit; j++)
+			arr[arrIdx++] = i * j;
+	}
+
+### Checked preconditions
+
+Precondition checks are off by default except for Visual C++ debug builds. (Preconditions are the same as std::vector.) They can be controlled with a global define such as `-D OEL_MEM_BOUND_DEBUG_LVL=2`. But be careful with compilers other than MSVC, the checks should **not** be combined with compiler optimizations unless you set the `-fno-strict-aliasing` flag.
+
+You can customize what happens when a check is triggered. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `fwd.h`
+
+### Visual Studio visualizer
+
+For better display of dynarray and the iterators in the Visual Studio debugger, copy `oe_lib3.natvis` to:
+`Documents\Visual Studio 20**\Visualizers`. You can also just add `oe_lib3.natvis` to the project instead.

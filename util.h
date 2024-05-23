@@ -1,74 +1,89 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/type_traits.h"
-#include "auxi/contiguous_iterator_to_ptr.h"
-#include "make_unique.h"
+#include "auxi/contiguous_iterator_to_ptr.h" // just convenient
+#include "auxi/core_util.h"
+#include "auxi/range_traits.h"
+
+#include <stdexcept>
 
 
 /** @file
-* @brief Contains as_signed/as_unsigned, index_valid, ssize, deref_args and more
+* @brief Contains make_unique_for_overwrite, as_signed/as_unsigned, index_valid, ssize and more
 */
+
+
+/** @brief Take the name of a member function and wrap it in a stateless function object
+*
+* `wrapped(object, args)` becomes the same as `object.func(args)`.
+* This macro works for function templates and overload sets, unlike std::mem_fn.
+* Note that passing a function or pointer to member often optimizes worse. */
+#define OEL_MEMBER_FN(func)  \
+	[](auto && ob_, auto &&... args_)  \
+	->	decltype( decltype(ob_)(ob_).func(decltype(args_)(args_)...) )  \
+		{  return decltype(ob_)(ob_).func(decltype(args_)(args_)...); }
+
+/** @brief Take the name of a member variable and wrap it in a stateless function object
+*
+* The call operator returns a forwarded reference like std::invoke. */
+#define OEL_MEMBER_VAR(var)  \
+	[](auto && ob_) noexcept  \
+	->	decltype( (decltype(ob_)(ob_).var) )  \
+		{  return (decltype(ob_)(ob_).var); }
+
 
 namespace oel
 {
 
-//! Passed val of integral or enumeration type T, returns val cast to the signed integer type corresponding to T
-template<typename T>  OEL_ALWAYS_INLINE
-constexpr typename std::make_signed<T>::type
-	as_signed(T val) noexcept                  { return (typename std::make_signed<T>::type) val; }
-//! Passed val of integral or enumeration type T, returns val cast to the unsigned integer type corresponding to T
-template<typename T>  OEL_ALWAYS_INLINE
-constexpr typename std::make_unsigned<T>::type
-	as_unsigned(T val) noexcept                { return (typename std::make_unsigned<T>::type) val; }
+//! Passed val of integral or enumeration type, returns val cast to the corresponding signed integer type
+inline constexpr auto as_signed =
+	[](auto val) noexcept -> std::make_signed_t<decltype(val)>    { return std::make_signed_t<decltype(val)>(val); };
+//! Passed val of integral or enumeration type, returns val cast to the corresponding unsigned integer type
+inline constexpr auto as_unsigned =
+	[](auto val) noexcept -> std::make_unsigned_t<decltype(val)>  { return std::make_unsigned_t<decltype(val)>(val); };
 
 
-//! Returns r.size() as signed type (same as std::ssize in C++20)
-template<typename SizedRange>  OEL_ALWAYS_INLINE
-constexpr auto ssize(const SizedRange & r)
-->	common_type<ptrdiff_t, decltype( as_signed(r.size()) )>
+/** @brief More generic than std::ssize, close to std::ranges::ssize
+*
+* Ill-formed if `r.size()` is ill-formed and `begin(r)` cannot be subtracted from `end(r)` (SFINAE-friendly) */
+template< typename SizedRangeLike >
+constexpr auto ssize(SizedRangeLike && r)
+->	std::common_type_t< ptrdiff_t, decltype(as_signed( _detail::Size(r) )) >
 	{
-		return static_cast< common_type<ptrdiff_t, decltype( as_signed(r.size()) )> >(r.size());
+		return std::common_type_t< ptrdiff_t, decltype(as_signed( _detail::Size(r) )) >(_detail::Size(r));
 	}
-//! Returns number of elements in array as signed type
-template<typename T, ptrdiff_t Size>  OEL_ALWAYS_INLINE
-constexpr ptrdiff_t ssize(const T(&)[Size]) noexcept  { return Size; }
 
-
-/** @brief Check if index is valid (can be used with operator[]) for array or other container-like object
-*
-* Negative index should give false result. However, this is not always ensured if the number of
-* elements in r is greater than half the maximum value of its unsigned type and that type holds
-* more bits than `int`. This should not be a concern in practice. */
-template<typename Integral, typename SizedRange>
-constexpr bool index_valid(const SizedRange & r, Integral index);
-
-
-
-/** @brief Calls operator * on arguments before passing them to Func
-*
-* Example, sort pointers by pointed-to values, not addresses:
-@code
-oel::dynarray< std::unique_ptr<double> > d;
-std::sort(d.begin(), d.end(), deref_args<std::less<>>{}); // std::less<double> before C++14
-@endcode  */
-template<typename Func>
-struct deref_args
+namespace view
 {
-	Func wrapped;
+using oel::ssize;
+}
 
-	template<typename... Ts>
-	auto operator()(Ts &&... args) const -> decltype( wrapped(*std::forward<Ts>(args)...) )
-	                                         { return wrapped(*std::forward<Ts>(args)...); }
 
-	using is_transparent = void;
-};
+/** @brief Check if index is valid (within bounds for operator[])
+*
+* Requires that `r.size()` or `end(r) - begin(r)` is valid. */
+template< typename Integral, typename SizedRangeLike >
+constexpr bool index_valid(SizedRangeLike & r, Integral index)
+	{
+		static_assert( sizeof(Integral) >= sizeof _detail::Size(r) or std::is_unsigned_v<Integral>,
+			"Mismatched index type, please use a wider integer (or unsigned)" );
+		return as_unsigned(index) < as_unsigned(_detail::Size(r));
+	}
 
+
+//! Equivalent to std::make_unique_for_overwrite (C++20), for array types with unknown bound
+template< typename T,
+          enable_if< _detail::isUnboundedArray<T> > = 0
+>  inline
+std::unique_ptr<T> make_unique_for_overwrite(size_t count)
+	{
+		return std::unique_ptr<T>{new std::remove_extent_t<T>[count]};
+	}
 
 
 //! Tag to select a constructor that allocates storage without filling it with objects
@@ -76,18 +91,29 @@ struct reserve_tag
 {
 	explicit constexpr reserve_tag() {}
 };
-constexpr reserve_tag reserve; //!< An instance of reserve_tag for convenience
+inline constexpr reserve_tag reserve; //!< An instance of reserve_tag for convenience
 
 //! Tag to specify default initialization
-struct default_init_t
+struct for_overwrite_t
 {
-	explicit constexpr default_init_t() {}
+	explicit constexpr for_overwrite_t() {}
 };
-constexpr default_init_t default_init; //!< An instance of default_init_t for convenience
+inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrite_t for convenience
 
 
-//! Functions marked with `noexcept(nodebug)` will only throw exceptions from OEL_ASSERT (none by default)
-constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
+
+//! Same as `begin(range)` with a previous `using std::begin;`. For use in classes with a member named begin
+inline constexpr auto adl_begin =
+	[](auto && range) -> decltype(begin(range)) { return begin(range); };
+//! Same as `end(range)` with a previous `using std::end;`. For use in classes with a member named end
+inline constexpr auto adl_end =
+	[](auto && range) -> decltype(end(range)) { return end(range); };
+
+
+
+//! Tells whether we can call member `reallocate(pointer, size_type)` on an instance of Alloc
+template< typename Alloc >
+inline constexpr bool allocator_can_realloc   = _detail::CanRealloc<Alloc>(0);
 
 
 
@@ -96,61 +122,54 @@ constexpr bool nodebug = OEL_MEM_BOUND_DEBUG_LVL == 0;
 // The rest of the file is not for users (implementation)
 
 
-// Cannot do ADL `begin(r)` in implementation of class with begin member
-template<typename Range>  OEL_ALWAYS_INLINE inline
-auto adl_begin(Range & r) -> decltype(begin(r)) { return begin(r); }
-
-template<typename Range>  OEL_ALWAYS_INLINE inline
-auto adl_end(Range & r) -> decltype(end(r)) { return end(r); }
+template< typename T >
+struct
+#ifdef __GNUC__
+	[[gnu::may_alias]]
+#endif
+	storage_for
+{
+	alignas(T) unsigned char as_bytes[sizeof(T)];
+};
 
 
 namespace _detail
 {
-	template< typename T, bool = std::is_empty<T>::value >
-	struct RefOptimizeEmpty
-	{
-		T & _ref;
-
-		T & Get() noexcept { return _ref; }
-	};
-
-	template<typename Type_needs_unique_name_for_MSVC>
-	struct RefOptimizeEmpty<Type_needs_unique_name_for_MSVC, true>
-	 :	protected Type_needs_unique_name_for_MSVC
-	{
-		RefOptimizeEmpty(Type_needs_unique_name_for_MSVC & o) : Type_needs_unique_name_for_MSVC(o) {}
-
-		Type_needs_unique_name_for_MSVC & Get() noexcept { return *this; }
+	struct OutOfRange
+	{	// Exception throwing has been split out from templates to avoid bloat
+		[[noreturn]] static void raise(const char * what)
+		{
+			OEL_THROW(std::out_of_range(what), what);
+		}
 	};
 
 
 
-	using BigUint =
-	#if ULONG_MAX > UINT_MAX
-		unsigned long;
-	#else
-		unsigned long long;
-	#endif
-
-	template<typename Unsigned>
-	constexpr bool IndexValid(Unsigned size, BigUint i, false_type)
+	template< typename T, typename U,
+	          bool = std::is_empty_v<U> >
+	struct TightPair
 	{
-		return i < size;
-	}
+		T first;
+		U _sec;
 
-	template<typename Unsigned, typename Integral>
-	constexpr bool IndexValid(Unsigned size, Integral i, true_type)
-	{	// casting to uint64_t when both types are smaller and using just 'i < size' was found to be slower
-		return (0 <= i) & (as_unsigned(i) < size);
-	}
+		OEL_ALWAYS_INLINE constexpr const U & second() const { return _sec; }
+		OEL_ALWAYS_INLINE constexpr       U & second()       { return _sec; }
+	};
+
+	template< typename Type_unique_name_for_MSVC, typename Empty_type_MSVC_unique_name >
+	struct TightPair<Type_unique_name_for_MSVC, Empty_type_MSVC_unique_name, true>
+	 :	Empty_type_MSVC_unique_name
+	{
+		Type_unique_name_for_MSVC first;
+
+		TightPair() = default;
+		constexpr TightPair(Type_unique_name_for_MSVC f, Empty_type_MSVC_unique_name s)
+		 :	Empty_type_MSVC_unique_name{s}, first{std::move(f)}
+		{}
+
+		OEL_ALWAYS_INLINE constexpr const Empty_type_MSVC_unique_name & second() const { return *this; }
+		OEL_ALWAYS_INLINE constexpr       Empty_type_MSVC_unique_name & second()       { return *this; }
+	};
 }
 
 } // namespace oel
-
-template<typename Integral, typename SizedRange>
-constexpr bool oel::index_valid(const SizedRange & r, Integral index)
-{
-	using T = decltype(oel::ssize(r));
-	using NeitherIsBig = bool_constant<sizeof(T) < sizeof(_detail::BigUint) and sizeof index < sizeof(_detail::BigUint)>;
-	return _detail::IndexValid(as_unsigned(oel::ssize(r)), index, NeitherIsBig{});
-}

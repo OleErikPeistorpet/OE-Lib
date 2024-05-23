@@ -8,15 +8,15 @@
 * @brief Must be included manually in user code
 */
 
-#include "../auxi/type_traits.h"
+#include "../auxi/core_util.h"
 
 #include <variant>
 
 namespace oel
 {
 
-template<typename... Ts>
+template< typename... Ts >
 struct is_trivially_relocatable< std::variant<Ts...> >
- :	all_< is_trivially_relocatable<Ts>... > {};
+ :	std::conjunction< is_trivially_relocatable<Ts>... > {};
 
 }

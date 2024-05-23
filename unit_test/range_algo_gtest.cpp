@@ -1,9 +1,9 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "throw_from_assert.h"
-
+#include "test_classes.h"
 #include "range_algo.h"
+#include "views.h"
 #include "dynarray.h"
 
 #include "gtest/gtest.h"
@@ -12,20 +12,17 @@
 #include <deque>
 #include <array>
 #include <valarray>
-#include <functional>
 
 namespace view = oel::view;
 
 TEST(rangeTest, eraseUnstable)
 {
-	using oel::erase_unstable;
-
 	std::deque<std::string> d{"aa", "bb", "cc"};
 
-	erase_unstable(d, 1);
+	oel::unordered_erase(d, 1);
 	EXPECT_EQ(2U, d.size());
 	EXPECT_EQ("cc", d.back());
-	erase_unstable(d, 1);
+	oel::unordered_erase(d, 1);
 	EXPECT_EQ(1U, d.size());
 	EXPECT_EQ("aa", d.front());
 }
@@ -62,74 +59,6 @@ TEST(rangeTest, eraseAdjacentDup)
 	EXPECT_FALSE(uniqueTest != expect);
 }
 
-TEST(rangeTest, countedView)
-{
-	using namespace oel;
-
-	static_assert(std::is_nothrow_move_constructible<counted_view<int *>>::value, "?");
-
-	dynarray<int> i{1, 2};
-	counted_view<dynarray<int>::const_iterator> test = i;
-	EXPECT_EQ(i.size(), test.size());
-	EXPECT_TRUE(test.data() == i.data());
-	EXPECT_EQ(1, test[0]);
-	EXPECT_EQ(2, test[1]);
-	test.drop_front();
-	EXPECT_EQ(1U, test.size());
-	EXPECT_EQ(2, test.back());
-	EXPECT_TRUE(test.end() == i.end());
-}
-
-TEST(rangeTest, viewTransform)
-{
-	{
-		using Elem = oel::dynarray<int>;
-		Elem r[1];
-		auto v = view::transform(r, [](const Elem & c) { return c.size(); });
-		static_assert( std::is_same< decltype(v.begin())::iterator_category, std::forward_iterator_tag >{},
-			"Wrong for current implementation" );
-		static_assert( sizeof v.begin() == sizeof(Elem *),
-			"Not critical, this assert can be removed" );
-	}
-
-	int src[] { 2, 3 };
-
-	struct Square
-	{	int operator()(int i) const
-		{
-			return i * i;
-		}
-	};
-	auto r = view::subrange(std::begin(src), std::end(src));
-	oel::dynarray<int> test( view::transform(r, Square{}) );
-	EXPECT_EQ(2U, test.size());
-	EXPECT_EQ(4, test[0]);
-	EXPECT_EQ(9, test[1]);
-
-	test.append( view::transform(src, [](int & i) { return i++; }) );
-	EXPECT_EQ(4U, test.size());
-	EXPECT_EQ(2, test[2]);
-	EXPECT_EQ(3, test[3]);
-	EXPECT_EQ(3, src[0]);
-	EXPECT_EQ(4, src[1]);
-}
-
-TEST(rangeTest, viewTransformAsOutput)
-{
-	using Pair = std::pair<int, int>;
-	Pair test[]{ {1, 2}, {3, 4} };
-
-	auto f = [](Pair & p) -> int & { return p.second; };
-	auto v = view::transform(test, std::function<int & (Pair &)>{f});
-	*v.begin() = -1;
-	v.drop_front();
-	*v.begin() = -2;
-	EXPECT_EQ(1, test[0].first);
-	EXPECT_EQ(3, test[1].first);
-	EXPECT_EQ(-1, test[0].second);
-	EXPECT_EQ(-2, test[1].second);
-}
-
 TEST(rangeTest, copyUnsafe)
 {
 	std::valarray<int> src(2);
@@ -145,25 +74,25 @@ TEST(rangeTest, copy)
 {
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
-	test2[4] = -7;
-	auto fitInto = view::counted(std::begin(test2), 4);
+	constexpr int N = 4;
+	test2[N] = -7;
 
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(oel::copy(test, fitInto), std::out_of_range);
-)
-	auto success = oel::copy_fit(test, fitInto);
-	EXPECT_TRUE(std::equal(begin(test), begin(test) + 4, test2));
-	EXPECT_EQ(-7, test2[4]);
+#if OEL_HAS_EXCEPTIONS
+	EXPECT_THROW(oel::copy(test, view::counted(std::begin(test2), N)), std::out_of_range);
+#endif
+	auto success = oel::copy_fit(test, view::counted(std::begin(test2), N));
+	EXPECT_TRUE(std::equal(begin(test), begin(test) + N, test2));
+	EXPECT_EQ(-7, test2[N]);
 	EXPECT_FALSE(success);
 
-	ASSERT_EQ(4, test[4]);
-	auto l = oel::copy(test2, test).dest_last;
-	EXPECT_EQ(-7, test[4]);
-	EXPECT_TRUE(end(test) == l);
+	ASSERT_EQ(4, test[N]);
+	auto l = oel::copy(test2, test).in;
+	EXPECT_EQ(-7, test[N]);
+	EXPECT_TRUE(std::end(test2) == l);
 	{
-		std::forward_list<std::string> li{"aa", "bb"};
+		std::list<std::string> li{"aa", "bb"};
 		std::array<std::string, 2> strDest;
-		auto sLast = oel::copy(view::move(li), strDest).source_last;
+		auto sLast = oel::copy(view::move(li), strDest).in;
 		EXPECT_EQ("aa", strDest[0]);
 		EXPECT_EQ("bb", strDest[1]);
 		EXPECT_TRUE(li.begin()->empty());
@@ -178,17 +107,33 @@ OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_TRUE(success);
 }
 
+TEST(rangeTest, copyRangeMutableBeginSize)
+{
+	int src[1] {1};
+	int dest[1];
+	auto v = ToMutableBeginSizeView(src);
+
+	oel::copy_unsafe(v, std::begin(dest));
+	EXPECT_EQ(1, dest[0]);
+	dest[0] = 0;
+
+	oel::copy(v, dest);
+	EXPECT_EQ(1, dest[0]);
+	dest[0] = 0;
+
+	oel::copy_fit(v, dest);
+	EXPECT_EQ(1, dest[0]);
+}
+
 template<typename Container>
 void testAppend()
 {
 	Container c;
 
-	oel::append(c, std::initializer_list<int>{1, 2});
+	auto il = {1, 2};
+	oel::append(c, il);
 	EXPECT_EQ(2U, c.size());
-	oel::append(c, 3, -1);
-	EXPECT_EQ(5U, c.size());
-	EXPECT_EQ( 2, *std::next(c.begin()) );
-	EXPECT_EQ(-1, c.back());
+	EXPECT_EQ(2, c.back());
 }
 
 TEST(rangeTest, append)

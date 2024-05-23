@@ -5,18 +5,22 @@
 
 
 // std:: unique_ptr, shared_ptr, weak_ptr, basic_string, pair, tuple
-// boost:: intrusive_ptr, circular_buffer, variant, polymorphic_allocator
+// boost:: intrusive_ptr, local_shared_ptr, circular_buffer, variant, polymorphic_allocator
 
 /** @file
 * @brief This is included by dynarray.h, so should not be needed in user code
 */
 
-#include "../auxi/type_traits.h"
+#include "../auxi/core_util.h"
 
 #include <memory>
 #include <tuple>
 
-#ifndef OEL_NO_BOOST
+#if __has_include(<boost/config.hpp>)
+	#define OEL_HAS_BOOST  1
+#endif
+
+#ifdef OEL_HAS_BOOST
 
 #include <boost/circular_buffer_fwd.hpp>
 #include <boost/container/container_fwd.hpp>
@@ -24,7 +28,8 @@
 
 namespace boost
 {
-	template<typename T> class intrusive_ptr;
+	template< typename T > class intrusive_ptr;
+	template< typename T > class local_shared_ptr;
 }
 #endif
 
@@ -36,7 +41,7 @@ namespace boost
 
 namespace oel
 {
-	template<typename C, typename Tr, typename Alloc>
+	template< typename C, typename Tr, typename Alloc >
 	struct is_trivially_relocatable< std::basic_string<C, Tr, Alloc> >
 	 :	bool_constant
 		<	is_trivially_relocatable<Alloc>::value and
@@ -48,41 +53,47 @@ namespace oel
 namespace oel
 {
 
-template<typename T, typename Del>
+template< typename T >
+struct is_trivially_relocatable< std::allocator<T> > : true_type {};
+
+template< typename T, typename Del >
 struct is_trivially_relocatable< std::unique_ptr<T, Del> >
  :	is_trivially_relocatable<Del> {};
 
-template<typename T>
+template< typename T >
 struct is_trivially_relocatable< std::shared_ptr<T> > : true_type {};
 
-template<typename T>
+template< typename T >
 struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 
-#ifndef OEL_NO_BOOST
-	template<typename T>
+#ifdef OEL_HAS_BOOST
+	template< typename T >
 	struct is_trivially_relocatable< boost::container::pmr::polymorphic_allocator<T> > : true_type {};
 
-	template<typename T>
+	template< typename T >
 	struct is_trivially_relocatable< boost::intrusive_ptr<T> > : true_type {};
 
-	template<typename T, typename Alloc>
+	template< typename T >
+	struct is_trivially_relocatable< boost::local_shared_ptr<T> > : true_type {};
+
+	template< typename T, typename Alloc >
 	struct is_trivially_relocatable< boost::circular_buffer<T, Alloc> >
 	 :	bool_constant
 		<	is_trivially_relocatable<Alloc>::value and
 			is_trivially_relocatable< typename std::allocator_traits<Alloc>::pointer >::value
 		> {};
 
-	template<typename... Ts>
+	template< typename... Ts >
 	struct is_trivially_relocatable< boost::variant<Ts...> >
-	 :	all_< is_trivially_relocatable<Ts>... > {};
+	 :	std::conjunction< is_trivially_relocatable<Ts>... > {};
 #endif
 
-template<typename T, typename U>
+template< typename T, typename U >
 struct is_trivially_relocatable< std::pair<T, U> >
- :	all_< is_trivially_relocatable<T>, is_trivially_relocatable<U> > {};
+ :	std::conjunction< is_trivially_relocatable<T>, is_trivially_relocatable<U> > {};
 
-template<typename... Ts>
+template< typename... Ts >
 struct is_trivially_relocatable< std::tuple<Ts...> >
- :	all_< is_trivially_relocatable<Ts>... > {};
+ :	std::conjunction< is_trivially_relocatable<Ts>... > {};
 
 }

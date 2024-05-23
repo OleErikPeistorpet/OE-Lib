@@ -38,7 +38,7 @@ PROJECT_NAME           = OE-Lib
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER         = 2.2
+PROJECT_NUMBER         = 3.0
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer a
@@ -891,7 +891,6 @@ EXCLUDE_PATTERNS       =
 # exclude all test directories use the pattern */test/*
 
 EXCLUDE_SYMBOLS        = *::_detail \
-                         OEL_MAKE_UNIQUE_A \
                          OEL_DYNARR_INSERT_STEP1
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or directories

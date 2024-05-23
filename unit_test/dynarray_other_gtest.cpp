@@ -1,27 +1,20 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifdef _CPPLIB_VER
-#define _SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING
-#endif
-
 #include "test_classes.h"
 #include "dynarray.h"
-#include "range_view.h"
+#include "optimize_ext/std_variant.h"
+#include "view/move.h"
 
 #include "gtest/gtest.h"
 #include <deque>
 
-#if defined __has_include
-#if __has_include(<Eigen/Dense>)
-	#include "optimize_ext/eigen_dense.h"
+#if HAS_STD_PMR
 
-	static_assert(oel::is_trivially_relocatable<Eigen::Rotation2Df>::value, "?");
-#endif
-#endif
+#include <memory_resource>
 
-#if defined OEL_HAS_STD_PMR
-	static_assert(oel::is_trivially_relocatable< std::pmr::polymorphic_allocator<int> >::value, "?");
+static_assert(oel::is_trivially_relocatable< std::pmr::polymorphic_allocator<int> >::value);
+
 #endif
 
 using oel::dynarray;
@@ -31,31 +24,54 @@ namespace
 	using Iter = dynarray<float>::iterator;
 	using ConstIter = dynarray<float>::const_iterator;
 
-	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>(), "?");
+#if __cpp_lib_ranges >= 201907
+	static_assert(std::ranges::contiguous_range< dynarray<float> >);
+#endif
+#if __cpp_lib_concepts >= 201907
+	static_assert(std::contiguous_iterator<Iter>);
+	static_assert(std::contiguous_iterator<ConstIter>);
+	static_assert(std::sized_sentinel_for<ConstIter, Iter>);
+	static_assert(std::sized_sentinel_for<Iter, ConstIter>);
+#endif
 
-	static_assert(oel::can_memmove_with<Iter, ConstIter>::value, "?");
-	static_assert(oel::can_memmove_with<Iter, const float *>::value, "?");
-	static_assert(oel::can_memmove_with< float *, std::move_iterator<Iter> >::value, "?");
-	static_assert( !oel::can_memmove_with<int *, Iter>::value, "?" );
+	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>());
 
-	static_assert(oel::is_trivially_copyable<Iter>::value, "?");
-	static_assert(oel::is_trivially_copyable<ConstIter>::value, "?");
-	static_assert(std::is_convertible<Iter, ConstIter>::value, "?");
-	static_assert( !std::is_convertible<ConstIter, Iter>::value, "?" );
+	static_assert(oel::can_memmove_with<Iter, ConstIter>);
+	static_assert(oel::can_memmove_with<Iter, const float *>);
+	static_assert(oel::can_memmove_with< float *, std::move_iterator<Iter> >);
+	static_assert( !oel::can_memmove_with<int *, Iter> );
+
+	static_assert(std::is_trivially_copyable<Iter>::value);
+	static_assert(std::is_convertible<Iter, ConstIter>::value);
+	static_assert( !std::is_convertible<ConstIter, Iter>::value );
 
 	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
 				  "Not critical, this assert can be removed");
 
-	static_assert(oel::_detail::AllocHasConstruct< TrackingAllocator<double>, int >::value, "?");
-	static_assert( !oel::_detail::AllocHasConstruct< oel::allocator<double>, int >::value, "?" );
+	static_assert(oel::allocator_can_realloc< TrackingAllocator<double> >);
+	static_assert(!oel::allocator_can_realloc< oel::allocator<MoveOnly> >);
+}
+
+void testCompileDynarrayMembers()
+{
+	dynarray<int> const d{0};
+	dynarray<int>::allocate_size_overhead();
+	d.get_allocator();
+	d.cbegin();
+	d.cend();
+	d.rbegin();
+	d.rend();
+	d.data();
+	d.front();
+	d.back();
+	d.at(0);
 }
 
 TEST(dynarrayOtherTest, zeroBitRepresentation)
 {
 	{
 		void * ptr = nullptr;
-		void * ptrToPtr = &ptr;
-		ASSERT_TRUE(0U == *static_cast<const std::uintptr_t *>(ptrToPtr));
+		ASSERT_TRUE(0U == reinterpret_cast<std::uintptr_t>(ptr));
 	}
 	float f = 0.f;
 	for (unsigned i = 0; i < sizeof f; ++i)
@@ -86,31 +102,13 @@ TEST(dynarrayOtherTest, compare)
 TEST(dynarrayOtherTest, allocAndIterEquality)
 {
 	oel::allocator<int> a;
-	ASSERT_TRUE(oel::allocator<std::string>{} == a);
+	ASSERT_FALSE(oel::allocator<int>{} != a);
 
 	EXPECT_TRUE(dynarray<int>::const_iterator() == dynarray<int>::iterator{});
 }
 
-TEST(dynarrayOtherTest, aggregate)
-{
-	struct Bar
-	{
-		int a, b;
-	};
-
-	dynarray<Bar> d;
-	d.emplace_back(1, 2);
-	d.emplace(begin(d), -1, -2);
-	EXPECT_EQ(-1, d.front().a);
-	EXPECT_EQ(-2, d.front().b);
-	EXPECT_EQ(1, d.back().a);
-	EXPECT_EQ(2, d.back().b);
-}
-
 using MyAllocStr = oel::allocator<std::string>;
-static_assert(oel::is_trivially_copyable<MyAllocStr>::value, "?");
-
-#if _MSC_VER or __GNUC__ >= 5
+static_assert(std::is_trivially_copyable<MyAllocStr>::value);
 
 TEST(dynarrayOtherTest, stdDequeWithOelAlloc)
 {
@@ -122,55 +120,48 @@ TEST(dynarrayOtherTest, stdDequeWithOelAlloc)
 
 TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 {
-	MoveOnly::ClearCount();
+	MoveOnly::clearCount();
 	{
-		dynarray< MoveOnly, std::allocator<MoveOnly> > v;
+		auto v = dynarray< MoveOnly, std::allocator<MoveOnly> >(oel::reserve, 2);
 
 		v.emplace_back(-1.0);
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( v.emplace_back(), TestException );
-	)
+	#endif
 		EXPECT_EQ(1, MoveOnly::nConstructions);
 		EXPECT_EQ(0, MoveOnly::nDestruct);
 
 		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
 		v.assign(oel::view::move(arr));
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( v.emplace_back(), TestException );
-	)
-		EXPECT_EQ(2, ssize(v));
+	#endif
+		EXPECT_EQ(2, oel::ssize(v));
 		EXPECT_TRUE(1.0 == *v[0]);
 		EXPECT_TRUE(2.0 == *v[1]);
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }
-#endif
 
-#ifdef __has_include
-#if __has_include(<variant>) and (__cplusplus > 201500 or _HAS_CXX17)
-	#include "optimize_ext/std_variant.h"
+TEST(dynarrayOtherTest, stdVariant)
+{
+	using Inner = std::conditional_t< oel::is_trivially_relocatable<std::string>{}, std::string, dynarray<char> >;
+	using V = std::variant<std::unique_ptr<double>, Inner>;
+	static_assert(oel::is_trivially_relocatable<V>());
 
-	TEST(dynarrayOtherTest, stdVariant)
-	{
-		using Inner = std::conditional_t< oel::is_trivially_relocatable<std::string>{}, std::string, dynarray<char> >;
-		using V = std::variant<std::unique_ptr<double>, Inner>;
-		static_assert(oel::is_trivially_relocatable<V>());
+	dynarray<V> a;
 
-		dynarray<V> a;
+	a.emplace_back(Inner("abc"));
+	a.push_back(std::make_unique<double>(3.3));
+	a.reserve(9);
 
-		a.emplace_back(Inner("abc"));
-		a.push_back(std::make_unique<double>(3.3));
-		a.reserve(9);
-
-		EXPECT_TRUE(std::strcmp( "abc", std::get<Inner>(a[0]).data() ) == 0);
-		EXPECT_EQ( 3.3, *std::get<0>(a[1]) );
-	}
-#endif
-#endif
+	EXPECT_TRUE(std::strcmp( "abc", std::get<Inner>(a[0]).data() ) == 0);
+	EXPECT_EQ( 3.3, *std::get<0>(a[1]) );
+}
 
 TEST(dynarrayOtherTest, withReferenceWrapper)
 {

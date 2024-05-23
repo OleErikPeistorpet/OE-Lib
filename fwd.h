@@ -12,42 +12,40 @@
 
 /** @file
 * @brief specify_trivial_relocate for user classes, error handling macros, forward declarations
-*
-* Notably provides forward declarations of dynarray and inplace_dynarr
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
 /** @brief 0: no iterator and precondition checks. 1: most checks. 2: all checks.
 *
-* Level 0 is not binary compatible with any other. Mixing 1 and 2 should work. */
-	#ifdef NDEBUG
-	#define OEL_MEM_BOUND_DEBUG_LVL  0
-	#else
+* Be careful with compilers other than MSVC. A non-zero level should only be
+* set in combination with `-O0` or `-fno-strict-aliasing`. Also note that
+* level 0 is not binary compatible with any other. Mixing 1 and 2 should work. */
+	#ifdef _DEBUG
 	#define OEL_MEM_BOUND_DEBUG_LVL  2
+	#else
+	#define OEL_MEM_BOUND_DEBUG_LVL  0
 	#endif
 #endif
 
 
 #ifndef OEL_ABORT
-	/** @brief If exceptions are disabled, used anywhere that would normally throw. If predefined, used by OEL_ASSERT
-	*
-	* Users may define this to call a function that never returns or to throw an exception.
-	* Example: @code
-	#define OEL_ABORT(errorMessage)  throw std::logic_error(errorMessage "; in " __FILE__)
-	@endcode  */
-	#define OEL_ABORT(msg) (std::abort(), (void) msg)
-
-	#if !defined OEL_ASSERT and !defined NDEBUG
-	#include <cassert>
-
-	//! Can be defined to your own or changed right here.
-	#define OEL_ASSERT  assert
-	#endif
+/** @brief If exceptions are disabled, used anywhere that would normally throw. Also used by OEL_ASSERT
+*
+* Can be defined to something else, but note that it must never return.
+* Moreover, don't expect to catch what it throws, because it's used in noexcept functions through OEL_ASSERT. */
+#define OEL_ABORT(message) (std::abort(), (void) message)
 #endif
 
-
-#if OEL_MEM_BOUND_DEBUG_LVL and !defined _MSC_VER
-	#define OEL_DYNARRAY_IN_DEBUG  1  // would not work with the .natvis
+#if OEL_MEM_BOUND_DEBUG_LVL == 0
+	#undef OEL_ASSERT
+	#define OEL_ASSERT(cond) ((void) 0)
+#elif !defined OEL_ASSERT
+	/** @brief Used for checking preconditions. Can be defined to your own
+	*
+	* Used in noexcept functions, so don't expect to catch anything thrown.
+	* OEL_ASSERT itself should probably be noexcept for optimal performance. */
+	#define OEL_ASSERT(cond)  \
+		((cond) or (OEL_ABORT("Failed precond: " #cond), false))
 #endif
 
 
@@ -55,37 +53,31 @@
 namespace oel
 {
 
-using std::size_t;
-using std::ptrdiff_t;
+template< typename T > class allocator;
 
-
-template<typename T> struct allocator;  // forward declare
-
-#ifdef OEL_DYNARRAY_IN_DEBUG
+#if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug
-	#if __GNUC__ >= 5
+	#ifdef __GNUC__
 		__attribute__((abi_tag))
 	#endif
 {
 #endif
 
-template<typename T, typename Alloc = allocator<T> >
+template< typename T, typename Alloc = allocator<T> >
 class dynarray;
 
-#ifdef OEL_DYNARRAY_IN_DEBUG
+#if OEL_MEM_BOUND_DEBUG_LVL
 }
 #endif
 
-template<typename T, size_t Capacity, typename Size = size_t>
-class inplace_dynarr;
+template< typename T, std::size_t Capacity, typename Size = std::size_t >
+class inplace_growarr;
 
 
 
-template<bool Val>
-using bool_constant = std::integral_constant<bool, Val>;
-
-using std::true_type; // equals bool_constant<true>
+using std::bool_constant;
 using std::false_type;
+using std::true_type;
 
 
 /**
@@ -95,89 +87,34 @@ using std::false_type;
 * must not need to update external state during move construction. (The same recursively for sub-objects)
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4158.pdf
+* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1144r4.html
 *
 * Already true for trivially copyable types. For others, declare a function in the namespace of the type like this:
 @code
-oel::true_type specify_trivial_relocate(MyClass &&);
+oel::true_type specify_trivial_relocate(MyClass);
 
 // Or if you are unsure if a member or base class is and will stay trivially relocatable:
 class MyClass {
 	std::string name;
 };
-oel::is_trivially_relocatable<std::string> specify_trivial_relocate(MyClass &&);
+oel::is_trivially_relocatable<std::string> specify_trivial_relocate(MyClass);
 
 // With nested class, use friend keyword:
 class Outer {
 	class Inner {
 		std::unique_ptr<whatever> a;
 	};
-	friend oel::true_type specify_trivial_relocate(Inner &&);
+	friend oel::true_type specify_trivial_relocate(Inner);
 };
 @endcode  */
-template<typename T>
-bool_constant<
-	#if defined __GLIBCXX__ and __GNUC__ == 4
-		__has_trivial_copy(T) and __has_trivial_destructor(T)
-	#else
-		std::is_trivially_move_constructible<T>::value and std::is_trivially_destructible<T>::value
-	#endif
->	specify_trivial_relocate(T &&);
+template< typename T >
+bool_constant< std::is_trivially_move_constructible_v<T> and std::is_trivially_destructible_v<T> >
+	specify_trivial_relocate(T &&);
 
 /** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
 *
 * Many external classes are declared trivially relocatable, see `optimize_ext` folder. */
-template<typename T>
+template< typename T >
 struct is_trivially_relocatable;
 
 } // namespace oel
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// The rest of the file is not for users (implementation)
-
-
-//! @cond INTERNAL
-
-#if OEL_MEM_BOUND_DEBUG_LVL == 0
-	#undef OEL_ASSERT
-	#define OEL_ASSERT(expr) ((void) 0)
-#elif !defined OEL_ASSERT
-	#define OEL_ASSERT(expr)  \
-		((expr) or (OEL_ABORT("Failed assert " #expr), false))
-#endif
-
-
-#ifdef __GNUC__
-	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
-#else
-	#define OEL_ALWAYS_INLINE
-#endif
-
-#ifdef _MSC_VER
-	#define OEL_CONST_COND __pragma(warning(suppress : 4127 6326))
-#else
-	#define OEL_CONST_COND
-#endif
-
-
-#if defined __cpp_deduction_guides or (_MSC_VER >= 1914 and _HAS_CXX17)
-	#define OEL_HAS_DEDUCTION_GUIDES  1
-#endif
-
-
-#if defined _CPPUNWIND or defined __EXCEPTIONS
-	#define OEL_THROW(exception, msg) throw exception
-	#define OEL_TRY_                  try
-	#define OEL_CATCH_ALL             catch (...)
-	#define OEL_WHEN_EXCEPTIONS_ON(x) x
-#else
-	#define OEL_THROW(exc, message)   OEL_ABORT(message)
-	#define OEL_TRY_
-	#define OEL_CATCH_ALL             OEL_CONST_COND if (false)
-	#define OEL_WHEN_EXCEPTIONS_ON(x)
-#endif
-
-//! @endcond

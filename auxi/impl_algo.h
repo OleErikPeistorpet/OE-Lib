@@ -1,58 +1,48 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h"
+#include "contiguous_iterator_to_ptr.h"
+#include "range_traits.h"
 
 #include <cstring>
-#include <stdexcept>
 
 
-// std::max not constexpr for GCC 4
-template<typename T>
-constexpr T oel_max(const T & a, const T & b)
+namespace oel::_detail
 {
-	return a < b ? b : a;
-}
-
-
-namespace oel
-{
-namespace _detail
-{
-	struct Throw
-	{	// Exception throwing has been split out from templates to avoid bloat
-		[[noreturn]] static void OutOfRange(const char * what)
-		{
-			OEL_THROW(std::out_of_range(what), what);
-		}
-
-		[[noreturn]] static void LengthError(const char * what)
-		{
-			OEL_THROW(std::length_error(what), what);
-		}
-	};
-
-
-
-	template<typename T> struct AssertTrivialRelocate
+	template< typename T >
+	struct AssertTrivialRelocate
 	{
 		static_assert(is_trivially_relocatable<T>::value,
-			"The function requires trivially relocatable T, see declaration of is_trivially_relocatable");
+			"insert, emplace require trivially relocatable T, see declaration of is_trivially_relocatable");
 	};
 
+////////////////////////////////////////////////////////////////////////////////
+
+	template< typename T >
+	void Destroy([[maybe_unused]] T * first, [[maybe_unused]] const T * last) noexcept
+	{	// first > last is OK, does nothing
+		if constexpr (!std::is_trivially_destructible_v<T>) // for speed with non-optimized builds
+		{
+			for (; first < last; ++first)
+				first-> ~T();
+		}
+	}
 
 
-	template<typename ContiguousIter>
-	inline void MemcpyCheck(ContiguousIter const src, size_t const nElems, void *const dest)
-	{	// memcpy(nullptr, nullptr, 0) is UB. The trouble is that checking can have significant performance hit.
-		// GCC known to need the check in some cases
-	#if !defined _MSC_VER or _MSC_VER >= 2000 or OEL_MEM_BOUND_DEBUG_LVL
-		if (nElems > 0)
+#if !defined _MSC_VER or _MSC_VER >= 2000
+	#define OEL_CHECK_NULL_MEMCPY  1
+#endif
+	template< typename ContiguousIter >
+	void MemcpyCheck(ContiguousIter const src, size_t const nElems, void *const dest)
+	{	// memcpy(nullptr, nullptr, 0) is UB. Unfortunately, checking can have significant performance hit,
+		// probably due to functions no longer being inlined. GCC known to need the check in some cases
+	#if OEL_CHECK_NULL_MEMCPY or OEL_MEM_BOUND_DEBUG_LVL
+		if (nElems != 0)
 	#endif
 		{	// Dereference to detect out of range errors if the iterator has internal check
 		#if OEL_MEM_BOUND_DEBUG_LVL
@@ -64,165 +54,167 @@ namespace _detail
 	}
 
 
-	template<typename T, typename Alloc, bool B, typename... Args>
-	inline auto doConstruct(bool_constant<B>, Alloc & a, T *__restrict p, Args &&... args)
-	->	decltype( a.construct(p, static_cast<Args &&>(args)...) )
-		        { a.construct(p, static_cast<Args &&>(args)...); }
-	// void * worse match than T *
-	template<typename T, typename Alloc, typename... Args>
-	inline void doConstruct(std::true_type, Alloc &, void *__restrict p, Args &&... args)
-	{	// T constructible from Args
-		::new(p) T(static_cast<Args &&>(args)...);
-	}
-
-	template<typename T, typename Alloc, typename... Args>
-	inline void doConstruct(std::false_type, Alloc &, void *__restrict p, Args &&... args)
+	template< typename T >
+	T * Relocate(T *__restrict src, size_t const n, T *__restrict dest) noexcept
 	{
-		::new(p) T{static_cast<Args &&>(args)...}; // list-initialization
-	}
-
-	template<typename Alloc, typename T, typename... Args>
-	OEL_ALWAYS_INLINE inline void Construct(Alloc & a, T *__restrict p, Args &&... args)
-	{
-		doConstruct<T>(std::is_constructible<T, Args...>(),
-		               a, p, static_cast<Args &&>(args)...);
-	}
-
-	template<typename T, typename... Args>
-	OEL_ALWAYS_INLINE inline void ConstructA(T *__restrict p, Args &&... args)
-	{
-		struct {} a;
-		Construct(a, p, static_cast<Args &&>(args)...);
-	}
-
-
-	template<typename T>
-	void Destroy(T * first, const T * last) noexcept
-	{	// first > last is OK, does nothing
-		OEL_CONST_COND if (!std::is_trivially_destructible<T>::value) // for speed with non-optimized builds
+		if constexpr (is_trivially_relocatable<T>::value)
 		{
-			for (; first < last; ++first)
-				first-> ~T();
-		}
-	}
-
-
-	template<typename Alloc, typename ContiguousIter, typename T,
-	         enable_if< can_memmove_with<T *, ContiguousIter>::value > = 0>
-	inline void UninitCopy(ContiguousIter src, T * dFirst, T * dLast, Alloc &)
-	{
-		_detail::MemcpyCheck(src, dLast - dFirst, dFirst);
-	}
-
-	template<typename Alloc, typename InputIter, typename T,
-	         enable_if< not can_memmove_with<T *, InputIter>::value > = 0>
-	InputIter UninitCopy(InputIter src, T *__restrict dest, T *const dLast, Alloc & allo)
-	{
-		T *const dFirst = dest;
-		OEL_TRY_
-		{
-			while (dest != dLast)
-			{
-				_detail::Construct(allo, dest, *src);
-				++src; ++dest;
+			T *const dLast = dest + n;
+		#if OEL_CHECK_NULL_MEMCPY
+			if (src)
+		#endif
+			{	std::memcpy(
+					static_cast<void *>(dest),
+					static_cast<const void *>(src),
+					sizeof(T) * n );
 			}
+			return dLast;
 		}
-		OEL_CATCH_ALL
+		else
 		{
-			_detail::Destroy(dFirst, dest);
-			OEL_WHEN_EXCEPTIONS_ON(throw);
+		#if OEL_HAS_EXCEPTIONS
+			static_assert( std::is_nothrow_move_constructible_v<T>,
+				"dynarray requires that T is noexcept move constructible or trivially relocatable" );
+		#endif
+			for (size_t i{}; i < n; ++i)
+			{
+				::new(static_cast<void *>(dest + i)) T( std::move(src[i]) );
+				src[i].~T();
+			}
+			return dest + n;
 		}
-		return src;
+	}
+	#undef OEL_CHECK_NULL_MEMCPY
+
+
+	template< typename Alloc, typename InputIter, typename T >
+	InputIter UninitCopy(InputIter src, T *__restrict dest, T *const dLast, [[maybe_unused]] Alloc & allo)
+	{
+		if constexpr (can_memmove_with<T *, InputIter>)
+		{
+			auto const n = dLast - dest;
+			_detail::MemcpyCheck(src, n, dest);
+			return src + n;
+		}
+		else
+		{	T *const dFirst = dest;
+			OEL_TRY_
+			{
+				while (dest != dLast)
+				{
+					std::allocator_traits<Alloc>::construct(allo, dest, *src);
+					++src; ++dest;
+				}
+			}
+			OEL_CATCH_ALL
+			{
+				_detail::Destroy(dFirst, dest);
+				OEL_RETHROW;
+			}
+			return src;
+		}
 	}
 
 
-	template<typename Alloc>
+	template< typename Alloc >
 	struct UninitFill
 	{
-		template<typename T>
-		using IsByte = bool_constant< sizeof(T) == 1 and
-			(std::is_integral<T>::value or std::is_enum<T>::value) >;
+		template< typename T >
+		static constexpr auto isByte =
+			sizeof(T) == 1 and (std::is_integral_v<T> or std::is_enum_v<T>);
 
-		template<typename T, typename... Args,
-		         enable_if< !IsByte<T>::value > = 0>
-		void operator()(T *__restrict first, T *const last, Alloc & allo, const Args &... args) const
+		template< typename T, typename... Args,
+		          enable_if< !isByte<T> > = 0
+		>
+		static void call(T *__restrict first, T *const last, Alloc & allo, const Args &... args)
 		{
 			T *const init = first;
 			OEL_TRY_
 			{
 				for (; first != last; ++first)
-					_detail::Construct(allo, first, args...);
+					std::allocator_traits<Alloc>::construct(allo, first, args...);
 			}
 			OEL_CATCH_ALL
 			{
 				_detail::Destroy(init, first);
-				OEL_WHEN_EXCEPTIONS_ON(throw);
+				OEL_RETHROW;
 			}
 		}
 
-		template<typename T, enable_if< IsByte<T>::value > = 0>
-		void operator()(T * first, T * last, Alloc &, T val) const
+		template< typename T,
+		          enable_if< isByte<T> > = 0
+		>
+		static void call(T *const first, T * last, Alloc &, T val)
 		{
 			std::memset(first, static_cast<int>(val), last - first);
 		}
 
-		template<typename T, enable_if< std::is_trivial<T>::value > = 0>
-		void operator()(T * first, T * last, Alloc &) const
+		template< typename T,
+		          enable_if< std::is_trivial_v<T> > = 0
+		>
+		static void call(T *const first, T * last, Alloc &)
 		{
 			std::memset(first, 0, sizeof(T) * (last - first));
 		}
 	};
 
-	template<typename Alloc, typename T>
-	inline void UninitDefaultConstruct(T *const first, T *const last, Alloc & a)
-	{
-		OEL_CONST_COND if (!is_trivially_default_constructible<T>::value)
-			UninitFill<Alloc>{}(first, last, a);
-	}
-
 	struct UninitFillA
 	{
-		template<typename T, typename... Args>
-		void operator()(T *const first, T *const last, const Args &... args) const
+		template< typename T, typename... Args >
+		static void call(T *__restrict first, T *const last, const Args &... args)
 		{
 			struct A {} a;
 			UninitFill<A>{}(first, last, a, args...);
 		}
 	};
 
-	template<typename T>
-	inline void UninitDefaultConstructA(T *const first, T *const last)
+	struct UninitDefaultConstruct
 	{
-		struct {} a;
-		UninitDefaultConstruct(first, last, a);
+		template< typename Alloc, typename T >
+		static void call(T *__restrict first, T *const last, Alloc & a)
+		{
+			if constexpr (!std::is_trivially_default_constructible_v<T>)
+			{
+				UninitFill<Alloc>::call(first, last, a);
+			}
+			else
+			{	(void) first; (void) last; (void) a; // avoid VC++ 2017 warning C4100
+			}
+		}
+	};
+
+	struct UninitDefaultConstructA
+	{
+		template< typename T >
+		static void call(T *__restrict first, T *const last)
+		{
+			struct {} a;
+			UninitDefaultConstruct::call(first, last, a);
+		}
 	}
 
 
-
-	template<typename Range, typename IterTrav> // pass dummy int to prefer this overload
-	auto doSizeOrEnd(const Range & r, IterTrav, int)
-	->	decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
-
-	template<typename Range>
-	size_t doSizeOrEnd(const Range & r, std::forward_iterator_tag, long)
-	{
-		size_t n = 0;
-		auto it = begin(r);  auto const last = end(r);
-		while (it != last)
-		{ ++n; ++it; }
-		return n;
-	}
-
-	template<typename Range>
-	auto doSizeOrEnd(const Range & r, std::input_iterator_tag, long) { return end(r); }
 
 	// If r is sized or multi-pass, returns element count as size_t, else end(r)
-	template<typename Range>
-	auto SizeOrEnd(const Range & r)
+	template< typename Range, typename... None >
+	inline auto CountOrEnd(Range & r, None...)
 	{
-		using It = decltype(begin(r));
-		return _detail::doSizeOrEnd(r, iter_category<It>(), 0);
-	}
-}
+		if constexpr (iter_is_forward< iterator_t<Range> >)
+		{
+			size_t n{};
+			auto it = begin(r);
+			auto const l = end(r);
+			while (it != l) { ++it; ++n; }
 
-} // namespace oel
+			return n;
+		}
+		else
+		{	return end(r);
+		}
+	}
+
+	template< typename Range >
+	auto CountOrEnd(Range & r)
+	->	decltype( static_cast<size_t>(_detail::Size(r)) )
+	{	return    static_cast<size_t>(_detail::Size(r)); }
+}

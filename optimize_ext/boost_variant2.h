@@ -8,15 +8,15 @@
 * @brief Variant2 was introduced in Boost 1.71
 */
 
-#include "../auxi/type_traits.h"
+#include "../auxi/core_util.h"
 
 #include <boost/variant2/variant.hpp>
 
 namespace oel
 {
 
-template<typename... Ts>
+template< typename... Ts >
 struct is_trivially_relocatable< boost::variant2::variant<Ts...> >
- :	all_< is_trivially_relocatable<Ts>... > {};
+ :	std::conjunction< is_trivially_relocatable<Ts>... > {};
 
 }

@@ -1,4 +1,4 @@
-#include "user_traits.h"
+#include "fwd.h"
 
 struct Outer
 {
@@ -12,7 +12,7 @@ oel::is_trivially_relocatable<Outer::Inner> specify_trivial_relocate(Outer &&);
 
 #include "dynarray.h"
 
-static_assert( !oel::is_trivially_relocatable<Outer>::value, "?" );
+static_assert( !oel::is_trivially_relocatable<Outer>::value );
 
 void Outer::Foo(oel::dynarray<Inner> & d) { d.max_size(); }
 
