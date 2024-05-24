@@ -7,27 +7,23 @@ using oel::inplace_growarr;
 using FcaString   = inplace_growarr<std::string, 1>;
 using FcaMayThrow = inplace_growarr<NontrivialConstruct, 1>;
 
-static_assert( std::is_nothrow_default_constructible<FcaMayThrow>{}, "?");
-static_assert(    std::is_nothrow_move_constructible<FcaString>{}, "?");
-static_assert(not std::is_nothrow_move_constructible<FcaMayThrow>{}, "?");
-static_assert(not std::is_nothrow_move_assignable<FcaMayThrow>{}, "?");
+static_assert( std::is_nothrow_default_constructible<FcaMayThrow>{});
+static_assert(    std::is_nothrow_move_constructible<FcaString>{});
+static_assert(not std::is_nothrow_move_assignable<FcaMayThrow>{});
 
-static_assert(    oel::is_trivially_copyable< inplace_growarr<int, 1> >{}, "?");
-static_assert(not oel::is_trivially_copyable< FcaString >{}, "?");
+static_assert(    std::is_trivially_copyable_v< inplace_growarr<int, 1> >);
+static_assert(not std::is_trivially_copyable_v< FcaString >);
 
 // The fixture for testing inplace_growarr.
-class inplace_growarrTest : public ::testing::Test
+class inplaceGrowarrTest : public ::testing::Test
 {
 protected:
-	inplace_growarrTest()
+	inplaceGrowarrTest()
 	{
-		// You can do set-up work for each test here.
 	}
-
-	// Objects declared here can be used by all tests.
 };
 
-TEST_F(inplace_growarrTest, construct)
+TEST_F(inplaceGrowarrTest, construct)
 {
 	//inplace_growarr<int, 0> compileWarnOrFail;
 
@@ -38,47 +34,47 @@ TEST_F(inplace_growarrTest, construct)
 	testConstruct< inplace_growarr<std::string, 1>, inplace_growarr<char, 4>, inplace_growarr<bool, 50> >();
 }
 
-TEST_F(inplace_growarrTest, pushBackMoveOnly)
+TEST_F(inplaceGrowarrTest, pushBackMoveOnly)
 {
 	testPushBack< inplace_growarr<MoveOnly, 5>, inplace_growarr<inplace_growarr<int, 3>, 2> >();
 }
 
-TEST_F(inplace_growarrTest, pushBackTrivialReloc)
+TEST_F(inplaceGrowarrTest, pushBackTrivialReloc)
 {
 	testPushBackTrivialReloc< inplace_growarr<TrivialRelocat, 5> >();
 }
 
-TEST_F(inplace_growarrTest, assign)
+TEST_F(inplaceGrowarrTest, assign)
 {
 	testAssign< inplace_growarr<MoveOnly, 5>, inplace_growarr<TrivialRelocat, 5> >();
 }
 
-TEST_F(inplace_growarrTest, assignStringStream)
+TEST_F(inplaceGrowarrTest, assignStringStream)
 {
 	testAssignStringStream< inplace_growarr<std::string, 5> >();
 }
 
-TEST_F(inplace_growarrTest, append)
+TEST_F(inplaceGrowarrTest, append)
 {
 	testAppend<	inplace_growarr<double, 8>, inplace_growarr<int, 4> >();
 }
 
-TEST_F(inplace_growarrTest, appendFromStringStream)
+TEST_F(inplaceGrowarrTest, appendFromStringStream)
 {
 	testAppendFromStringStream<	inplace_growarr<int, 5> >();
 }
 
-TEST_F(inplace_growarrTest, insertR)
+TEST_F(inplaceGrowarrTest, insertR)
 {
 	testInsertR< inplace_growarr<double, 8>, inplace_growarr<int, 4> >();
 }
 
-TEST_F(inplace_growarrTest, insert)
+TEST_F(inplaceGrowarrTest, insert)
 {
 	testInsert< inplace_growarr<TrivialRelocat, 6> >();
 }
 
-TEST_F(inplace_growarrTest, resize)
+TEST_F(inplaceGrowarrTest, resize)
 {
 	inplace_growarr<int, 4> d;
 
@@ -87,10 +83,10 @@ TEST_F(inplace_growarrTest, resize)
 	d.resize(S1);
 	ASSERT_EQ(S1, d.size());
 
-OEL_WHEN_EXCEPTIONS_ON(
-	EXPECT_THROW(d.resize_for_overwrite(d.max_size() + 1), std::length_error);
+#if OEL_HAS_EXCEPTIONS
+	EXPECT_THROW(d.resize_for_overwrite(d.max_size() + 1), std::bad_alloc);
 	EXPECT_EQ(S1, d.size());
-)
+#endif
 	for (const auto & e : d)
 	{
 		EXPECT_EQ(0, e);
@@ -119,26 +115,26 @@ OEL_WHEN_EXCEPTIONS_ON(
 	EXPECT_TRUE(nested.back().empty());
 }
 
-TEST_F(inplace_growarrTest, eraseSingle)
+TEST_F(inplaceGrowarrTest, eraseSingle)
 {
 	testEraseSingle< inplace_growarr<int, 5>, inplace_growarr<MoveOnly, 5> >();
 }
 
-TEST_F(inplace_growarrTest, eraseRange)
+TEST_F(inplaceGrowarrTest, eraseRange)
 {
 	testEraseRange< inplace_growarr<unsigned, 5> >();
 }
 
-TEST_F(inplace_growarrTest, eraseToEnd)
+TEST_F(inplaceGrowarrTest, eraseToEnd)
 {
 	testEraseToEnd< inplace_growarr<int, 7> >();
 }
 
-TEST_F(inplace_growarrTest, overAligned)
+TEST_F(inplaceGrowarrTest, overAligned)
 {
-	unsigned int const testAlignment = 32;
+	constexpr size_t testAlignment = 32;
 	struct Type
-	{	oel::aligned_storage_t<testAlignment, testAlignment> a;
+	{	alignas(testAlignment) unsigned char a[testAlignment];
 	};
 	inplace_growarr<Type, 5> special(0);
 	EXPECT_TRUE(special.cbegin() == special.cend());
@@ -155,7 +151,7 @@ TEST_F(inplace_growarrTest, overAligned)
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 }
 
-TEST_F(inplace_growarrTest, misc)
+TEST_F(inplaceGrowarrTest, misc)
 {
 	size_t fASrc[] = { 2, 3 };
 

@@ -163,8 +163,9 @@ namespace oel::_detail
 		template< typename T, typename... Args >
 		static void call(T *__restrict first, T *const last, const Args &... args)
 		{
-			struct A {} a;
-			UninitFill<A>{}(first, last, a, args...);
+			using A = allocator<T>;
+			A a{};
+			UninitFill<A>::call(first, last, a, args...);
 		}
 	};
 
@@ -188,10 +189,10 @@ namespace oel::_detail
 		template< typename T >
 		static void call(T *__restrict first, T *const last)
 		{
-			struct {} a;
+			allocator<T> a;
 			UninitDefaultConstruct::call(first, last, a);
 		}
-	}
+	};
 
 
 

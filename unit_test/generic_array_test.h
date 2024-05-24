@@ -1,5 +1,5 @@
 #include "test_classes.h"
-#include "range_view.h"
+#include "views.h"
 
 #include <cstdint>
 #include <deque>
@@ -32,7 +32,7 @@ void testConstruct()
 template<typename ArrayMoveOnly, typename ArrayArrayInt>
 void testPushBack()
 {
-	MoveOnly::ClearCount();
+	MoveOnly::clearCount();
 	{
 		ArrayMoveOnly up;
 
@@ -41,24 +41,24 @@ void testPushBack()
 		up.push_back(MoveOnly{VALUES[0]});
 		ASSERT_EQ(1U, up.size());
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( up.emplace_back(), TestException );
 		ASSERT_EQ(1U, up.size());
-	)
+	#endif
 		up.push_back(MoveOnly{VALUES[1]});
 		ASSERT_EQ(2U, up.size());
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
 		EXPECT_THROW( up.emplace_back(), TestException );
 		ASSERT_EQ(2U, up.size());
-	)
+	#endif
 		up.push_back( std::move(up.back()) );
 		ASSERT_EQ(3U, up.size());
 
 		EXPECT_EQ(VALUES[0], *up[0]);
-		EXPECT_EQ(nullptr, up[1].get());
+		EXPECT_FALSE(up[1].hasValue());
 		EXPECT_EQ(VALUES[1], *up[2]);
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
@@ -67,7 +67,7 @@ void testPushBack()
 template<typename ArrayTrivialReloc>
 void testPushBackTrivialReloc()
 {
-	TrivialRelocat::ClearCount();
+	TrivialRelocat::clearCount();
 	{
 		ArrayTrivialReloc da;
 
@@ -84,7 +84,7 @@ void testPushBackTrivialReloc()
 		ASSERT_EQ(2U, da.size());
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		TrivialRelocat::countToThrowOn = 1;
 		try
 		{
@@ -98,19 +98,19 @@ void testPushBackTrivialReloc()
 		}
 		ASSERT_EQ(expected.size(), da.size());
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
-	)
+	#endif
 		da.emplace_back(VALUES[3]);
 		expected.emplace_back(VALUES[3]);
 		ASSERT_EQ(expected.size(), da.size());
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		TrivialRelocat::countToThrowOn = 0;
 		EXPECT_THROW( da.push_back(TrivialRelocat{0}), TestException );
 		ASSERT_EQ(expected.size(), da.size());
-	)
+	#endif
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(da), TrivialRelocat::nDestruct);
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		TrivialRelocat::countToThrowOn = 3;
 		try
 		{
@@ -123,8 +123,12 @@ void testPushBackTrivialReloc()
 		catch (TestException &) {
 		}
 		ASSERT_EQ(expected.size(), da.size());
-	)
-		EXPECT_TRUE( std::equal(begin(da), end(da), begin(expected)) );
+	#endif
+		EXPECT_TRUE(
+			std::equal
+			(	begin(da), end(da), begin(expected),
+				[](const auto & a, double b) { return *a == b; }
+			) );
 	}
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 }
@@ -132,7 +136,7 @@ void testPushBackTrivialReloc()
 template<typename ArrayMoveOnly, typename ArrayTrivialReloc>
 void testAssign()
 {
-	MoveOnly::ClearCount();
+	MoveOnly::clearCount();
 	{
 		double const VALUES[] = {-1.1, 0.4};
 		MoveOnly src[] { MoveOnly{VALUES[0]},
@@ -145,15 +149,15 @@ void testAssign()
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(oel::view::move(src, src));
+		test.assign(src | view::move);
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 
-	TrivialRelocat::ClearCount();
+	TrivialRelocat::clearCount();
 	{
 		ArrayTrivialReloc dest;
-		OEL_WHEN_EXCEPTIONS_ON(
+		#if OEL_HAS_EXCEPTIONS
 		{
 			TrivialRelocat obj{-5.0};
 			TrivialRelocat::countToThrowOn = 0;
@@ -161,7 +165,8 @@ void testAssign()
 				dest.assign(view::counted(&obj, 1)),
 				TestException );
 			EXPECT_TRUE(dest.begin() == dest.end());
-		} )
+		}
+		#endif
 		EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 
 		dest = {TrivialRelocat{-1.0}};
@@ -170,7 +175,7 @@ void testAssign()
 		EXPECT_EQ(1.0, *dest[0]);
 		EXPECT_EQ(2.0, *dest[1]);
 		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(dest), TrivialRelocat::nDestruct);
-		OEL_WHEN_EXCEPTIONS_ON(
+		#if OEL_HAS_EXCEPTIONS
 		{
 			TrivialRelocat obj{-3.3};
 			TrivialRelocat::countToThrowOn = 0;
@@ -178,19 +183,20 @@ void testAssign()
 				dest.assign(view::subrange(&obj, &obj + 1)),
 				TestException );
 			EXPECT_TRUE(dest.empty() or *dest[1] == 2.0);
-		} )
+		}
+		#endif
 		{
 			dest.clear();
 			EXPECT_TRUE(dest.empty());
 
-		OEL_WHEN_EXCEPTIONS_ON(
+		#if OEL_HAS_EXCEPTIONS
 			TrivialRelocat obj{-1.3};
 			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
 				dest.assign(view::counted(&obj, 1)),
 				TestException );
 			EXPECT_TRUE(dest.empty());
-		)
+		#endif
 		}
 	}
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
@@ -303,7 +309,7 @@ void testAppendFromStringStream()
 	std::istream_iterator<int> it(ss);
 
 	// Should hit static_assert
-	//dest.insert_r(dest.begin(), view::subrange(it, std::istream_iterator<int>()));
+	//dest.insert_range(dest.begin(), view::subrange(it, std::istream_iterator<int>()));
 
 	it = dest.append(view::counted(it, 2));
 
@@ -320,22 +326,22 @@ void testInsertR()
 		ArrayDouble dest;
 		// Test insert empty std iterator range to empty dynarray
 		std::deque<double> src;
-		dest.insert_r(dest.begin(), src);
+		dest.insert_range(dest.begin(), src);
 
-		dest.template insert_r< std::initializer_list<double> >(dest.begin(), {});
+		dest.template insert_range< std::initializer_list<double> >(dest.begin(), {});
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	ArrayDouble double_dynarr, double_dynarr2;
-	double_dynarr.insert_r(double_dynarr.begin(), arrayA);
-	double_dynarr.insert_r(double_dynarr.end(), double_dynarr2);
+	double_dynarr.insert_range(double_dynarr.begin(), arrayA);
+	double_dynarr.insert_range(double_dynarr.end(), double_dynarr2);
 
 	{
 		ArrayInt int_dynarr;
-		int_dynarr.insert_r(int_dynarr.begin(), std::initializer_list<int>{1, 2, 3, 4});
+		int_dynarr.insert_range(int_dynarr.begin(), std::initializer_list<int>{1, 2, 3, 4});
 
-		double_dynarr.insert_r(double_dynarr.end(), int_dynarr);
+		double_dynarr.insert_range(double_dynarr.end(), int_dynarr);
 	}
 
 	ASSERT_EQ(8U, double_dynarr.size());
@@ -354,7 +360,7 @@ void testInsertR()
 template<typename ArrayTrivialReloc>
 void testInsert()
 {
-	TrivialRelocat::ClearCount();
+	TrivialRelocat::clearCount();
 	{
 		ArrayTrivialReloc up;
 
@@ -364,19 +370,19 @@ void testInsert()
 		EXPECT_EQ(VALUES[2], *ptr);
 		ASSERT_EQ(1U, up.size());
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		TrivialRelocat::countToThrowOn = 0;
 		EXPECT_THROW( up.insert(begin(up), TrivialRelocat{0.0}), TestException );
 		ASSERT_EQ(1U, up.size());
-	)
+	#endif
 		up.insert(begin(up), TrivialRelocat{VALUES[0]});
 		ASSERT_EQ(2U, up.size());
 
-	OEL_WHEN_EXCEPTIONS_ON(
+	#if OEL_HAS_EXCEPTIONS
 		TrivialRelocat::countToThrowOn = 0;
 		EXPECT_THROW( up.insert(begin(up) + 1, TrivialRelocat{0.0}), TestException );
 		ASSERT_EQ(2U, up.size());
-	)
+	#endif
 		up.insert(end(up), TrivialRelocat{VALUES[3]});
 		auto & p2 = *up.insert(begin(up) + 1, TrivialRelocat{VALUES[1]});
 		EXPECT_EQ(VALUES[1], *p2);
@@ -390,13 +396,12 @@ void testInsert()
 		}
 
 		auto it = up.insert( begin(up) + 2, std::move(up[2]) );
-		EXPECT_EQ(up[2].get(), it->get());
-		EXPECT_EQ(nullptr, up[3].get());
+		EXPECT_FALSE(up[3].hasValue());
 
 		auto const val = *up.back();
 		up.insert( end(up) - 1, std::move(up.back()) );
 		ASSERT_EQ(6U, up.size());
-		EXPECT_EQ(nullptr, up.back().get());
+		EXPECT_FALSE(up.back().hasValue());
 		EXPECT_EQ(val, *end(up)[-2]);
 	}
 	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
@@ -428,7 +433,7 @@ void testEraseSingle()
 {
 	internalTestErase<ArrayInt>();
 
-	MoveOnly::ClearCount();
+	MoveOnly::clearCount();
 	internalTestErase<ArrayMoveOnly>();
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
 }

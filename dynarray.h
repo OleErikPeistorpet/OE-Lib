@@ -7,13 +7,12 @@
 
 
 #include "allocator.h"
+#include "auxi/array_interface.h"
 #include "auxi/detail_forward.h"
 #include "auxi/dynarray_iterator.h"
 #include "auxi/impl_algo.h"
 #include "optimize_ext/default.h"
 #include "view/move.h"
-
-#include <algorithm>
 
 /** @file
 */
@@ -27,7 +26,7 @@ is_trivially_relocatable<Alloc> specify_trivial_relocate(dynarray<T, Alloc>);
 
 //! Overloads generic unordered_erase(RandomAccessContainer &, Integral) (in range_algo.h)
 template< typename T, typename A >  inline
-void unordered_erase(dynarray<T, A> & d, size_t index)  { d.unordered_erase(d.begin() + index); }
+void unordered_erase(dynarray<T, A> & d, ptrdiff_t index)  { d.unordered_erase(d.begin() + index); }
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug
@@ -48,8 +47,8 @@ inline namespace debug
 * Note that the allocator model is not quite standard: `destroy` is never used,
 * `construct` may not be called if T is trivially constructible and is not called when relocating elements.
 */
-template< typename T, typename Alloc/* = oel::allocator*/ >
-class dynarray
+template< typename T, typename Alloc >
+class dynarray : public _arrayInterface< dynarray<T, Alloc> >
 {
 	using _alloTrait = std::allocator_traits<Alloc>;
 	using pointer    = typename _alloTrait::pointer;
@@ -222,49 +221,15 @@ public:
 
 	iterator       begin() noexcept          { return _detail::MakeDynarrIter           (_m, _m.data); }
 	const_iterator begin() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.data); }
-	const_iterator cbegin() const noexcept   OEL_ALWAYS_INLINE { return begin(); }
 
 	iterator       end() noexcept          { return _detail::MakeDynarrIter           (_m, _m.end); }
 	const_iterator end() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.end); }
-	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
 
-	reverse_iterator       rbegin() noexcept        OEL_ALWAYS_INLINE { return       reverse_iterator{end()}; }
-	const_reverse_iterator rbegin() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
-
-	reverse_iterator       rend() noexcept        OEL_ALWAYS_INLINE { return       reverse_iterator{begin()}; }
-	const_reverse_iterator rend() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
-
-	T *             data() noexcept         OEL_ALWAYS_INLINE { return _m.data; }
-	const T *       data() const noexcept   OEL_ALWAYS_INLINE { return _m.data; }
-
-	reference       front() noexcept        { return (*this)[0]; }
-	const_reference front() const noexcept  { return (*this)[0]; }
-
-	reference       back() noexcept         { return *_detail::MakeDynarrIter           (_m, _m.end - 1); }
-	const_reference back() const noexcept   { return *_detail::MakeDynarrIter<const T *>(_m, _m.end - 1); }
-
-	reference       at(size_type index)   OEL_ALWAYS_INLINE
-		{
-			const auto & cSelf = *this;
-			return const_cast<reference>(cSelf.at(index));
-		}
-	const_reference at(size_type index) const;
+	T *            data() noexcept         OEL_ALWAYS_INLINE { return _m.data; }
+	const T *      data() const noexcept   OEL_ALWAYS_INLINE { return _m.data; }
 
 	reference       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
 	const_reference operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
-
-	friend bool operator==(const dynarray & left, const dynarray & right)
-		{
-			return left.size() == right.size() and
-			       std::equal(left.begin(), left.end(), right.begin());
-		}
-	friend bool operator!=(const dynarray & left, const dynarray & right)  { return !(left == right); }
-
-	friend bool operator <(const dynarray & left, const dynarray & right)
-		{
-			return std::lexicographical_compare(left.begin(), left.end(), right.begin(), right.end());
-		}
-	friend bool operator >(const dynarray & left, const dynarray & right)  { return right < left; }
 
 
 
@@ -839,7 +804,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_eras
 		mem     = *reinterpret_cast<storage_for<T> *>(_m.end); // relocate last element to pos
 	}
 	else
-	{	*pos = std::move(back());
+	{	*pos = std::move(this->back());
 		pop_back();
 	}
 	return pos;
@@ -895,16 +860,6 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 		_m.end = dest;
 	}
 	return first;
-}
-
-
-template< typename T, typename Alloc >
-const T & dynarray<T, Alloc>::at(size_type i) const
-{
-	if (i < size()) // would be unsafe with signed size_type
-		return _m.data[i];
-	else
-		_detail::OutOfRange::raise("Bad index dynarray::at");
 }
 
 

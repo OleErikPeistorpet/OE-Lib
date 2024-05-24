@@ -6,9 +6,9 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/algo_detail.h"
+#include "auxi/impl_algo.h"
 #include "optimize_ext/default.h"
-#include "align_allocator.h"
+#include "allocator.h"
 
 
 namespace oel
@@ -16,10 +16,10 @@ namespace oel
 namespace _detail
 {
 	template< typename InputIter, typename T >
-	void UninitCopyA(InputIter src, size_t n, T * dest, false_type)
+	InputIter UninitCopyA(InputIter src, size_t n, T * dest, false_type)
 	{
-		struct {} a;
-		_detail::UninitCopy(src, dest, dest + n, a);
+		allocator<T> a{};
+		return _detail::UninitCopy(src, dest, dest + n, a);
 	}
 
 	template< typename ContiguousIter, typename T >
@@ -45,7 +45,7 @@ namespace _detail
 	struct InplaceGrowarrBase
 	{
 		Size _size{};
-		aligned_union_t<T> _data[Capacity];
+		storage_for<T> _data[Capacity];
 
 
 		T *       data() noexcept       { return reinterpret_cast<T *>(_data); }
@@ -65,7 +65,7 @@ namespace _detail
 		template< typename InputIter >
 		InputIter doAssign(InputIter src, Size const count, false_type)
 		{	// cannot use memcpy
-			auto copy = [](InputIter src_, T * dest, T * dLast)
+			auto cpy = [](InputIter src_, T * dest, T * dLast)
 			{
 				while (dest != dLast)
 				{
@@ -76,16 +76,16 @@ namespace _detail
 			};
 			if (_size < count)
 			{	// assign to old elements as far as we can
-				src = copy(src, data(), data() + _size);
+				src = cpy(src, data(), data() + _size);
 				while (_size < count)
 				{	// each iteration updates _size for exception safety
-					_detail::ConstructA(data() + _size, *src);
+					::new(static_cast<void *>(data() + _size)) T(*src);
 					++src; ++_size;
 				}
 			}
 			else // downsizing, assign new and destroy rest
 			{	T *const newEnd = data() + count;
-				src = copy(src, data(), newEnd);
+				src = cpy(src, data(), newEnd);
 				_detail::Destroy(newEnd, data() + _size);
 				_size = count;
 			}
@@ -95,7 +95,8 @@ namespace _detail
 
 
 	template< typename T, size_t C, typename S,
-		bool = is_trivially_copyable<T>::value >
+	          bool = std::is_trivially_copyable_v<T>
+	>
 	struct InplaceGrowarrSpecial : InplaceGrowarrBase<T, C, S> {};
 
 	template< typename T, size_t Capacity, typename Size >
@@ -107,21 +108,22 @@ namespace _detail
 		InplaceGrowarrSpecial(const InplaceGrowarrSpecial & other)
 		{
 			this->_size = other._size;
-			struct {} a;
-			_detail::UninitCopy(other.data(), data(), data() + _size, a);
+			_detail::UninitCopyA(other.data(), other._size, this->data(), std::is_trivially_copy_constructible<T>());
 		}
 
-		InplaceGrowarrSpecial(InplaceGrowarrSpecial && other)
-			noexcept(std::is_nothrow_move_constructible<T>::value or is_trivially_relocatable<T>::value)
+		InplaceGrowarrSpecial(InplaceGrowarrSpecial && other) noexcept
 		{
+			static_assert( std::is_nothrow_move_constructible_v<T> or is_trivially_relocatable<T>::value,
+				"inplace_growarr(inplace_growarr &&) requires noexcept move constructible or trivially relocatable T" );
 			this->_size = other._size;
 			_detail::UninitCopyA(
-				std::make_move_iterator(other.data()), other._size, data(),
-				is_trivially_relocatable<T>() );
+				std::make_move_iterator(other.data()), other._size, this->data(),
+				bool_constant< is_trivially_relocatable<T>::value or std::is_trivially_move_constructible_v<T> >{} );
 			other.setEmptyIf(is_trivially_relocatable<T>());
 		}
 
 		InplaceGrowarrSpecial & operator =(InplaceGrowarrSpecial && other) &
+			 noexcept(std::is_nothrow_move_constructible_v<T> or is_trivially_relocatable<T>::value)
 		{
 			this->doAssign(std::make_move_iterator(other.data()), other._size, is_trivially_relocatable<T>());
 			other.setEmptyIf(is_trivially_relocatable<T>());
@@ -130,13 +132,13 @@ namespace _detail
 
 		InplaceGrowarrSpecial & operator =(const InplaceGrowarrSpecial & other) &
 		{
-			this->doAssign(other.data(), other._size, is_trivially_copyable<T>());
+			this->doAssign(other.data(), other._size, false_type{});
 			return *this;
 		}
 
 		~InplaceGrowarrSpecial() noexcept
 		{
-			_detail::Destroy(data(), data() + this->_size);
+			_detail::Destroy(this->data(), this->data() + this->_size);
 		}
 
 		void setEmptyIf(true_type) { this->_size = 0; }

@@ -96,34 +96,31 @@ public:
 		return tmp;
 	}
 
-	dynarray_iterator & operator+=(difference_type offset) &  OEL_ALWAYS_INLINE
+	dynarray_iterator & operator+=(difference_type offset) &
 	{
 		_pElem += offset;
 		return *this;
 	}
 
-	dynarray_iterator & operator-=(difference_type offset) &  OEL_ALWAYS_INLINE
+	dynarray_iterator & operator-=(difference_type offset) &
 	{
 		_pElem -= offset;
 		return *this;
 	}
 
-	[[nodiscard]] friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)
+	[[nodiscard]] friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)  OEL_ALWAYS_INLINE
 	{
-		it._pElem += offset;
-		return it;
+		return it += offset;
 	}
 
-	[[nodiscard]] friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
+	[[nodiscard]] friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)  OEL_ALWAYS_INLINE
 	{
-		it._pElem += offset;
-		return it;
+		return it += offset;
 	}
 
-	[[nodiscard]] friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
+	[[nodiscard]] friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)  OEL_ALWAYS_INLINE
 	{
-		it._pElem -= offset;
-		return it;
+		return it -= offset;
 	}
 
 	friend difference_type operator -(const dynarray_iterator & left, const dynarray_iterator & right)
@@ -133,8 +130,10 @@ public:
 	}
 
 	reference operator[](difference_type offset) const
-	{
-		return *(*this + offset);
+	{	// not `*(*this + offset)` to save function calls when inlining is disabled
+		auto tmp = *this;
+		tmp._pElem += offset;
+		return *tmp;
 	}
 
 	template< typename Ptr1 >
