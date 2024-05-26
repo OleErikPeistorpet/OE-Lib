@@ -412,19 +412,9 @@ private:
 		(void) _debugSizeUpdater{_m};
 	}
 
-#ifdef _MSC_VER
-	__declspec(noinline) // to get the compiler to inline calling function
-#endif
-	void _growBy(size_type const count)
-	{
-		auto const s = size();
-		_realloc(_calcCapAdd(count, s), s);
-	}
-
-	void _growByOne()
-	{
-		_realloc(_calcCapAddOne(), size());
-	}
+	// These are not defined inline as a compiler hint
+	void _growByOne();
+	void _growBy(size_type const);
 
 
 	template< typename UninitFiller >
@@ -517,7 +507,7 @@ private:
 	template< typename InputIter >
 	InputIter _doAppend(InputIter src, size_type const count)
 	{
-		if( _spareCapacity() < count )
+		if( _spareCapacity() < count ) OEL_UNLIKELY
 			_growBy(count);
 
 		if constexpr( can_memmove_with<T *, InputIter> )
@@ -672,6 +662,23 @@ typename dynarray<T, Alloc>::iterator
 		}
 	}
 	return _detail::MakeDynarrIter(_m, pPos);
+}
+
+
+template< typename T, typename Alloc >
+void dynarray<T, Alloc>::_growByOne()
+{
+	_realloc(_calcCapAddOne(), size());
+}
+
+template< typename T, typename Alloc >
+#if defined _MSC_VER and !__has_cpp_attribute(unlikely)
+	__declspec(noinline) // to get the compiler to inline calling function
+#endif
+void dynarray<T, Alloc>::_growBy(size_type const count)
+{
+	auto const s = size();
+	_realloc(_calcCapAdd(count, s), s);
 }
 
 template< typename T, typename Alloc >
