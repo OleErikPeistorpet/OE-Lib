@@ -396,19 +396,12 @@ private:
 		(void) _debugSizeUpdater{_m};
 	}
 
-#ifdef _MSC_VER
-	__declspec(noinline) // to get the compiler to inline calling function
-#endif
-	void _growBy(size_type const count)
-	{
-		auto const s = size();
-		_realloc(_calcCapAdd(count, s), s);
-	}
-
 	void _growByOne()
 	{
 		_realloc(_calcCapAddOne(), size());
 	}
+	// Not defined inline as a compiler hint
+	void _growBy(size_type);
 
 
 	template< typename UninitFiller >
@@ -634,11 +627,25 @@ typename dynarray<T, Alloc>::iterator
 	return _detail::MakeDynarrIter(_m, pPos);
 }
 
+
+template< typename T, typename Alloc >
+#if defined _MSC_VER and _MSC_VER < 1930
+	__declspec(noinline) // to get the compiler to inline calling function
+#endif
+void dynarray<T, Alloc>::_growBy(size_type const count)
+{
+	auto const s = size();
+	_realloc(_calcCapAdd(count, s), s);
+}
+
 template< typename T, typename Alloc >
 template< typename... Args >
 inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 {
 	if( _m.end == _m.reservEnd )
+#if __has_cpp_attribute(unlikely)
+		[[unlikely]]
+#endif	// braces here cause gcc 9 warning (Wattributes)
 		_growByOne();
 
 	_alloTrait::construct(_m, _m.end, static_cast<Args &&>(args)...);
