@@ -12,11 +12,7 @@
 
 #include <tuple>
 
-namespace oel
-{
 
 template< typename... Ts >
-struct is_trivially_relocatable< std::tuple<Ts...> >
+struct oel::is_trivially_relocatable< std::tuple<Ts...> >
  :	std::conjunction< is_trivially_relocatable<Ts>... > {};
-
-}

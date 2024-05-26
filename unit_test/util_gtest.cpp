@@ -32,7 +32,7 @@ namespace
 #if (defined _CPPLIB_VER or defined _LIBCPP_VERSION or defined __GLIBCXX__) and !_GLIBCXX_USE_CXX11_ABI
 	static_assert(oel::is_trivially_relocatable< std::string >::value);
 #endif
-#ifdef OEL_HAS_BOOST
+#if OEL_HAS_BOOST
 	static_assert(oel::is_trivially_relocatable< boost::circular_buffer<int, oel::allocator<int>> >());
 #endif
 

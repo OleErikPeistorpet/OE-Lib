@@ -17,9 +17,11 @@
 
 #if __has_include(<boost/config.hpp>)
 	#define OEL_HAS_BOOST  1
+#else
+	#define OEL_HAS_BOOST  0
 #endif
 
-#ifdef OEL_HAS_BOOST
+#if OEL_HAS_BOOST
 
 #include <boost/circular_buffer_fwd.hpp>
 #include <boost/container/container_fwd.hpp>
@@ -33,20 +35,17 @@ namespace boost
 #endif
 
 
-// std::string in GNU library with _GLIBCXX_USE_CXX11_ABI is not trivially relocatable (uses pointer to internal buffer)
-#if (defined _CPPLIB_VER or defined _LIBCPP_VERSION or defined __GLIBCXX__) and !_GLIBCXX_USE_CXX11_ABI
+// std::string in GNU library is not trivially relocatable (uses pointer to internal buffer)
+#if defined _CPPLIB_VER or defined _LIBCPP_VERSION
 
 #include <string>
 
-namespace oel
-{
-	template< typename C, typename Tr, typename Alloc >
-	struct is_trivially_relocatable< std::basic_string<C, Tr, Alloc> >
-	 :	bool_constant
-		<	is_trivially_relocatable<Alloc>::value and
-			is_trivially_relocatable< typename std::allocator_traits<Alloc>::pointer >::value
-		> {};
-}
+template< typename C, typename Tr, typename Alloc >
+struct oel::is_trivially_relocatable< std::basic_string<C, Tr, Alloc> >
+ :	bool_constant<
+		is_trivially_relocatable<Alloc>::value and
+		is_trivially_relocatable< typename std::allocator_traits<Alloc>::pointer >::value
+	> {};
 #endif
 
 namespace oel
@@ -65,7 +64,7 @@ struct is_trivially_relocatable< std::shared_ptr<T> > : true_type {};
 template< typename T >
 struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 
-#ifdef OEL_HAS_BOOST
+#if OEL_HAS_BOOST
 	template< typename T >
 	struct is_trivially_relocatable< boost::container::pmr::polymorphic_allocator<T> > : true_type {};
 
@@ -77,8 +76,8 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 
 	template< typename T, typename Alloc >
 	struct is_trivially_relocatable< boost::circular_buffer<T, Alloc> >
-	 :	bool_constant
-		<	is_trivially_relocatable<Alloc>::value and
+	 :	bool_constant<
+			is_trivially_relocatable<Alloc>::value and
 			is_trivially_relocatable< typename std::allocator_traits<Alloc>::pointer >::value
 		> {};
 

@@ -12,11 +12,7 @@
 
 #include <boost/variant2/variant.hpp>
 
-namespace oel
-{
 
 template< typename... Ts >
-struct is_trivially_relocatable< boost::variant2::variant<Ts...> >
+struct oel::is_trivially_relocatable< boost::variant2::variant<Ts...> >
  :	std::conjunction< is_trivially_relocatable<Ts>... > {};
-
-}

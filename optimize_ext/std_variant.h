@@ -12,11 +12,7 @@
 
 #include <variant>
 
-namespace oel
-{
 
 template< typename... Ts >
-struct is_trivially_relocatable< std::variant<Ts...> >
+struct oel::is_trivially_relocatable< std::variant<Ts...> >
  :	std::conjunction< is_trivially_relocatable<Ts>... > {};
-
-}
