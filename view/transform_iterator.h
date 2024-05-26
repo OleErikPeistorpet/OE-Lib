@@ -26,11 +26,13 @@ class transform_iterator
 {
 	_detail::TightPair< Iterator, typename _detail::AssignableWrap<UnaryFunc>::Type > _m;
 
-	static constexpr bool _isBidirectional = iter_is_bidirectional<Iterator>;
+	inline static constexpr auto _isBidirectional = iter_is_bidirectional<Iterator>;
+	inline static constexpr auto _isConstCallable = std::is_invocable_v< UnaryFunc const, decltype(*_m.first) >;
 
 public:
-	using iterator_category = std::conditional_t<
-			std::is_copy_constructible_v<UnaryFunc>,
+	using iterator_category =
+		std::conditional_t<
+			std::is_copy_constructible_v<UnaryFunc> and _isConstCallable,
 			std::conditional_t<
 				_isBidirectional,
 				std::bidirectional_iterator_tag,
@@ -50,7 +52,7 @@ public:
 	constexpr const Iterator & base() const & noexcept  OEL_ALWAYS_INLINE { return _m.first; }
 
 	constexpr reference operator*() const
-		OEL_REQUIRES(std::invocable< UnaryFunc const, decltype(*_m.first) >)
+		OEL_REQUIRES(_isConstCallable)
 		{
 			const UnaryFunc & f = _m.second();
 			return f(*_m.first);
@@ -100,7 +102,7 @@ public:
 		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left._m.first - right._s; }
 
 	constexpr bool operator==(const transform_iterator & right) const   { return _m.first == right._m.first; }
-
+	// These are not hidden friends because MSC 2017 gives error C3615
 	constexpr bool operator!=(const transform_iterator & right) const   { return _m.first != right._m.first; }
 
 	template< typename S >

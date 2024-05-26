@@ -212,7 +212,7 @@ TEST(viewTest, viewTransformMutableLambda)
 	auto v = view::transform(dummy, iota);
 	using I = decltype(v.begin());
 
-	static_assert(std::is_same_v<I::iterator_category, std::bidirectional_iterator_tag>);
+	static_assert(std::is_same_v<I::iterator_category, std::input_iterator_tag>);
 #if OEL_STD_RANGES
 	static_assert(std::input_or_output_iterator<I>);
 	static_assert(std::ranges::range<decltype(v)>);
