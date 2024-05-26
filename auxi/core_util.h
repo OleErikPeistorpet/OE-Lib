@@ -32,6 +32,12 @@
 #endif
 
 
+#if __has_cpp_attribute(unlikely)
+	#define OEL_UNLIKELY  [[unlikely]]
+#else
+	#define OEL_UNLIKELY
+#endif
+
 #ifdef __GNUC__
 	#define OEL_ALWAYS_INLINE [[gnu::always_inline]]
 #elif _MSC_VER
