@@ -31,6 +31,21 @@
 #endif
 
 
+#ifndef OEL_HAS_LIKELY
+	#if (__cplusplus >= 202001 and (!defined __clang__ or __clang_major__ >= 12)) or (defined _MSC_VER and _MSC_VER >= 1929)
+	#define OEL_HAS_LIKELY  1
+	#else
+	#define OEL_HAS_LIKELY  0
+	#endif
+#endif
+
+#if OEL_HAS_LIKELY
+	#define OEL_UNLIKELY  [[unlikely]]
+#else
+	#define OEL_UNLIKELY
+#endif
+
+
 #ifdef __GNUC__
 	#define OEL_ALWAYS_INLINE __attribute__((always_inline))
 #elif _MSC_VER

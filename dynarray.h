@@ -185,11 +185,16 @@ public:
 	//! @copydoc push_back(T &&)
 	void push_back(const T & val)  { emplace_back(val); }
 
-	void pop_back() noexcept;
+	void pop_back() noexcept
+		{
+			OEL_ASSERT(_m.data < _m.end);
+			--_m.end;
+			_m.end-> ~T();
+			(void) _debugSizeUpdater{_m};
+		}
 
+	//! Erase the element at pos without maintaining order of elements after pos.
 	/**
-	* @brief Erase the element at pos without maintaining order of elements after pos.
-	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
 	iterator  unordered_erase(iterator pos) &;
@@ -410,19 +415,9 @@ private:
 		(void) _debugSizeUpdater{_m};
 	}
 
-#ifdef _MSC_VER
-	__declspec(noinline) // to get the compiler to inline calling function
-#endif
-	void _growBy(size_type const count)
-	{
-		auto const s = size();
-		_realloc(_calcCapAdd(count, s), s);
-	}
-
-	void _growByOne()
-	{
-		_realloc(_calcCapAddOne(), size());
-	}
+	// These are not defined inline as a compiler hint
+	void _growByOne();
+	void _growBy(size_type const);
 
 
 	template< typename UninitFiller >
@@ -531,7 +526,7 @@ private:
 	template< typename InputIter >
 	InputIter _doAppend(InputIter src, size_type const count)
 	{
-		if (_spareCapacity() < count)
+		if (_spareCapacity() < count) OEL_UNLIKELY
 			_growBy(count);
 
 		if constexpr (can_memmove_with<T *, InputIter>)
@@ -688,6 +683,23 @@ typename dynarray<T, Alloc>::iterator
 	return _detail::MakeDynarrIter(_m, pPos);
 }
 
+
+template< typename T, typename Alloc >
+void dynarray<T, Alloc>::_growByOne()
+{
+	_realloc(_calcCapAddOne(), size());
+}
+
+template< typename T, typename Alloc >
+#if defined _MSC_VER and !OEL_HAS_LIKELY
+	__declspec(noinline) // to get the compiler to inline calling function
+#endif
+void dynarray<T, Alloc>::_growBy(size_type const count)
+{
+	auto const s = size();
+	_realloc(_calcCapAdd(count, s), s);
+}
+
 template< typename T, typename Alloc >
 template< typename... Args >
 inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
@@ -700,6 +712,19 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	_debugSizeUpdater guard{_m};
 
 	return *(_m.end++);
+}
+
+template< typename T, typename Alloc >
+inline void dynarray<T, Alloc>::append(size_type count, const T & val)
+{
+	if (_spareCapacity() < count) OEL_UNLIKELY
+		_growBy(count);
+
+	auto const pos = _m.end;
+	_uninitFill::template call< forward_t<const T &> >(pos, pos + count, _m, val);
+
+	_debugSizeUpdater guard{_m};
+	_m.end += count;
 }
 
 
@@ -809,31 +834,6 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	{	_m.end = nullptr;
 		_resetData(nullptr, 0);
 	}
-}
-
-
-template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::append(size_type count, const T & val)
-{
-	if (_spareCapacity() < count)
-		_growBy(count);
-
-	auto const pos = _m.end;
-	_uninitFill::template call< forward_t<const T &> >(pos, pos + count, _m, val);
-
-	_debugSizeUpdater guard{_m};
-	_m.end += count;
-}
-
-
-template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::pop_back() noexcept
-{
-	OEL_ASSERT(_m.data < _m.end);
-	--_m.end;
-	(*_m.end).~T();
-
-	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
