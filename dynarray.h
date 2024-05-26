@@ -175,11 +175,16 @@ public:
 	//! @copydoc push_back(T &&)
 	void push_back(const T & val)  { emplace_back(val); }
 
-	void pop_back() noexcept;
+	void pop_back() noexcept
+		{
+			OEL_ASSERT(_m.data < _m.end); // not empty
+			--_m.end;
+			_m.end-> ~T();
+			(void) _debugSizeUpdater{_m};
+		}
 
+	//! Erase the element at pos without maintaining order of elements after pos.
 	/**
-	* @brief Erase the element at pos without maintaining order of elements after pos.
-	*
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
 	iterator  unordered_erase(iterator pos) &;
@@ -830,17 +835,6 @@ void dynarray<T, Alloc>::shrink_to_fit()
 	{	_m.end = nullptr;
 		_resetData(nullptr, 0);
 	}
-}
-
-
-template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::pop_back() noexcept
-{
-	OEL_ASSERT(_m.data < _m.end); // not empty
-	--_m.end;
-	(*_m.end).~T();
-
-	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
