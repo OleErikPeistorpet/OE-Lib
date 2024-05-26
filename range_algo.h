@@ -29,8 +29,6 @@ constexpr void unordered_erase(RandomAccessContainer & c, Integral index)
 	c[index] = std::move(c.back());
 	c.pop_back();
 }
-template< typename RandomAccessContainer, typename Integral >
-[[deprecated]] constexpr void erase_unstable(RandomAccessContainer & c, Integral index)  { oel::unordered_erase(c, index); }
 
 /**
 * @brief Erase from container all elements for which predicate returns true
@@ -90,11 +88,29 @@ inline constexpr auto copy_fit =
 	[](auto && source, auto && dest) -> bool   { return _detail::CopyFit(source, dest); };
 
 
-/**
-* @brief Append source range at end of container
+
+struct _appendFn
+{
+	template< typename Container, typename InputRange >
+	void operator()(Container & c, InputRange && source) const
+	{
+	#if __cpp_concepts >= 201907
+		if constexpr (requires{ c.append_range(static_cast<InputRange &&>(source)); })
+			c.append_range(static_cast<InputRange &&>(source));
+		else
+	#endif
+			c.insert(c.end(), begin(source), end(source));
+	}
+
+	template< typename T, typename A, typename InputRange >
+	void operator()(dynarray<T, A> & c, InputRange && source) const
+	{
+		c.append(static_cast<InputRange &&>(source));
+	}
+};
+/** @brief Append source range at end of a container
 *
-* Generic function for use with dynarray or a container with standard library interface. */
-inline constexpr auto append =
-	[](auto & container, auto && source) -> void   { _detail::Append(container, decltype(source)(source)); };
+* Generic function for use with dynarray or container that has standard library interface. */
+inline constexpr _appendFn append;
 
 } // namespace oel
