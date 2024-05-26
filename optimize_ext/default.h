@@ -4,7 +4,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-// std:: unique_ptr, shared_ptr, weak_ptr, basic_string, pair, tuple
+// std:: unique_ptr, shared_ptr, weak_ptr, basic_string, pair
 // boost:: intrusive_ptr, local_shared_ptr, circular_buffer, variant, polymorphic_allocator
 
 /** @file
@@ -14,7 +14,6 @@
 #include "../auxi/core_util.h"
 
 #include <memory>
-#include <tuple>
 
 #if __has_include(<boost/config.hpp>)
 	#define OEL_HAS_BOOST  1
@@ -91,9 +90,5 @@ struct is_trivially_relocatable< std::weak_ptr<T> > : true_type {};
 template< typename T, typename U >
 struct is_trivially_relocatable< std::pair<T, U> >
  :	std::conjunction< is_trivially_relocatable<T>, is_trivially_relocatable<U> > {};
-
-template< typename... Ts >
-struct is_trivially_relocatable< std::tuple<Ts...> >
- :	std::conjunction< is_trivially_relocatable<Ts>... > {};
 
 }

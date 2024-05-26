@@ -3,6 +3,8 @@
 
 #include "test_classes.h"
 #include "dynarray.h"
+#include "optimize_ext/std_tuple.h"
+#include "optimize_ext/std_variant.h"
 
 #include "gtest/gtest.h"
 #include <list>
@@ -14,16 +16,18 @@
 
 namespace
 {
-	static_assert(oel::is_trivially_relocatable< std::pair<int *, std::unique_ptr<int>> >());
-	static_assert(oel::is_trivially_relocatable< std::tuple<std::unique_ptr<double>> >());
-	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value);
-
 	struct NonTrivialDestruct
 	{
 		~NonTrivialDestruct() { ; }
 	};
 
-	static_assert( !oel::is_trivially_relocatable< std::tuple<int, NonTrivialDestruct, int> >() );
+	static_assert(oel::is_trivially_relocatable< std::pair<int *, std::unique_ptr<int>> >::value);
+	static_assert(oel::is_trivially_relocatable< std::tuple<std::unique_ptr<double>> >::value);
+	static_assert(oel::is_trivially_relocatable< std::tuple<> >::value);
+	static_assert( !oel::is_trivially_relocatable< std::tuple<int, NonTrivialDestruct, int> >::value );
+
+	static_assert(oel::is_trivially_relocatable< std::variant< std::unique_ptr<double>, int > >::value);
+	static_assert( !oel::is_trivially_relocatable< std::variant<NonTrivialDestruct> >::value );
 
 #if (defined _CPPLIB_VER or defined _LIBCPP_VERSION or defined __GLIBCXX__) and !_GLIBCXX_USE_CXX11_ABI
 	static_assert(oel::is_trivially_relocatable< std::string >::value);
