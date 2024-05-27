@@ -144,10 +144,9 @@ using StdArrInt2 = std::array<int, 2>;
 constexpr auto multBy2(StdArrInt2 a)
 {
 	StdArrInt2 res{};
-	struct
-	{	constexpr auto operator()(int i) const { return 2 * i; }
-	} mult2{};
+	auto mult2 = [j = 2](int i) { return i * j; };
 	auto v = view::transform(a, mult2);
+
 	size_t i{};
 	for (auto val : v)
 		res[i++] = val;
@@ -244,6 +243,27 @@ TEST(viewTest, viewTransformAsOutput)
 	EXPECT_EQ(-2, test[1].second);
 }
 
+constexpr StdArrInt2 generatedArray()
+{
+	StdArrInt2 res{};
+	int i{1};
+	auto v = view::generate([&i] { return i++; }, 2);
+	auto it = v.begin();
+	for (auto & val : res)
+	{
+		val = *it;
+		it++;
+	}
+	return res;
+}
+
+constexpr void testViewGenerateConstexpr()
+{
+	constexpr auto res = generatedArray();
+	static_assert(res[0] == 1);
+	static_assert(res[1] == 2);
+}
+
 struct Ints
 {
 	int i;
@@ -286,7 +306,7 @@ TEST(viewTest, viewMoveMutableEmptyAndSize)
 }
 
 using IntGenIter = oel::iterator_t<decltype( view::generate(Ints{}, 0) )>;
-static_assert(std::input_or_output_iterator<IntGenIter>);
+static_assert(std::input_iterator<IntGenIter>);
 
 TEST(viewTest, chainWithStd)
 {
