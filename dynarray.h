@@ -84,7 +84,7 @@ public:
 	explicit dynarray(size_type size, Alloc a = Alloc{});
 	dynarray(size_type size, const T & val, Alloc a = Alloc{})   : _m(a) { append(size, val); }
 
-	/** @brief Equivalent to `std::vector(begin(r), end(r), a)`, where `end(r)` is not needed if `r.size()` exists
+	/** @brief Equivalent to `std::vector(std::from_range, r, a)`, except `end(r)` is not needed if `r.size()` is valid
 	*
 	* To move instead of copy, wrap r with view::move (The same applies for all functions taking a range template)
 	*
@@ -131,13 +131,12 @@ public:
 	void assign(size_type count, const T & val)   { clear();  append(count, val); }
 
 	/**
-	* @brief Add at end the elements from source range
+	* @brief Almost same as std::vector::append_range (C++23)
 	* @pre source shall not refer to any elements in this dynarray if reallocation happens.
 	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements
 	* @return Iterator `begin(source)` incremented by the number of elements in source
 	*
-	* Otherwise equivalent to `std::vector::insert(end(), begin(source), end(source))`,
-	* where `end(source)` is not needed if `source.size()` exists. */
+	* Unlike std::vector, `end(source)` is not needed if `source.size()` is valid. */
 	template< typename InputRange >
 	auto append(InputRange && source)
 	->	borrowed_iterator_t<InputRange>   { return _doAppend(adl_begin(source), _detail::CountOrEnd(source)); }
@@ -156,10 +155,11 @@ public:
 	void resize_for_overwrite(size_type n)   { _doResize< _detail::DefaultInit<allocator_type> >(n); }
 	void resize(size_type n)                 { _doResize<_uninitFill>(n); }
 
-	//! @brief Same as `std::vector::insert(pos, begin(source), end(source))`,
-	//!	where `end(source)` is not needed if `source.size()` exists
-	template< typename ForwardRange >
-	iterator insert_range(const_iterator pos, ForwardRange && source) &;
+	/**
+	* @brief Almost same as std::vector::insert_range
+	* @param source must model std::ranges::forward_range or `source.size()` must be valid. */
+	template< typename Range >
+	iterator insert_range(const_iterator pos, Range && source) &;
 
 	iterator insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
 	iterator insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
@@ -619,9 +619,9 @@ typename dynarray<T, Alloc>::iterator
 }
 
 template< typename T, typename Alloc >
-template< typename ForwardRange >
+template< typename Range >
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::insert_range(const_iterator pos, ForwardRange && src) &
+	dynarray<T, Alloc>::insert_range(const_iterator pos, Range && src) &
 {
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1
