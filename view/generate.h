@@ -6,56 +6,57 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "counted.h"
-#include "../auxi/detail_assignable.h"
+#include "subrange.h"
+#include "../auxi/detail_iter_with_func.h"
 
 /** @file
 */
 
 namespace oel
 {
-namespace _detail
-{
-	template< typename G, bool = std::is_invocable_v<const G &> >
-	struct GenerateIterBase
-	{
-		using FnRef = const G &;
 
-		typename _detail::AssignableWrap<G>::Type f;
-	};
-
-	template< typename G >
-	struct GenerateIterBase<G, false>
-	{
-		using FnRef = G &;
-
-		typename _detail::AssignableWrap<G>::Type mutable f;
-	};
-}
+struct _defaultSentinel {};
 
 
 template< typename Generator >
-class generate_iterator
- :	private _detail::GenerateIterBase<Generator>
+class _generateIterator
+ :	private _detail::IterWithFuncBase< ptrdiff_t, Generator, std::is_invocable_v<const Generator &> >
 {
-	using _base = typename generate_iterator::GenerateIterBase;
+	using _base = typename _generateIterator::IterWithFuncBase;
+
+	using _base::m;
 
 public:
 	using iterator_category = std::input_iterator_tag;
+	using difference_type   = ptrdiff_t;
 	using reference         = decltype( std::declval<typename _base::FnRef>()() );
 	using pointer           = void;
 	using value_type        = std::remove_cv_t< std::remove_reference_t<reference> >;
-	using difference_type   = ptrdiff_t;
 
-	constexpr explicit generate_iterator(Generator g)   : _base{std::move(g)} {}
+	constexpr _generateIterator(Generator g, difference_type count)   : _base{{count, std::move(g)}} {}
 
 	constexpr reference operator*() const
 		{
-			typename _base::FnRef g = this->f;  return g();
+			typename _base::FnRef g = m.second();
+			return g();
 		}
 
-	constexpr generate_iterator & operator++()        OEL_ALWAYS_INLINE { return *this; }
-	constexpr void                operator++(int) &   OEL_ALWAYS_INLINE {}
+	constexpr _generateIterator & operator++()        OEL_ALWAYS_INLINE { --m.first;  return *this; }
+
+	constexpr void                operator++(int) &   OEL_ALWAYS_INLINE { --m.first; }
+
+	friend constexpr difference_type operator -
+		(_defaultSentinel, const _generateIterator & right)  { return right.m.first; }
+	friend constexpr difference_type operator -
+		(const _generateIterator & left, _defaultSentinel)   { return -left.m.first; }
+
+	friend constexpr bool operator==(const _generateIterator & left, _defaultSentinel)   { return 0 == left.m.first; }
+
+	friend constexpr bool operator==(_defaultSentinel left, const _generateIterator & right)  { return right == left; }
+
+	friend constexpr bool operator!=(const _generateIterator & left, _defaultSentinel)   { return 0 != left.m.first; }
+
+	friend constexpr bool operator!=(_defaultSentinel, const _generateIterator & right)  { return 0 != right.m.first; }
 };
 
 
@@ -63,9 +64,11 @@ namespace view
 {
 //! Returns a view that generates `count` elements by calling the given generator function
 /**
-* Like `generate_n` in the Range-v3 library, but this is only for use within OE-Lib. */
-inline constexpr auto generate =
-	[](auto generator, ptrdiff_t count)  { return counted(generate_iterator{std::move(generator)}, count); };
+* Almost same as `generate_n` in the Range-v3 library. */
+inline constexpr auto generate = [](auto generator, ptrdiff_t count)
+	{
+		return subrange(_generateIterator{std::move(generator), count}, _defaultSentinel{});
+	};
 }
 
 } // oel

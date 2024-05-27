@@ -6,39 +6,14 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h"  // for TightPair
-#include "../auxi/detail_assignable.h"
+#include "../auxi/detail_iter_with_func.h"
+#include "../auxi/range_traits.h"
 
 /** @file
 */
 
 namespace oel
 {
-namespace _detail
-{
-	template< typename Func, typename Iter,
-		bool = std::is_invocable_v< const Func &, decltype(*std::declval<Iter const>()) >
-	>
-	struct TransformIterBase
-	{
-		using FnRef = const Func &;
-
-		static constexpr auto canCallConst = true;
-
-		TightPair< Iter, typename AssignableWrap<Func>::Type > m;
-	};
-
-	template< typename Func, typename Iter >
-	struct TransformIterBase<Func, Iter, false>
-	{
-		using FnRef = Func &;
-
-		static constexpr auto canCallConst = false;
-
-		TightPair< Iter, typename AssignableWrap<Func>::Type > mutable m;
-	};
-}
-
 
 /** @brief Similar to boost::transform_iterator
 *
@@ -49,9 +24,11 @@ namespace _detail
 * - Function objects (including lambda) can have non-const `operator()`, then merely std::input_iterator is modeled  */
 template< typename UnaryFunc, typename Iterator >
 class transform_iterator
- :	private _detail::TransformIterBase<UnaryFunc, Iterator>
+ :	private _detail::IterWithFuncBase< Iterator, UnaryFunc,
+		std::is_invocable_v< const UnaryFunc &, decltype(*std::declval<Iterator const>()) >
+	>
 {
-	using _super = typename transform_iterator::TransformIterBase;
+	using _super = typename transform_iterator::IterWithFuncBase;
 
 	using _super::m;
 

@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "core_util.h"
+#include "../util.h" // for TightPair
 
 
 namespace oel::_detail
@@ -59,5 +59,26 @@ namespace oel::_detail
 	{
 	public:
 		using Type = T;
+	};
+
+
+	template< typename T, typename Func, bool /*IsConstCallable*/ >
+	struct IterWithFuncBase
+	{
+		using FnRef = const Func &;
+
+		static constexpr auto canCallConst = true;
+
+		TightPair< T, typename AssignableWrap<Func>::Type > m;
+	};
+
+	template< typename T, typename Func >
+	struct IterWithFuncBase<T, Func, false>
+	{
+		using FnRef = Func &;
+
+		static constexpr auto canCallConst = false;
+
+		TightPair< T, typename AssignableWrap<Func>::Type > mutable m;
 	};
 }

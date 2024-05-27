@@ -273,6 +273,13 @@ struct Ints
 
 TEST(viewTest, viewGenerate)
 {
+	{
+		auto v = view::generate([] { return 7; }, 1);
+		for (auto i : v)
+			EXPECT_EQ(7, i);
+
+		static_assert(sizeof v.begin() <= sizeof(ptrdiff_t));
+	}
 	auto d = view::generate(Ints{1}, 2) | oel::to_dynarray();
 
 	ASSERT_EQ(2U, d.size());
@@ -281,6 +288,12 @@ TEST(viewTest, viewGenerate)
 
 	d.assign(oel::view::generate(Ints{}, 0));
 	EXPECT_TRUE(d.empty());
+
+#if OEL_STD_RANGES
+	using G = decltype( view::generate(Ints{}, 2) );
+	static_assert(std::ranges::input_range<G>);
+	static_assert(std::ranges::sized_range<G>);
+#endif
 }
 
 TEST(viewTest, viewMoveEndDifferentType)
@@ -303,9 +316,6 @@ TEST(viewTest, viewMoveMutableEmptyAndSize)
 	EXPECT_FALSE(v.empty());
 	EXPECT_EQ(1U, v.size());
 }
-
-using IntGenIter = oel::iterator_t<decltype( view::generate(Ints{}, 0) )>;
-static_assert(std::input_iterator<IntGenIter>);
 
 TEST(viewTest, chainWithStd)
 {
