@@ -210,12 +210,11 @@ TEST(viewTest, viewTransformMutableLambda)
 	};
 	int dummy[3];
 	auto v = view::transform(dummy, iota);
-	using I = decltype(v.begin());
 
+	using I = decltype(v.begin());
 	static_assert(std::is_same_v<I::iterator_category, std::input_iterator_tag>);
 #if OEL_STD_RANGES
-	static_assert(std::input_or_output_iterator<I>);
-	static_assert(std::ranges::range<decltype(v)>);
+	static_assert(std::ranges::input_range<decltype(v)>);
 #endif
 
 	oel::dynarray<int> test(oel::reserve, 3);
