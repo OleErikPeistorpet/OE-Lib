@@ -7,11 +7,10 @@
 #ifdef _MSC_EXTENSIONS
 #include <ciso646>
 #endif
-#include <type_traits>
 
 
 /** @file
-* @brief specify_trivial_relocate for user classes, error handling macros, forward declarations
+* @brief Error handling macros and forward declarations, including is_trivially_relocatable (for user classes)
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
@@ -73,21 +72,16 @@ class dynarray;
 
 
 
-using std::bool_constant;
-using std::false_type;
-using std::true_type;
-
-
+//! Trait that tells if T objects can transparently be relocated in memory
 /**
-* @brief Function declaration to specify that T objects can transparently be relocated in memory.
-*
 * This means that T cannot have a member that is a pointer to any of its non-static members, and
 * must not need to update external state during move construction. (The same recursively for sub-objects)
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
 * https://isocpp.org/files/papers/P1144R8.html
 *
-* Already true for trivially copyable types. For others, declare a function in the namespace of the type like this:
+* True by default for types that are trivially move constructible and trivially destructible.
+* For others, declare a function in the namespace of the type like this:
 @code
 oel::true_type specify_trivial_relocate(MyClass);
 
@@ -97,22 +91,27 @@ class MyClass {
 };
 oel::is_trivially_relocatable<std::string> specify_trivial_relocate(MyClass);
 
-// With nested class, use friend keyword:
+// With nested class, you can use friend keyword:
 class Outer {
 	class Inner {
 		std::unique_ptr<whatever> a;
 	};
 	friend oel::true_type specify_trivial_relocate(Inner);
 };
-@endcode  */
-template< typename T >
-bool_constant< std::is_trivially_move_constructible_v<T> and std::is_trivially_destructible_v<T> >
-	specify_trivial_relocate(T &&);
+@endcode
 
-/** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
-*
 * Many external classes are declared trivially relocatable, see `optimize_ext` folder. */
 template< typename T >
 struct is_trivially_relocatable;
+
+
+template< bool Val >
+struct bool_constant
+{
+	static constexpr auto value = Val;
+};
+
+using false_type = bool_constant<false>;
+using true_type  = bool_constant<true>;
 
 } // namespace oel

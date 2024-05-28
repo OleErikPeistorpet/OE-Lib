@@ -41,7 +41,7 @@ inline namespace debug
 *
 * There is a general requirement that template argument T is trivially relocatable or noexcept move
 * constructible (checked when compiling). Most types can be relocated trivially, but it often needs to be
-* declared manually. See specify_trivial_relocate(T &&). Performance is better if T is trivially relocatable.
+* declared manually. See is_trivially_relocatable (fwd.h). Performance is better if T is trivially relocatable.
 * Furthermore, a few functions require that T is trivially relocatable (noexcept movable is not enough):
 * emplace, insert, insert_range
 *
