@@ -52,16 +52,11 @@ namespace
 	static_assert(!oel::allocator_can_realloc< oel::allocator<MoveOnly> >);
 }
 
-void testCompileDynarrayMembers()
+void testCompileSomeDynarrayMembers()
 {
 	dynarray<int> const d{0};
+	static_assert(std::is_same_v< decltype(d.get_allocator()), dynarray<int>::allocator_type >);
 	dynarray<int>::allocate_size_overhead();
-	d.get_allocator();
-	d.cbegin();
-	d.cend();
-	d.rbegin();
-	d.rend();
-	d.data();
 	d.front();
 	d.back();
 	d.at(0);
@@ -76,6 +71,20 @@ TEST(dynarrayOtherTest, zeroBitRepresentation)
 	float f = 0.f;
 	for (unsigned i = 0; i < sizeof f; ++i)
 		ASSERT_TRUE(0U == reinterpret_cast<const unsigned char *>(&f)[i]);
+}
+
+TEST(dynarrayOtherTest, reverseIter)
+{
+	using oel::to_pointer_contiguous;
+	dynarray<int> const d{0};
+
+	EXPECT_TRUE(d.rbegin().base() != d.cbegin());
+	EXPECT_TRUE(d.crbegin().base() == d.cend());
+	EXPECT_TRUE(d.rend().base()  != d.end());
+	EXPECT_TRUE(d.crend().base() == d.begin());
+	EXPECT_EQ(d.data(), &*d.crend().base());
+	auto pRbeginBase = to_pointer_contiguous(d.crbegin().base());
+	EXPECT_EQ(d.data() + 1, pRbeginBase);
 }
 
 TEST(dynarrayOtherTest, compare)
