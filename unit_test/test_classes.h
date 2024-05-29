@@ -175,6 +175,7 @@ static_assert( !std::is_trivially_copyable<TrivialDefaultConstruct>::value );
 struct NontrivialConstruct : MyCounter
 {
 	NontrivialConstruct(const NontrivialConstruct &) = delete;
+	void operator =(const NontrivialConstruct &) = delete;
 
 	NontrivialConstruct()
 	{

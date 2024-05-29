@@ -74,7 +74,7 @@ namespace oel::_detail
 		{
 		#if OEL_HAS_EXCEPTIONS
 			static_assert( std::is_nothrow_move_constructible_v<T>,
-				"dynarray requires that T is noexcept move constructible or trivially relocatable" );
+				"Containers in oel require that T is noexcept move constructible or trivially relocatable" );
 		#endif
 			for (size_t i{}; i < n; ++i)
 			{

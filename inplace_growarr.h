@@ -38,7 +38,6 @@ class inplace_growarr
 	static_assert(Capacity <= std::numeric_limits<Size>::max(), "Capacity does not fit in type Size");
 
 	using _base = typename inplace_growarr::InplaceGrowarrBase;
-	using _base::_data;
 
 public:
 	using value_type      = T;
@@ -60,9 +59,23 @@ public:
 
 	/** @brief Elements are default initialized, meaning non-class T produces indeterminate values
 	* @throw bad_alloc if size > Capacity  */
-	inplace_growarr(size_type size, for_overwrite_t);
+	inplace_growarr(size_type size, for_overwrite_t)
+		{
+			if (Capacity < size)
+				_detail::BadAlloc::raise();
+
+			_detail::UninitDefaultConstructA::call(data(), data() + size);
+			_size = size;
+		}
 	//! Throws bad_alloc if size > Capacity. (Elements are value-initialized, same as std::vector)
-	explicit inplace_growarr(size_type size);
+	explicit inplace_growarr(size_type size)
+		{
+			if (Capacity < size)
+				_detail::BadAlloc::raise();
+
+			_detail::UninitFillA::call(data(), data() + size);
+			_size = size;
+		}
 	//! Throws bad_alloc if size > Capacity
 	inplace_growarr(size_type size, const T & fillVal)  { append(size, fillVal); }
 
@@ -94,7 +107,7 @@ public:
 	* Strong exception safety, aka. commit or rollback semantics  */
 	template< typename InputRange >
 	auto append(InputRange && source)
-	->  iterator_t<InputRange>                { return _append(_getSize(source, 0), source); }
+	->  iterator_t<InputRange>                { return _doAppend(_getSize(source, 0), source); }
 	//! Same as `std::vector::insert(end(), il)`
 	void append(std::initializer_list<T> il)  { append<>(il); }
 	//! Same as `std::vector::insert(end(), count, val)`
@@ -124,15 +137,26 @@ public:
 	//! Throws bad_alloc when full
 	void     push_back(const T & val)  { emplace_back(val); }
 
-	void     pop_back() noexcept;
+	void     pop_back() noexcept
+		{
+			OEL_ASSERT(0 < _size);
+			--_size;
+			data()[_size].~T();
+		}
 
-	iterator unordered_erase(iterator pos) &   { _eraseUnorder(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator unordered_erase(iterator pos) &   { _eraseUnorder(pos);  return pos; }
 
-	iterator erase(iterator pos) &             { _erase(pos, is_trivially_relocatable<T>());  return pos; }
+	iterator erase(iterator pos) &             { _erase(pos);  return pos; }
 
 	iterator erase(iterator first, const_iterator last) &;
 	//! Equivalent to erase(first, end()) (but potentially faster), making first the new end
-	void     erase_to_end(iterator first) noexcept;
+	void     erase_to_end(iterator first) noexcept
+		{
+			T *const newEnd = to_pointer_contiguous(first);
+			OEL_ASSERT(data() <= newEnd and newEnd <= data() + _size);
+			_detail::Destroy(newEnd, data() + _size);
+			_size = newEnd - data();
+		}
 
 	void     clear() noexcept         { erase_to_end(begin()); }
 
@@ -145,11 +169,11 @@ public:
 	static constexpr size_type capacity() noexcept  { return Capacity; }
 	static constexpr size_type max_size() noexcept  { return Capacity; }
 
-	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIterator(_data); }
-	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeConstIter(_data); }
+	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIterator(this->_data); }
+	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeConstIter(this->_data); }
 
-	iterator       end() noexcept          OEL_ALWAYS_INLINE { return _makeIterator(_data + _size); }
-	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeConstIter(_data + _size); }
+	iterator       end() noexcept          OEL_ALWAYS_INLINE { return _makeIterator(this->_data + _size); }
+	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeConstIter(this->_data + _size); }
 
 	// T *       data() noexcept
 	// const T * data() const noexcept
@@ -223,43 +247,45 @@ private:
 	#endif
 #endif
 
-	void _eraseUnorder(iterator pos, false_type) // non-trivial relocation
+	void _eraseUnorder(iterator const pos)
 	{
-		*pos = std::move(this->back());
-		pop_back();
+		if constexpr (is_trivially_relocatable<T>::value)
+		{
+			T *const ptr = std::addressof(*pos);
+			ptr-> ~T();
+			--_size;
+			auto mem = reinterpret_cast<storage_for<T> *>(ptr);
+			*mem = this->_data[_size];  // relocate last element to pos
+		}
+		else
+		{	*pos = std::move(this->back());
+			pop_back();
+		}
 	}
 
-	void _eraseUnorder(iterator const pos, true_type)
+	void _erase(iterator const pos)
 	{
-		T *const ptr = std::addressof(*pos);
-		ptr-> ~T();
-		--_size;
-		auto mem = reinterpret_cast<storage_for<T> *>(ptr);
-		*mem = _data[_size];  // relocate last element to pos
-	}
+		if constexpr (is_trivially_relocatable<T>::value)
+		{
+			T *const ptr = to_pointer_contiguous(pos);
+			OEL_ASSERT(data() <= ptr and ptr < data() + _size);
 
-	void _erase(iterator pos, true_type /*trivialRelocate*/)
-	{
-		T *const ptr = to_pointer_contiguous(pos);
-		OEL_ASSERT(data() <= ptr and ptr < data() + _size);
-
-		ptr-> ~T();
-		T *const next = ptr + 1;
-		size_t const nAfter = _size - (next - data());
-		std::memmove(ptr, next, sizeof(T) * nAfter); // move [pos + 1, _end) to [pos, _end - 1)
-		--_size;
-	}
-
-	void _erase(iterator pos, false_type)
-	{
-		iterator last = std::move(pos + 1, end(), pos);
-		(*last).~T();
-		--_size;
+			ptr-> ~T();
+			T *const next = ptr + 1;
+			size_t const nAfter = _size - (next - data());
+			std::memmove(ptr, next, sizeof(T) * nAfter); // move [pos + 1, _end) to [pos, _end - 1)
+			--_size;
+		}
+		else
+		{	iterator last = std::move(pos + 1, end(), pos);
+			(*last).~T();
+			--_size;
+		}
 	}
 
 
 	template< typename UninitFiller >
-	void _doResize(size_type newSize)
+	void _doResize(size_type const newSize)
 	{
 		if (Capacity < newSize)
 			_detail::BadAlloc::raise();
@@ -274,14 +300,13 @@ private:
 		_size = newSize;
 	}
 
+
 	template< typename SizedRange >
 	iterator_t<SizedRange> _assign(size_t count, SizedRange & src)
 	{
 		if (Capacity >= count)
-		{
-			auto first = adl_begin(src);
-			return this->doAssign(first, count, bool_constant< can_memmove_with<T *, decltype(first)> >{});
-		}
+			return this->doAssign(adl_begin(src), count);
+
 		_detail::BadAlloc::raise();
 	}
 
@@ -289,68 +314,34 @@ private:
 	iterator_t<InputRange> _assign(false_type, InputRange & src)
 	{	// no fast way of getting size
 		clear();
-		return append<>(src);
-	}
-
-	template< typename ContiguousIter >
-	ContiguousIter _appendImpl(ContiguousIter first, size_type const count, std::true_type)
-	{	// use memcpy
-		_detail::MemcpyCheck(first, count, data() + _size);
-		_size += count;
-
-		return first + count;
-	}
-
-	template< typename InputIter >
-	InputIter _appendImpl(InputIter src, size_type const count, std::false_type)
-	{	// slower copy
-		src = _detail::UninitCopyA(src, count, data() + _size, false_type{});
-		_size += count;
-		return src;
+		return append(src);
 	}
 
 	template< typename SizedRange >
-	iterator_t<SizedRange> _append(size_t count, SizedRange & src)
+	iterator_t<SizedRange> _doAppend(size_t count, SizedRange & src)
 	{
 		if (_unusedCapacity() >= count)
 		{
 			auto first = adl_begin(src);
-			return _appendImpl(first, count, bool_constant< can_memmove_with<T *, decltype(first)> >{});
+			first = _detail::UninitCopy(first, count, data() + _size);
+			_size += count;
+
+			return first;
 		}
 		_detail::BadAlloc::raise();
 	}
 
 	template< typename InputRange >
-	iterator_t<InputRange> _append(false_type, InputRange & src)
+	iterator_t<InputRange> _doAppend(false_type, InputRange & src)
 	{	// number of items unknown (slowest)
-		auto f = adl_begin(src); auto l = adl_end(src);
+		auto f = adl_begin(src);
+		auto l = adl_end(src);
 		for (; f != l; ++f)
 			emplace_back(*f);
 
 		return f;
 	}
 };
-
-template< typename T, size_t Capacity, typename Size >
-inplace_growarr<T, Capacity, Size>::inplace_growarr(size_type size, for_overwrite_t)
-{
-	if (Capacity < size)
-		_detail::BadAlloc::raise();
-
-	_detail::UninitDefaultConstructA(data(), data() + size);
-	_size = size;
-}
-
-template< typename T, size_t Capacity, typename Size >
-inplace_growarr<T, Capacity, Size>::inplace_growarr(size_type size)
-{
-	if (Capacity < size)
-		_detail::BadAlloc::raise();
-
-	_detail::UninitFillA::call(data(), data() + size);
-	_size = size;
-}
-
 
 template< typename T, size_t Capacity, typename Size >
 void inplace_growarr<T, Capacity, Size>::append(size_type n, const T & val)
@@ -423,7 +414,7 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 		// Construct new
 		if constexpr (canMemmove)
 		{
-			_detail::UninitCopyA(first, n, pPos, bool_constant<canMemmove>{});
+			_detail::MemcpyCheck(first, n, pPos);
 		}
 		else
 		{	T * dest = pPos;
@@ -450,14 +441,6 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 
 
 template< typename T, size_t Capacity, typename Size >
-inline void inplace_growarr<T, Capacity, Size>::pop_back() noexcept
-{
-	OEL_ASSERT(0 < _size);
-	--_size;
-	data()[_size].~T();
-}
-
-template< typename T, size_t Capacity, typename Size >
 typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::
 	erase(iterator first, const_iterator last) &
 {
@@ -482,14 +465,5 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-
-template< typename T, size_t Capacity, typename Size >
-void inplace_growarr<T, Capacity, Size>::erase_to_end(iterator newEnd) noexcept
-{
-	T *const first = to_pointer_contiguous(newEnd);
-	OEL_ASSERT(data() <= first and first <= data() + _size);
-	_detail::Destroy(first, data() + _size);
-	_size = first - data();
-}
 
 } // namespace oel

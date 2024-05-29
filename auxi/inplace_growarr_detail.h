@@ -16,16 +16,30 @@ namespace oel
 namespace _detail
 {
 	template< typename InputIter, typename T >
-	InputIter UninitCopyA(InputIter src, size_t n, T * dest, false_type)
+	InputIter UninitCopy(InputIter src, size_t const n, T *__restrict dest)
 	{
-		allocator<T> a{};
-		return _detail::UninitCopy(src, dest, dest + n, a);
-	}
-
-	template< typename ContiguousIter, typename T >
-	void UninitCopyA(ContiguousIter src, size_t n, T * dest, true_type)
-	{
-		_detail::MemcpyCheck(src, n, dest);
+		if constexpr (can_memmove_with<T *, InputIter>)
+		{
+			_detail::MemcpyCheck(src, n, dest);
+			return src + n;
+		}
+		else
+		{	T *const dFirst = dest;
+			OEL_TRY_
+			{
+				for (size_t i{}; i < n; ++i)
+				{
+					::new(static_cast<void *>(dest + i)) T(*src);
+					++src;;
+				}
+			}
+			OEL_CATCH_ALL
+			{
+				_detail::Destroy(dFirst, dest);
+				OEL_RETHROW;
+			}
+			return src;
+		}
 	}
 
 
@@ -52,44 +66,43 @@ namespace _detail
 		const T * data() const noexcept { return reinterpret_cast<const T *>(_data); }
 
 
-		template< typename ContiguousIter >
-		ContiguousIter doAssign(ContiguousIter first, Size const count, true_type)
-		{	// fastest assign
-			_size = count;
-			// Not portable for self assignment. Use memmove?
-			_detail::MemcpyCheck(first, count, _data);
-
-			return first + count;
-		}
-
-		template< typename InputIter >
-		InputIter doAssign(InputIter src, Size const count, false_type)
-		{	// cannot use memcpy
-			auto cpy = [](InputIter src_, T * dest, T * dLast)
+		template< bool ForceMemcpy = false, typename InputIter >
+		InputIter doAssign(InputIter src, Size const count)
+		{
+			if constexpr (ForceMemcpy or can_memmove_with<T *, InputIter>)
 			{
-				while (dest != dLast)
-				{
-					*dest = *src_;
-					++src_; ++dest;
-				}
-				return src_;
-			};
-			if (_size < count)
-			{	// assign to old elements as far as we can
-				src = cpy(src, data(), data() + _size);
-				while (_size < count)
-				{	// each iteration updates _size for exception safety
-					::new(static_cast<void *>(data() + _size)) T(*src);
-					++src; ++_size;
-				}
-			}
-			else // downsizing, assign new and destroy rest
-			{	T *const newEnd = data() + count;
-				src = cpy(src, data(), newEnd);
-				_detail::Destroy(newEnd, data() + _size);
 				_size = count;
+				_detail::MemcpyCheck(src, count, _data);
+
+				return src + count;
 			}
-			return src;
+			else
+			{	auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
+				{
+					while (dest != dLast)
+					{
+						*dest = *src_;
+						++src_; ++dest;
+					}
+					return src_;
+				};
+				if (_size < count)
+				{	// assign to old elements as far as we can
+					src = cpy(src, data(), data() + _size);
+					while (_size < count)
+					{	// each iteration updates _size for exception safety
+						::new(static_cast<void *>(data() + _size)) T(*src);
+						++src; ++_size;
+					}
+				}
+				else // downsizing, assign new and destroy rest
+				{	T *const newEnd = data() + count;
+					src = cpy(src, data(), newEnd);
+					_detail::Destroy(newEnd, data() + _size);
+					_size = count;
+				}
+				return src;
+			}
 		}
 	};
 
@@ -108,31 +121,34 @@ namespace _detail
 		InplaceGrowarrSpecial(const InplaceGrowarrSpecial & other)
 		{
 			this->_size = other._size;
-			_detail::UninitCopyA(other.data(), other._size, this->data(), std::is_trivially_copy_constructible<T>());
+			_detail::UninitCopy(other.data(), other._size, this->data());
 		}
 
 		InplaceGrowarrSpecial(InplaceGrowarrSpecial && other) noexcept
 		{
-			static_assert( std::is_nothrow_move_constructible_v<T> or is_trivially_relocatable<T>::value,
-				"inplace_growarr(inplace_growarr &&) requires noexcept move constructible or trivially relocatable T" );
 			this->_size = other._size;
-			_detail::UninitCopyA(
-				std::make_move_iterator(other.data()), other._size, this->data(),
-				bool_constant< is_trivially_relocatable<T>::value or std::is_trivially_move_constructible_v<T> >{} );
-			other.setEmptyIf(is_trivially_relocatable<T>());
+			_detail::Relocate(other.data(), other._size, this->data());
+			other._setEmptyIf< is_trivially_relocatable<T>::value >();
 		}
 
 		InplaceGrowarrSpecial & operator =(InplaceGrowarrSpecial && other) &
-			 noexcept(std::is_nothrow_move_constructible_v<T> or is_trivially_relocatable<T>::value)
+			 noexcept(std::is_nothrow_move_assignable_v<T> or is_trivially_relocatable<T>::value)
 		{
-			this->doAssign(std::make_move_iterator(other.data()), other._size, is_trivially_relocatable<T>());
-			other.setEmptyIf(is_trivially_relocatable<T>());
+			constexpr auto trivialReloc = is_trivially_relocatable<T>::value;
+		#if OEL_HAS_EXCEPTIONS
+			static_assert( std::is_nothrow_move_constructible_v<T> or trivialReloc,
+				"Containers in oel require that T is noexcept move constructible or trivially relocatable" );
+		#endif
+			this->doAssign<trivialReloc>(std::make_move_iterator(other.data()), other._size);
+			other._setEmptyIf<trivialReloc>();
 			return *this;
 		}
 
 		InplaceGrowarrSpecial & operator =(const InplaceGrowarrSpecial & other) &
 		{
-			this->doAssign(other.data(), other._size, false_type{});
+			if (this != &other)
+				this->doAssign(other.data(), other._size);
+
 			return *this;
 		}
 
@@ -141,9 +157,12 @@ namespace _detail
 			_detail::Destroy(this->data(), this->data() + this->_size);
 		}
 
-		void setEmptyIf(true_type) { this->_size = 0; }
-
-		OEL_ALWAYS_INLINE void setEmptyIf(false_type) {}
+		template< bool B >
+		void _setEmptyIf()
+		{
+			if constexpr (B)
+				this->_size = 0;
+		}
 	};
 }
 
