@@ -219,8 +219,8 @@ public:
 
 	allocator_type get_allocator() const noexcept   { return _m; }
 
-	iterator       begin() noexcept          { return _detail::MakeDynarrIter           (_m, _m.data); }
-	const_iterator begin() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.data); }
+	iterator       begin() noexcept        { return _detail::MakeDynarrIter           (_m, _m.data); }
+	const_iterator begin() const noexcept  { return _detail::MakeDynarrIter<const T *>(_m, _m.data); }
 
 	iterator       end() noexcept          { return _detail::MakeDynarrIter           (_m, _m.end); }
 	const_iterator end() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.end); }

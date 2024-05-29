@@ -158,22 +158,22 @@ public:
 			_size = newEnd - data();
 		}
 
-	void     clear() noexcept         { erase_to_end(begin()); }
+	void      clear() noexcept             { erase_to_end(begin()); }
 
-	bool     empty() const noexcept   { return 0 == _size; }
+	[[nodiscard]] bool empty() const noexcept  { return 0 == _size; }
 
-	bool     full() const noexcept    { return Capacity == _size; }
+	bool      full() const noexcept     { return Capacity == _size; }
 
 	size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
 
 	static constexpr size_type capacity() noexcept  { return Capacity; }
 	static constexpr size_type max_size() noexcept  { return Capacity; }
 
-	iterator       begin() noexcept          OEL_ALWAYS_INLINE { return _makeIterator(this->_data); }
-	const_iterator begin() const noexcept    OEL_ALWAYS_INLINE { return _makeConstIter(this->_data); }
+	iterator       begin() noexcept         OEL_ALWAYS_INLINE { return _makeIterator(this->_data); }
+	const_iterator begin() const noexcept   OEL_ALWAYS_INLINE { return _makeConstIter(this->_data); }
 
-	iterator       end() noexcept          OEL_ALWAYS_INLINE { return _makeIterator(this->_data + _size); }
-	const_iterator end() const noexcept    OEL_ALWAYS_INLINE { return _makeConstIter(this->_data + _size); }
+	iterator       end() noexcept         OEL_ALWAYS_INLINE { return _makeIterator(this->_data + _size); }
+	const_iterator end() const noexcept   OEL_ALWAYS_INLINE { return _makeConstIter(this->_data + _size); }
 
 	// T *       data() noexcept
 	// const T * data() const noexcept
@@ -221,18 +221,6 @@ private:
 
 	template< typename Range >
 	static false_type _getSize(Range &, long) { return {}; }
-
-	template< typename Range >
-	static auto _count(Range & r, int) -> decltype((size_t) oel::ssize(r)) { return oel::ssize(r); }
-
-	template< typename Range >
-	static size_t _count(Range & r, long)
-	{
-		auto first = adl_begin(r);
-		static_assert(iter_is_forward<decltype(first)>,
-		              "insert_range requires that begin(source) is a ForwardIterator (multi-pass)");
-		return std::distance(first, adl_end(r));
-	}
 
 
 	size_type _unusedCapacity() const
@@ -400,21 +388,23 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 	OEL_ASSERT(begin() <= pos and pos <= end());
 
 	auto first = adl_begin(src);
-	constexpr auto canMemmove = can_memmove_with<T *, decltype(first)>;
+	auto const count = _detail::CountOrEnd(src);
 
-	size_t const n = _count(src, int{});
-	if (_unusedCapacity() >= n)
+	static_assert( std::is_same_v<decltype(count), size_t const>,
+			"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
+
+	if (_unusedCapacity() >= count)
 	{
 		auto const pPos = const_cast<T *>(to_pointer_contiguous(pos));
 		size_t const bytesAfterPos = sizeof(T) * ((data() + _size) - pPos);
-		T *const dLast = pPos + n;
-		// Relocate elements to make space, leaving [pos, pos + n) uninitialized (conceptually)
+		T *const dLast = pPos + count;
+		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
 		std::memmove(dLast, pPos, bytesAfterPos);
-		_size += n;
+		_size += count;
 		// Construct new
-		if constexpr (canMemmove)
+		if constexpr (can_memmove_with<T *, decltype(first)>)
 		{
-			_detail::MemcpyCheck(first, n, pPos);
+			_detail::MemcpyCheck(first, count, pPos);
 		}
 		else
 		{	T * dest = pPos;
