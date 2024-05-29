@@ -158,11 +158,9 @@ public:
 			_size = newEnd - data();
 		}
 
-	void      clear() noexcept             { erase_to_end(begin()); }
+	void      clear() noexcept        { erase_to_end(begin()); }
 
-	[[nodiscard]] bool empty() const noexcept  { return 0 == _size; }
-
-	bool      full() const noexcept     { return Capacity == _size; }
+	bool      full() const noexcept   { return Capacity == _size; }
 
 	size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
 

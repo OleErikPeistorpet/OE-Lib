@@ -196,11 +196,9 @@ public:
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require assignable T
 	void      erase_to_end(iterator first) noexcept;
 
-	void      clear() noexcept                 { erase_to_end(begin()); }
+	void      clear() noexcept        { erase_to_end(begin()); }
 
-	[[nodiscard]] bool empty() const noexcept  { return _m.data == _m.end; }
-
-	size_type size() const noexcept            { return _m.end - _m.data; }
+	size_type size() const noexcept   { return _m.end - _m.data; }
 
 	void      reserve(size_type minCap)
 		{
