@@ -26,8 +26,8 @@ class transform_iterator
 {
 	_detail::TightPair< Iterator, typename _detail::AssignableWrap<UnaryFunc>::Type > _m;
 
-	inline static constexpr auto _isBidirectional = iter_is_bidirectional<Iterator>;
-	inline static constexpr auto _isConstCallable = std::is_invocable_v< UnaryFunc const, decltype(*_m.first) >;
+	static constexpr auto _isBidirectional = iter_is_bidirectional<Iterator>;
+	static constexpr auto _isConstCallable = std::is_invocable_v< UnaryFunc const, decltype(*_m.first) >;
 
 public:
 	using iterator_category =
@@ -49,6 +49,7 @@ public:
 	constexpr transform_iterator(UnaryFunc f, Iterator it)   : _m{std::move(it), std::move(f)} {}
 
 	constexpr Iterator         base() &&                       { return std::move(_m.first); }
+	constexpr Iterator         base() const &&                            { return _m.first; }
 	constexpr const Iterator & base() const & noexcept  OEL_ALWAYS_INLINE { return _m.first; }
 
 	constexpr reference operator*() const

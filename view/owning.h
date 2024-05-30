@@ -49,8 +49,9 @@ public:
 	constexpr decltype(auto) operator[](difference_type index)
 		OEL_REQUIRES(iter_is_random_access< iterator_t<Range> >)   { return adl_begin(_r)[index]; }
 
-	constexpr Range &&      base() && noexcept       { return std::move(_r); }
-	constexpr const Range & base() const & noexcept  { return _r; }
+	constexpr Range         base() &&                 { return std::move(_r); }
+	constexpr const Range & base() const & noexcept   { return _r; }
+	void                    base() const && = delete;
 };
 
 }

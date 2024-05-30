@@ -48,6 +48,7 @@ public:
 		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)   OEL_ALWAYS_INLINE { return begin()[index]; }
 
 	constexpr View         base() &&                { return std::move(_base); }
+	constexpr View         base() const &&          { return _base; }
 	constexpr const View & base() const & noexcept  { return _base; }
 };
 
