@@ -194,11 +194,7 @@ public:
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require assignable T
 	void      erase_to_end(iterator first) noexcept;
 
-	void      clear() noexcept                 { erase_to_end(begin()); }
-
-	[[nodiscard]] bool empty() const noexcept  { return _m.data == _m.end; }
-
-	size_type size() const noexcept            { return _m.end - _m.data; }
+	void      clear() noexcept   { erase_to_end(begin()); }
 
 	void      reserve(size_type minCap)
 		{
@@ -208,12 +204,16 @@ public:
 	//! It's probably a good idea to check that size < capacity before calling, maybe add some treshold to size
 	void      shrink_to_fit();
 
-	size_type capacity() const noexcept   { return _m.reservEnd - _m.data; }
+	[[nodiscard]] bool empty() const noexcept  { return _m.data == _m.end; }
+
+	size_type size() const noexcept            { return _m.end - _m.data; }
+
+	size_type capacity() const noexcept        { return _m.reservEnd - _m.data; }
 
 	constexpr size_type max_size() const noexcept   { return _alloTrait::max_size(_m) - _allocateWrap::sizeForHeader; }
 
 	//! How much smaller capacity is than the number passed to allocator_type::allocate
-	static constexpr size_type allocate_size_overhead() noexcept  { return _allocateWrap::sizeForHeader; }
+	static constexpr size_type allocate_size_overhead() noexcept   { return _allocateWrap::sizeForHeader; }
 
 	allocator_type get_allocator() const noexcept   { return _m; }
 

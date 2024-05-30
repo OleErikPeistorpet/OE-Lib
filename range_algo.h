@@ -11,9 +11,9 @@
 
 
 /** @file
-* @brief Efficient range-based erase and copy functions
+* @brief Efficient range-based erase, copy functions and non-member append
 *
-* Designed to interface with the standard library. Also contains non-member assign, append, insert functions.
+* Designed to interface with the standard library.
 */
 
 namespace oel
