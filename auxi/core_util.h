@@ -58,6 +58,9 @@
 namespace oel
 {
 
+using std::ptrdiff_t;
+
+
 //! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
 template< bool Condition >
 using enable_if = typename std::enable_if<Condition, int>::type;

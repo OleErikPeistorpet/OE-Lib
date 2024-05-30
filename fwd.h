@@ -1,5 +1,7 @@
 #pragma once
 
+// Copyright 2015 Ole Erik Peistorpet
+//
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -53,6 +55,9 @@
 namespace oel
 {
 
+using size_t = decltype(sizeof 0);
+
+
 template< typename T > class allocator;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
@@ -70,7 +75,7 @@ class dynarray;
 }
 #endif
 
-template< typename T, std::size_t Capacity, typename Size = std::size_t >
+template< typename T, size_t Capacity, typename Size = size_t >
 class inplace_growarr;
 
 

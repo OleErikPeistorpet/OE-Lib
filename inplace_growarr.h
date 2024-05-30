@@ -133,9 +133,9 @@ public:
 	T &      emplace_back(Args &&... args) &;  //!< Throws bad_alloc when full
 
 	//! Throws bad_alloc when full
-	void     push_back(T && val)       { emplace_back(std::move(val)); }
+	void     push_back(T && val)        { emplace_back(std::move(val)); }
 	//! Throws bad_alloc when full
-	void     push_back(const T & val)  { emplace_back(val); }
+	void     push_back(const T & val)   { emplace_back(val); }
 
 	void     pop_back() noexcept
 		{
@@ -164,8 +164,8 @@ public:
 
 	size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
 
-	static constexpr size_type capacity() noexcept  { return Capacity; }
-	static constexpr size_type max_size() noexcept  { return Capacity; }
+	static constexpr size_type capacity() noexcept { return Capacity; }
+	static constexpr size_type max_size() noexcept { return Capacity; }
 
 	iterator       begin() noexcept         OEL_ALWAYS_INLINE { return _makeIterator(this->_data); }
 	const_iterator begin() const noexcept   OEL_ALWAYS_INLINE { return _makeConstIter(this->_data); }
