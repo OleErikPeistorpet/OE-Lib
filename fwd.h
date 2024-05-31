@@ -27,24 +27,30 @@
 #endif
 
 
-#ifndef OEL_ABORT
-/** @brief If exceptions are disabled, used anywhere that would normally throw. Also used by OEL_ASSERT
+//! Used anywhere that would normally throw if exceptions are off (compiler switch)
+/**
+* Also used instead of throwing std::bad_alloc if OEL_NEW_HANDLER has been defined to non-zero,
+* regardless of exceptions being enabled.
 *
-* Can be defined to something else, but note that it must never return.
-* Moreover, don't expect to catch what it throws, because it's used in noexcept functions through OEL_ASSERT. */
+* Feel free to define it to something else, but note that it must never return. */
+#ifndef OEL_ABORT
 #define OEL_ABORT(message) (std::abort(), (void) message)
 #endif
 
+
 #if OEL_MEM_BOUND_DEBUG_LVL == 0
-	#undef OEL_ASSERT
-	#define OEL_ASSERT(cond) ((void) 0)
+	#undef  OEL_ASSERT
+	#define OEL_ASSERT(cond) void(0)
 #elif !defined OEL_ASSERT
-	/** @brief Used for checking preconditions. Can be defined to your own
-	*
+	//! Used for checking preconditions. Can be defined to your own
+	/**
 	* Used in noexcept functions, so don't expect to catch anything thrown.
-	* OEL_ASSERT itself should probably be noexcept for optimal performance. */
-	#define OEL_ASSERT(cond)  \
-		((cond) or (OEL_ABORT("Failed precond: " #cond), false))
+	* OEL_ASSERT itself should probably be noexcept to avoid bloat. */
+	#if defined _MSC_VER
+	#define OEL_ASSERT(cond) ((cond) or (__debugbreak(), false))
+	#else
+	#define OEL_ASSERT(cond) ((cond) or (__builtin_trap(), false))
+	#endif
 #endif
 
 
