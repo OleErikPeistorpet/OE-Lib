@@ -47,7 +47,7 @@ public:
 	constexpr bool empty()   { return _r.empty(); }
 
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(iter_is_random_access< iterator_t<Range> >)   { return adl_begin(_r)[index]; }
+		OEL_REQUIRES(requires{ _r[index]; })   { return _r[index]; }
 
 	constexpr Range         base() &&                 { return std::move(_r); }
 	constexpr const Range & base() const & noexcept   { return _r; }
