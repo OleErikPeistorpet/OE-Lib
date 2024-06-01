@@ -38,14 +38,14 @@
 #endif
 
 
+//! Used for checking preconditions. Can be defined to your own
+/**
+* Used in noexcept functions, so don't expect to catch anything thrown.
+* OEL_ASSERT itself should probably be noexcept to avoid bloat. */
 #if OEL_MEM_BOUND_DEBUG_LVL == 0
 	#undef  OEL_ASSERT
 	#define OEL_ASSERT(cond) void(0)
 #elif !defined OEL_ASSERT
-	//! Used for checking preconditions. Can be defined to your own
-	/**
-	* Used in noexcept functions, so don't expect to catch anything thrown.
-	* OEL_ASSERT itself should probably be noexcept to avoid bloat. */
 	#if defined _MSC_VER
 	#define OEL_ASSERT(cond) ((cond) or (__debugbreak(), false))
 	#else
