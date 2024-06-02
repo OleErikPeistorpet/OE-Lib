@@ -18,6 +18,8 @@ namespace oel::view
 template< typename Iterator, typename Sentinel >
 class subrange
 {
+	_detail::TightPair<Iterator, Sentinel> _m;
+
 public:
 	using difference_type = iter_difference_t<Iterator>;
 
@@ -42,9 +44,6 @@ public:
 
 	constexpr decltype(auto) operator[](difference_type index) const
 		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE { return _m.first[index]; }
-
-private:
-	_detail::TightPair<Iterator, Sentinel> _m;
 };
 
 }
