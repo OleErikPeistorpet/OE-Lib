@@ -57,7 +57,7 @@ else()
 	if(MEM_BOUND_DEBUG)
 		target_compile_options(oel-test PRIVATE -fno-strict-aliasing)
 	endif()
-	target_compile_options(oel-test PRIVATE -Wall -Wextra -Wold-style-cast -Wshadow -Wconversion -Wno-sign-conversion)
+	target_compile_options(oel-test PRIVATE -Wall -Wextra -Wold-style-cast -Wshadow -Wconversion -Wsign-conversion)
 endif()
 
 

@@ -238,8 +238,18 @@ public:
 	OEL_ALWAYS_INLINE
 	const T & back() const noexcept   { return end()[-1]; }
 
-	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
-	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
+	template< typename Integer >
+	T &       operator[](Integer index) noexcept
+		{
+			OEL_ASSERT(as_unsigned(index) < size());
+			return _m.data[index];
+		}
+	template< typename Integer >
+	const T & operator[](Integer index) const noexcept
+		{
+			OEL_ASSERT(as_unsigned(index) < size());
+			return _m.data[index];
+		}
 
 	OEL_ALWAYS_INLINE
 	T &       at(size_type index)
@@ -506,8 +516,8 @@ private:
 	{
 		auto const newData = _allocateWrap::allocate(_m, newCap);
 		// Exception free from here
-		auto const nBefore = pos - _m.data;
-		auto const nAfter  = _m.end - pos;
+		auto const nBefore = as_unsigned(pos - _m.data);
+		auto const nAfter  = as_unsigned(_m.end - pos);
 		T *const newPos = _detail::Relocate(_m.data, nBefore, newData);
 		_m.end          = _detail::Relocate(pos, nAfter, newPos + count);
 
@@ -561,7 +571,7 @@ typename dynarray<T, Alloc>::iterator
 	_alloTrait::construct(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 	if( _m.end < _m.reservEnd )
 	{	// Relocate [pos, end) to [pos + 1, end + 1)
-		size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
+		auto const bytesAfterPos = sizeof(T) * as_unsigned(_m.end - pPos);
 		std::memmove(
 			static_cast<void *>(pPos + 1),
 			static_cast<const void *>(pPos),
@@ -590,7 +600,7 @@ typename dynarray<T, Alloc>::iterator
 	auto       first = oel::begin_(source);
 	auto const count = _detail::UDist(source);
 
-	size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
+	auto const bytesAfterPos = sizeof(T) * as_unsigned(_m.end - pPos);
 	T * dLast;
 	if( _spareCapacity() >= count )
 	{
@@ -831,7 +841,7 @@ typename dynarray<T, Alloc>::iterator
 		std::memmove( // relocate [pos + 1, end) to [pos, end - 1)
 			static_cast<void *>(ptr),
 			static_cast<const void *>(next),
-			sizeof(T) * (_m.end - next) );
+			sizeof(T) * as_unsigned(_m.end - next) );
 		--_m.end;
 	}
 	else
@@ -858,7 +868,7 @@ typename dynarray<T, Alloc>::iterator
 		std::memmove( // relocate [last, end) to [first, first + nAfter)
 			static_cast<void *>(pFirst),
 			static_cast<const void *>(pLast),
-			sizeof(T) * nAfter );
+			sizeof(T) * as_unsigned(nAfter) );
 		_m.end = pFirst + nAfter;
 	}
 	else if( pFirst < pLast ) // must avoid self-move-assigning the elements

@@ -46,7 +46,17 @@ public:
 
 	OEL_ALWAYS_INLINE
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(requires{ _r[index]; })   { return _r[index]; }
+		OEL_REQUIRES(requires{ _r[index]; })
+		{
+		#ifdef __GNUC__
+			#pragma GCC diagnostic push
+			#pragma GCC diagnostic ignored "-Wsign-conversion"
+		#endif
+			return _r[index];
+		#ifdef __GNUC__
+			#pragma GCC diagnostic pop
+		#endif
+		}
 
 	constexpr Range base() &&   { return std::move(_r); }
 };

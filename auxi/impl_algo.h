@@ -7,7 +7,7 @@
 
 
 #include "contiguous_iterator_to_ptr.h"
-#include "../util.h"  // for as_unsigned
+#include "../util.h"  // as_(un)signed
 
 #include <cstring>
 #include <memory> // for allocator_traits
@@ -39,7 +39,7 @@ namespace oel::_detail
 		{	// Dereference to detect out of range errors if the iterator has internal check
 		#if OEL_MEM_BOUND_DEBUG_LVL
 			(void) *src;
-			(void) *(src + (nElems - 1));
+			(void) *(src + (as_signed(nElems) - 1));
 		#endif
 			std::memcpy(dest, to_pointer_contiguous(src), sizeof(*src) * nElems);
 		}
@@ -87,7 +87,7 @@ namespace oel::_detail
 			if constexpr( std::is_trivially_default_constructible_v<T> )
 			{
 				void * p{first};  // silence -Wclass-memaccess
-				std::memset(p, 0, sizeof(T) * (last - first));
+				std::memset(p, 0, sizeof(T) * as_unsigned(last - first));
 			}
 			else
 			{	T *const init = first;
