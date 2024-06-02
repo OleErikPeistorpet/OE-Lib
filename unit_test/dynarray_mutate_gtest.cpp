@@ -394,7 +394,7 @@ TEST_F(dynarrayTest, appendNonForwardRange)
 	EXPECT_EQ(it, end);
 	EXPECT_EQ(3u, dest.size());
 	for (int i = 0; i < 3; ++i)
-		EXPECT_EQ( i + 1, dest[oel::as_unsigned(i)] );
+		EXPECT_EQ(i + 1, dest[i]);
 }
 #endif
 
@@ -466,8 +466,8 @@ TEST_F(dynarrayTest, insertR)
 					}
 					if (dest.size() > initSize)
 					{
-						for (size_t i{}; i < oel::as_unsigned(countThrow); ++i)
-							EXPECT_TRUE( *toInsert[i] == *dest[i + oel::as_unsigned(insertOffset)] );
+						for (ptrdiff_t i{}; i < countThrow; ++i)
+							EXPECT_TRUE( *toInsert[oel::as_unsigned(i)] == *dest[i + insertOffset] );
 					}
 					if (insertOffset == 0)
 					{
@@ -520,7 +520,7 @@ TEST_F(dynarrayTest, emplace)
 						{	dest.emplace(dest.begin() + insertOffset);
 
 							EXPECT_EQ(initSize + 1, ssize(dest));
-							EXPECT_FALSE( dest.at(oel::as_unsigned(insertOffset)).hasValue() );
+							EXPECT_FALSE( dest.at(insertOffset).hasValue() );
 						}
 						if (insertOffset == 0)
 						{

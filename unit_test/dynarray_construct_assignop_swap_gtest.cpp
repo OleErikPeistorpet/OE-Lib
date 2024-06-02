@@ -497,7 +497,7 @@ void testAssignMoveElements()
 
 			EXPECT_EQ(capBefore, a.capacity());
 			ASSERT_EQ(na, ssize(b));
-			for (unsigned i{}; i < as_unsigned(na); ++i)
+			for (int i = 0; i < na; ++i)
 				EXPECT_TRUE(b[i].hasValue() and *b[i] == i + 0.5);
 		}
 		EXPECT_EQ(T::nConstructions, T::nDestruct);
