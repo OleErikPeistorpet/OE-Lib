@@ -33,7 +33,7 @@ namespace oel::_detail
 
 	inline constexpr DebugAllocationHeader headerNoAllocation{};
 
-	OEL_ALWAYS_INLINE inline DebugAllocationHeader * DebugHeaderOf(void * p)
+	inline DebugAllocationHeader * DebugHeaderOf(void * p)
 	{
 		return static_cast<DebugAllocationHeader *>(p) - 1;
 	}
@@ -48,12 +48,11 @@ namespace oel::_detail
 	template< typename Alloc, typename Ptr >
 	struct DebugAllocateWrapper
 	{
-	#if OEL_MEM_BOUND_DEBUG_LVL
-		static constexpr size_t _valSz = sizeof(typename Alloc::value_type);
-		static constexpr size_t sizeForHeader = ( sizeof(DebugAllocationHeader) + (_valSz - 1) ) / _valSz;
+	#if OEL_MEM_BOUND_DEBUG_LVL == 0
+		static constexpr size_t sizeForHeader{};
 	#else
-		static constexpr size_t sizeForHeader = 0;
-	#endif
+		static constexpr auto _valSize      = sizeof(typename Alloc::value_type);
+		static constexpr auto sizeForHeader = ( sizeof(DebugAllocationHeader) + (_valSize - 1) ) / _valSize;
 
 		static Ptr _addHeader(const Alloc & a, Ptr p)
 		{
@@ -62,10 +61,11 @@ namespace oel::_detail
 			auto const h = _detail::DebugHeaderOf(p);
 			// Take address, set highest and lowest bits for a hopefully unique bit pattern to compare later
 			constexpr auto maxMinBits = ~(~std::uintptr_t{} >> 1) | 1u;
-			new(h) DebugAllocationHeader{reinterpret_cast<std::uintptr_t>(&a) | maxMinBits, 0};
+			::new(h) DebugAllocationHeader{reinterpret_cast<std::uintptr_t>(&a) | maxMinBits, 0};
 
 			return p;
 		}
+	#endif
 
 		static Ptr allocate(Alloc & a, size_t n)
 		{
@@ -109,7 +109,7 @@ namespace oel::_detail
 	struct DebugSizeInHeaderUpdater
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL == 0
-		DebugSizeInHeaderUpdater(ContainerBase &) {}
+		OEL_ALWAYS_INLINE DebugSizeInHeaderUpdater(ContainerBase &) {}
 	#else
 		ContainerBase & container;
 
