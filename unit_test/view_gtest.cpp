@@ -116,7 +116,7 @@ TEST(viewTest, viewTransformBasics)
 	static_assert(std::input_iterator<IMoveOnly>);
 	{
 		constexpr IEmptyLambda valueInit{};
-		constexpr auto copy = valueInit;
+		[[maybe_unused]] constexpr auto copy = valueInit;
 	}
 #endif
 	{

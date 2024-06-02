@@ -21,7 +21,7 @@
 
 class MemoryLeakDetector;
 
-extern MemoryLeakDetector* leakDetector;
+extern MemoryLeakDetector * leakDetector;
 
 
 #if (defined _MSC_VER and __cpp_lib_ranges >= 201911) or __cpp_lib_ranges > 202000

@@ -24,7 +24,7 @@ public:
     }
 
     void OnTestEnd(const testing::TestInfo& test_info) override
-	{
+    {
       if(test_info.result()->Passed() && enabled)
       {
         _CrtMemState stateNow, stateDiff;
