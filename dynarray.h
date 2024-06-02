@@ -245,17 +245,27 @@ public:
 	T &       back() noexcept         { return *_detail::MakeDynarrIter           (_m, _m.end - 1); }
 	const T & back() const noexcept   { return *_detail::MakeDynarrIter<const T *>(_m, _m.end - 1); }
 
-	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
-	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
+	template< typename Integer >
+	T &       operator[](Integer index) noexcept
+		{
+			OEL_ASSERT(as_unsigned(index) < size());
+			return _m.data[index];
+		}
+	template< typename Integer >
+	const T & operator[](Integer index) const noexcept
+		{
+			OEL_ASSERT(as_unsigned(index) < size());
+			return _m.data[index];
+		}
 
-	T &       at(size_type index)   OEL_ALWAYS_INLINE
+	T &       at(difference_type index)   OEL_ALWAYS_INLINE
 		{
 			const auto & cSelf = *this;
 			return const_cast<T &>(cSelf.at(index));
 		}
-	const T & at(size_type index) const
+	const T & at(difference_type index) const
 		{
-			if (index < size()) // would be unsafe with signed size_type
+			if (static_cast<size_t>(index) < size())
 				return _m.data[index];
 			else
 				_detail::OutOfRange::raise("Bad index dynarray::at");
@@ -451,7 +461,7 @@ private:
 			}
 			_detail::MemcpyCheck(src, count, _m.data);
 
-			return src + count;
+			return src + as_signed(count);
 		}
 		else
 		{	auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
@@ -487,7 +497,7 @@ private:
 			while (_m.end < newEnd)
 			{	// each iteration updates _m.end for exception safety
 				_alloTrait::construct(_m, _m.end, *src);
-				++src; ++_m.end;
+				++_m.end; ++src;
 			}
 			return src;
 		}
@@ -514,7 +524,7 @@ private:
 		}
 		OEL_CATCH_ALL
 		{
-			erase_to_end(begin() + oldSize);
+			erase_to_end(begin() + as_signed(oldSize));
 			OEL_RETHROW;
 		}
 		return first;
@@ -529,7 +539,7 @@ private:
 		if constexpr (can_memmove_with<T *, InputIter>)
 		{
 			_detail::MemcpyCheck(src, count, _m.end);
-			src += count;
+			src += as_signed(count);
 			_m.end += count;
 		}
 		else
@@ -560,8 +570,8 @@ private:
 	{
 		auto const newData = _allocateWrap::allocate(_m, newCap);
 		// Exception free from here
-		auto const nBefore = pos - _m.data;
-		auto const nAfter  = _m.end - pos;
+		auto const nBefore = as_unsigned(pos - _m.data);
+		auto const nAfter  = as_unsigned(_m.end - pos);
 		T *const newPos = _detail::Relocate(_m.data, nBefore, newData);
 		_m.end          = _detail::Relocate(pos, nAfter, newPos + count);
 
@@ -615,7 +625,7 @@ typename dynarray<T, Alloc>::iterator
 	_alloTrait::construct(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 	if (_m.end < _m.reservEnd)
 	{	// Relocate [pos, end) to [pos + 1, end + 1)
-		size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
+		auto const bytesAfterPos = sizeof(T) * as_unsigned(_m.end - pPos);
 		std::memmove(
 			static_cast<void *>(pPos + 1),
 			static_cast<const void *>(pPos),
@@ -646,7 +656,7 @@ typename dynarray<T, Alloc>::iterator
 	static_assert( std::is_same_v<decltype(count), size_t const>,
 			"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
 
-	size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
+	auto const bytesAfterPos = sizeof(T) * as_unsigned(_m.end - pPos);
 	T * dLast;
 	if (_spareCapacity() >= count)
 	{
@@ -879,7 +889,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) &
 		std::memmove( // relocate [pos + 1, end) to [pos, end - 1)
 			static_cast<void *>(ptr),
 			static_cast<const void *>(next),
-			sizeof(T) * (_m.end - next) );
+			sizeof(T) * as_unsigned(_m.end - next) );
 		--_m.end;
 	}
 	else
@@ -905,7 +915,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 		std::memmove( // relocate [last, end) to [first, first + nAfter)
 			static_cast<void *>(dest),
 			static_cast<const void *>(pLast),
-			sizeof(T) * nAfter );
+			sizeof(T) * as_unsigned(nAfter) );
 		_m.end = dest + nAfter;
 	}
 	else if (dest < pLast) // must avoid self-move-assigning the elements

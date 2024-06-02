@@ -52,9 +52,10 @@ namespace oel::_detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template< typename InputIter, typename RandomAccessIter >
-	InputIter CopyUnsf(InputIter src, size_t const n, RandomAccessIter const dest)
+	template< typename InputIter, typename Integer, typename RandomAccessIter >
+	InputIter CopyUnsf(InputIter src, Integer const count, RandomAccessIter const dest)
 	{
+		auto const n = as_signed(count);
 		if constexpr (can_memmove_with<RandomAccessIter, InputIter>)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
@@ -64,11 +65,11 @@ namespace oel::_detail
 				(void) *(dest + (n - 1));
 			}
 		#endif
-			_detail::MemcpyCheck(src, n, to_pointer_contiguous(dest));
+			_detail::MemcpyCheck(src, as_unsigned(count), to_pointer_contiguous(dest));
 			return src + n;
 		}
 		else
-		{	for (size_t i{}; i < n; ++i)
+		{	for (std::make_signed_t<Integer> i{}; i < n; ++i)
 			{
 				dest[i] = *src;
 				++src;
