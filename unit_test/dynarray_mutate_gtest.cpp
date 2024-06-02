@@ -440,33 +440,34 @@ TEST_F(dynarrayTest, insertRTrivial)
 
 TEST_F(dynarrayTest, insertR)
 {
-	size_t const initSize = 2;
+	using oel::ssize;
+	constexpr ptrdiff_t initSize{2};
 	std::array<TrivialRelocat, 2> const toInsert{TrivialRelocat{-1}, TrivialRelocat{-2}};
-	for (auto nReserve : {initSize, initSize + toInsert.size()})
-		for (size_t insertOffset = 0; insertOffset <= initSize; ++insertOffset)
-			for (unsigned countThrow = 0; countThrow <= toInsert.size(); ++countThrow)
+	for (auto nReserve : {initSize, initSize + ssize(toInsert)})
+		for (ptrdiff_t insertOffset{}; insertOffset <= initSize; ++insertOffset)
+			for (int countThrow{}; countThrow <= ssize(toInsert); ++countThrow)
 			{	{
-					dynarray<TrivialRelocat> dest(oel::reserve, nReserve);
+					dynarray<TrivialRelocat> dest(oel::reserve, oel::as_unsigned(nReserve));
 					dest.emplace_back(1);
 					dest.emplace_back(2);
 
-					if (countThrow < toInsert.size())
+					if (countThrow < ssize(toInsert))
 					{
 					#if OEL_HAS_EXCEPTIONS
-						TrivialRelocat::countToThrowOn = oel::as_signed(countThrow);
+						TrivialRelocat::countToThrowOn = countThrow;
 						EXPECT_THROW( dest.insert_range(dest.begin() + insertOffset, toInsert), TestException );
 					#endif
-						EXPECT_TRUE(initSize <= dest.size() and dest.size() <= initSize + countThrow);
+						EXPECT_TRUE(initSize <= ssize(dest) and ssize(dest) <= initSize + countThrow);
 					}
 					else
 					{	dest.insert_range(dest.begin() + insertOffset, toInsert);
 
-						EXPECT_TRUE(dest.size() == initSize + toInsert.size());
+						EXPECT_TRUE(ssize(dest) == initSize + ssize(toInsert));
 					}
 					if (dest.size() > initSize)
 					{
-						for (unsigned i = 0; i < countThrow; ++i)
-							EXPECT_TRUE( *toInsert[i] == *dest[i + insertOffset] );
+						for (size_t i{}; i < oel::as_unsigned(countThrow); ++i)
+							EXPECT_TRUE( *toInsert[i] == *dest[i + oel::as_unsigned(insertOffset)] );
 					}
 					if (insertOffset == 0)
 					{
@@ -483,7 +484,7 @@ TEST_F(dynarrayTest, insertR)
 						EXPECT_EQ(2, *dest.back());
 					}
 				}
-				EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct + oel::ssize(toInsert));
+				EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct + ssize(toInsert));
 			}
 }
 
