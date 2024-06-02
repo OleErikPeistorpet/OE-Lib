@@ -15,14 +15,14 @@
 
 namespace view = oel::view;
 
-TEST(rangeTest, eraseUnstable)
+TEST(rangeTest, unorderedErase)
 {
 	std::deque<std::string> d{"aa", "bb", "cc"};
 
-	oel::unordered_erase(d, 1);
+	oel::unordered_erase(d, 1u);
 	EXPECT_EQ(2U, d.size());
 	EXPECT_EQ("cc", d.back());
-	oel::unordered_erase(d, 1);
+	oel::unordered_erase(d, 1u);
 	EXPECT_EQ(1U, d.size());
 	EXPECT_EQ("aa", d.front());
 }

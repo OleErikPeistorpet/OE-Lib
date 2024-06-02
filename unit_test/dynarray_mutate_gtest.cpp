@@ -292,7 +292,7 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 	decltype(das) copyDest;
 
 	copyDest.assign(view::counted(das.cbegin(), 2));
-	copyDest.assign( view::counted(begin(das), das.size()) );
+	copyDest.assign( view::counted(begin(das), ssize(das)) );
 
 	EXPECT_TRUE(das == copyDest);
 
@@ -394,7 +394,7 @@ TEST_F(dynarrayTest, appendNonForwardRange)
 	EXPECT_EQ(it, end);
 	EXPECT_EQ(3u, dest.size());
 	for (int i = 0; i < 3; ++i)
-		EXPECT_EQ(i + 1, dest[i]);
+		EXPECT_EQ( i + 1, dest[oel::as_unsigned(i)] );
 }
 #endif
 
@@ -413,7 +413,7 @@ TEST_F(dynarrayTest, insertRTrivial)
 				dest.emplace_back(1);
 				dest.emplace_back(2);
 
-				dest.insert_range(dest.begin() + insertOffset, toInsert);
+				dest.insert_range(dest.begin() + oel::as_signed(insertOffset), toInsert);
 
 				EXPECT_TRUE(dest.size() == initSize + toInsert.size());
 				for (size_t i = 0; i < toInsert.size(); ++i)
@@ -453,7 +453,7 @@ TEST_F(dynarrayTest, insertR)
 					if (countThrow < toInsert.size())
 					{
 					#if OEL_HAS_EXCEPTIONS
-						TrivialRelocat::countToThrowOn = countThrow;
+						TrivialRelocat::countToThrowOn = oel::as_signed(countThrow);
 						EXPECT_THROW( dest.insert_range(dest.begin() + insertOffset, toInsert), TestException );
 					#endif
 						EXPECT_TRUE(initSize <= dest.size() and dest.size() <= initSize + countThrow);
@@ -500,7 +500,7 @@ TEST_F(dynarrayTest, emplace)
 					{	TrivialRelocat::countToThrowOn = -1;
 						g_allocCount.countToThrowOn    = -1;
 
-						dynarrayTrackingAlloc<TrivialRelocat> dest(oel::reserve, nReserve);
+						dynarrayTrackingAlloc<TrivialRelocat> dest(oel::reserve, oel::as_unsigned(nReserve));
 						dest.emplace(dest.begin(), firstVal);
 						dest.emplace(dest.begin(), secondVal);
 
@@ -519,7 +519,7 @@ TEST_F(dynarrayTest, emplace)
 						{	dest.emplace(dest.begin() + insertOffset);
 
 							EXPECT_EQ(initSize + 1, ssize(dest));
-							EXPECT_FALSE( dest.at(insertOffset).hasValue() );
+							EXPECT_FALSE( dest.at(oel::as_unsigned(insertOffset)).hasValue() );
 						}
 						if (insertOffset == 0)
 						{
@@ -961,9 +961,9 @@ TEST_F(dynarrayTest, misc)
 	dest0.reserve(1);
 	dest0 = daSrc;
 
-	dest0.append( view::counted(daSrc.cbegin(), daSrc.size()) );
+	dest0.append( view::counted(daSrc.cbegin(), ssize(daSrc)) );
 	dest0.append(view::counted(fASrc, 2));
-	auto srcEnd = dest0.append( view::counted(begin(dequeSrc), dequeSrc.size()) );
+	auto srcEnd = dest0.append( view::counted(begin(dequeSrc), oel::ssize(dequeSrc)) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;

@@ -206,9 +206,9 @@ public:
 
 	[[nodiscard]] bool empty() const noexcept  { return _m.data == _m.end; }
 
-	size_type size() const noexcept            { return _m.end - _m.data; }
+	size_type size() const noexcept            { return static_cast<size_t>(_m.end - _m.data); }
 
-	size_type capacity() const noexcept        { return _m.reservEnd - _m.data; }
+	size_type capacity() const noexcept        { return static_cast<size_t>(_m.reservEnd - _m.data); }
 
 	constexpr size_type max_size() const noexcept   { return _alloTrait::max_size(_m) - _allocateWrap::sizeForHeader; }
 
@@ -242,15 +242,21 @@ public:
 	T &       back() noexcept         { return *_detail::MakeDynarrIter           (_m, _m.end - 1); }
 	const T & back() const noexcept   { return *_detail::MakeDynarrIter<const T *>(_m, _m.end - 1); }
 
+	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
+	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
+
 	T &       at(size_type index)   OEL_ALWAYS_INLINE
 		{
 			const auto & cSelf = *this;
 			return const_cast<T &>(cSelf.at(index));
 		}
-	const T & at(size_type index) const;
-
-	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
-	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
+	const T & at(size_type index) const
+		{
+			if (index < size()) // would be unsafe with signed size_type
+				return _m.data[index];
+			else
+				_detail::OutOfRange::raise("Bad index dynarray::at");
+		}
 
 	friend bool operator==(const dynarray & left, const dynarray & right)
 		{
@@ -290,7 +296,7 @@ private:
 		 :	::oel::_detail::DynarrBase<value_type *>{}, _usedAlloc_7KQw{std::move(a)} {
 		}
 
-		_memOwner(_memOwner && other) noexcept
+		constexpr _memOwner(_memOwner && other) noexcept
 		 :	::oel::_detail::DynarrBase<value_type *>{other}, _usedAlloc_7KQw{std::move(other)}
 		{
 			other.reservEnd = other.end = other.data = nullptr;
@@ -299,7 +305,10 @@ private:
 		~_memOwner()
 		{
 			if (data)
-				::oel::_detail::DebugAllocateWrapper<_usedAlloc_7KQw, value_type *>::dealloc(*this, data, reservEnd - data);
+			{
+				::oel::_detail::DebugAllocateWrapper<_usedAlloc_7KQw, value_type *>
+					::dealloc(*this, data, static_cast<size_t>(reservEnd - data));
+			}
 		}
 	}
 	_m; // the only non-static data member
@@ -328,9 +337,9 @@ private:
 	}
 
 
-	size_type _unusedCapacity() const
+	auto _spareCapacity() const
 	{
-		return _m.reservEnd - _m.end;
+		return static_cast<size_type>(_m.reservEnd - _m.end);
 	}
 
 	size_type _calcCapUnchecked(size_type const newSize) const
@@ -375,13 +384,13 @@ private:
 	{
 		if constexpr (allocator_can_realloc<allocator_type>)
 		{
-			T *const p = _allocateWrap::realloc(_m, _m.data, newCap);
+			auto const p = _allocateWrap::realloc(_m, _m.data, newCap);
 			_m.data = p;
 			_m.end = p + oldSize;
 			_m.reservEnd = p + newCap;
 		}
 		else
-		{	T *const newData = _allocateWrap::allocate(_m, newCap);
+		{	auto const newData = _allocateWrap::allocate(_m, newCap);
 			_m.end = _detail::Relocate(_m.data, oldSize, newData);
 			_resetData(newData, newCap);
 		}
@@ -445,14 +454,14 @@ private:
 				while (dest != dLast)
 				{
 					*dest = *src_;
-					++src_; ++dest;
+					++dest; ++src_;
 				}
 				return src_;
 			};
 			T * newEnd;
 			if (capacity() < count)
 			{
-				T *const newData = _allocateChecked(count);
+				auto const newData = _allocateChecked(count);
 				// Old elements might hold some limited resource, probably good to destroy them before constructing new
 				_detail::Destroy(_m.data, _m.end);
 				_resetData(newData, count);
@@ -509,7 +518,7 @@ private:
 	template< typename InputIter >
 	InputIter _doAppend(InputIter src, size_type const count)
 	{
-		if (_unusedCapacity() < count)
+		if (_spareCapacity() < count)
 			_growBy(count);
 
 		if constexpr (can_memmove_with<T *, InputIter>)
@@ -520,7 +529,7 @@ private:
 		}
 		else
 		{	T *__restrict dest = _m.end;
-			T *const     dLast = dest + count;
+			auto const   dLast = dest + count;
 			OEL_TRY_
 			{
 				while (dest != dLast)
@@ -634,7 +643,7 @@ typename dynarray<T, Alloc>::iterator
 
 	size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
 	T * dLast;
-	if (_unusedCapacity() >= count)
+	if (_spareCapacity() >= count)
 	{
 		dLast = pPos + count;
 		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
@@ -797,10 +806,10 @@ void dynarray<T, Alloc>::shrink_to_fit()
 template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::append(size_type count, const T &__restrict val)
 {
-	if (_unusedCapacity() < count)
+	if (_spareCapacity() < count)
 		_growBy(count);
 
-	T *const pos = _m.end;
+	auto const pos = _m.end;
 	_uninitFill::template call< _detail::ForwardT<const T &> >(pos, pos + count, _m, val);
 
 	_debugSizeUpdater guard{_m};
@@ -821,7 +830,7 @@ inline void dynarray<T, Alloc>::pop_back() noexcept
 template< typename T, typename Alloc >
 void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 {
-	T *const newEnd = to_pointer_contiguous(first);
+	T *const newEnd{to_pointer_contiguous(first)};
 	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
 
 	_detail::Destroy(newEnd, _m.end);
@@ -856,12 +865,12 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) _
 {
 	_debugSizeUpdater guard{_m};
 
-	T *const ptr = to_pointer_contiguous(pos);
+	T *const ptr{to_pointer_contiguous(pos)};
 	OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
 	if constexpr (is_trivially_relocatable<T>::value)
 	{
 		ptr-> ~T();
-		T *const next = ptr + 1;
+		auto const next = ptr + 1;
 		std::memmove( // relocate [pos + 1, end) to [pos, end - 1)
 			static_cast<void *>(ptr),
 			static_cast<const void *>(next),
@@ -880,8 +889,8 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 {
 	_debugSizeUpdater guard{_m};
 
-	T *            dest = to_pointer_contiguous(first);
-	const T *const pLast = to_pointer_contiguous(last);
+	T *            dest{to_pointer_contiguous(first)};
+	const T *const pLast{to_pointer_contiguous(last)};
 	OEL_ASSERT(_m.data <= dest and dest <= pLast and pLast <= _m.end);
 
 	if constexpr (is_trivially_relocatable<T>::value)
@@ -901,16 +910,6 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 		_m.end = dest;
 	}
 	return first;
-}
-
-
-template< typename T, typename Alloc >
-const T & dynarray<T, Alloc>::at(size_type i) const
-{
-	if (i < size()) // would be unsafe with signed size_type
-		return _m.data[i];
-	else
-		_detail::OutOfRange::raise("Bad index dynarray::at");
 }
 
 

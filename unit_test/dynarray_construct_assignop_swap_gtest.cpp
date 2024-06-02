@@ -282,7 +282,7 @@ TEST_F(dynarrayConstructTest, constructRangeNoCopyAssign)
 
 TEST_F(dynarrayConstructTest, constructForwardRangeNoSize)
 {
-	for (size_t const n : {0, 1, 59})
+	for (auto const n : {0u, 1u, 59u})
 	{
 		std::forward_list<int> li(n, -6);
 		dynarray<int> d(li);
@@ -373,12 +373,12 @@ void testConstructMoveElements()
 	g_allocCount.clear();
 	T::clearCount();
 	// not propagating, not equal, cannot steal the memory
-	for (auto const na : {0, 1, 101})
+	for (auto const na : {0u, 1u, 101u})
 	{
 		using Alloc = StatefulAllocator<T, false, false>;
 		dynarray<T, Alloc> a(reserve, na, Alloc{1});
 
-		for (int i = 0; i < na; ++i)
+		for (unsigned i{}; i < na; ++i)
 			a.emplace_back(i + 0.5);
 
 		auto const capBefore = a.capacity();
@@ -397,8 +397,8 @@ void testConstructMoveElements()
 		EXPECT_EQ(ssize(a) + ssize(b), T::nConstructions - T::nDestruct);
 
 		EXPECT_EQ(capBefore, a.capacity());
-		ASSERT_EQ(na, ssize(b));
-		for (int i = 0; i < na; ++i)
+		ASSERT_EQ(na, b.size());
+		for (unsigned i{}; i < na; ++i)
 			EXPECT_TRUE(b[i].hasValue() and *b[i] == i + 0.5);
 	}
 	EXPECT_EQ(T::nConstructions, T::nDestruct);
@@ -471,8 +471,8 @@ void testAssignMoveElements()
 		for (auto const nb : {0, 1, 2})
 		{
 			using Alloc = StatefulAllocator<T, false, false>;
-			dynarray<T, Alloc> a(reserve, na, Alloc{1});
-			dynarray<T, Alloc> b(reserve, nb, Alloc{2});
+			dynarray<T, Alloc> a(reserve, as_unsigned(na), Alloc{1});
+			dynarray<T, Alloc> b(reserve, as_unsigned(nb), Alloc{2});
 
 			ASSERT_FALSE(a.get_allocator() == b.get_allocator());
 
@@ -497,7 +497,7 @@ void testAssignMoveElements()
 
 			EXPECT_EQ(capBefore, a.capacity());
 			ASSERT_EQ(na, ssize(b));
-			for (int i = 0; i < na; ++i)
+			for (unsigned i{}; i < as_unsigned(na); ++i)
 				EXPECT_TRUE(b[i].hasValue() and *b[i] == i + 0.5);
 		}
 		EXPECT_EQ(T::nConstructions, T::nDestruct);

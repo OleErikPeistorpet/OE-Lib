@@ -28,7 +28,7 @@ namespace oel::_detail
 	struct DebugAllocationHeader
 	{
 		std::uintptr_t id;
-		size_t   nObjects;
+		ptrdiff_t      nObjects;
 	};
 
 	inline constexpr DebugAllocationHeader headerNoAllocation{};
@@ -42,7 +42,7 @@ namespace oel::_detail
 	inline bool HasValidIndex(const T * arrayElem, const DebugAllocationHeader & h)
 	{
 		auto index = arrayElem - reinterpret_cast<const T *>(&h + 1);
-		return static_cast<size_t>(index) < h.nObjects;
+		return static_cast<size_t>(index) < static_cast<size_t>(h.nObjects);
 	}
 
 	template< typename Alloc, typename Ptr >

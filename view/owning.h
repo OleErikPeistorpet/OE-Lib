@@ -37,14 +37,12 @@ public:
 	constexpr auto end()
 	->	decltype( adl_end(std::declval<R &>()) )  { return adl_end(_r); }
 
-	template< typename R = Range >  OEL_ALWAYS_INLINE
-	constexpr auto size()
-	->	decltype(as_unsigned( _detail::Size(std::declval<R &>()) ))
-		{
-			return _detail::Size(_r);
-		}
+	template< typename R = Range,
+	          typename SizeT = decltype(as_unsigned( _detail::Size(std::declval<R &>()) ))
+	>	OEL_ALWAYS_INLINE
+	constexpr SizeT size()    { return static_cast<SizeT>(_detail::Size(_r)); }
 
-	constexpr bool empty()   { return _r.empty(); }
+	constexpr bool  empty()   { return _r.empty(); }
 
 	constexpr decltype(auto) operator[](difference_type index)
 		OEL_REQUIRES(requires{ _r[index]; })   { return _r[index]; }

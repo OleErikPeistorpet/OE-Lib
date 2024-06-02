@@ -30,10 +30,13 @@ public:
 
 	//! Provided only if begin() can be subtracted from end()
 	template< typename I = Iterator,
-	          enable_if< !disable_sized_sentinel_for<Sentinel, I> > = 0
+	          enable_if< !disable_sized_sentinel_for<Sentinel, I> > = 0,
+	          typename Ret = decltype( as_unsigned(std::declval<Sentinel>() - std::declval<I>()) )
 	>
-	constexpr auto size() const
-	->	decltype( as_unsigned(std::declval<Sentinel>() - std::declval<I>()) )  { return _m.second() - _m.first; }
+	constexpr Ret  size() const
+		{
+			return static_cast<Ret>(_m.second() - _m.first);
+		}
 
 	constexpr bool empty() const   { return _m.first == _m.second(); }
 

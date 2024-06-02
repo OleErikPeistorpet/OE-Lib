@@ -164,8 +164,8 @@ TEST(utilTest, makeUnique)
 	EXPECT_TRUE(ps[0].empty());
 	EXPECT_TRUE(ps[1].empty());
 
-	auto a = oel::make_unique_for_overwrite<int[]>(5);
-	for (int i = 0; i < 5; ++i)
+	auto a = oel::make_unique_for_overwrite<size_t[]>(5);
+	for (size_t i{}; i < 5u; ++i)
 		a[i] = i;
 }
 

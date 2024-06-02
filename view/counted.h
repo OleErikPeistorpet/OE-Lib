@@ -33,8 +33,7 @@ public:
 	>
 	constexpr Iterator end() const   { return _begin + _size; }
 
-	constexpr std::make_unsigned_t<difference_type>
-	               size() const noexcept    OEL_ALWAYS_INLINE { return _size; }
+	constexpr auto size() const noexcept   OEL_ALWAYS_INLINE { return std::make_unsigned_t<difference_type>(_size); }
 
 	constexpr bool empty() const noexcept   { return 0 == _size; }
 

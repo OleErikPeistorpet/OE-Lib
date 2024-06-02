@@ -80,7 +80,7 @@ TEST(viewTest, viewCounted)
 #endif
 	{
 		oel::dynarray<int> i{1, 2};
-		auto test = view::counted(i.begin(), i.size());
+		auto test = view::counted(i.begin(), ssize(i));
 		EXPECT_EQ(i.size(), test.size());
 		EXPECT_EQ(1, test[0]);
 		EXPECT_EQ(2, test[1]);
@@ -148,7 +148,7 @@ constexpr auto multBy2(StdArrInt2 a)
 	{	constexpr auto operator()(int i) const { return 2 * i; }
 	} mult2{};
 	auto v = view::transform(a, mult2);
-	std::ptrdiff_t i{};
+	size_t i{};
 	for (auto val : v)
 		res[i++] = val;
 
