@@ -275,7 +275,7 @@ struct TrackingAllocator : TrackingAllocatorBase<T>
 	}
 
 	// Testing collision with internal names in dynarray
-	using allocator_type = TrackingAllocatorBase<T>;
+	using allocator_type = TrackingAllocatorBase<char>;
 	using Alloc = void;
 	struct oel {};
 	struct _detail {};

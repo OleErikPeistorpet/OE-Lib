@@ -288,16 +288,18 @@ private:
 
 	struct _memOwner : public _internBase, public _usedAlloc_7KQw
 	{
-		using ::oel::_detail::DynarrBase<value_type *>::data;  // owner
-		using ::oel::_detail::DynarrBase<value_type *>::end;
-		using ::oel::_detail::DynarrBase<value_type *>::reservEnd;
+		using B = ::oel::_detail::DynarrBase<value_type *>;
+
+		using B::data;  // owner
+		using B::end;
+		using B::reservEnd;
 
 		constexpr _memOwner(_argAlloc_7KQw & a) noexcept
-		 :	::oel::_detail::DynarrBase<value_type *>{}, _usedAlloc_7KQw{std::move(a)} {
-		}
+		 :	B{}, _usedAlloc_7KQw{std::move(a)}
+		{}
 
 		constexpr _memOwner(_memOwner && other) noexcept
-		 :	::oel::_detail::DynarrBase<value_type *>{other}, _usedAlloc_7KQw{std::move(other)}
+		 :	B{other}, _usedAlloc_7KQw{std::move(other)}
 		{
 			other.reservEnd = other.end = other.data = nullptr;
 		}
@@ -306,8 +308,8 @@ private:
 		{
 			if (data)
 			{
-				::oel::_detail::DebugAllocateWrapper<_usedAlloc_7KQw, value_type *>
-					::dealloc(*this, data, static_cast<size_t>(reservEnd - data));
+				auto cap = static_cast<size_t>(reservEnd - data);
+				::oel::_detail::DebugAllocateWrapper<_usedAlloc_7KQw, value_type *>::dealloc(*this, data, cap);
 			}
 		}
 	}
