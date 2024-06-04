@@ -129,8 +129,7 @@ public:
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template< typename InputRange >
-	auto assign(InputRange && source)
-	->	borrowed_iterator_t<InputRange>   { return _doAssign(adl_begin(source), _detail::CountOrEnd(source)); }
+	auto assign(InputRange && source) -> borrowed_iterator_t<InputRange>;
 
 	void assign(size_type count, const T & val)   { clear();  append(count, val); }
 
@@ -142,8 +141,8 @@ public:
 	*
 	* Unlike std::vector, `end(source)` is not needed if `source.size()` is valid. */
 	template< typename InputRange >
-	auto append(InputRange && source)
-	->	borrowed_iterator_t<InputRange>   { return _doAppend(adl_begin(source), _detail::CountOrEnd(source)); }
+	auto append(InputRange && source) -> borrowed_iterator_t<InputRange>;
+
 	//! Equivalent to `std::vector::insert(end(), il)`
 	void append(std::initializer_list<T> il)   { append<>(il); }
 	/**
@@ -346,7 +345,6 @@ private:
 		_m.reservEnd = _m.data + capToCheck;
 	}
 
-
 	void _moveInternBase(_internBase & src) noexcept
 	{
 		_internBase & dest = _m;
@@ -436,6 +434,17 @@ private:
 	}
 
 
+	template< typename InputRange >
+	auto _emplBackRange(InputRange & src)
+	{
+		auto it = adl_begin(src);
+		auto l  = adl_end(src);
+		for (; it != l; ++it)
+			emplace_back(*it);
+
+		return it;
+	}
+
 	template< typename InputIter >
 	InputIter _doAssign(InputIter src, size_type const count)
 	{
@@ -494,33 +503,6 @@ private:
 			}
 			return src;
 		}
-	}
-
-	template< typename InputIter, typename Sentinel >
-	InputIter _doAssign(InputIter first, Sentinel const last)
-	{	// single-pass iterator and unknown count
-		clear();
-		for (; first != last; ++first)
-			emplace_back(*first);
-
-		return first;
-	}
-
-	template< typename InputIter, typename Sentinel >
-	InputIter _doAppend(InputIter first, Sentinel const last)
-	{	// single-pass iterator and unknown count
-		auto const oldSize = size();
-		OEL_TRY_
-		{
-			for (; first != last; ++first)
-				emplace_back(*first);
-		}
-		OEL_CATCH_ALL
-		{
-			erase_to_end(begin() + oldSize);
-			OEL_RETHROW;
-		}
-		return first;
 	}
 
 	template< typename InputIter >
@@ -639,11 +621,11 @@ typename dynarray<T, Alloc>::iterator
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1
 
-	auto first = adl_begin(src);
-	auto const count = _detail::CountOrEnd(src);
+	static_assert( _detail::rangeIsForwardOrSized<Range>,
+		"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
 
-	static_assert( std::is_same_v<decltype(count), size_t const>,
-			"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
+	auto       first = adl_begin(src);
+	auto const count = _detail::UDist(src);
 
 	size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
 	T * dLast;
@@ -727,6 +709,66 @@ inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 	_m.end += count;
 }
 
+template< typename T, typename Alloc >
+template< typename InputRange >
+inline auto dynarray<T, Alloc>::append(InputRange && source)
+->	borrowed_iterator_t<InputRange>
+{
+	if constexpr (_detail::rangeIsForwardOrSized<InputRange>)
+	{
+		return _doAppend(adl_begin(source), _detail::UDist(source));
+	}
+	else
+	{	auto const oldSize = size();
+		OEL_TRY_
+		{
+			return _emplBackRange(source);
+		}
+		OEL_CATCH_ALL
+		{
+			erase_to_end(begin() + oldSize);
+			OEL_RETHROW;
+		}
+	}
+}
+
+template< typename T, typename Alloc >
+template< typename InputRange >
+inline auto dynarray<T, Alloc>::assign(InputRange && source)
+->	borrowed_iterator_t<InputRange>
+{
+	if constexpr (_detail::rangeIsForwardOrSized<InputRange>)
+	{
+		return _doAssign(adl_begin(source), _detail::UDist(source));
+	}
+	else
+	{	clear();
+		return _emplBackRange(source);
+	}
+}
+
+
+template< typename T, typename Alloc >
+dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
+ :	_m(a)
+{
+	_initReserve(n);
+	_m.end = _m.reservEnd;
+	_detail::DefaultInit<allocator_type>::call(_m.data, _m.reservEnd, _m);
+
+	(void) _debugSizeUpdater{_m};
+}
+
+template< typename T, typename Alloc >
+dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
+ :	_m(a)
+{
+	_initReserve(n);
+	_m.end = _m.reservEnd;
+	_uninitFill::call(_m.data, _m.reservEnd, _m);
+
+	(void) _debugSizeUpdater{_m};
+}
 
 template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)
@@ -771,28 +813,6 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(const dynarray & other) &
 		assign(other);
 
 	return *this;
-}
-
-template< typename T, typename Alloc >
-dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
- :	_m(a)
-{
-	_initReserve(n);
-	_m.end = _m.reservEnd;
-	_detail::DefaultInit<allocator_type>::call(_m.data, _m.reservEnd, _m);
-
-	(void) _debugSizeUpdater{_m};
-}
-
-template< typename T, typename Alloc >
-dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
- :	_m(a)
-{
-	_initReserve(n);
-	_m.end = _m.reservEnd;
-	_uninitFill::call(_m.data, _m.reservEnd, _m);
-
-	(void) _debugSizeUpdater{_m};
 }
 
 template< typename T, typename Alloc >
