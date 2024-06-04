@@ -7,7 +7,6 @@
 
 
 #include "impl_algo.h"
-#include "../util.h" // for as_unsigned
 
 #include <algorithm>
 
