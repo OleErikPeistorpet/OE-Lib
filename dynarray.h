@@ -97,17 +97,17 @@ public:
 	/**
 	* To move instead of copy, wrap `r` with view::move (The same applies for all functions taking a range) */
 	template< typename InputRange >
-	dynarray(from_range_t, InputRange && r, Alloc a = Alloc{})   : _m(a) { append(r); }
+	dynarray(from_range_t, InputRange && r, Alloc a = Alloc{})   : _m(a) { _initFrom(r); }
 
-	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})     : _m(a) { append(il); }
+	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})     : _m(a) { _initFrom(il); }
 
 	dynarray(dynarray && other) noexcept                : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, Alloc a);
 	explicit dynarray(const dynarray & other)           : dynarray( other,
 	                                                      _alloTrait::select_on_container_copy_construction(other._m) ) {}
-	explicit dynarray(const dynarray & other, Alloc a)  : _m(a) { append(other); }
+	explicit dynarray(const dynarray & other, Alloc a)  : _m(a) { _initFrom(other); }
 
-	~dynarray() noexcept;
+	~dynarray() noexcept                       { _detail::Destroy(_m.data, _m.end); }
 
 	dynarray & operator =(dynarray && other) &
 		noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value);
@@ -339,17 +339,17 @@ private:
 		_m.reservEnd = newData + newCap;
 	}
 
-	void _initReserve(size_type const capToCheck)
-	{
-		_m.end = _m.data = _allocateChecked(capToCheck);
-		_m.reservEnd = _m.data + capToCheck;
-	}
-
 	void _moveInternBase(_internBase & src) noexcept
 	{
 		_internBase & dest = _m;
 		dest = src;
 		src  = {};
+	}
+
+	void _initReserve(size_type const capToCheck)
+	{
+		_m.end = _m.data = _allocateChecked(capToCheck);
+		_m.reservEnd = _m.data + capToCheck;
 	}
 
 
@@ -414,8 +414,8 @@ private:
 	}
 
 	// These are not defined inline as a compiler hint
-	void _growByOne();
 	void _growBy(size_type const);
+	void _growByOne();
 
 
 	template< typename UninitFiller >
@@ -433,17 +433,6 @@ private:
 		_m.end = newEnd;
 	}
 
-
-	template< typename InputRange >
-	auto _emplBackRange(InputRange & src)
-	{
-		auto it = adl_begin(src);
-		auto l  = adl_end(src);
-		for (; it != l; ++it)
-			emplace_back(*it);
-
-		return it;
-	}
 
 	template< typename InputIter >
 	InputIter _doAssign(InputIter src, size_type const count)
@@ -520,24 +509,74 @@ private:
 		else
 		{	T *__restrict dest = _m.end;
 			auto const   dLast = dest + count;
-			OEL_TRY_
+			struct Guard
 			{
-				while (dest != dLast)
+				_memOwner & m;
+				T *const & pos;
+
+				~Guard()
 				{
-					_alloTrait::construct(_m, dest, *src);
-					++dest; ++src;
+					m.end = pos;
 				}
-			}
-			OEL_CATCH_ALL
+			} exit{_m, dest};
+
+			while (dest != dLast)
 			{
-				_detail::Destroy(_m.end, dest);
-				OEL_RETHROW;
+				_alloTrait::construct(_m, dest, *src);
+				++dest; ++src;
 			}
-			_m.end = dLast;
 		}
 		_debugSizeUpdater guard{_m};
 
 		return src;
+	}
+
+	template< typename InputIter >
+	void _doInitFrom(InputIter src, size_type n)
+	{
+		_initReserve(n);
+
+		T *__restrict dest = _m.end;
+		auto const   dLast = _m.reservEnd;
+		_m.end             = dLast;
+		OEL_TRY_
+		{
+			while (dest != dLast)
+			{
+				_alloTrait::construct(_m, dest, *src);
+				++dest; ++src;
+			}
+		}
+		OEL_CATCH_ALL
+		{
+			_detail::Destroy(_m.data, dest);
+			OEL_RETHROW;
+		}
+		(void) _debugSizeUpdater{_m};
+	}
+
+	template< typename Range >
+	void _initFrom(Range & src)
+	{
+		if constexpr (can_memmove_with< T *, iterator_t<Range> >)
+		{
+			assign(src);
+		}
+		else if constexpr (_detail::rangeIsForwardOrSized<Range>)
+		{
+			_doInitFrom(adl_begin(src), _detail::UDist(src));
+		}
+		else
+		{	OEL_TRY_
+			{
+				append(src);
+			}
+			OEL_CATCH_ALL
+			{
+				clear();
+				OEL_RETHROW;
+			}
+		}
 	}
 
 
@@ -669,12 +708,6 @@ typename dynarray<T, Alloc>::iterator
 
 
 template< typename T, typename Alloc >
-void dynarray<T, Alloc>::_growByOne()
-{
-	_realloc(_calcCapAddOne(), size());
-}
-
-template< typename T, typename Alloc >
 #if defined _MSC_VER and !OEL_HAS_LIKELY
 	__declspec(noinline) // to get the compiler to inline calling function
 #endif
@@ -685,17 +718,9 @@ void dynarray<T, Alloc>::_growBy(size_type const count)
 }
 
 template< typename T, typename Alloc >
-template< typename... Args >
-inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
+void dynarray<T, Alloc>::_growByOne()
 {
-	if (_m.end == _m.reservEnd)
-		_growByOne();
-
-	_alloTrait::construct(_m, _m.end, static_cast<Args &&>(args)...);
-
-	_debugSizeUpdater guard{_m};
-
-	return *(_m.end++);
+	_realloc(_calcCapAddOne(), size());
 }
 
 template< typename T, typename Alloc >
@@ -721,16 +746,12 @@ inline auto dynarray<T, Alloc>::append(InputRange && source)
 		return _doAppend(adl_begin(source), _detail::UDist(source));
 	}
 	else
-	{	auto const oldSize = size();
-		OEL_TRY_
-		{
-			return _emplBackRange(source);
-		}
-		OEL_CATCH_ALL
-		{
-			erase_to_end(begin() + oldSize);
-			OEL_RETHROW;
-		}
+	{	auto it = adl_begin(source);
+		auto l  = adl_end(source);
+		for (; it != l; ++it)
+			emplace_back(*it);
+
+		return it;
 	}
 }
 
@@ -745,8 +766,22 @@ inline auto dynarray<T, Alloc>::assign(InputRange && source)
 	}
 	else
 	{	clear();
-		return _emplBackRange(source);
+		return append(source);
 	}
+}
+
+template< typename T, typename Alloc >
+template< typename... Args >
+inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
+{
+	if (_m.end == _m.reservEnd)
+		_growByOne();
+
+	_alloTrait::construct(_m, _m.end, static_cast<Args &&>(args)...);
+
+	_debugSizeUpdater guard{_m};
+
+	return *(_m.end++);
 }
 
 
@@ -815,12 +850,6 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(const dynarray & other) &
 		assign(other);
 
 	return *this;
-}
-
-template< typename T, typename Alloc >
-dynarray<T, Alloc>::~dynarray() noexcept
-{
-	_detail::Destroy(_m.data, _m.end);
 }
 
 template< typename T, typename Alloc >
