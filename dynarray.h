@@ -431,7 +431,7 @@ private:
 
 
 	template< typename InputIter >
-	InputIter _doAssign(InputIter src, size_type const count) __restrict
+	InputIter _doAssign(InputIter src, size_type const count)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -491,7 +491,7 @@ private:
 	}
 
 	template< typename InputIter, typename Sentinel >
-	InputIter _doAssign(InputIter first, Sentinel const last) __restrict
+	InputIter _doAssign(InputIter first, Sentinel const last)
 	{	// single-pass iterator and unknown count
 		clear();
 		for (; first != last; ++first)
@@ -806,7 +806,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 
 
 template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::append(size_type count, const T &__restrict val)
+inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 {
 	if (_spareCapacity() < count)
 		_growBy(count);
@@ -842,7 +842,7 @@ void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 }
 
 template< typename T, typename Alloc >
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_erase(iterator pos) __restrict &
+inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_erase(iterator pos) &
 {
 	if constexpr (is_trivially_relocatable<T>::value)
 	{
@@ -863,7 +863,7 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_eras
 }
 
 template< typename T, typename Alloc >
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) __restrict &
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) &
 {
 	_debugSizeUpdater guard{_m};
 
@@ -887,7 +887,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) _
 }
 
 template< typename T, typename Alloc >
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) __restrict &
+typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
 {
 	_debugSizeUpdater guard{_m};
 
