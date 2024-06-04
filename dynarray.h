@@ -278,6 +278,7 @@ public:
 private:
 	using _allocateWrap = _detail::DebugAllocateWrapper<allocator_type, T *>;
 	using _internBase   = _detail::DynarrBase<T *>;
+	using _construct    = _detail::Construct<allocator_type>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 	using _argAlloc_7KQw  = Alloc; // guarding against name collision due to inheritance (MSVC)
 	using _usedAlloc_7KQw = allocator_type;
@@ -322,17 +323,17 @@ private:
 		_m.reservEnd = newData + newCap;
 	}
 
-	void _initReserve(size_type const capToCheck)
-	{
-		_m.end = _m.data = _allocateChecked(capToCheck);
-		_m.reservEnd = _m.data + capToCheck;
-	}
-
 	void _moveInternBase(_internBase & src) noexcept
 	{
 		_internBase & dest = _m;
 		dest = src;
 		src  = {};
+	}
+
+	void _initReserve(size_type const capToCheck)
+	{
+		_m.end = _m.data = _allocateChecked(capToCheck);
+		_m.reservEnd = _m.data + capToCheck;
 	}
 
 
@@ -440,7 +441,7 @@ private:
 			_detail::MemcpyCheck(src, count, _m.data);
 		}
 		else
-		{	auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
+		{	constexpr auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
 			{
 				while( dest != dLast )
 				{
@@ -472,7 +473,7 @@ private:
 				}
 			}
 			do	// each iteration updates _m.end for exception safety
-			{	_alloTrait::construct(_m, _m.end, *src);
+			{	_construct::call(_m, _m.end, *src);
 				++_m.end; ++src;
 			}
 			while( _m.end != newEnd );
@@ -495,7 +496,7 @@ private:
 		{	auto const newEnd = _m.end + count;
 			while( _m.end != newEnd )
 			{
-				_alloTrait::construct(_m, _m.end, *src);
+				_construct::call(_m, _m.end, *src);
 				++_m.end; ++src;
 			}
 		}
@@ -558,7 +559,7 @@ typename dynarray<T, Alloc>::iterator
 
 	// Temporary in case constructor throws or args refer to an element of this dynarray
 	alignas(T) unsigned char tmp[sizeof(T)];
-	_alloTrait::construct(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+	_construct::call(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 	if( _m.end < _m.reservEnd )
 	{	// Relocate [pos, end) to [pos + 1, end + 1)
 		size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
@@ -614,7 +615,7 @@ typename dynarray<T, Alloc>::iterator
 		{
 			while( dest != dLast )
 			{
-				_alloTrait::construct(_m, dest, *first);
+				_construct::call(_m, dest, *first);
 				++dest; ++first;
 			}
 		}
@@ -649,7 +650,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 #endif	// braces here cause gcc 9 warning (Wattributes)
 		_growByOne();
 
-	_alloTrait::construct(_m, _m.end, static_cast<Args &&>(args)...);
+	_construct::call(_m, _m.end, static_cast<Args &&>(args)...);
 
 	_debugSizeUpdater guard{_m};
 
