@@ -7,7 +7,7 @@
 
 
 #include "contiguous_iterator_to_ptr.h"
-#include "range_traits.h"
+#include "../util.h"  // for as_unsigned
 
 #include <cstring>
 
@@ -128,26 +128,28 @@ namespace oel::_detail
 
 
 
-	// If r is sized or multi-pass, returns element count as size_t, else end(r)
 	template< typename Range, typename... None >
-	inline auto CountOrEnd(Range & r, None...)
+	auto UDist(Range & r, None...)
 	{
-		if constexpr (iter_is_forward< iterator_t<Range> >)
+		using I = decltype(begin(r));
+		if constexpr (iter_is_forward<I>)
 		{
-			size_t n{};
-			auto it = begin(r);
+			auto    it = begin(r);
 			auto const l = end(r);
+			std::make_unsigned_t< iter_difference_t<I> > n{};
 			while (it != l) { ++it; ++n; }
 
 			return n;
 		}
-		else
-		{	return end(r);
-		}
 	}
 
 	template< typename Range >
-	auto CountOrEnd(Range & r)
-	->	decltype( static_cast<size_t>(_detail::Size(r)) )
-	{	return    static_cast<size_t>(_detail::Size(r)); }
+	auto UDist(Range & r)
+	->	decltype( as_unsigned(_detail::Size(r)) )
+	{	return    as_unsigned(_detail::Size(r)); }
+
+
+	template< typename Range >
+	inline constexpr auto rangeIsForwardOrSized =
+		!std::is_same_v< decltype( _detail::UDist(std::declval<Range &>()) ), void >;
 }

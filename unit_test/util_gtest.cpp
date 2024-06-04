@@ -299,6 +299,8 @@ TEST(utilTest, detailCountOrEnd_disabledSize)
 	A src{1};
 	auto v = oel::view::subrange(TooSimpleIter<A::iterator>{src.begin()}, src.end());
 
-	auto n = oel::_detail::CountOrEnd(v);
+	static_assert(oel::_detail::rangeIsForwardOrSized<decltype(v)>);
+
+	auto n = oel::_detail::UDist(v);
 	EXPECT_EQ(1u, n);
 }

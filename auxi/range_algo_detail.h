@@ -7,7 +7,6 @@
 
 
 #include "impl_algo.h"
-#include "../util.h" // for as_unsigned
 #include "../view/counted.h"
 
 #include <algorithm>
@@ -117,10 +116,11 @@ namespace oel::_detail
 	template< typename Alloc, typename... Ranges >
 	auto ConcatToDynarr(Alloc a, Ranges &&... rs)
 	{
+		static_assert((... and rangeIsForwardOrSized<Ranges>));
 		using T = std::common_type_t<
 				iter_value_t< iterator_t<Ranges> >...
 			>;
-		size_t const counts[]{_detail::CountOrEnd(rs)...};
+		size_t const counts[]{_detail::UDist(rs)...};
 
 		size_t sum{};
 		for (auto n : counts)
