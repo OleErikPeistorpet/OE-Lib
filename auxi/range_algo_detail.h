@@ -68,9 +68,13 @@ namespace oel::_detail
 			return src + n;
 		}
 		else
-		{	for (size_t i{}; i < n; ++i)
+		{	auto assign = [](auto &&__restrict to, auto &&__restrict from)
 			{
-				dest[i] = *src;
+				static_cast<decltype(to)>(to) = static_cast<decltype(from)>(from);
+			};
+			for (size_t i{}; i < n; ++i)
+			{
+				assign(dest[i], *src);
 				++src;
 			}
 			return src;

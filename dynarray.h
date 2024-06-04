@@ -327,18 +327,17 @@ private:
 		_m.reservEnd = newData + newCap;
 	}
 
-	void _initReserve(size_type const capToCheck)
-	{
-		_m.end = _m.data = _allocateChecked(capToCheck);
-		_m.reservEnd = _m.data + capToCheck;
-	}
-
-
 	void _moveInternBase(_internBase & src) noexcept
 	{
 		_internBase & dest = _m;
 		dest = src;
 		src  = {};
+	}
+
+	void _initReserve(size_type const capToCheck)
+	{
+		_m.end = _m.data = _allocateChecked(capToCheck);
+		_m.reservEnd = _m.data + capToCheck;
 	}
 
 
@@ -417,6 +416,13 @@ private:
 	}
 
 
+	template< typename U >
+	static void _create(allocator_type &__restrict a, T *__restrict dest, U arg)
+	{
+		_alloTrait::construct(a, dest, static_cast<U &&>(arg));
+	}
+
+
 	template< typename UninitFiller >
 	void _doResize(size_type const newSize)
 	{
@@ -454,7 +460,7 @@ private:
 			return src + count;
 		}
 		else
-		{	auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
+		{	constexpr auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
 			{
 				while (dest != dLast)
 				{
@@ -486,8 +492,8 @@ private:
 			}
 			while (_m.end < newEnd)
 			{	// each iteration updates _m.end for exception safety
-				_alloTrait::construct(_m, _m.end, *src);
-				++src; ++_m.end;
+				_create< _detail::ForwardT<decltype(*src)> >(_m, _m.end, *src);
+				++_m.end; ++src;
 			}
 			return src;
 		}
@@ -539,7 +545,7 @@ private:
 			{
 				while (dest != dLast)
 				{
-					_alloTrait::construct(_m, dest, *src);
+					_create< _detail::ForwardT<decltype(*src)> >(_m, dest, *src);
 					++dest; ++src;
 				}
 			}
@@ -670,7 +676,7 @@ typename dynarray<T, Alloc>::iterator
 		{
 			while (dest != dLast)
 			{
-				_alloTrait::construct(_m, dest, *first);
+				_create< _detail::ForwardT<decltype(*first)> >(_m, dest, *first);
 				++dest; ++first;
 			}
 		}
