@@ -158,13 +158,13 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 
 TEST(dynarrayOtherTest, stdVariant)
 {
-	using Inner = std::conditional_t< oel::is_trivially_relocatable<std::string>::value, std::string, dynarray<char> >;
+	using Inner = dynarray<char>;
 	using V = std::variant<std::unique_ptr<double>, Inner>;
 	static_assert(oel::is_trivially_relocatable<V>::value);
 
 	dynarray<V> a;
 
-	a.emplace_back(Inner("abc"));
+	a.emplace_back(Inner(oel::from_range, "abc"));
 	a.push_back(std::make_unique<double>(3.3));
 	a.reserve(9);
 

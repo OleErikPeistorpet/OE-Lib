@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "core_util.h"
+#include "util.h" // for from_range
 
 #include <cstdint>  // for uintptr_t
 #include <stdexcept>
@@ -144,7 +144,7 @@ namespace oel::_detail
 		template< typename Range >
 		friend auto operator |(Range && r, ToDynarrPartial t)
 		{
-			return dynarray(static_cast<Range &&>(r), std::move(t)._a);
+			return dynarray(from_range, static_cast<Range &&>(r), std::move(t)._a);
 		}
 	};
 }

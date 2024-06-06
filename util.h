@@ -100,6 +100,17 @@ struct for_overwrite_t
 };
 inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrite_t for convenience
 
+#if __cpp_lib_containers_ranges < 202202
+	struct from_range_t
+	{
+		explicit from_range_t() = default;
+	};
+	inline constexpr from_range_t from_range;
+#else
+	using std::from_range_t;
+	using std::from_range;
+#endif
+
 
 
 //! Same as `begin(range)` with a previous `using std::begin;`. For use in classes with a member named begin
@@ -170,13 +181,6 @@ namespace _detail
 		OEL_ALWAYS_INLINE constexpr const Empty_type_MSVC_unique_name & second() const { return *this; }
 		OEL_ALWAYS_INLINE constexpr       Empty_type_MSVC_unique_name & second()       { return *this; }
 	};
-
-
-
-	template< typename T, typename U,
-		typename SansCVRef = std::remove_cv_t< std::remove_reference_t<T> >
-	>
-	inline constexpr auto isSameSansCVRef = std::is_same_v<SansCVRef, U>;
 }
 
 } // namespace oel

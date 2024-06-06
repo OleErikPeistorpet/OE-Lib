@@ -29,9 +29,14 @@ struct _toDynarrayFn
 			return _detail::ToDynarrPartial<Alloc>{std::move(a)};
 		}
 };
-//! Equivalent to `std::ranges::to<dynarray>` (piped)
+//! `r | to_dynarray()` is equivalent to `r | std::ranges::to<dynarray>()`
+/**
+* Example, convert array of std::bitset to `dynarray<std::string>`:
+@code
+std::bitset<8> arr[] {3, 5, 7, 11};
+auto result = arr | view::transform(OEL_MEMBER_FN(to_string)) | to_dynarray();
+@endcode  */
 inline constexpr _toDynarrayFn to_dynarray;
-
 
 //! Overloads generic unordered_erase(RandomAccessContainer &, Integral) (in range_algo.h)
 template< typename T, typename A >  inline
@@ -97,22 +102,13 @@ public:
 	explicit dynarray(size_type size, Alloc a = Alloc{});
 	dynarray(size_type size, const T & val, Alloc a = Alloc{})   : _m(a) { append(size, val); }
 
-	/** @brief Equivalent to `std::vector(std::from_range, r, a)`, except `end(r)` is not needed if `r.size()` is valid
-	*
-	* To move instead of copy, wrap r with view::move (The same applies for all functions taking a range template)
-	*
-	* Example, construct from a standard istream with formatting (using Boost):
-	@code
-	#include <boost/range/istream_range.hpp>
-	auto result = dynarray(boost::range::istream_range<int>(someStream));
-	@endcode  */
-	template< typename InputRange,
-	          typename /*EnableIfRange*/ = iterator_t<InputRange>,
-	          enable_if< !_detail::isSameSansCVRef<InputRange, dynarray> > = 0
-	>
-	explicit dynarray(InputRange && r, Alloc a = Alloc{})      : _m(a) { append(r); }
+	//! Equivalent to `std::vector(std::from_range, r, a)`, except `end(r)` is not needed if `r.size()` is valid
+	/**
+	* To move instead of copy, wrap `r` with view::move (The same applies for all functions taking a range) */
+	template< typename InputRange >
+	dynarray(from_range_t, InputRange && r, Alloc a = Alloc{})   : _m(a) { append(r); }
 
-	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})   : _m(a) { append(il); }
+	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})     : _m(a) { append(il); }
 
 	dynarray(dynarray && other) noexcept        : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, Alloc a);
@@ -931,7 +927,7 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first,
 
 
 template< typename InputRange, typename Alloc = allocator<> >
-explicit dynarray(InputRange &&, Alloc = {})
+dynarray(from_range_t, InputRange &&, Alloc = {})
 ->	dynarray<
 		iter_value_t< iterator_t<InputRange> >,
 		Alloc

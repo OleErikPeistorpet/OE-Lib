@@ -68,12 +68,6 @@ void testNonConstexprCompile()
 	[[maybe_unused]] auto d2 = dynarray<int, NonConstexprAlloc<>>(NonConstexprAlloc<>{});
 }
 
-TEST_F(dynarrayConstructTest, emptyBracesArg)
-{
-	dynarray<int> ints({}, 1);
-	EXPECT_TRUE(ints.empty());
-}
-
 TEST_F(dynarrayConstructTest, constructEmpty)
 {
 	dynarrayTrackingAlloc<TrivialDefaultConstruct> a;
@@ -257,7 +251,7 @@ TEST_F(dynarrayConstructTest, deductionGuides)
 	static_assert(std::is_same< decltype(d)::allocator_type, StatefulAllocator<int> >());
 	EXPECT_EQ(d.size(), ar.size());
 
-	dynarray fromTemp(std::array<int, 1>{});
+	dynarray fromTemp(from_range, std::array<int, 1>{});
 	static_assert(std::is_same< decltype(fromTemp)::allocator_type, oel::allocator<int> >());
 
 	dynarray sizeAndVal(2, 1.f);
@@ -268,7 +262,7 @@ TEST_F(dynarrayConstructTest, deductionGuides)
 TEST_F(dynarrayConstructTest, constructContiguousRange)
 {
 	std::string str = "AbCd";
-	dynarray test(str);
+	dynarray test(from_range, str);
 	static_assert(std::is_same<decltype(test)::value_type, char>());
 	EXPECT_TRUE( 0 == str.compare(0, 4, test.data(), test.size()) );
 }
@@ -276,7 +270,7 @@ TEST_F(dynarrayConstructTest, constructContiguousRange)
 TEST_F(dynarrayConstructTest, constructRangeNoCopyAssign)
 {
 	auto il = { 1.2, 3.4 };
-	dynarray<MoveOnly> test(il);
+	dynarray<MoveOnly> test(from_range, il);
 	EXPECT_TRUE(test.size() == 2);
 }
 
@@ -285,7 +279,7 @@ TEST_F(dynarrayConstructTest, constructForwardRangeNoSize)
 	for (auto const n : {0u, 1u, 59u})
 	{
 		std::forward_list<int> li(n, -6);
-		dynarray<int> d(li);
+		dynarray<int> d(from_range, li);
 		EXPECT_EQ(n, d.size());
 		if (0 != n)
 		{
@@ -298,7 +292,7 @@ TEST_F(dynarrayConstructTest, constructForwardRangeNoSize)
 TEST_F(dynarrayConstructTest, constructRangeMutableBeginSize)
 {
 	int src[1] {1};
-	dynarray<int> d(ToMutableBeginSizeView(src));
+	dynarray<int> d(from_range, ToMutableBeginSizeView(src));
 	EXPECT_EQ(1u, d.size());
 }
 
@@ -307,7 +301,7 @@ TEST_F(dynarrayConstructTest, constructRangeMutableBeginSize)
 TEST_F(dynarrayConstructTest, constructMoveOnlyIterator)
 {
 	std::istringstream words{"Falling Anywhere"};
-	auto d = dynarray(std::views::istream<std::string>(words));
+	auto d = dynarray(from_range, std::views::istream<std::string>(words));
 	EXPECT_EQ(2u, d.size());
 	EXPECT_EQ("Falling", d[0]);
 	EXPECT_EQ("Anywhere", d[1]);
@@ -607,7 +601,7 @@ TEST_F(dynarrayConstructTest, constructInputRangeThrowing)
 	MoveOnly::countToThrowOn = 1;
 
 	ASSERT_THROW(
-		dynarray<MoveOnly>(view::subrange(f, l)),
+		dynarray<MoveOnly>(from_range, view::subrange(f, l)),
 		TestException );
 }
 
