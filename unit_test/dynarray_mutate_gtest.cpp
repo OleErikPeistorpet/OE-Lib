@@ -831,7 +831,7 @@ TEST_F(dynarrayTest, erasePrecondCheck)
 	leakDetector->enabled = false;
 
 	dynarray<int> di{-2};
-	auto copy = di;
+	auto copy = dynarray(di);
 	ASSERT_DEATH( copy.erase(di.begin()), "" );
 }
 

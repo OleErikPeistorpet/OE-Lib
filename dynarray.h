@@ -110,11 +110,11 @@ public:
 
 	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})     : _m(a) { append(il); }
 
-	dynarray(dynarray && other) noexcept        : _m(std::move(other._m)) {}
+	dynarray(dynarray && other) noexcept                : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, Alloc a);
-	dynarray(const dynarray & other)            : dynarray(other,
-	                                                       _alloTrait::select_on_container_copy_construction(other._m)) {}
-	dynarray(const dynarray & other, Alloc a)   : _m(a) { append(other); }
+	explicit dynarray(const dynarray & other)           : dynarray( other,
+	                                                      _alloTrait::select_on_container_copy_construction(other._m) ) {}
+	explicit dynarray(const dynarray & other, Alloc a)  : _m(a) { append(other); }
 
 	~dynarray() noexcept;
 
@@ -122,6 +122,7 @@ public:
 		noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value);
 	//! Requires that allocator_type is always equal or does not have propagate_on_container_copy_assignment
 	dynarray & operator =(const dynarray & other) &;
+	dynarray & operator =(const dynarray &&) = delete;
 
 	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
@@ -932,6 +933,11 @@ dynarray(from_range_t, InputRange &&, Alloc = {})
 		iter_value_t< iterator_t<InputRange> >,
 		Alloc
 	>;
+
+#if defined __GNUC__ and __GNUC__ < 12
+	template< typename T, typename A >
+	explicit dynarray(const dynarray<T, A> &) -> dynarray<T, A>;
+#endif
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 } // namespace debug
