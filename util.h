@@ -170,6 +170,13 @@ namespace _detail
 		OEL_ALWAYS_INLINE constexpr const Empty_type_MSVC_unique_name & second() const { return *this; }
 		OEL_ALWAYS_INLINE constexpr       Empty_type_MSVC_unique_name & second()       { return *this; }
 	};
+
+
+
+	template< typename T, typename U,
+		typename SansCVRef = std::remove_cv_t< std::remove_reference_t<T> >
+	>
+	inline constexpr auto isSameSansCVRef = std::is_same_v<SansCVRef, U>;
 }
 
 } // namespace oel

@@ -94,7 +94,9 @@ public:
 	auto result = dynarray(boost::range::istream_range<int>(someStream));
 	@endcode  */
 	template< typename InputRange,
-	          typename /*EnableIfRange*/ = iterator_t<InputRange> >
+	          typename /*EnableIfRange*/ = iterator_t<InputRange>,
+	          enable_if< !_detail::isSameSansCVRef<InputRange, dynarray> > = 0
+	>
 	explicit dynarray(InputRange && r, Alloc a = Alloc{})      : _m(a) { append(r); }
 
 	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})   : _m(a) { append(il); }

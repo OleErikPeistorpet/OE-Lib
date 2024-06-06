@@ -315,6 +315,21 @@ TEST_F(dynarrayConstructTest, constructMoveOnlyIterator)
 #endif
 
 
+TEST_F(dynarrayConstructTest, copyConstruct)
+{
+	using Al = StatefulAllocator<TrivialRelocat>;
+	auto x = dynarray< TrivialRelocat, Al >({TrivialRelocat{0.5}}, Al(-5));
+	EXPECT_EQ(1, g_allocCount.nAllocations);
+
+	auto y = dynarray(x);
+	EXPECT_EQ(-5, y.get_allocator().id);
+	EXPECT_EQ(2, g_allocCount.nAllocations);
+
+	auto z = dynarray(y, Al(7));
+	EXPECT_EQ(0.5, *z.front());
+	EXPECT_EQ(3, g_allocCount.nAllocations);
+}
+
 template<typename Alloc>
 void testMoveConstruct(Alloc a0, Alloc a1)
 {
