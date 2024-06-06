@@ -4,11 +4,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#ifdef _MSC_EXTENSIONS
-#include <ciso646>
-#endif
-
-
 /** @file
 * @brief Error handling macros and forward declarations, including is_trivially_relocatable (for user classes)
 */

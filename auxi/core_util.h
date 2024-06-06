@@ -8,6 +8,9 @@
 
 #include "../fwd.h"
 
+#ifdef _MSC_EXTENSIONS
+#include <iso646.h> // and, or
+#endif
 #include <type_traits>
 #include <utility> // for declval
 
