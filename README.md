@@ -1,8 +1,8 @@
-# Obscure Efficient Library
+# OE-Lib
 
-A cross-platform, very fast substitute for C++ std::vector (and std::copy) with a range-based interface.
+A cross-platform, very fast substitute for C++ std::vector with a range-based interface, and a bunch of supporting utilities.
 
-Features relocation optimizations similar to [Folly fbvector](https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation) and UnrealEngine TArray.
+Features relocation optimizations similar to [Folly fbvector](https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation) and UnrealEngine TArray. Also uses `realloc` when possible, which showed substantial performance improvements when tested on a Linux system.
 
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
