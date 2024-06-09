@@ -29,6 +29,9 @@ constexpr void unordered_erase(RandomAccessContainer & c, Integral index)
 	c[index] = std::move(c.back());
 	c.pop_back();
 }
+//! See unordered_erase(RandomAccessContainer &, Integral) or dynarray::unordered_erase
+template< typename T, typename A >  inline
+void unordered_erase(dynarray<T, A> & d, ptrdiff_t index)  { d.unordered_erase(d.begin() + index); }
 
 /**
 * @brief Erase from container all elements for which predicate returns true

@@ -854,13 +854,6 @@ void testUnorderedErase()
 	EXPECT_EQ(-2, *(*it));
 	it = d.unordered_erase(it);
 	EXPECT_EQ(end(d), it);
-
-	d.emplace_back(-1);
-	d.emplace_back(2);
-	unordered_erase(d, 1);
-	EXPECT_EQ(-1, *d.back());
-	unordered_erase(d, 0);
-	EXPECT_TRUE(d.empty());
 }
 
 TEST_F(dynarrayTest, unorderedErase)

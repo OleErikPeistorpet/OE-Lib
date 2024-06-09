@@ -21,14 +21,6 @@
 namespace oel
 {
 
-struct _toDynarrayFn
-{
-	template< typename Alloc = allocator<> >
-	constexpr auto operator()(Alloc a = {}) const
-		{
-			return _detail::ToDynarrPartial<Alloc>{std::move(a)};
-		}
-};
 //! `r | to_dynarray()` is equivalent to `r | std::ranges::to<dynarray>()`
 /**
 * Example, convert array of std::bitset to `dynarray<std::string>`:
@@ -36,12 +28,11 @@ struct _toDynarrayFn
 std::bitset<8> arr[] {3, 5, 7, 11};
 auto result = arr | view::transform(OEL_MEMBER_FN(to_string)) | to_dynarray();
 @endcode  */
-inline constexpr _toDynarrayFn to_dynarray;
-
-//! Overloads generic unordered_erase(RandomAccessContainer &, Integral) (in range_algo.h)
-template< typename T, typename A >  inline
-void unordered_erase(dynarray<T, A> & d, ptrdiff_t index)  { d.unordered_erase(d.begin() + index); }
-
+template< typename Alloc = allocator<> >
+constexpr auto to_dynarray(Alloc a = {})
+	{
+		return _detail::ToDynarrPartial<Alloc>{std::move(a)};
+	}
 
 //! dynarray is trivially relocatable if Alloc is
 template< typename T, typename Alloc >

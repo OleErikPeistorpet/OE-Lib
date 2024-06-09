@@ -27,6 +27,25 @@ TEST(rangeTest, unorderedErase)
 	EXPECT_EQ("aa", d.front());
 }
 
+template<typename Container>
+void testUnorderedErase()
+{
+	Container c;
+	c.emplace_back(-1);
+	c.emplace_back(2);
+
+	unordered_erase(c, 1);
+	EXPECT_EQ(-1, *c.back());
+	unordered_erase(c, 0);
+	EXPECT_TRUE(c.empty());
+}
+
+TEST(rangeTest, unorderedEraseDynarray)
+{
+	testUnorderedErase< oel::dynarray<MoveOnly> >();
+	testUnorderedErase< oel::dynarray<TrivialRelocat> >();
+}
+
 TEST(rangeTest, eraseIf)
 {
 	using namespace oel;
