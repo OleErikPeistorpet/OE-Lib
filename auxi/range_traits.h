@@ -53,10 +53,6 @@ namespace _detail
 }
 
 
-using std::ptrdiff_t;
-using std::size_t;
-
-
 using std::begin;  using std::end;
 
 

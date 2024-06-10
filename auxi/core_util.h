@@ -63,6 +63,10 @@
 namespace oel
 {
 
+using std::ptrdiff_t;
+using std::size_t;
+
+
 //! Declare an overload to declare a type trivially relocatable. See is_trivially_relocatable
 template< typename T >
 bool_constant< std::is_trivially_move_constructible_v<T> and std::is_trivially_destructible_v<T> >
