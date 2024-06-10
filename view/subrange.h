@@ -15,7 +15,7 @@ namespace oel::view
 {
 
 //! A minimal substitute for std::ranges::subrange and boost::iterator_range
-template< typename Iterator, typename Sentinel >
+template< typename Iterator, typename Sentinel = Iterator >
 class subrange
 {
 	_detail::TightPair<Iterator, Sentinel> _m;

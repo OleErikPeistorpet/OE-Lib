@@ -602,9 +602,8 @@ TEST_F(dynarrayConstructTest, selfCopyAssign)
 
 TEST_F(dynarrayConstructTest, constructInputRangeThrowing)
 {
-	using I = std::istream_iterator<double>;
 	std::stringstream ss("1 2");
-	auto v = view::subrange(I{ss}, I{});
+	auto v = view::subrange(std::istream_iterator<double>{ss}, {});
 	MoveOnly::countToThrowOn = 1;
 
 	ASSERT_THROW(
