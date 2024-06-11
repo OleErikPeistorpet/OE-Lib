@@ -79,7 +79,7 @@ namespace _detail
 	template< typename T, size_t Capacity, typename Size >
 	struct InplaceGrowarrBase
 	{
-		Size _size{};
+		Size           _size{};
 		storage_for<T> _data[Capacity];
 
 
@@ -87,10 +87,10 @@ namespace _detail
 		const T * data() const noexcept { return reinterpret_cast<const T *>(_data); }
 
 
-		template< bool ForceMemcpy = false, typename InputIter >
+		template< typename InputIter >
 		InputIter doAssign(InputIter src, Size const count)
 		{
-			if constexpr (ForceMemcpy or can_memmove_with<T *, InputIter>)
+			if constexpr (can_memmove_with<T *, InputIter>)
 			{
 				_size = count;
 				_detail::MemcpyCheck(src, count, _data);
@@ -139,29 +139,29 @@ namespace _detail
 	{
 		constexpr InplaceGrowarrSpecial() = default;
 
+		InplaceGrowarrSpecial(InplaceGrowarrSpecial && other) noexcept
+		{
+			_relocateFrom(other);
+		}
+
 		InplaceGrowarrSpecial(const InplaceGrowarrSpecial & other)
 		{
 			this->_size = other._size;
 			_detail::UninitCopy(other.data(), other._size, this->data());
 		}
 
-		InplaceGrowarrSpecial(InplaceGrowarrSpecial && other) noexcept
-		{
-			this->_size = other._size;
-			_detail::Relocate(other.data(), other._size, this->data());
-			other._setEmptyIf< is_trivially_relocatable<T>::value >();
-		}
-
 		InplaceGrowarrSpecial & operator =(InplaceGrowarrSpecial && other) &
 			 noexcept(std::is_nothrow_move_assignable_v<T> or is_trivially_relocatable<T>::value)
 		{
-			constexpr auto trivialReloc = is_trivially_relocatable<T>::value;
-		#if OEL_HAS_EXCEPTIONS
-			static_assert( std::is_nothrow_move_constructible_v<T> or trivialReloc,
-				"Containers in oel require that T is noexcept move constructible or trivially relocatable" );
-		#endif
-			this->doAssign<trivialReloc>(std::make_move_iterator(other.data()), other._size);
-			other._setEmptyIf<trivialReloc>();
+			if constexpr (is_trivially_relocatable<T>::value)
+			{
+				_detail::Destroy(this->data(), this->data() + this->_size);
+				_relocateFrom(other);
+			}
+			else
+			{	(void) AssertNothrowMoveConstruct<T>{};
+				this->doAssign(std::move_iterator{other.data()}, other._size);
+			}
 			return *this;
 		}
 
@@ -178,11 +178,12 @@ namespace _detail
 			_detail::Destroy(this->data(), this->data() + this->_size);
 		}
 
-		template< bool B >
-		void _setEmptyIf()
+		void _relocateFrom(InplaceGrowarrSpecial & other) noexcept
 		{
-			if constexpr (B)
-				this->_size = 0;
+			_detail::Relocate(other.data(), other._size, this->data());
+			this->_size = other._size;
+			if constexpr (is_trivially_relocatable<T>::value)
+				other->_size = 0;
 		}
 	};
 }

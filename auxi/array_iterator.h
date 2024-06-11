@@ -183,13 +183,28 @@ auto to_pointer_contiguous(const array_iterator<Ptr, C> & it) noexcept
 	return static_cast< typename std::pointer_traits<Ptr>::element_type * >(it._pElem);
 }
 
+} // oel
+
+template< typename Ptr, typename C >
+struct std::pointer_traits< oel::array_iterator<Ptr, C> >
+{
+    using pointer         = oel::array_iterator<Ptr, C>;
+    using difference_type = typename pointer::difference_type;
+    using element_type    = typename std::pointer_traits<Ptr>::element_type;
+
+    static element_type * to_address(pointer it) noexcept
+	{
+		return static_cast<element_type *>(it._pElem);
+	}
+};
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
 
 
-namespace _detail
+namespace oel::_detail
 {
 	template<typename Iterator>
 #if OEL_MEM_BOUND_DEBUG_LVL
@@ -205,5 +220,3 @@ namespace _detail
 	};
 #endif
 }
-
-} // namespace oel
