@@ -111,7 +111,7 @@ public:
 	* @throw bad_alloc if count > Capacity  */
 	template< typename InputRange >
 	auto assign(InputRange && source)
-	->  iterator_t<InputRange>                    { return _assign(_getSize(source, 0), source); }
+	->  borrowed_iterator_t<InputRange>           { return _assign(_getSize(source, 0), source); }
 
 	void assign(size_type count, const T & val)   { clear();  append(count, val); }
 
@@ -124,7 +124,7 @@ public:
 	* Strong exception safety, aka. commit or rollback semantics  */
 	template< typename InputRange >
 	auto append(InputRange && source)
-	->  iterator_t<InputRange>                { return _doAppend(_getSize(source, 0), source); }
+	->  borrowed_iterator_t<InputRange>       { return _doAppend(_getSize(source, 0), source); }
 	//! Same as `std::vector::insert(end(), il)`
 	void append(std::initializer_list<T> il)  { append<>(il); }
 	//! Same as `std::vector::insert(end(), count, val)`
