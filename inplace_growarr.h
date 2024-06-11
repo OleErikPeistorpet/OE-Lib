@@ -10,8 +10,6 @@
 #include "auxi/array_iterator.h"
 #include "auxi/inplace_growarr_detail.h"
 
-#include <algorithm> // for move
-
 /** @file
 */
 
