@@ -22,11 +22,6 @@ namespace oel
 template< typename T, size_t C, typename S >
 is_trivially_relocatable<T> specify_trivial_relocate(inplace_growarr<T, C, S>);
 
-//! Overloads generic unordered_erase(RandomAccessContainer &, Integral) (in range_algo.h)
-// TODO: make sure the overload is never ambiguous
-template< typename T, size_t C, typename S >  inline
-void unordered_erase(inplace_growarr<T, C, S> & a, ptrdiff_t index)  { a.unordered_erase(a.begin() + index); }
-
 /**
 * @brief Resizable array, statically allocated. Specify maximum size as template argument.
 *
@@ -133,9 +128,9 @@ public:
 	T &      emplace_back(Args &&... args) &;  //!< Throws bad_alloc when full
 
 	//! Throws bad_alloc when full
-	void     push_back(T && val)        { emplace_back(std::move(val)); }
+	void     push_back(T && val)       { emplace_back(std::move(val)); }
 	//! Throws bad_alloc when full
-	void     push_back(const T & val)   { emplace_back(val); }
+	void     push_back(const T & val)  { emplace_back(val); }
 
 	void     pop_back() noexcept
 		{
