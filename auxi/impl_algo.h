@@ -15,6 +15,15 @@
 namespace oel::_detail
 {
 	template< typename T >
+	struct AssertNothrowMoveConstruct
+	{
+	#if OEL_HAS_EXCEPTIONS
+		static_assert( std::is_nothrow_move_constructible_v<T>,
+			"Containers in oel require that T is noexcept move constructible or trivially relocatable" );
+	#endif
+	};
+
+	template< typename T >
 	struct AssertTrivialRelocate
 	{
 		static_assert(is_trivially_relocatable<T>::value,
@@ -71,11 +80,8 @@ namespace oel::_detail
 			return dLast;
 		}
 		else
-		{
-		#if OEL_HAS_EXCEPTIONS
-			static_assert( std::is_nothrow_move_constructible_v<T>,
-				"Containers in oel require that T is noexcept move constructible or trivially relocatable" );
-		#endif
+		{	(void) AssertNothrowMoveConstruct<T>{};
+
 			for (size_t i{}; i < n; ++i)
 			{
 				::new(static_cast<void *>(dest + i)) T( std::move(src[i]) );
