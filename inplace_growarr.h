@@ -18,6 +18,34 @@
 namespace oel
 {
 
+template< size_t Capacity, typename Size >
+struct _toInplaceGrowarrFn
+{
+	template< typename InputRange >
+	friend auto operator |(InputRange && r, _toInplaceGrowarrFn)
+		{
+			using T = iter_value_t< iterator_t<InputRange> >;
+			return inplace_growarr<T, Capacity, Size>(from_range, static_cast<InputRange &&>(r));
+		}
+
+	template< typename InputRange >
+	auto operator()(InputRange && r) const   { return static_cast<InputRange &&>(r) | *this; }
+
+	template< typename T >
+	auto operator()(std::initializer_list<T> il) const   { return il | *this; }
+};
+//! `to_inplace_growarr<C>` is same as `std::ranges::to< inplace_growarr<T, C> >()` with T deduced from `r`
+template< size_t Capacity, typename Size = size_t >
+inline constexpr _toInplaceGrowarrFn<Capacity, Size> to_inplace_growarr;
+
+//! Used to deduce T from val: `make_inplace_growarr<C>(size, val)`
+template< size_t Capacity, typename Size = size_t, typename T >
+auto make_inplace_growarr(size_t size, const T & val)
+{
+	return inplace_growarr<T, Capacity, Size>(static_cast<Size>(size), val);
+}
+
+
 //! inplace_growarr is trivially relocatable if T is
 template< typename T, size_t C, typename S >
 is_trivially_relocatable<T> specify_trivial_relocate(inplace_growarr<T, C, S>);
@@ -72,13 +100,13 @@ public:
 			_size = size;
 		}
 	//! Throws bad_alloc if size > Capacity
-	inplace_growarr(size_type size, const T & fillVal)  { append(size, fillVal); }
+	inplace_growarr(size_type size, const T & val)        { append(size, val); }
 
-	template< typename InputRange,
-	          typename /*EnableIfRange*/ = iterator_t<InputRange> >
-	explicit inplace_growarr(InputRange && source)      { append(source); }
+	//! T can be deduced - TODO more description
+	template< typename InputRange >
+	inplace_growarr(from_range_t, InputRange && source)   { append(source); }
 
-	inplace_growarr(std::initializer_list<T> init)      { append<>(init); }
+	inplace_growarr(std::initializer_list<T> il)          { append(il); }
 
 	inplace_growarr & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
