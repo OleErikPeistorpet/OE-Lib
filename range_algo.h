@@ -69,16 +69,18 @@ auto concat_to_dynarray(Ranges &&... sources)
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template< typename Integer, typename RandomAccessContainer >
 constexpr void unordered_erase(RandomAccessContainer & c, Integer index)
-{
-	c[index] = std::move(c.back());
-	c.pop_back();
-}
-//! See unordered_erase(RandomAccessContainer &, Integer) or dynarray::unordered_erase
-template< typename Integer, typename T, typename A >  inline
-void unordered_erase(dynarray<T, A> & d, Integer index)  { d.unordered_erase(d.begin() + index); }
+	{
+		if constexpr( decltype( _detail::HasUnorderErase(c) )::value )
+		{
+			c.unordered_erase(c.begin() + index);
+		}
+		else
+		{	c[index] = std::move(c.back());
+			c.pop_back();
+		}
+	}
 
-/**
-* @brief Erase from container all elements for which predicate returns true
+/** @brief Erase from container all elements for which predicate returns true
 *
 * This mimics `std::erase_if` (C++20) for sequence containers  */
 template< typename Container, typename UnaryPredicate >

@@ -13,6 +13,12 @@
 
 namespace oel::_detail
 {
+	template< typename Container >
+	auto HasUnorderErase(Container & c) -> decltype( c.unordered_erase(c.begin()), true_type() );
+
+	false_type HasUnorderErase(...);
+
+
 	template< typename Container, typename Iterator >
 	constexpr auto EraseEnd(Container & c, Iterator f)
 	->	decltype( c.erase_to_end(f) )
@@ -35,7 +41,7 @@ namespace oel::_detail
 	{
 		_detail::EraseEnd
 		(	c,
-			std::remove_if( oel::begin_(c), oel::end_(c), std::move(p) )
+			std::remove_if( c.begin(), c.end(), std::move(p) )
 		);
 	}
 
@@ -46,7 +52,7 @@ namespace oel::_detail
 	template< typename Container, typename... None >
 	constexpr void Unique(Container & c, None...)
 	{
-		_detail::EraseEnd( c, std::unique(oel::begin_(c), oel::end_(c)) );
+		_detail::EraseEnd( c, std::unique(c.begin(), c.end()) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////

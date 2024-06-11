@@ -48,15 +48,13 @@ TEST(rangeTest, unorderedEraseDynarray)
 
 TEST(rangeTest, eraseIf)
 {
-	using namespace oel;
-
 	std::list<int> li{1, 2, 3, 4, 5, 6};
 	std::list<int> const expect{1, 3, 5};
-	dynarray<int> test1;
+	oel::dynarray<int> test1;
 	test1.append_range(li);
 
 	auto isEven = [](int i) { return i % 2 == 0; };
-	erase_if(li, isEven);
+	oel::erase_if(li, isEven);
 	EXPECT_TRUE(expect == li);
 	erase_if(test1, isEven);
 	EXPECT_EQ(li.size(), test1.size());
