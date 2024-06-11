@@ -64,11 +64,11 @@ using oel::ssize;
 }
 
 
-/** @brief Check if index is valid (within bounds for operator[])
-*
+//! Returns true if index is within bounds (for `r[index]`)
+/**
 * Requires that `r.size()` or `end(r) - begin(r)` is valid. */
 template< typename Integer, typename SizedRangeLike >
-constexpr bool index_valid(SizedRangeLike & r, Integer index)
+[[nodiscard]] constexpr bool index_valid(SizedRangeLike & r, Integer index)
 	{
 		static_assert( sizeof(Integer) >= sizeof _detail::Size(r) or std::is_unsigned_v<Integer>,
 			"Mismatched index type, please use a wider integer (or unsigned)" );
