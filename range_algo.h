@@ -23,15 +23,15 @@ namespace oel
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template< typename RandomAccessContainer, typename Integral >
-constexpr void unordered_erase(RandomAccessContainer & c, Integral index)
+template< typename Integer, typename RandomAccessContainer >
+constexpr void unordered_erase(RandomAccessContainer & c, Integer index)
 {
 	c[index] = std::move(c.back());
 	c.pop_back();
 }
-//! See unordered_erase(RandomAccessContainer &, Integral) or dynarray::unordered_erase
-template< typename T, typename A >  inline
-void unordered_erase(dynarray<T, A> & d, ptrdiff_t index)  { d.unordered_erase(d.begin() + index); }
+//! See unordered_erase(RandomAccessContainer &, Integer) or dynarray::unordered_erase
+template< typename Integer, typename T, typename A >  inline
+void unordered_erase(dynarray<T, A> & d, Integer index)  { d.unordered_erase(d.begin() + index); }
 
 /**
 * @brief Erase from container all elements for which predicate returns true
