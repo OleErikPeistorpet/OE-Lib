@@ -14,6 +14,12 @@
 
 namespace oel::_detail
 {
+	template< typename Container >
+	auto HasUnorderedErase(Container & c) -> decltype( c.unordered_erase(c.begin()), true_type() );
+
+	false_type HasUnorderedErase(...);
+
+
 	template< typename Container, typename Iterator >
 	constexpr auto EraseEnd(Container & c, Iterator f)
 	->	decltype(c.erase_to_end(f))
