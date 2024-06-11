@@ -21,7 +21,7 @@ void testConstruct()
 	}
 	{
 		std::string str = "AbCd";
-		ArrayChar test2(str);
+		ArrayChar test2(oel::from_range, str);
 		EXPECT_TRUE( 0 == str.compare(0, 4, test2.data(), test2.size()) );
 	}
 	ArrayBool db(50, true);
