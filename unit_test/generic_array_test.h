@@ -16,7 +16,7 @@ void testConstruct()
 
 	EXPECT_TRUE(typename ArrayString::const_iterator{} == typename ArrayString::iterator{});
 	{
-		ArrayString c(0, std::string{});
+		ArrayString c(0);
 		EXPECT_TRUE(c.empty());
 	}
 	{
@@ -24,9 +24,9 @@ void testConstruct()
 		ArrayChar test2(oel::from_range, str);
 		EXPECT_TRUE( 0 == str.compare(0, 4, test2.data(), test2.size()) );
 	}
-	ArrayBool db(50, true);
+	ArrayBool db(50);
 	for (const auto & e : db)
-		EXPECT_EQ(true, e);
+		EXPECT_EQ(false, e);
 }
 
 template<typename ArrayMoveOnly, typename ArrayArrayInt>

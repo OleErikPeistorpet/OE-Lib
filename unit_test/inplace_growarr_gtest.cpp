@@ -39,18 +39,16 @@ TEST_F(inplaceGrowarrTest, toInplaceGrowarr)
 	char from[4]{};
 	auto res  = oel::to_inplace_growarr<4>(from);
 	auto res2 = from | oel::to_inplace_growarr<7, std::uint_fast8_t>;
-	auto res3 = oel::to_inplace_growarr<4>({7, 9});
 	static_assert(std::is_same_v< decltype(res),  inplace_growarr<char, 4> >);
 	static_assert(std::is_same_v< decltype(res2), inplace_growarr<char, 7, std::uint_fast8_t> >);
-	static_assert(std::is_same_v< decltype(res3), inplace_growarr<int, 4> >);
 }
 
 TEST_F(inplaceGrowarrTest, makeInplaceGrowarr)
 {
-	auto res  = oel::make_inplace_growarr<4>(3, 'x');
-	auto res2 = oel::make_inplace_growarr<7, std::uint_fast8_t>(3, 'x');
-	static_assert(std::is_same_v< decltype(res),  inplace_growarr<char, 4> >);
-	static_assert(std::is_same_v< decltype(res2), inplace_growarr<char, 7, std::uint_fast8_t> >);
+	auto res  = oel::make_inplace_growarr<8>(3, 'x');
+	auto res2 = oel::make_inplace_growarr<2, unsigned>(0, 1);
+	static_assert(std::is_same_v< decltype(res),  inplace_growarr<char, 8> >);
+	static_assert(std::is_same_v< decltype(res2), inplace_growarr<unsigned, 2> >);
 }
 
 TEST_F(inplaceGrowarrTest, pushBackMoveOnly)

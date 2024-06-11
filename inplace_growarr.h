@@ -28,21 +28,19 @@ struct _toInplaceGrowarrFn
 
 	template< typename InputRange >
 	auto operator()(InputRange && r) const   { return static_cast<InputRange &&>(r) | *this; }
-
-	template< typename T >
-	auto operator()(std::initializer_list<T> il) const   { return il | *this; }
 };
 //! `to_inplace_growarr<C>` is same as `std::ranges::to< inplace_growarr<T, C> >()` with T deduced from `r`
 template< size_t Capacity, typename Size = size_t >
 inline constexpr _toInplaceGrowarrFn<Capacity, Size> to_inplace_growarr;
 
-//! Used to deduce T from val: `make_inplace_growarr<C>(size, val)`
-template< size_t Capacity, typename Size = size_t, typename T >
-auto make_inplace_growarr(size_t size, const T & val)
-{
-	return inplace_growarr<T, Capacity, Size>(static_cast<Size>(size), val);
-}
-
+//! Can be used to deduce T from val: `make_inplace_growarr<Capacity>(size, val)`
+template< size_t Capacity, typename T >
+inplace_growarr<T, Capacity> make_inplace_growarr(size_t size, const T & val)
+	{
+		inplace_growarr<T, Capacity> res{};
+		res.append(size, val);
+		return res;
+	}
 
 //! inplace_growarr is trivially relocatable if T is
 template< typename T, size_t C, typename S >
@@ -97,8 +95,6 @@ public:
 			_detail::UninitFillA::call(data(), data() + size);
 			_size = size;
 		}
-	//! Throws bad_alloc if size > Capacity
-	inplace_growarr(size_type size, const T & val)        { append(size, val); }
 
 	//! T can be deduced - TODO more description
 	template< typename InputRange >
