@@ -119,16 +119,6 @@ namespace oel::_detail
 		}
 	};
 
-	struct UninitFillA
-	{
-		template< typename T, typename... Args >
-		static void call(T *__restrict first, T *const last, const Args &... args)
-		{
-			using A = allocator<>;
-			UninitFill<A>::call(first, last, A{}, args...);
-		}
-	};
-
 	template< typename Alloc >
 	struct DefaultInit
 	{
@@ -142,17 +132,6 @@ namespace oel::_detail
 			else
 			{	(void) first; (void) last; (void) a; // avoid VC++ 2017 warning C4100
 			}
-		}
-	};
-
-	struct UninitDefaultConstructA
-	{
-		template< typename T >
-		static void call(T *__restrict first, T *const last)
-		{
-			using A = allocator<>;
-			A a{};
-			DefaultInit<A>::call(first, last, a);
 		}
 	};
 
