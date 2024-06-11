@@ -64,13 +64,13 @@ using oel::ssize;
 }
 
 
-/** @brief Check if index is valid (within bounds for operator[])
-*
+//! Returns true if index is within bounds (for `r[index]`)
+/**
 * Requires that `r.size()` or `end(r) - begin(r)` is valid. */
-template< typename Integral, typename SizedRangeLike >
-constexpr bool index_valid(SizedRangeLike & r, Integral index)
+template< typename Integer, typename SizedRangeLike >
+[[nodiscard]] constexpr bool index_valid(SizedRangeLike & r, Integer index)
 	{
-		static_assert( sizeof(Integral) >= sizeof _detail::Size(r) or std::is_unsigned_v<Integral>,
+		static_assert( sizeof(Integer) >= sizeof _detail::Size(r) or std::is_unsigned_v<Integer>,
 			"Mismatched index type, please use a wider integer (or unsigned)" );
 		return as_unsigned(index) < as_unsigned(_detail::Size(r));
 	}
@@ -89,16 +89,27 @@ std::unique_ptr<T> make_unique_for_overwrite(size_t count)
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {
-	explicit constexpr reserve_tag() {}
+	explicit reserve_tag() = default;
 };
 inline constexpr reserve_tag reserve; //!< An instance of reserve_tag for convenience
 
 //! Tag to specify default initialization
 struct for_overwrite_t
 {
-	explicit constexpr for_overwrite_t() {}
+	explicit for_overwrite_t() = default;
 };
 inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrite_t for convenience
+
+#if __cpp_lib_containers_ranges < 202202
+	struct from_range_t
+	{
+		explicit from_range_t() = default;
+	};
+	inline constexpr from_range_t from_range;
+#else
+	using std::from_range_t;
+	using std::from_range;
+#endif
 
 
 

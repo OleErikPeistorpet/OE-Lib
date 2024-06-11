@@ -7,6 +7,11 @@
 
 
 #include "../fwd.h"
+
+#ifdef _MSC_EXTENSIONS
+#include <iso646.h> // and, or
+#endif
+#include <type_traits>
 #include <utility> // for declval
 
 //! @cond INTERNAL
@@ -59,6 +64,13 @@ namespace oel
 {
 
 using std::ptrdiff_t;
+
+
+//! Declare an overload to declare a type trivially relocatable. See is_trivially_relocatable
+template< typename T >
+bool_constant< std::is_trivially_move_constructible_v<T> and std::is_trivially_destructible_v<T> >
+	specify_trivial_relocate(T &&);
+
 
 
 //! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy

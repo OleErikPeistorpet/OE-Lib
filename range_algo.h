@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,9 +11,9 @@
 
 
 /** @file
-* @brief Efficient range-based erase and copy functions
+* @brief Efficient range-based erase, copy functions and non-member append
 *
-* Designed to interface with the standard library. Also contains non-member assign, append, insert functions.
+* Designed to interface with the standard library.
 */
 
 namespace oel
@@ -23,14 +23,15 @@ namespace oel
 *
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
-template< typename RandomAccessContainer, typename Integral >
-constexpr void unordered_erase(RandomAccessContainer & c, Integral index)
+template< typename Integer, typename RandomAccessContainer >
+constexpr void unordered_erase(RandomAccessContainer & c, Integer index)
 {
 	c[index] = std::move(c.back());
 	c.pop_back();
 }
-template< typename RandomAccessContainer, typename Integral >
-[[deprecated]] constexpr void erase_unstable(RandomAccessContainer & c, Integral index)  { oel::unordered_erase(c, index); }
+//! See unordered_erase(RandomAccessContainer &, Integer) or dynarray::unordered_erase
+template< typename Integer, typename T, typename A >  inline
+void unordered_erase(dynarray<T, A> & d, Integer index)  { d.unordered_erase(d.begin() + index); }
 
 /**
 * @brief Erase from container all elements for which predicate returns true
@@ -90,11 +91,35 @@ inline constexpr auto copy_fit =
 	[](auto && source, auto && dest) -> bool   { return _detail::CopyFit(source, dest); };
 
 
-/**
-* @brief Append source range at end of container
+
+struct _appendFn
+{
+	template< typename Container, typename InputRange >
+	void operator()(Container & c, InputRange && source) const
+	{
+	#if __cpp_concepts >= 201907
+		if constexpr (requires{ c.append_range(static_cast<InputRange &&>(source)); })
+			c.append_range(static_cast<InputRange &&>(source));
+		else
+	#endif
+			c.insert(c.end(), begin(source), end(source));
+	}
+
+	template< typename T, typename A, typename InputRange >
+	void operator()(dynarray<T, A> & c, InputRange && source) const
+	{
+		c.append(static_cast<InputRange &&>(source));
+	}
+
+	template< typename T, size_t C, typename S, typename InputRange >
+	void operator()(inplace_growarr<T, C, S> & c, InputRange && source) const
+	{
+		c.append(static_cast<InputRange &&>(source));
+	}
+};
+/** @brief Append source range at end of a container
 *
-* Generic function for use with dynarray or a container with standard library interface. */
-inline constexpr auto append =
-	[](auto & container, auto && source) -> void   { _detail::Append(container, decltype(source)(source)); };
+* Generic function for use with dynarray or container that has standard library interface. */
+inline constexpr _appendFn append;
 
 } // namespace oel

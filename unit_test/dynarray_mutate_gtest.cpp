@@ -13,7 +13,8 @@
 using oel::dynarray;
 namespace view = oel::view;
 
-struct noDefaultConstructAlloc : public oel::allocator<int>
+template< typename T = int >
+struct noDefaultConstructAlloc : public oel::allocator<T>
 {
 	noDefaultConstructAlloc(int) {}
 };
@@ -291,7 +292,7 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 	decltype(das) copyDest;
 
 	copyDest.assign(view::counted(das.cbegin(), 2));
-	copyDest.assign( view::counted(begin(das), das.size()) );
+	copyDest.assign( view::counted(begin(das), ssize(das)) );
 
 	EXPECT_TRUE(das == copyDest);
 
@@ -412,7 +413,7 @@ TEST_F(dynarrayTest, insertRTrivial)
 				dest.emplace_back(1);
 				dest.emplace_back(2);
 
-				dest.insert_range(dest.begin() + insertOffset, toInsert);
+				dest.insert_range(dest.begin() + oel::as_signed(insertOffset), toInsert);
 
 				EXPECT_TRUE(dest.size() == initSize + toInsert.size());
 				for (size_t i = 0; i < toInsert.size(); ++i)
@@ -439,33 +440,34 @@ TEST_F(dynarrayTest, insertRTrivial)
 
 TEST_F(dynarrayTest, insertR)
 {
-	size_t const initSize = 2;
+	using oel::ssize;
+	constexpr ptrdiff_t initSize{2};
 	std::array<TrivialRelocat, 2> const toInsert{TrivialRelocat{-1}, TrivialRelocat{-2}};
-	for (auto nReserve : {initSize, initSize + toInsert.size()})
-		for (size_t insertOffset = 0; insertOffset <= initSize; ++insertOffset)
-			for (unsigned countThrow = 0; countThrow <= toInsert.size(); ++countThrow)
+	for (auto nReserve : {initSize, initSize + ssize(toInsert)})
+		for (ptrdiff_t insertOffset{}; insertOffset <= initSize; ++insertOffset)
+			for (int countThrow{}; countThrow <= ssize(toInsert); ++countThrow)
 			{	{
-					dynarray<TrivialRelocat> dest(oel::reserve, nReserve);
+					dynarray<TrivialRelocat> dest(oel::reserve, oel::as_unsigned(nReserve));
 					dest.emplace_back(1);
 					dest.emplace_back(2);
 
-					if (countThrow < toInsert.size())
+					if (countThrow < ssize(toInsert))
 					{
 					#if OEL_HAS_EXCEPTIONS
 						TrivialRelocat::countToThrowOn = countThrow;
 						EXPECT_THROW( dest.insert_range(dest.begin() + insertOffset, toInsert), TestException );
 					#endif
-						EXPECT_TRUE(initSize <= dest.size() and dest.size() <= initSize + countThrow);
+						EXPECT_TRUE(initSize <= ssize(dest) and ssize(dest) <= initSize + countThrow);
 					}
 					else
 					{	dest.insert_range(dest.begin() + insertOffset, toInsert);
 
-						EXPECT_TRUE(dest.size() == initSize + toInsert.size());
+						EXPECT_TRUE(ssize(dest) == initSize + ssize(toInsert));
 					}
 					if (dest.size() > initSize)
 					{
-						for (unsigned i = 0; i < countThrow; ++i)
-							EXPECT_TRUE( *toInsert[i] == *dest[i + insertOffset] );
+						for (ptrdiff_t i{}; i < countThrow; ++i)
+							EXPECT_TRUE( *toInsert[oel::as_unsigned(i)] == *dest[i + insertOffset] );
 					}
 					if (insertOffset == 0)
 					{
@@ -482,7 +484,7 @@ TEST_F(dynarrayTest, insertR)
 						EXPECT_EQ(2, *dest.back());
 					}
 				}
-				EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct + oel::ssize(toInsert));
+				EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct + ssize(toInsert));
 			}
 }
 
@@ -499,7 +501,7 @@ TEST_F(dynarrayTest, emplace)
 					{	TrivialRelocat::countToThrowOn = -1;
 						g_allocCount.countToThrowOn    = -1;
 
-						dynarrayTrackingAlloc<TrivialRelocat> dest(oel::reserve, nReserve);
+						dynarrayTrackingAlloc<TrivialRelocat> dest(oel::reserve, oel::as_unsigned(nReserve));
 						dest.emplace(dest.begin(), firstVal);
 						dest.emplace(dest.begin(), secondVal);
 
@@ -680,9 +682,10 @@ struct NonPowerOfTwo
 	char data[(sizeof(void *) * 3) / 2];
 };
 
+template< typename T = NonPowerOfTwo >
 struct StaticBufAlloc
 {
-	using value_type = NonPowerOfTwo;
+	using value_type = T;
 	using is_always_equal = std::true_type;
 
 	value_type * buff = nullptr;
@@ -692,6 +695,10 @@ struct StaticBufAlloc
 	StaticBufAlloc(value_type (&array)[N])
 	 :	buff(array), size(N) {
 	}
+
+	template< typename U >
+	StaticBufAlloc(const StaticBufAlloc<U> & other)
+	 :	buff{other.buff}, size{other.size} {}
 
 	size_t max_size() const { return size; }
 
@@ -734,9 +741,9 @@ TEST_F(dynarrayTest, statefulAlwaysEqualDefaultConstructibleAlloc)
 		}
 	}
 	mem;
-	StaticBufAlloc a{mem.use};
+	StaticBufAlloc<> a{mem.use};
 
-	dynarray<NonPowerOfTwo, StaticBufAlloc> d(a);
+	dynarray<NonPowerOfTwo, StaticBufAlloc<>> d(a);
 	d.resize(d.max_size());
 
 	EXPECT_TRUE(Mem::isValid(mem.prefix));
@@ -824,7 +831,7 @@ TEST_F(dynarrayTest, erasePrecondCheck)
 	leakDetector->enabled = false;
 
 	dynarray<int> di{-2};
-	auto copy = di;
+	auto copy = dynarray(di);
 	ASSERT_DEATH( copy.erase(di.begin()), "" );
 }
 
@@ -847,13 +854,6 @@ void testUnorderedErase()
 	EXPECT_EQ(-2, *(*it));
 	it = d.unordered_erase(it);
 	EXPECT_EQ(end(d), it);
-
-	d.emplace_back(-1);
-	d.emplace_back(2);
-	unordered_erase(d, 1);
-	EXPECT_EQ(-1, *d.back());
-	unordered_erase(d, 0);
-	EXPECT_TRUE(d.empty());
 }
 
 TEST_F(dynarrayTest, unorderedErase)
@@ -880,8 +880,10 @@ TEST_F(dynarrayTest, shrinkToFit)
 TEST_F(dynarrayTest, overAligned)
 {
 	constexpr auto testAlignment = OEL_MALLOC_ALIGNMENT * 2;
-	struct alignas(testAlignment) Type {};
-
+	struct alignas(testAlignment) Type
+	{
+		double v[2];
+	};
 	dynarray<Type> special(oel::reserve, 1);
 
 	special.insert(special.begin(), Type());
@@ -926,6 +928,13 @@ TEST_F(dynarrayTest, greaterThanMax)
 }
 #endif
 
+TEST_F(dynarrayTest, noDefaultConstructAlloc)
+{
+	dynarray<int, noDefaultConstructAlloc<>> test(noDefaultConstructAlloc<>(0));
+	test.push_back(1);
+	EXPECT_EQ(1u, test.size());
+}
+
 TEST_F(dynarrayTest, misc)
 {
 	size_t fASrc[] = { 2, 3 };
@@ -946,9 +955,9 @@ TEST_F(dynarrayTest, misc)
 	dest0.reserve(1);
 	dest0 = daSrc;
 
-	dest0.append( view::counted(daSrc.cbegin(), daSrc.size()) );
+	dest0.append( view::counted(daSrc.cbegin(), ssize(daSrc)) );
 	dest0.append(view::counted(fASrc, 2));
-	auto srcEnd = dest0.append( view::counted(begin(dequeSrc), dequeSrc.size()) );
+	auto srcEnd = dest0.append( view::counted(begin(dequeSrc), oel::ssize(dequeSrc)) );
 	EXPECT_TRUE(end(dequeSrc) == srcEnd);
 
 	dynarray<size_t> dest1;
@@ -961,11 +970,6 @@ TEST_F(dynarrayTest, misc)
 	dest1.pop_back();
 	dest1.shrink_to_fit();
 	EXPECT_GT(cap, dest1.capacity());
-
-	{
-		dynarray<int, noDefaultConstructAlloc> test(noDefaultConstructAlloc(0));
-		test.push_back(1);
-	}
 }
 
 #if OEL_STD_RANGES

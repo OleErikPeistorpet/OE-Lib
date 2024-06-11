@@ -33,10 +33,10 @@ jobs:
             cpp_standard: 20
             mem_bound_debug: on
           - os: ubuntu-latest
-            gcc_version: 11
+            gcc_version: 12
             cpp_standard: 17
           - os: ubuntu-latest
-            gcc_version: 12
+            gcc_version: 13
             cpp_standard: 20
           - os: macos-latest
             cpp_standard: 17

@@ -21,7 +21,7 @@
 
 class MemoryLeakDetector;
 
-extern MemoryLeakDetector* leakDetector;
+extern MemoryLeakDetector * leakDetector;
 
 
 #if (defined _MSC_VER and __cpp_lib_ranges >= 201911) or __cpp_lib_ranges > 202000
@@ -276,7 +276,7 @@ struct TrackingAllocator : TrackingAllocatorBase<T>
 	}
 
 	// Testing collision with internal names in dynarray
-	using allocator_type = TrackingAllocatorBase<T>;
+	using allocator_type = TrackingAllocatorBase<char>;
 	using Alloc = void;
 	struct oel {};
 	struct _detail {};
@@ -295,6 +295,15 @@ struct StatefulAllocator : std::conditional_t< UseConstruct, TrackingAllocator<T
 	int id;
 
 	explicit StatefulAllocator(int id_ = 0) : id(id_) {}
+
+	template< typename U >
+	StatefulAllocator(StatefulAllocator<U> other) : id{other.id} {}
+
+	template< typename U >
+	struct rebind
+	{
+		using other = StatefulAllocator<U, PropagateOnMoveAssign, UseConstruct>;
+	};
 
 	friend bool operator==(StatefulAllocator a, StatefulAllocator b) { return a.id == b.id; }
 

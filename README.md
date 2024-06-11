@@ -1,8 +1,8 @@
-# Obscure Efficient Library
+# OE-Lib
 
-A cross-platform, very fast substitute for C++ std::vector (and std::copy) with a range-based interface.
+A cross-platform, very fast substitute for C++ std::vector with a range-based interface, and a bunch of supporting utilities.
 
-Features relocation optimizations similar to [Folly fbvector](https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation) and UnrealEngine TArray.
+Features relocation optimizations similar to [Folly fbvector](https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation) and UnrealEngine TArray. Also uses `realloc` when possible, which showed substantial performance improvements when tested on a Linux system.
 
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
@@ -24,7 +24,7 @@ Would be better as:
 
 	void moveAllToBackOf(oel::dynarray<Foo> & dest)
 	{
-		dest.append(oel::view::move(fooList));
+		dest.append(fooList | oel::view::move);
 	}
 
 Compared to calling `push_back` or `emplace_back` in a loop, `append` has major benefits, mainly because of fewer memory allocations without having to worry about manual `reserve`. Moreover, calling `reserve` inside a loop is a performance pitfall that many aren't aware of. For example, see here: <https://stackoverflow.com/questions/48535727/why-are-c-stl-vectors-1000x-slower-when-doing-many-reserves>
@@ -40,8 +40,8 @@ Should be something like:
 
 	for (int i{}; i < outerLimit; i++)
 	{
-		auto v = std::views::iota(0, innerLimit);
-		arr.append( oel::view::transform(v, [i](auto j) { return i * j; }) );
+		auto fn = [i, j = 0]() mutable { return i * j++; };
+		arr.append(oel::view::generate(fn, innerLimit));
 	}
 
 Another good way, using `resize_for_overwrite`:
@@ -56,9 +56,9 @@ Another good way, using `resize_for_overwrite`:
 
 ### Checked preconditions
 
-Precondition checks are off by default except for Visual C++ debug builds. (Preconditions are the same as std::vector.) They can be controlled with a global define such as `-D OEL_MEM_BOUND_DEBUG_LVL=2`. But be careful with compilers other than MSVC, the checks should **not** be combined with compiler optimizations unless you set the `-fno-strict-aliasing` flag.
+Precondition checks are off by default except for Visual C++ debug builds. (Preconditions are the same as std::vector except a few documented cases.) They can be controlled with a global define such as `-D OEL_MEM_BOUND_DEBUG_LVL=2`. But be careful with compilers other than MSVC, the checks should **not** be combined with compiler optimizations unless you set the `-fno-strict-aliasing` flag.
 
-You can customize what happens when a check is triggered. This is done by defining or changing OEL_ABORT or OEL_ASSERT; see `fwd.h`
+You can customize what happens when a check is triggered. This is done by defining or changing OEL_ASSERT; see `fwd.h`
 
 ### Visual Studio visualizer
 

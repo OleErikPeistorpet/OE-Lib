@@ -44,7 +44,7 @@ namespace _detail
 }
 
 
-//! View types and view creation functions. The API tries to mimic views in std::ranges
+//! View types and view creation functions. The API tries to mimic views in standard `<ranges>`
 namespace view
 {
 //! Substitute for std::views::all

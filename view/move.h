@@ -45,9 +45,10 @@ public:
 	constexpr bool empty()   { return _base.empty(); }
 
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)   OEL_ALWAYS_INLINE { return begin()[index]; }
+		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)   { return std::move_iterator{_base.begin()}[index]; }
 
 	constexpr View         base() &&                { return std::move(_base); }
+	constexpr View         base() const &&          { return _base; }
 	constexpr const View & base() const & noexcept  { return _base; }
 };
 
@@ -69,8 +70,7 @@ struct _moveFn
 @code
 std::string moveFrom[2] {"abc", "def"};
 oel::dynarray movedStrings(moveFrom | view::move);
-@endcode
-* Expect compile error if passed a transform having function with non-const `operator()` */
+@endcode  */
 inline constexpr _moveFn move;
 
 }

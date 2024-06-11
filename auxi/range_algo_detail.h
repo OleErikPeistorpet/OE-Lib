@@ -17,7 +17,7 @@ namespace oel::_detail
 	template< typename Container, typename Iterator >
 	constexpr auto EraseEnd(Container & c, Iterator f)
 	->	decltype(c.erase_to_end(f))
-	{ 	return   c.erase_to_end(f); }
+	{	return   c.erase_to_end(f); }
 
 	template< typename Container, typename Iterator, typename... None >
 	constexpr void EraseEnd(Container & c, Iterator f, None...)
@@ -101,7 +101,7 @@ namespace oel::_detail
 	auto CopyFit(SizedRange & src, RandomAccessRange & dest)
 	->	decltype( _detail::Size(src), bool() ) // better match if Size(src) is well-formed (SFINAE)
 	{
-		auto n              = as_unsigned(_detail::Size(src));
+		auto       n        = as_unsigned(_detail::Size(src));
 		auto const destSize = as_unsigned(_detail::Size(dest));
 		bool const success{n <= destSize};
 		if (!success)
@@ -109,30 +109,5 @@ namespace oel::_detail
 
 		_detail::CopyUnsf(begin(src), n, begin(dest));
 		return success;
-	}
-
-////////////////////////////////////////////////////////////////////////////////
-
-	template< typename Container, typename InputRange >
-	constexpr void Append(Container & dest, InputRange && src)
-	{
-	#if __cpp_concepts >= 201907
-		if constexpr (requires (Container c, InputRange r) { c.append_range(r); })
-			dest.append_range(static_cast<InputRange &&>(src));
-		else
-	#endif
-			dest.insert(dest.end(), begin(src), end(src));
-	}
-
-	template< typename T, typename A, typename InputRange >
-	inline void Append(dynarray<T, A> & dest, InputRange && src)
-	{
-		dest.append(static_cast<InputRange &&>(src));
-	}
-
-	template< typename T, size_t C, typename S, typename InputRange >
-	inline void Append(inplace_growarr<T, C, S> & dest, InputRange && src)
-	{
-		dest.append(static_cast<InputRange &&>(src));
 	}
 }

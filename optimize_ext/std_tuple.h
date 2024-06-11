@@ -5,14 +5,14 @@
 
 
 /** @file
-* @brief Variant2 was introduced in Boost 1.71
+* @brief Must be included manually in user code
 */
 
 #include "../auxi/core_util.h"
 
-#include <boost/variant2/variant.hpp>
+#include <tuple>
 
 
 template< typename... Ts >
-struct oel::is_trivially_relocatable< boost::variant2::variant<Ts...> >
+struct oel::is_trivially_relocatable< std::tuple<Ts...> >
  :	std::conjunction< is_trivially_relocatable<Ts>... > {};

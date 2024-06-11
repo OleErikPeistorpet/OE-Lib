@@ -87,74 +87,35 @@ namespace oel::_detail
 	#undef OEL_CHECK_NULL_MEMCPY
 
 
-	template< typename Alloc, typename InputIter, typename T >
-	InputIter UninitCopy(InputIter src, T *__restrict dest, T *const dLast, [[maybe_unused]] Alloc & allo)
-	{
-		if constexpr (can_memmove_with<T *, InputIter>)
-		{
-			auto const n = dLast - dest;
-			_detail::MemcpyCheck(src, n, dest);
-			return src + n;
-		}
-		else
-		{	T *const dFirst = dest;
-			OEL_TRY_
-			{
-				while (dest != dLast)
-				{
-					std::allocator_traits<Alloc>::construct(allo, dest, *src);
-					++src; ++dest;
-				}
-			}
-			OEL_CATCH_ALL
-			{
-				_detail::Destroy(dFirst, dest);
-				OEL_RETHROW;
-			}
-			return src;
-		}
-	}
-
-
 	template< typename Alloc >
 	struct UninitFill
 	{
-		template< typename T >
-		static constexpr auto isByte =
-			sizeof(T) == 1 and (std::is_integral_v<T> or std::is_enum_v<T>);
-
-		template< typename T, typename... Args,
-		          enable_if< !isByte<T> > = 0
-		>
-		static void call(T *__restrict first, T *const last, Alloc & allo, const Args &... args)
+		template< typename... Args, typename T >
+		static void call(T *__restrict first, T *const last, [[maybe_unused]] Alloc allo, Args const... args)
 		{
-			T *const init = first;
-			OEL_TRY_
+			[[maybe_unused]] constexpr auto isByte = sizeof(T) == 1 and (std::is_integral_v<T> or std::is_enum_v<T>);
+
+			if constexpr (std::is_trivial_v<T> and sizeof...(Args) == 0)
 			{
-				for (; first != last; ++first)
-					std::allocator_traits<Alloc>::construct(allo, first, args...);
+				std::memset(first, 0, sizeof(T) * (last - first));
 			}
-			OEL_CATCH_ALL
+			else if constexpr (isByte)
 			{
-				_detail::Destroy(init, first);
-				OEL_RETHROW;
+				std::memset(first, static_cast<int>(args)..., last - first);
 			}
-		}
-
-		template< typename T,
-		          enable_if< isByte<T> > = 0
-		>
-		static void call(T *const first, T * last, Alloc &, T val)
-		{
-			std::memset(first, static_cast<int>(val), last - first);
-		}
-
-		template< typename T,
-		          enable_if< std::is_trivial_v<T> > = 0
-		>
-		static void call(T *const first, T * last, Alloc &)
-		{
-			std::memset(first, 0, sizeof(T) * (last - first));
+			else
+			{	T *const init = first;
+				OEL_TRY_
+				{
+					for (; first != last; ++first)
+						std::allocator_traits<Alloc>::construct(allo, first, args...);
+				}
+				OEL_CATCH_ALL
+				{
+					_detail::Destroy(init, first);
+					OEL_RETHROW;
+				}
+			}
 		}
 	};
 
@@ -163,15 +124,15 @@ namespace oel::_detail
 		template< typename T, typename... Args >
 		static void call(T *__restrict first, T *const last, const Args &... args)
 		{
-			using A = allocator<T>;
-			A a{};
-			UninitFill<A>::call(first, last, a, args...);
+			using A = allocator<>;
+			UninitFill<A>::call(first, last, A{}, args...);
 		}
 	};
 
-	struct UninitDefaultConstruct
+	template< typename Alloc >
+	struct DefaultInit
 	{
-		template< typename Alloc, typename T >
+		template< typename T >
 		static void call(T *__restrict first, T *const last, Alloc & a)
 		{
 			if constexpr (!std::is_trivially_default_constructible_v<T>)
@@ -189,8 +150,9 @@ namespace oel::_detail
 		template< typename T >
 		static void call(T *__restrict first, T *const last)
 		{
-			allocator<T> a;
-			UninitDefaultConstruct::call(first, last, a);
+			using A = allocator<>;
+			A a{};
+			DefaultInit<A>::call(first, last, a);
 		}
 	};
 

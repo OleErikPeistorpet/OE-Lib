@@ -15,16 +15,35 @@
 
 namespace view = oel::view;
 
-TEST(rangeTest, eraseUnstable)
+TEST(rangeTest, unorderedErase)
 {
 	std::deque<std::string> d{"aa", "bb", "cc"};
 
-	oel::unordered_erase(d, 1);
+	oel::unordered_erase(d, 1u);
 	EXPECT_EQ(2U, d.size());
 	EXPECT_EQ("cc", d.back());
-	oel::unordered_erase(d, 1);
+	oel::unordered_erase(d, 1u);
 	EXPECT_EQ(1U, d.size());
 	EXPECT_EQ("aa", d.front());
+}
+
+template<typename Container>
+void testUnorderedErase()
+{
+	Container c;
+	c.emplace_back(-1);
+	c.emplace_back(2);
+
+	unordered_erase(c, 1);
+	EXPECT_EQ(-1, *c.back());
+	unordered_erase(c, 0);
+	EXPECT_TRUE(c.empty());
+}
+
+TEST(rangeTest, unorderedEraseDynarray)
+{
+	testUnorderedErase< oel::dynarray<MoveOnly> >();
+	testUnorderedErase< oel::dynarray<TrivialRelocat> >();
 }
 
 TEST(rangeTest, eraseIf)

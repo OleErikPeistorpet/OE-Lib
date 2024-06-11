@@ -6,14 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#ifdef _MSC_EXTENSIONS
-#include <ciso646>
-#endif
-#include <type_traits>
-
-
 /** @file
-* @brief specify_trivial_relocate for user classes, error handling macros, forward declarations
+* @brief Error handling macros and forward declarations, including is_trivially_relocatable (for user classes)
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
@@ -30,24 +24,30 @@
 #endif
 
 
-#ifndef OEL_ABORT
-/** @brief If exceptions are disabled, used anywhere that would normally throw. Also used by OEL_ASSERT
+//! Used anywhere that would normally throw if exceptions are off (compiler switch)
+/**
+* Also used instead of throwing std::bad_alloc if OEL_NEW_HANDLER has been defined to non-zero,
+* regardless of exceptions being enabled.
 *
-* Can be defined to something else, but note that it must never return.
-* Moreover, don't expect to catch what it throws, because it's used in noexcept functions through OEL_ASSERT. */
+* Feel free to define it to something else, but note that it must never return. */
+#ifndef OEL_ABORT
 #define OEL_ABORT(message) (std::abort(), (void) message)
 #endif
 
+
+//! Used for checking preconditions. Can be defined to your own
+/**
+* Used in noexcept functions, so don't expect to catch anything thrown.
+* OEL_ASSERT itself should probably be noexcept to avoid bloat. */
 #if OEL_MEM_BOUND_DEBUG_LVL == 0
-	#undef OEL_ASSERT
-	#define OEL_ASSERT(cond) ((void) 0)
+	#undef  OEL_ASSERT
+	#define OEL_ASSERT(cond) void(0)
 #elif !defined OEL_ASSERT
-	/** @brief Used for checking preconditions. Can be defined to your own
-	*
-	* Used in noexcept functions, so don't expect to catch anything thrown.
-	* OEL_ASSERT itself should probably be noexcept for optimal performance. */
-	#define OEL_ASSERT(cond)  \
-		((cond) or (OEL_ABORT("Failed precond: " #cond), false))
+	#if defined _MSC_VER
+	#define OEL_ASSERT(cond) ((cond) or (__debugbreak(), false))
+	#else
+	#define OEL_ASSERT(cond) ((cond) or (__builtin_trap(), false))
+	#endif
 #endif
 
 
@@ -58,7 +58,8 @@ namespace oel
 using size_t = decltype(sizeof 0);
 
 
-template< typename T > class allocator;
+template< typename T = unsigned char >
+class allocator;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
 inline namespace debug
@@ -68,7 +69,7 @@ inline namespace debug
 {
 #endif
 
-template< typename T, typename Alloc = allocator<T> >
+template< typename T, typename Alloc = allocator<> >
 class dynarray;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
@@ -80,21 +81,16 @@ class inplace_growarr;
 
 
 
-using std::bool_constant;
-using std::false_type;
-using std::true_type;
-
-
+//! Trait that tells if T objects can transparently be relocated in memory
 /**
-* @brief Function declaration to specify that T objects can transparently be relocated in memory.
-*
 * This means that T cannot have a member that is a pointer to any of its non-static members, and
 * must not need to update external state during move construction. (The same recursively for sub-objects)
 *
 * https://github.com/facebook/folly/blob/master/folly/docs/FBVector.md#object-relocation  <br>
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1144r4.html
+* https://isocpp.org/files/papers/P1144R8.html
 *
-* Already true for trivially copyable types. For others, declare a function in the namespace of the type like this:
+* True by default for types that are trivially move constructible and trivially destructible.
+* For others, declare a function in the namespace of the type like this:
 @code
 oel::true_type specify_trivial_relocate(MyClass);
 
@@ -104,22 +100,27 @@ class MyClass {
 };
 oel::is_trivially_relocatable<std::string> specify_trivial_relocate(MyClass);
 
-// With nested class, use friend keyword:
+// With nested class, you can use friend keyword:
 class Outer {
 	class Inner {
 		std::unique_ptr<whatever> a;
 	};
 	friend oel::true_type specify_trivial_relocate(Inner);
 };
-@endcode  */
-template< typename T >
-bool_constant< std::is_trivially_move_constructible_v<T> and std::is_trivially_destructible_v<T> >
-	specify_trivial_relocate(T &&);
+@endcode
 
-/** @brief Trait that tells if T can be trivially relocated. See specify_trivial_relocate(T &&)
-*
 * Many external classes are declared trivially relocatable, see `optimize_ext` folder. */
 template< typename T >
 struct is_trivially_relocatable;
+
+
+template< bool Val >
+struct bool_constant
+{
+	static constexpr auto value = Val;
+};
+
+using false_type = bool_constant<false>;
+using true_type  = bool_constant<true>;
 
 } // namespace oel

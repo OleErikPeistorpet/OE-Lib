@@ -37,20 +37,19 @@ public:
 	constexpr auto end()
 	->	decltype( adl_end(std::declval<R &>()) )  { return adl_end(_r); }
 
-	template< typename R = Range >  OEL_ALWAYS_INLINE
-	constexpr auto size()
-	->	decltype(as_unsigned( _detail::Size(std::declval<R &>()) ))
-		{
-			return _detail::Size(_r);
-		}
+	template< typename R = Range,
+	          typename SizeT = decltype(as_unsigned( _detail::Size(std::declval<R &>()) ))
+	>	OEL_ALWAYS_INLINE
+	constexpr SizeT size()    { return static_cast<SizeT>(_detail::Size(_r)); }
 
-	constexpr bool empty()   { return _r.empty(); }
+	constexpr bool  empty()   { return _r.empty(); }
 
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(iter_is_random_access< iterator_t<Range> >)   { return adl_begin(_r)[index]; }
+		OEL_REQUIRES(requires{ _r[index]; })   { return _r[index]; }
 
-	constexpr Range &&      base() && noexcept       { return std::move(_r); }
-	constexpr const Range & base() const & noexcept  { return _r; }
+	constexpr Range         base() &&                 { return std::move(_r); }
+	constexpr const Range & base() const & noexcept   { return _r; }
+	void                    base() const && = delete;
 };
 
 }
