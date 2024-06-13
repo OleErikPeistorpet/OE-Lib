@@ -52,6 +52,7 @@ namespace _detail
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
 using std::begin;  using std::end;
 
@@ -111,16 +112,7 @@ inline constexpr bool disable_sized_sentinel_for =
 		!(iter_is_random_access<Sentinel> or iter_is_random_access<Iterator>);
 	#endif
 
-
-
 ////////////////////////////////////////////////////////////////////////////////
-
-
-
-template< typename Sentinel >
-struct sentinel_wrapper   { Sentinel _s; };
-
-
 
 namespace _detail
 {
@@ -137,6 +129,21 @@ namespace _detail
 	->	decltype(end(r) - begin(r))
 	{	return   end(r) - begin(r); }
 }
+
+
+template< typename Range, typename = void >
+inline constexpr bool range_is_sized = false;
+
+template< typename Range >
+inline constexpr bool range_is_sized
+	<	Range,
+		std::void_t< decltype( _detail::Size(std::declval<Range &>()) ) >
+	>	= true;
+
+
+
+template< typename Sentinel >
+struct sentinel_wrapper   { Sentinel _s; };
 
 } // oel
 

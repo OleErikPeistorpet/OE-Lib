@@ -270,6 +270,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 	oel::transform_iterator it{nonEmpty, src + 0};
 	auto v = view::subrange(it, makeSentinel(src + 1)) | view::move;
 
+	static_assert(oel::range_is_sized<decltype(v)>);
 	EXPECT_NE(v.begin(), v.end());
 	EXPECT_EQ(src + 1, v.end().base()._s);
 }
