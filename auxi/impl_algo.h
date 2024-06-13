@@ -128,28 +128,25 @@ namespace oel::_detail
 
 
 
-	template< typename Range, typename... None >
-	auto UDist(Range & r, None...)
+	template< typename Range >
+	inline constexpr auto rangeIsForwardOrSized = iter_is_forward< iterator_t<Range> > or rangeIsSized<Range>;
+
+	// Used only if rangeIsForwardOrSized
+	template< typename Range >
+	auto UDist(Range & r)
 	{
-		using I = decltype(begin(r));
-		if constexpr (iter_is_forward<I>)
+		if constexpr (rangeIsSized<Range>)
 		{
-			auto    it = begin(r);
+			return as_unsigned(_detail::Size(r));
+		}
+		else
+		{	auto    it = begin(r);
 			auto const l = end(r);
-			std::make_unsigned_t< iter_difference_t<I> > n{};
+			using D = iter_difference_t<decltype(it)>;
+			std::make_unsigned_t<D> n{};
 			while (it != l) { ++it; ++n; }
 
 			return n;
 		}
 	}
-
-	template< typename Range >
-	auto UDist(Range & r)
-	->	decltype( as_unsigned(_detail::Size(r)) )
-	{	return    as_unsigned(_detail::Size(r)); }
-
-
-	template< typename Range >
-	inline constexpr auto rangeIsForwardOrSized =
-		!std::is_same_v< decltype( _detail::UDist(std::declval<Range &>()) ), void >;
 }

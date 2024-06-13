@@ -78,37 +78,36 @@ namespace oel::_detail
 	}
 
 
-	template< typename InputRange, typename OutputRange, typename... None >
-	bool CopyFit(InputRange & src, OutputRange & dest, None...)
+	template< typename InputRange, typename RandomAccessRange >
+	bool CopyFit(InputRange & src, RandomAccessRange & dest)
 	{
-		auto it = begin(src);  auto const last = end(src);
-		auto di = begin(dest);  auto const dl = end(dest);
-		while (it != last)
+		if constexpr (rangeIsSized<InputRange>)
 		{
-			if (di != dl)
-			{
-				*di = *it;
-				++di; ++it;
-			}
-			else
-			{	return false;
-			}
+			auto       n        = as_unsigned(_detail::Size(src));
+			auto const destSize = as_unsigned(_detail::Size(dest));
+			bool const success{n <= destSize};
+			if (!success)
+				n = destSize;
+
+			_detail::CopyUnsf(begin(src), n, begin(dest));
+			return success;
 		}
-		return true;
-	}
-
-	template< typename SizedRange, typename RandomAccessRange >
-	auto CopyFit(SizedRange & src, RandomAccessRange & dest)
-	->	decltype( _detail::Size(src), bool() ) // better match if Size(src) is well-formed (SFINAE)
-	{
-		auto       n        = as_unsigned(_detail::Size(src));
-		auto const destSize = as_unsigned(_detail::Size(dest));
-		bool const success{n <= destSize};
-		if (!success)
-			n = destSize;
-
-		_detail::CopyUnsf(begin(src), n, begin(dest));
-		return success;
+		else
+		{	auto it = begin(src);  auto const last = end(src);
+			auto di = begin(dest);  auto const dl = end(dest);
+			while (it != last)
+			{
+				if (di != dl)
+				{
+					*di = *it;
+					++di; ++it;
+				}
+				else
+				{	return false;
+				}
+			}
+			return true;
+		}
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
