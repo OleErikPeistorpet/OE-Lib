@@ -27,18 +27,19 @@ namespace _detail
 		}
 	#endif
 
-		template< typename SizedRange >
-		constexpr auto operator()(SizedRange & r) const
-		->	decltype( view::counted(begin(r), oel::ssize(r)) )
-		{	return    view::counted(begin(r), oel::ssize(r)); }
-
 		template< typename Range >
 		constexpr auto operator()(Range && r) const
 		{
 			if constexpr (std::is_lvalue_reference_v<Range>)
-				return view::subrange(begin(r), end(r));
+			{
+				if constexpr (range_is_sized<Range>)
+					return view::counted(begin(r), oel::ssize(r));
+				else
+					return view::subrange(begin(r), end(r));
+			}
 			else
-				return view::owning(static_cast<Range &&>(r));
+			{	return view::owning(static_cast<Range &&>(r));
+			}
 		}
 	};
 }

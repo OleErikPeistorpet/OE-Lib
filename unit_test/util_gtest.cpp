@@ -123,6 +123,8 @@ struct DummyRange
 
 TEST(utilTest, ssize)
 {
+	static_assert(oel::range_is_sized< DummyRange<int> >);
+
 	using test  = decltype( oel::ssize(DummyRange<unsigned short>{0}) );
 	using test2 = decltype( oel::ssize(DummyRange<std::uintmax_t>{0}) );
 
@@ -247,6 +249,7 @@ int * end(EmptyRandomAccessRange)   { return {}; }
 TEST(utilTest, detailSize_rangeNoMember)
 {
 	EmptyRandomAccessRange r;
+	static_assert(oel::range_is_sized<decltype(r)>);
 	EXPECT_EQ(0, oel::_detail::Size(r));
 }
 
@@ -299,6 +302,7 @@ TEST(utilTest, detailCountOrEnd_disabledSize)
 	A src{1};
 	auto v = oel::view::subrange(TooSimpleIter<A::iterator>{src.begin()}, src.end());
 
+	static_assert( !oel::range_is_sized<decltype(v)> );
 	static_assert(oel::_detail::rangeIsForwardOrSized<decltype(v)>);
 
 	auto n = oel::_detail::UDist(v);
