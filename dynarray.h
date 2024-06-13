@@ -284,6 +284,7 @@ public:
 private:
 	using _allocateWrap = _detail::DebugAllocateWrapper<allocator_type, T *>;
 	using _internBase   = _detail::DynarrBase<T *>;
+	using _construct    = _detail::Construct<allocator_type>;
 	using _uninitFill   = _detail::UninitFill<allocator_type>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 	using _argAlloc_7KQw  = Alloc; // guarding against name collision due to inheritance (MSVC)
@@ -416,13 +417,6 @@ private:
 	}
 
 
-	template< typename U >
-	static void _create(allocator_type &__restrict a, T *__restrict dest, U arg)
-	{
-		_alloTrait::construct(a, dest, static_cast<U &&>(arg));
-	}
-
-
 	template< typename UninitFiller >
 	void _doResize(size_type const newSize)
 	{
@@ -492,7 +486,7 @@ private:
 			}
 			while (_m.end < newEnd)
 			{	// each iteration updates _m.end for exception safety
-				_create< _detail::ForwardT<decltype(*src)> >(_m, _m.end, *src);
+				_construct::call(_m, _m.end, *src);
 				++_m.end; ++src;
 			}
 			return src;
@@ -545,7 +539,7 @@ private:
 			{
 				while (dest != dLast)
 				{
-					_create< _detail::ForwardT<decltype(*src)> >(_m, dest, *src);
+					_construct::call(_m, dest, *src);
 					++dest; ++src;
 				}
 			}
@@ -618,7 +612,7 @@ typename dynarray<T, Alloc>::iterator
 
 	// Temporary in case constructor throws or args refer to an element of this dynarray
 	storage_for<T> tmp;
-	_alloTrait::construct(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+	_construct::call(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 	if (_m.end < _m.reservEnd)
 	{	// Relocate [pos, end) to [pos + 1, end + 1)
 		size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
@@ -676,7 +670,7 @@ typename dynarray<T, Alloc>::iterator
 		{
 			while (dest != dLast)
 			{
-				_create< _detail::ForwardT<decltype(*first)> >(_m, dest, *first);
+				_construct::call(_m, dest, *first);
 				++dest; ++first;
 			}
 		}
@@ -697,7 +691,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	if (_m.end == _m.reservEnd)
 		_growByOne();
 
-	_alloTrait::construct(_m, _m.end, static_cast<Args &&>(args)...);
+	_construct::call(_m, _m.end, static_cast<Args &&>(args)...);
 
 	_debugSizeUpdater guard{_m};
 

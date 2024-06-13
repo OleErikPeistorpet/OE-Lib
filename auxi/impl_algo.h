@@ -14,6 +14,27 @@
 
 namespace oel::_detail
 {
+	template< typename Alloc, typename T, typename... Args >
+	auto AllocHasConstruct(Alloc & a, T * p, Args &&... args)
+	->	decltype( a.construct(p, static_cast<Args &&>(args)...), true_type() );
+
+	false_type AllocHasConstruct(...);
+
+
+	template< typename Alloc >
+	struct Construct
+	{
+		template< typename T, typename... Args >
+		static void call(Alloc &__restrict a, T *__restrict p, Args &&... args)
+		{
+			if constexpr (decltype( _detail::AllocHasConstruct(a, p, args...) )::value)
+				a.construct(p, static_cast<Args &&>(args)...);
+			else
+				::new(static_cast<void *>(p)) T(static_cast<Args &&>(args)...);
+		}
+	};
+
+
 	template< typename T >
 	void Destroy([[maybe_unused]] T * first, [[maybe_unused]] const T * last) noexcept
 	{	// first > last is OK, does nothing
@@ -99,7 +120,7 @@ namespace oel::_detail
 				OEL_TRY_
 				{
 					for (; first != last; ++first)
-						std::allocator_traits<Alloc>::construct(allo, first, args...);
+						Construct<Alloc>::call(allo, first, args...);
 				}
 				OEL_CATCH_ALL
 				{
