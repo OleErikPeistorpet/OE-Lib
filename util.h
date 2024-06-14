@@ -167,19 +167,20 @@ namespace _detail
 		OEL_ALWAYS_INLINE constexpr       U & second()       { return _sec; }
 	};
 
-	template< typename Type_unique_name_for_MSVC, typename Empty_type_MSVC_unique_name >
-	struct TightPair<Type_unique_name_for_MSVC, Empty_type_MSVC_unique_name, true>
-	 :	Empty_type_MSVC_unique_name
+	// MSVC needs unique names to guard against name collision due to inheritance
+	template< typename FirstType_7KQw, typename EmptyType_7KQw >
+	struct TightPair<FirstType_7KQw, EmptyType_7KQw, true>
+	 :	EmptyType_7KQw
 	{
-		Type_unique_name_for_MSVC first;
+		FirstType_7KQw first;
 
 		TightPair() = default;
-		constexpr TightPair(Type_unique_name_for_MSVC f, Empty_type_MSVC_unique_name s)
-		 :	Empty_type_MSVC_unique_name{s}, first{std::move(f)}
+		constexpr TightPair(FirstType_7KQw f, EmptyType_7KQw s)
+		 :	EmptyType_7KQw{s}, first{std::move(f)}
 		{}
 
-		OEL_ALWAYS_INLINE constexpr const Empty_type_MSVC_unique_name & second() const { return *this; }
-		OEL_ALWAYS_INLINE constexpr       Empty_type_MSVC_unique_name & second()       { return *this; }
+		OEL_ALWAYS_INLINE constexpr const EmptyType_7KQw & second() const { return *this; }
+		OEL_ALWAYS_INLINE constexpr       EmptyType_7KQw & second()       { return *this; }
 	};
 }
 

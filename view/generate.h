@@ -7,7 +7,7 @@
 
 
 #include "counted.h"
-#include "../auxi/assignable.h"
+#include "../auxi/detail_assignable.h"
 
 /** @file
 */
