@@ -253,12 +253,10 @@ TEST(viewTest, viewAdjacentTransform)
 	auto const pairwiseDiff = view::adjacent_transform<2>([](int x, int y) { return y - x; });
 
 	{	int * p{};
-	#if OEL_STD_RANGES
 		auto v = view::subrange(p, p) | pairwiseDiff;
+	#if OEL_STD_RANGES
 		static_assert(std::ranges::bidirectional_range<decltype(v)>);
-	#else
-		auto sr = view::subrange(p, p);
-		auto v = sr | pairwiseDiff;
+		static_assert(std::ranges::borrowed_range<decltype(v)>);
 	#endif
 		EXPECT_TRUE(v.empty());
 		EXPECT_EQ(0, v.size());
@@ -273,6 +271,7 @@ TEST(viewTest, viewAdjacentTransform)
 	auto v = arr | pairwiseDiff;
 #if OEL_STD_RANGES
 	static_assert(std::ranges::bidirectional_range<decltype(v)>);
+	static_assert(std::ranges::view<decltype(v)>);
 #endif
 	EXPECT_FALSE(v.empty());
 	EXPECT_EQ(1, ssize(v));
