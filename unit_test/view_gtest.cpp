@@ -19,7 +19,7 @@ constexpr auto transformIterFromIntPtr(const int * p)
 	{
 		auto operator()(int i) const { return i; }
 	};
-	return oel::make_transform_iterator(F{}, p);
+	return oel::iter_transform_iterator{oel::_detail::DerefArg<F>{}, p};
 }
 
 template< typename S >
@@ -249,12 +249,10 @@ TEST(viewTest, viewAdjacentTransform)
 	auto const pairwiseDiff = view::adjacent_transform<2>([](int x, int y) { return y - x; });
 
 	{	int * p{};
-	#if OEL_STD_RANGES
 		auto v = view::subrange(p, p) | pairwiseDiff;
+	#if OEL_STD_RANGES
 		static_assert(std::ranges::bidirectional_range<decltype(v)>);
-	#else
-		auto sr = view::subrange(p, p);
-		auto v = sr | pairwiseDiff;
+		static_assert(std::ranges::borrowed_range<decltype(v)>);
 	#endif
 		EXPECT_TRUE(v.empty());
 		EXPECT_EQ(0, v.size());
@@ -269,6 +267,7 @@ TEST(viewTest, viewAdjacentTransform)
 	auto v = arr | pairwiseDiff;
 #if OEL_STD_RANGES
 	static_assert(std::ranges::bidirectional_range<decltype(v)>);
+	static_assert(std::ranges::view<decltype(v)>);
 #endif
 	EXPECT_FALSE(v.empty());
 	EXPECT_EQ(1, ssize(v));
@@ -299,7 +298,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 {
 	auto nonEmpty = [i = -1](int j) { return i + j; };
 	int src[1];
-	auto it = oel::make_transform_iterator(nonEmpty, src + 0);
+	auto it = view::transform(src, nonEmpty).begin();
 	auto v = view::subrange(it, makeSentinel(src + 1)) | view::move;
 
 	EXPECT_NE(v.begin(), v.end());

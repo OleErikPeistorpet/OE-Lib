@@ -14,18 +14,6 @@
 
 namespace oel
 {
-
-//! Similar to boost::make_transform_iterator
-/**
-* But unlike boost::transform_iterator:
-* - Has no size overhead for stateless function objects
-* - Accepts a lambda as long as any by-value captures are trivially copy constructible and trivially destructible
-* - Move-only UnaryFunc and Iterator supported (then the returned iterator itself becomes move-only)
-* - Function objects (including lambda) can have non-const `operator()`, then merely std::input_iterator is modeled  */
-template< typename UnaryFunc, typename Iterator >
-constexpr auto make_transform_iterator(UnaryFunc f, Iterator it);
-
-
 namespace _detail
 {
 	template< typename Func, typename Iter,
@@ -52,7 +40,12 @@ namespace _detail
 }
 
 
-//! Similar to iterator of views::iter_transform in the Range-v3 library
+//! Call a UnaryFunc with underlying Iterator as argument, like iterator of views::iter_transform in Range-v3 library
+/**
+* - Has no size overhead for stateless function objects
+* - Accepts a lambda as long as any by-value captures are trivially copy constructible and trivially destructible
+* - Move-only UnaryFunc and Iterator supported (then iter_transform_iterator itself becomes move-only)
+* - Function objects (including lambda) can have non-const `operator()`, then merely std::input_iterator is modeled  */
 template< typename UnaryFunc, typename Iterator >
 class iter_transform_iterator
  :	private _detail::TransformIterBase<UnaryFunc, Iterator>
@@ -161,33 +154,4 @@ public:
 		= disable_sized_sentinel_for<S, I>;
 #endif
 
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-
-namespace _detail
-{
-	template< typename Func_7KQwa >
-	struct DerefArg : public Func_7KQwa
-	{
-		template< typename T >
-		constexpr auto operator()(T && arg)
-		->	decltype( static_cast<Func_7KQwa &>(*this)(*arg) )
-		{	return    static_cast<Func_7KQwa &>(*this)(*arg); }
-
-		template< typename T >
-		constexpr auto operator()(T && arg) const
-		->	decltype( static_cast<const Func_7KQwa &>(*this)(*arg) )
-		{	return    static_cast<const Func_7KQwa &>(*this)(*arg); }
-	};
-}
-
 } // namespace oel
-
-template< typename UnaryFunc, typename Iterator >
-constexpr auto oel::make_transform_iterator(UnaryFunc f, Iterator it)
-	{
-		return iter_transform_iterator{ _detail::DerefArg<UnaryFunc>{std::move(f)}, std::move(it) };
-	}

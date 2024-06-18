@@ -17,29 +17,11 @@ namespace oel
 namespace view
 {
 
-struct _iterTransformFn
-{
-	//! Used with operator |
-	template< typename UnaryFunc >
-	constexpr auto operator()(UnaryFunc f) const;
-
-	template< typename Range, typename UnaryFunc >
-	constexpr auto operator()(Range && r, UnaryFunc f) const
-		{
-			return static_cast<Range &&>(r) | (*this)(std::move(f));
-		}
-};
-//! Similar to views::iter_transform in the Range-v3 library
-inline constexpr _iterTransformFn iter_transform;
-
 struct _transformFn
 {
 	//! Used with operator |
 	template< typename UnaryFunc >
-	constexpr auto operator()(UnaryFunc f) const
-		{
-			return iter_transform( _detail::DerefArg<UnaryFunc>{std::move(f)} );
-		}
+	constexpr auto operator()(UnaryFunc f) const;
 
 	template< typename Range, typename UnaryFunc >
 	constexpr auto operator()(Range && r, UnaryFunc f) const
@@ -58,6 +40,7 @@ struct _transformFn
 inline constexpr _transformFn transform;
 
 } // view
+
 
 template< typename View, typename Func >
 class _iterTransformView
@@ -106,15 +89,33 @@ public:
 
 namespace _detail
 {
+	template< typename Func_7KQwa >
+	struct DerefArg : public Func_7KQwa
+	{
+		template< typename T >
+		constexpr auto operator()(T && arg)
+		->	decltype( static_cast<Func_7KQwa &>(*this)(*arg) )
+		{	return    static_cast<Func_7KQwa &>(*this)(*arg); }
+
+		template< typename T >
+		constexpr auto operator()(T && arg) const
+		->	decltype( static_cast<const Func_7KQwa &>(*this)(*arg) )
+		{	return    static_cast<const Func_7KQwa &>(*this)(*arg); }
+	};
+
+
 	template< typename F >
-	struct IterTransfPartial
+	struct TransfPartial
 	{
 		F _f;
 
 		template< typename Range >
-		friend constexpr auto operator |(Range && r, IterTransfPartial t)
+		friend constexpr auto operator |(Range && r, TransfPartial t)
 		{
-			return _iterTransformView{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
+			return _iterTransformView
+			{	view::all(static_cast<Range &&>(r)),
+				DerefArg<F>{std::move(t)._f}
+			};
 		}
 
 		template< typename Range >
@@ -126,9 +127,9 @@ namespace _detail
 }
 
 template< typename UnaryFunc >
-constexpr auto view::_iterTransformFn::operator()(UnaryFunc f) const
+constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 {
-	return _detail::IterTransfPartial<UnaryFunc>{std::move(f)};
+	return _detail::TransfPartial<UnaryFunc>{std::move(f)};
 }
 
 } // oel

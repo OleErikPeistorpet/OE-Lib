@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "counted.h"
-#include "transform.h"
+#include "all.h"
+#include "transform_iterator.h"
 
 /** @file
 */
@@ -32,7 +32,7 @@ struct _adjacentTransformFn
 };
 //! Similar to std::views::adjacent_transform, same call signature
 /**
-* Requires that the range is random-access and borrowed (lvalue or std::ranges::enable_borrowed_range is true).
+* Requires that the range is random-access.
 *
 * https://en.cppreference.com/w/cpp/ranges/adjacent_transform_view  */
 template< ptrdiff_t N >
@@ -40,11 +40,73 @@ inline constexpr _adjacentTransformFn<N> adjacent_transform{};
 
 } // view
 
+template< typename View, typename Func, ptrdiff_t N >
+class _adjacentTransformView
+{
+	_detail::TightPair< View, typename _detail::AssignableWrap<Func>::Type > _m;
+
+public:
+	using difference_type = iter_difference_t< iterator_t<View> >;
+
+	_adjacentTransformView() = default;
+	constexpr _adjacentTransformView(View v, Func f)   : _m{std::move(v), std::move(f)} {}
+
+	constexpr auto begin()
+		{
+			Func & f          = _m.second();
+			auto const offset = std::min<difference_type>(_detail::Size(_m.first), N - 1);
+			return iter_transform_iterator{ _wrapFn{_detail::MoveIfNotCopyable(f)}, _m.first.begin() + offset };
+		}
+	//! Return type either same as `begin()` or oel::sentinel_wrapper
+	template< typename V = View, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
+	constexpr auto end()
+		{
+			if constexpr (std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> >)
+				return iter_transform_iterator{ _wrapFn{_m.second()}, _m.first.end() };
+			else
+				return sentinel_wrapper< sentinel_t<V> >{_m.first.end()};
+		}
+
+	constexpr auto size()
+		{
+			constexpr std::make_unsigned_t<difference_type> min{N - 1};
+			auto s = static_cast<decltype(min)>(_detail::Size(_m.first));
+			return std::max(s, min) - min;
+		}
+
+	constexpr bool empty()    { return size() == 0; }
+
+	constexpr View         base() &&                { return std::move(_m.first); }
+	constexpr View         base() const &&          { return _m.first; }
+	constexpr const View & base() const & noexcept  { return _m.first; }
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
 
+
+private:
+	using _fn_7KQwa  = Func; // guarding against name collision due to inheritance (MSVC)
+	using _it_7KQwa  = iterator_t<View>;
+	using _iSeq_7KQw = std::make_integer_sequence<ptrdiff_t, N>;
+
+	struct _wrapFn : Func
+	{
+		template< ::std::ptrdiff_t... Is >
+		OEL_ALWAYS_INLINE constexpr decltype(auto) apply_7KQwa
+			(_it_7KQwa it, ::std::integer_sequence<::std::ptrdiff_t, Is...>) const
+		{
+			const _fn_7KQwa & f = *this;
+			return f(it[Is - N + 1]...);
+		}
+
+		constexpr decltype(auto) operator()(_it_7KQwa it) const
+		{
+			return apply_7KQwa(it, _iSeq_7KQw{});
+		}
+	};
+};
 
 namespace _detail
 {
@@ -53,38 +115,11 @@ namespace _detail
 	{
 		F _f;
 
-		static_assert(N > 0);
-
-		using _fn_7KQwa = F; // guarding against name collision due to inheritance (MSVC)
-
-		struct _transform : F
-		{
-			template< typename Iter, ::std::ptrdiff_t... Is >
-			OEL_ALWAYS_INLINE constexpr auto apply_7KQw(Iter it, ::std::integer_sequence<::std::ptrdiff_t, Is...>) const
-			{
-				const _fn_7KQwa & f = *this;
-				return f(it[Is - N + 1]...);
-			}
-
-			template< typename Iter >
-			constexpr decltype(auto) operator()(Iter it) const
-			{
-				return apply_7KQw(it, ::std::make_integer_sequence<::std::ptrdiff_t, N>{});
-			}
-		};
-
 		template< typename Range >
 		friend constexpr auto operator |(Range && r, AdjacTransPartial a)
 		{
-			static_assert(range_is_borrowed<Range>);
-
-			auto const s = oel::ssize(r);
-			auto  offset = N - 1;
-			if (offset > s)
-				offset = s;
-
-			return view::counted(begin(r) + offset, s - offset)
-			     | view::iter_transform( _transform{std::move(a)._f} );
+			auto v = view::all(static_cast<Range &&>(r));
+			return _adjacentTransformView<decltype(v), F, N>{std::move(v), std::move(a)._f};
 		}
 
 		template< typename Range >
@@ -103,3 +138,14 @@ constexpr auto view::_adjacentTransformFn<N>::operator()(Func f) const
 }
 
 } // oel
+
+#if OEL_STD_RANGES
+
+template< typename V, typename F, std::ptrdiff_t N >
+inline constexpr bool std::ranges::enable_borrowed_range< oel::_adjacentTransformView<V, F, N> >
+	= std::ranges::enable_borrowed_range< std::remove_cv_t<V> >;
+
+template< typename V, typename F, std::ptrdiff_t N >
+inline constexpr bool std::ranges::enable_view< oel::_adjacentTransformView<V, F, N> > = true;
+
+#endif
