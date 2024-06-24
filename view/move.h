@@ -59,15 +59,20 @@ namespace view
 {
 
 struct _moveFn
+	#if OEL_HAS_STD_ADAPTOR_CLOSURE
+	:	public std::ranges::range_adaptor_closure<_moveFn>
+	#endif
 {
+#if !OEL_HAS_STD_ADAPTOR_CLOSURE
 	template< typename InputRange >
-	friend constexpr auto operator |(InputRange && r, _moveFn)
+	friend constexpr auto operator |(InputRange && r, _moveFn f)   { return f(static_cast<InputRange &&>(r)); }
+#endif
+
+	template< typename InputRange >
+	constexpr auto operator()(InputRange && r) const
 		{
 			return _moveView{all( static_cast<InputRange &&>(r) )};
 		}
-
-	template< typename InputRange >
-	constexpr auto operator()(InputRange && r) const   { return static_cast<InputRange &&>(r) | _moveFn{}; }
 };
 /** @brief Very similar to views::move in the Range-v3 library and std::views::as_rvalue
 @code
