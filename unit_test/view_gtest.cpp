@@ -480,10 +480,19 @@ TEST(viewTest, chainWithStd)
 
 	void( src | view::move | std::views::drop_while([](int i) { return i <= 0; }) );
 
+#if OEL_HAS_STD_ADAPTOR_CLOSURE
+	{	auto test = std::views::reverse | view::transform(f) | std::views::take(1);
+		auto r = src | test;
+		EXPECT_EQ(-7, r[0]);
+	}
+	auto test = view::transform(f) | std::views::drop(1) | view::move;
+	void( src | test );
+#else
 	auto v = src | std::views::reverse | view::transform(f) | std::views::take(1);
 	EXPECT_EQ(-7, v[0]);
 
 	void( src | view::transform(f) | std::views::drop(1) | view::move );
+#endif
 }
 #endif
 #endif

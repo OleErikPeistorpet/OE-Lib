@@ -17,6 +17,12 @@
 	#endif
 #endif
 
+#if OEL_STD_RANGES and __cpp_lib_ranges >= 202202
+	#define OEL_HAS_STD_ADAPTOR_CLOSURE  1
+#else
+	#define OEL_HAS_STD_ADAPTOR_CLOSURE  0
+#endif
+
 #if OEL_STD_RANGES
 #include <ranges>
 #endif

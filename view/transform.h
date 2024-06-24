@@ -95,28 +95,42 @@ namespace _detail
 {
 	template< typename F >
 	struct TransformPartial
+	#if OEL_HAS_STD_ADAPTOR_CLOSURE
+	 :	public std::ranges::range_adaptor_closure< TransformPartial<F> >
+	#endif
 	{
 		F _f;
 
 		template< typename R >
-		friend constexpr auto operator |(R && range, TransformPartial t)
+		constexpr auto operator()(R && range) &&
 		{
-			auto v = view::all(static_cast<R &&>(range));
-			return _transformView< decltype(v), F >{{std::move(v), std::move(t)._f}};
+			auto v = view::all( static_cast<R &&>(range) );
+			return _transformView< decltype(v), F >{{std::move(v), std::move(_f)}};
 		}
 
 		template< typename R >
-		constexpr auto operator()(R && range) const
+		constexpr auto operator()(R && range) const &
 		{
-			return static_cast<R &&>(range) | *this;
+			return TransformPartial(*this)( static_cast<R &&>(range) );
 		}
+	#if !OEL_HAS_STD_ADAPTOR_CLOSURE
+		template< typename R >
+		friend constexpr auto operator |(R && range, TransformPartial t)
+		{
+			return std::move(t)( static_cast<R &&>(range) );
+		}
+	#endif
 	};
 }
 
 template< typename UnaryFunc >
 constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 {
-	return _detail::TransformPartial<UnaryFunc>{std::move(f)};
+	return _detail::TransformPartial<UnaryFunc>{
+		#if OEL_HAS_STD_ADAPTOR_CLOSURE
+			{},
+		#endif
+			std::move(f) };
 }
 
 } // oel
