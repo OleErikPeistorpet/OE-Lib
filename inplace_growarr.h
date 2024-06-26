@@ -238,7 +238,7 @@ private:
 	static false_type _getSize(Range &, long) { return {}; }
 
 
-	size_type _unusedCapacity() const
+	size_type _spareCapacity() const
 	{
 		return Capacity - _size;
 	}
@@ -323,7 +323,7 @@ private:
 	template< typename SizedRange >
 	iterator_t<SizedRange> _doAppend(size_t count, SizedRange & src)
 	{
-		if (_unusedCapacity() >= count)
+		if (_spareCapacity() >= count)
 		{
 			auto first = adl_begin(src);
 			first = _detail::UninitCopy(first, count, data() + _size);
@@ -349,7 +349,7 @@ private:
 template< typename T, size_t Capacity, typename Size >
 void inplace_growarr<T, Capacity, Size>::append(size_type n, const T & val)
 {
-	if (_unusedCapacity() < n)
+	if (_spareCapacity() < n)
 		_detail::BadAlloc::raise();
 
 	size_type newSize = _size + n;
@@ -357,7 +357,8 @@ void inplace_growarr<T, Capacity, Size>::append(size_type n, const T & val)
 	_size = newSize;
 }
 
-template< typename T, size_t Capacity, typename Size> template<typename... Args >
+template< typename T, size_t Capacity, typename Size >
+template< typename... Args >
 T & inplace_growarr<T, Capacity, Size>::emplace_back(Args &&... args) &
 {
 	if (Capacity > _size)
@@ -370,7 +371,8 @@ T & inplace_growarr<T, Capacity, Size>::emplace_back(Args &&... args) &
 	_detail::BadAlloc::raise();
 }
 
-template< typename T, size_t Capacity, typename Size> template<typename... Args >
+template< typename T, size_t Capacity, typename Size >
+template< typename... Args >
 typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::
 	emplace(const_iterator pos, Args &&... args) &
 {
@@ -383,19 +385,23 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 		size_t const nAfterPos = _size - (pPos - data());
 		// Temporary in case constructor throws or source is an element of this array at pos or after
 		storage_for<T> tmp;
-		::new(static_cast<void *>(&tmp)) T(static_cast<Args &&>(args)...);
+		::new(&tmp) T(static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
-		std::memmove(pPos + 1, pPos, sizeof(T) * nAfterPos);
+		std::memmove(
+			static_cast<void *>(pPos + 1),
+			static_cast<const void *>(pPos),
+			sizeof(T) * nAfterPos );
 		++_size;
 
-		std::memcpy(pPos, &tmp, sizeof(T)); // relocate the new element to pos
+		std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
 
-		return _makeIterator(reinterpret_cast<storage_for<T> *>(pPos));
+		return _makeIterator(reinterpret_cast< storage_for<T> * >(pPos));
 	}
 	_detail::BadAlloc::raise();
 }
 
-template< typename T, size_t Capacity, typename Size> template<typename ForwardRange >
+template< typename T, size_t Capacity, typename Size >
+template< typename ForwardRange >
 typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::
 	insert_range(const_iterator pos, ForwardRange && src) &
 {
@@ -408,7 +414,7 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 	static_assert( std::is_same_v<decltype(count), size_t const>,
 			"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
 
-	if (_unusedCapacity() >= count)
+	if (_spareCapacity() >= count)
 	{
 		auto const pPos = const_cast<T *>(to_pointer_contiguous(pos));
 		size_t const bytesAfterPos = sizeof(T) * ((data() + _size) - pPos);
