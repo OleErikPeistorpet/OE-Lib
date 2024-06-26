@@ -161,11 +161,18 @@ public:
 			data()[_size].~T();
 		}
 
-	iterator unordered_erase(iterator pos) &   { _eraseUnorder(pos);  return pos; }
+	iterator unordered_erase(iterator pos) &;
 
-	iterator erase(iterator pos) &             { _erase(pos);  return pos; }
-
-	iterator erase(iterator first, const_iterator last) &;
+	iterator erase(iterator pos) &
+		{
+			_size = _detail::Erase(_size, data(), pos);
+			return pos;
+		}
+	iterator erase(iterator first, const_iterator last) &
+		{
+			_size = _detail::Erase(_size, data(), first, last);
+			return first;
+		}
 	//! Equivalent to erase(first, end()) (but potentially faster), making first the new end
 	void     erase_to_end(iterator first) noexcept
 		{
@@ -219,14 +226,14 @@ private:
 	{
 		return _detail::ArrayIteratorMaker<iterator>
 		{	reinterpret_cast<T *>(pos),
-			reinterpret_cast<const _detail::InplaceGrowarrProxy<T, Size> *>(this)
+			reinterpret_cast< const _detail::InplaceGrowarrProxy<T, Size> * >(this)
 		};
 	}
 	const_iterator _makeConstIter(const storage_for<T> * pos) const
 	{
 		return _detail::ArrayIteratorMaker<const_iterator>
 		{	reinterpret_cast<const T *>(pos),
-			reinterpret_cast<const _detail::InplaceGrowarrProxy<T, Size> *>(this)
+			reinterpret_cast< const _detail::InplaceGrowarrProxy<T, Size> * >(this)
 		};
 	}
 
@@ -242,50 +249,6 @@ private:
 	{
 		return Capacity - _size;
 	}
-
-#ifdef __GNUC__
-	#pragma GCC diagnostic push
-	#if __GNUC__ >= 8
-	#pragma GCC diagnostic ignored "-Wclass-memaccess"
-	#endif
-#endif
-
-	void _eraseUnorder(iterator const pos)
-	{
-		if constexpr (is_trivially_relocatable<T>::value)
-		{
-			T *const ptr = std::addressof(*pos);
-			ptr-> ~T();
-			--_size;
-			auto mem = reinterpret_cast<storage_for<T> *>(ptr);
-			*mem = this->_data[_size];  // relocate last element to pos
-		}
-		else
-		{	*pos = std::move(this->back());
-			pop_back();
-		}
-	}
-
-	void _erase(iterator const pos)
-	{
-		if constexpr (is_trivially_relocatable<T>::value)
-		{
-			T *const ptr = to_pointer_contiguous(pos);
-			OEL_ASSERT(data() <= ptr and ptr < data() + _size);
-
-			ptr-> ~T();
-			T *const next = ptr + 1;
-			size_t const nAfter = _size - (next - data());
-			std::memmove(ptr, next, sizeof(T) * nAfter); // move [pos + 1, _end) to [pos, _end - 1)
-			--_size;
-		}
-		else
-		{	iterator last = std::move(pos + 1, end(), pos);
-			(*last).~T();
-			--_size;
-		}
-	}
-
 
 	template< typename UninitFiller >
 	void _doResize(size_type const newSize)
@@ -420,7 +383,7 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 		size_t const bytesAfterPos = sizeof(T) * ((data() + _size) - pPos);
 		T *const dLast = pPos + count;
 		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
-		std::memmove(dLast, pPos, bytesAfterPos);
+		std::memmove(static_cast<void *>(dLast), static_cast<const void *>(pPos), bytesAfterPos);
 		_size += count;
 		// Construct new
 		if constexpr (can_memmove_with<T *, decltype(first)>)
@@ -439,42 +402,34 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 			}
 			OEL_CATCH_ALL
 			{	// relocate back to fill hole
-				std::memmove(dest, dLast, bytesAfterPos);
+				std::memmove(static_cast<void *>(dest), static_cast<const void *>(dLast), bytesAfterPos);
 				_size -= (dLast - dest);
 				OEL_RETHROW;
 			}
 		}
 
-		return _makeIterator(reinterpret_cast<storage_for<T> *>(pPos));
+		return _makeIterator(reinterpret_cast< storage_for<T> * >(pPos));
 	}
 	_detail::BadAlloc::raise();
 }
 
 
-template< typename T, size_t Capacity, typename Size >
-typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::
-	erase(iterator first, const_iterator last) &
+template< typename T, size_t Capacity, typename Size>
+typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::unordered_erase(iterator pos) &
 {
-	(void) _detail::AssertTrivialRelocate<T>{};
-
-	T *const      pFirst = to_pointer_contiguous(first);
-	const T *const pLast = to_pointer_contiguous(last);
-	OEL_ASSERT(data() <= pFirst and pFirst <= pLast and last <= end());
-
-	difference_type nErase = pLast - pFirst;
-	if (0 < nErase)
+	if constexpr (is_trivially_relocatable<T>::value)
 	{
-		_detail::Destroy(pFirst, pLast);
-		size_t const nAfterLast = _size - (pLast - data());
-		// move [last, _end) to [first, first + nAfterLast)
-		std::memmove(pFirst, pLast, sizeof(T) * nAfterLast);
-		_size -= nErase;
+		T & elem = *pos;
+		elem.~T();
+		--_size;
+		auto mem = reinterpret_cast< storage_for<T> * >(&elem);
+		*mem = this->_data[_size];  // relocate last element to pos
 	}
-	return first;
+	else
+	{	*pos = std::move(this->back());
+		pop_back();
+	}
+	return pos;
 }
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 } // namespace oel
