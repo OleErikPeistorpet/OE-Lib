@@ -625,10 +625,8 @@ typename dynarray<T, Alloc>::iterator
 	else
 	{	pPos = _emplaceRealloc(pPos, reinterpret_cast<T &>(tmp));
 	}
-	std::memcpy( // relocate the new element to pos
-		static_cast<void *>(pPos),
-		static_cast<const void *>(&tmp),
-		sizeof(T) );
+	std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
+
 	return _detail::MakeDynarrIter(_m, pPos);
 }
 
@@ -855,8 +853,8 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_eras
 		--_m.end;
 		_debugSizeUpdater guard{_m};
 
-		auto & mem = reinterpret_cast<storage_for<T> &>(elem);
-		mem     = *reinterpret_cast<storage_for<T> *>(_m.end); // relocate last element to pos
+		auto & mem = reinterpret_cast< storage_for<T> & >(elem);
+		mem     = *reinterpret_cast< storage_for<T> * >(_m.end); // relocate last element to pos
 	}
 	else
 	{	*pos = std::move(back());
