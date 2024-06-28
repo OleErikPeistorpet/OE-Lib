@@ -14,6 +14,14 @@
 
 namespace oel::_detail
 {
+	template< typename Container, typename Range >
+	auto CanAppend(Container & c, Range && src)
+	->	decltype( c.append(static_cast<Range &&>(src)), true_type() );
+
+	false_type CanAppend(...);
+
+////////////////////////////////////////////////////////////////////////////////
+
 	template< typename Container, typename Iterator >
 	constexpr auto EraseEnd(Container & c, Iterator f)
 	->	decltype(c.erase_to_end(f))
