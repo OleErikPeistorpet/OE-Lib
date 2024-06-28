@@ -164,14 +164,17 @@ void testAppend()
 {
 	Container c;
 
-	auto il = {1, 2};
-	oel::append(c, il);
+	std::array<int, 2> const a{1, 7};
+	oel::append(c, a);
 	EXPECT_EQ(2U, c.size());
-	EXPECT_EQ(2, c.back());
+	EXPECT_EQ(7, c.back());
 }
 
 TEST(rangeTest, append)
 {
+#if __cpp_lib_containers_ranges
 	testAppend< std::list<int> >();
+#endif
+	testAppend< std::basic_string<int> >();
 	testAppend< oel::dynarray<int> >();
 }
