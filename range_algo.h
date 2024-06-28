@@ -128,18 +128,13 @@ struct _appendFn
 			c.append_range(static_cast<InputRange &&>(source));
 		else
 	#endif
-			c.insert(c.end(), begin(source), end(source));
-	}
-
-	template< typename T, typename A, typename InputRange >
-	void operator()(dynarray<T, A> & c, InputRange && source) const
-	{
-		c.append(static_cast<InputRange &&>(source));
+		if constexpr (decltype( _detail::CanAppend(c, static_cast<InputRange &&>(source)) )::value)
+			c.append(static_cast<InputRange &&>(source));
+		else
+			c.append(to_pointer_contiguous(begin(source)), _detail::Size(source));
 	}
 };
-/** @brief Append source range at end of a container
-*
-* Generic function for use with dynarray or container that has standard library interface. */
+//! Generic way to call append_range or append on a container or string, with a source range
 inline constexpr _appendFn append;
 
 } // namespace oel
