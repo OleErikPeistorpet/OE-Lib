@@ -16,10 +16,10 @@ namespace oel::_detail
 {
 	template< typename T >
 	void Destroy([[maybe_unused]] T * first, [[maybe_unused]] const T * last) noexcept
-	{	// first > last is OK, does nothing
+	{
 		if constexpr (!std::is_trivially_destructible_v<T>) // for speed with non-optimized builds
 		{
-			for (; first < last; ++first)
+			for (; first != last; ++first)
 				first-> ~T();
 		}
 	}
@@ -67,7 +67,7 @@ namespace oel::_detail
 			static_assert( std::is_nothrow_move_constructible_v<T>,
 				"dynarray requires that T is noexcept move constructible or trivially relocatable" );
 		#endif
-			for (size_t i{}; i < n; ++i)
+			for (size_t i{}; i != n; ++i)
 			{
 				::new(static_cast<void *>(dest + i)) T( std::move(src[i]) );
 				src[i].~T();

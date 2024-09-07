@@ -67,7 +67,7 @@ namespace oel::_detail
 			return src + n;
 		}
 		else
-		{	for (size_t i{}; i < n; ++i)
+		{	for (size_t i{}; i != n; ++i)
 			{
 				dest[i] = *src;
 				++src;
