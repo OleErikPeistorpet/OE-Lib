@@ -16,10 +16,10 @@ namespace oel::_detail
 {
 	template< typename T >
 	void Destroy([[maybe_unused]] T * first, [[maybe_unused]] const T * last) noexcept
-	{	// first > last is OK, does nothing
+	{
 		if constexpr (!std::is_trivially_destructible_v<T>) // for speed with non-optimized builds
 		{
-			for (; first < last; ++first)
+			for (; first != last; ++first)
 				first-> ~T();
 		}
 	}
