@@ -11,11 +11,10 @@
 */
 
 #ifndef OEL_MEM_BOUND_DEBUG_LVL
-/** @brief 0: no iterator and precondition checks. 1: most checks. 2: all checks.
+/** @brief Define non-zero value to enable iterator and precondition checks
 *
-* Be careful with compilers other than MSVC. A non-zero level should only be
-* set in combination with `-O0` or `-fno-strict-aliasing`. Also note that
-* level 0 is not binary compatible with any other. Mixing 1 and 2 should work. */
+* Be careful with compilers other than MSVC. Should only be set in combination with
+* `-O0` or `-fno-strict-aliasing`. Also note that different values are not binary compatible. */
 	#ifdef _DEBUG
 	#define OEL_MEM_BOUND_DEBUG_LVL  2
 	#else

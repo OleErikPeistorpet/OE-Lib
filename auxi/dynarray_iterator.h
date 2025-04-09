@@ -28,19 +28,12 @@ inline namespace debug
 *
 * Note: a pair of value-initialized iterators count as an empty range (C++14 requirement)  */
 template< typename Ptr >
-class dynarray_iterator
+struct dynarray_iterator
 {
 #define OEL_ITER_VALIDATE_DEREF  \
 	OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex(_pElem, *_header) )
 
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	// Test for iterator pair pointing to same container
-	#define OEL_ITER_CHECK_COMPATIBLE(a, b)  OEL_ASSERT((a)._allocationId == (b)._allocationId)
-#else
-	#define OEL_ITER_CHECK_COMPATIBLE(a, b)
-#endif
 
-public:
 	using iterator_category = std::random_access_iterator_tag;
 #if __cpp_lib_concepts
 	using iterator_concept  = std::contiguous_iterator_tag;
@@ -125,7 +118,6 @@ public:
 
 	friend difference_type operator -(const dynarray_iterator & left, const dynarray_iterator & right)
 	{
-		OEL_ITER_CHECK_COMPATIBLE(left, right);
 		return left._pElem - right._pElem;
 	}
 
@@ -136,44 +128,34 @@ public:
 		return *tmp;
 	}
 
-	template< typename Ptr1 >
-	bool operator==(const dynarray_iterator<Ptr1> & right) const
+	friend bool operator==(const dynarray_iterator & left, const dynarray_iterator & right)
 	{
-		OEL_ITER_CHECK_COMPATIBLE(*this, right);
-		return _pElem == right._pElem;
+		return left._pElem == right._pElem;
 	}
 
-	template< typename Ptr1 >
-	bool operator!=(const dynarray_iterator<Ptr1> & right) const
+	friend bool operator!=(const dynarray_iterator & left, const dynarray_iterator & right)
 	{
-		OEL_ITER_CHECK_COMPATIBLE(*this, right);
-		return _pElem != right._pElem;
+		return left._pElem != right._pElem;
 	}
 
-	template< typename Ptr1 >
-	bool operator <(const dynarray_iterator<Ptr1> & right) const
+	friend bool operator <(const dynarray_iterator & left, const dynarray_iterator & right)
 	{
-		OEL_ITER_CHECK_COMPATIBLE(*this, right);
-		return _pElem < right._pElem;
+		return left._pElem < right._pElem;
 	}
 
-	template< typename Ptr1 >
-	bool operator >(const dynarray_iterator<Ptr1> & right) const
+	friend bool operator >(const dynarray_iterator & left, const dynarray_iterator & right)
 	{
-		OEL_ITER_CHECK_COMPATIBLE(*this, right);
-		return _pElem > right._pElem;
+		return left._pElem > right._pElem;
 	}
 
-	template< typename Ptr1 >
-	bool operator<=(const dynarray_iterator<Ptr1> & right) const
+	friend bool operator<=(const dynarray_iterator & left, const dynarray_iterator & right)
 	{
-		return !(right < *this);
+		return left._pElem <= right._pElem;
 	}
 
-	template< typename Ptr1 >
-	bool operator>=(const dynarray_iterator<Ptr1> & right) const
+	friend bool operator>=(const dynarray_iterator & left, const dynarray_iterator & right)
 	{
-		return !(*this < right);
+		return left._pElem >= right._pElem;
 	}
 
 

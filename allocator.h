@@ -224,9 +224,8 @@ namespace _detail
 template< typename T >
 T * allocator<T>::allocate(size_t count)
 {
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	OEL_ASSERT(count <= max_size());
-#endif
+
 	using F = _detail::Malloc<_alignment()>; // just alignof(T) would increase template instantiations
 	return static_cast<T *>( _detail::AllocAndHandleFail<F>(sizeof(T) * count) );
 }
@@ -234,9 +233,8 @@ T * allocator<T>::allocate(size_t count)
 template< typename T >
 T * allocator<T>::reallocate(T * ptr, size_t count)
 {
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
 	OEL_ASSERT(0 < count and count <= max_size());
-#endif
+
 	using F = _detail::Realloc<_alignment()>;
 	void * vp{ptr};
 	return static_cast<T *>( _detail::AllocAndHandleFail<F, /*CheckZero*/ false>(sizeof(T) * count, vp) );

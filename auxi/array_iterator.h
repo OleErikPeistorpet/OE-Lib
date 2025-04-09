@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -19,18 +19,8 @@ inline namespace debug
 * Note: a pair of value-initialized iterators count as an empty range (C++14 requirement)  */
 // TODO: constexpr for inplace_growarr?
 template< typename Ptr, typename Container >
-class array_iterator
+struct array_iterator
 {
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	// Test for iterator pair pointing to same container
-	#define OEL_ITER_CHECK_COMPATIBLE(a, b)  OEL_ASSERT((a)._container == (b)._container)
-#else
-	#define OEL_ITER_CHECK_COMPATIBLE(a, b)
-#endif
-
-	using _ptrTrait = std::pointer_traits<Ptr>;
-
-public:
 	using iterator_category = std::random_access_iterator_tag;
 #if __cpp_lib_concepts
 	using iterator_concept  = std::contiguous_iterator_tag;
@@ -41,7 +31,7 @@ public:
 	using pointer         = Ptr;
 	using reference       = decltype(*Ptr{});
 
-	using const_iterator = array_iterator< typename _ptrTrait::template rebind<value_type const>, Container >;
+	using const_iterator = array_iterator<const value_type *, Container>;
 
 	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
 	{
@@ -113,9 +103,8 @@ public:
 		return it -= offset;
 	}
 
-	friend difference_type operator -(const array_iterator & left, const array_iterator & right)
+	friend difference_type operator -(array_iterator left, array_iterator right)
 	{
-		OEL_ITER_CHECK_COMPATIBLE(left, right);
 		return left._pElem - right._pElem;
 	}
 
@@ -126,50 +115,40 @@ public:
 		return *tmp;
 	}
 
-	template< typename Ptr1 >
-	bool operator==(const array_iterator<Ptr1, Container> & right) const
+	friend bool operator==(array_iterator left, array_iterator right)
 	{
-		OEL_ITER_CHECK_COMPATIBLE(*this, right);
-		return _pElem == right._pElem;
+		return left._pElem == right._pElem;
 	}
 
-	template< typename Ptr1 >
-	bool operator!=(const array_iterator<Ptr1, Container> & right) const
+	friend bool operator!=(array_iterator left, array_iterator right)
 	{
-		OEL_ITER_CHECK_COMPATIBLE(*this, right);
-		return _pElem != right._pElem;
+		return left._pElem != right._pElem;
 	}
 
-	template< typename Ptr1 >
-	bool operator <(const array_iterator<Ptr1, Container> & right) const
+	friend bool operator <(array_iterator left, array_iterator right)
 	{
-		OEL_ITER_CHECK_COMPATIBLE(*this, right);
-		return _pElem < right._pElem;
+		return left._pElem < right._pElem;
 	}
 
-	template< typename Ptr1 >
-	bool operator >(const array_iterator<Ptr1, Container> & right) const
+	friend bool operator >(array_iterator left, array_iterator right)
 	{
-		OEL_ITER_CHECK_COMPATIBLE(*this, right);
-		return _pElem > right._pElem;
+		return left._pElem > right._pElem;
 	}
 
-	template< typename Ptr1 >
-	bool operator<=(const array_iterator<Ptr1, Container> & right) const
+	friend bool operator<=(array_iterator left, array_iterator right)
 	{
-		return !(right < *this);
+		return left._pElem <= right._pElem;
 	}
 
-	template< typename Ptr1 >
-	bool operator>=(const array_iterator<Ptr1, Container> & right) const
+	friend bool operator>=(array_iterator left, array_iterator right)
 	{
-		return !(*this < right);
+		return left._pElem >= right._pElem;
 	}
 
 
 	//! Wrapped pointer. Treat the member variables as private!
 	pointer _pElem;
-	typename _ptrTrait::template rebind<Container const> _container; //!< Parent container
+	const Container * _container; //!< Parent container
 
 #undef OEL_ITER_CHECK_COMPATIBLE
 };
@@ -180,7 +159,7 @@ public:
 template< typename Ptr, typename C >  inline
 auto to_pointer_contiguous(const array_iterator<Ptr, C> & it) noexcept
 {
-	return static_cast< typename std::pointer_traits<Ptr>::element_type * >(it._pElem);
+	return it._pElem;
 }
 
 } // oel
@@ -192,10 +171,7 @@ struct std::pointer_traits< oel::array_iterator<Ptr, C> >
     using difference_type = typename pointer::difference_type;
     using element_type    = typename std::pointer_traits<Ptr>::element_type;
 
-    static element_type * to_address(pointer it) noexcept
-	{
-		return static_cast<element_type *>(it._pElem);
-	}
+    static element_type * to_address(pointer it) noexcept  { return it._pElem; }
 };
 
 
@@ -206,7 +182,7 @@ struct std::pointer_traits< oel::array_iterator<Ptr, C> >
 
 namespace oel::_detail
 {
-	template<typename Iterator>
+	template< typename Iterator >
 #if OEL_MEM_BOUND_DEBUG_LVL
 	using ArrayIteratorMaker = Iterator;
 #else
