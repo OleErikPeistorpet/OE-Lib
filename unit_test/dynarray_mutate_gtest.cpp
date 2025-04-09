@@ -157,8 +157,8 @@ void testPushBack2()
 		{
 			for(;;)
 			{
-				da.push_back(T{*da.front()});
-				expected.push_back(expected.front());
+				da.push_back(T{*da[0]});
+				expected.push_back(expected[0]);
 			}
 		}
 		catch (TestException &) {
@@ -236,8 +236,8 @@ TEST_F(dynarrayTest, assignTrivialReloc)
 	dest = {TrivialRelocat{-1.0}};
 	EXPECT_EQ(1U, dest.size());
 	dest = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
-	EXPECT_EQ(1.0, *dest.at(0));
-	EXPECT_EQ(2.0, *dest.at(1));
+	EXPECT_EQ(1.0, *dest[0]);
+	EXPECT_EQ(2.0, *dest[1]);
 	EXPECT_EQ(TrivialRelocat::nConstructions - ssize(dest), TrivialRelocat::nDestruct);
 	#if OEL_HAS_EXCEPTIONS
 	{
@@ -246,7 +246,7 @@ TEST_F(dynarrayTest, assignTrivialReloc)
 		EXPECT_THROW(
 			dest.assign(view::subrange(&obj, &obj + 1)),
 			TestException );
-		EXPECT_TRUE(dest.empty() or *dest.at(1) == 2.0);
+		EXPECT_TRUE(dest.empty() or *dest[1] == 2.0);
 	}
 	#endif
 	{
@@ -283,11 +283,11 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 
 	EXPECT_EQ(5U, das.size());
 
-	EXPECT_EQ("My", das.at(0));
-	EXPECT_EQ("computer", das.at(1));
-	EXPECT_EQ("emits", das.at(2));
-	EXPECT_EQ("Hawking", das.at(3));
-	EXPECT_EQ("radiation", das.at(4));
+	EXPECT_EQ("My", das[0]);
+	EXPECT_EQ("computer", das[1]);
+	EXPECT_EQ("emits", das[2]);
+	EXPECT_EQ("Hawking", das[3]);
+	EXPECT_EQ("radiation", das[4]);
 
 	decltype(das) copyDest;
 
@@ -309,10 +309,10 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 	EXPECT_EQ(das[4], copyDest[2]);
 
 	copyDest = {std::string()};
-	EXPECT_EQ("", copyDest.at(0));
+	EXPECT_EQ("", copyDest[0]);
 	copyDest = {das[0], das[4]};
 	EXPECT_EQ(2U, copyDest.size());
-	EXPECT_EQ(das[4], copyDest.at(1));
+	EXPECT_EQ(das[4], copyDest[1]);
 
 	copyDest = std::initializer_list<std::string>{};
 	EXPECT_TRUE(copyDest.empty());
@@ -430,7 +430,7 @@ TEST_F(dynarrayTest, insertRTrivial)
 					EXPECT_EQ(2, dest[1]);
 				}
 				else
-				{	EXPECT_EQ(1, dest.front());
+				{	EXPECT_EQ(1, dest[0]);
 					EXPECT_EQ(2, dest.back());
 				}
 			}
@@ -480,7 +480,7 @@ TEST_F(dynarrayTest, insertR)
 						EXPECT_EQ(2, *dest[1]);
 					}
 					else
-					{	EXPECT_EQ(1, *dest.front());
+					{	EXPECT_EQ(1, *dest[0]);
 						EXPECT_EQ(2, *dest.back());
 					}
 				}
@@ -520,7 +520,7 @@ TEST_F(dynarrayTest, emplace)
 						{	dest.emplace(dest.begin() + insertOffset);
 
 							EXPECT_EQ(initSize + 1, ssize(dest));
-							EXPECT_FALSE( dest.at(insertOffset).hasValue() );
+							EXPECT_FALSE( dest[insertOffset].hasValue() );
 						}
 						if (insertOffset == 0)
 						{
@@ -533,7 +533,7 @@ TEST_F(dynarrayTest, emplace)
 							EXPECT_EQ(firstVal,  *dest[1]);
 						}
 						else
-						{	EXPECT_EQ(secondVal, *dest.front());
+						{	EXPECT_EQ(secondVal, *dest[0]);
 							EXPECT_EQ(firstVal,  *dest.back());
 						}
 					}
@@ -552,7 +552,7 @@ TEST_F(dynarrayTest, insertTrivialAndCheckReturn)
 	EXPECT_EQ(test.data(), &*it);
 
 	it = test.insert(begin(test), values[0]);
-	EXPECT_EQ(&test.front(), &*it);
+	EXPECT_EQ(&test[0], &*it);
 
 	it = test.insert(end(test), values[3]);
 	EXPECT_EQ(&test.back(), &*it);
@@ -571,12 +571,12 @@ TEST_F(dynarrayTest, insertRefFromSelf)
 
 		test.insert(begin(test), test.back());
 
-		EXPECT_EQ(7, *test.front());
+		EXPECT_EQ(7, *test[0]);
 
 		test.back() = TrivialRelocat{8};
 		test.insert(begin(test), test.back());
 
-		EXPECT_EQ(8, *test.front());
+		EXPECT_EQ(8, *test[0]);
 	}
 	EXPECT_EQ(TrivialRelocat::nConstructions - 1, g_allocCount.nConstructCalls);
 }
@@ -658,12 +658,12 @@ TEST_F(dynarrayTest, resize)
 	EXPECT_EQ(3U, nested.size());
 	EXPECT_TRUE(nested.back().empty());
 
-	nested.front().resize(S1);
+	nested[0].resize(S1);
 
 	nested.resize(1);
 	auto cap = nested.capacity();
 	EXPECT_EQ(1U, nested.size());
-	for (auto i : nested.front())
+	for (auto i : nested[0])
 		EXPECT_EQ(0, i);
 
 	auto it = nested.begin();
@@ -673,7 +673,7 @@ TEST_F(dynarrayTest, resize)
 	EXPECT_EQ(cap, nested.capacity());
 	EXPECT_TRUE(nested.begin() == it);
 
-	EXPECT_EQ(S1, nested.front().size());
+	EXPECT_EQ(S1, nested[0].size());
 	EXPECT_TRUE(nested.back().empty());
 }
 
@@ -768,7 +768,7 @@ void testEraseOne()
 	ret = d.erase(end(d) - 1);
 	EXPECT_EQ(end(d), ret);
 	ASSERT_EQ(s - 3, d.size());
-	EXPECT_EQ(1, static_cast<double>(d.front()));
+	EXPECT_EQ(1, static_cast<double>(d[0]));
 }
 
 TEST_F(dynarrayTest, eraseSingleInt)
@@ -899,7 +899,7 @@ TEST_F(dynarrayTest, overAligned)
 	special.unordered_erase(special.begin());
 	special.shrink_to_fit();
 	EXPECT_TRUE(special.capacity() < 3U);
-	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
+	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special[0]) % testAlignment);
 
 #if OEL_HAS_EXCEPTIONS
 	EXPECT_THROW(special.reserve(special.max_size()),     std::bad_alloc);
@@ -945,10 +945,6 @@ TEST_F(dynarrayTest, misc)
 	daSrc.insert(begin(daSrc) + 1, 1);
 	ASSERT_EQ(3U, daSrc.size());
 
-#if OEL_HAS_EXCEPTIONS
-	ASSERT_NO_THROW(daSrc.at(2));
-	ASSERT_THROW(daSrc.at(3), std::out_of_range);
-#endif
 	std::deque<size_t> dequeSrc{4, 5};
 
 	dynarray<size_t> dest0;

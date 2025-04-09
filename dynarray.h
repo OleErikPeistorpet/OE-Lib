@@ -237,27 +237,11 @@ public:
 	T *       data() noexcept         { return _m.data; }
 	const T * data() const noexcept   { return _m.data; }
 
-	T &       front() noexcept        { return (*this)[0]; }
-	const T & front() const noexcept  { return (*this)[0]; }
-
 	T &       back() noexcept         { return *_detail::MakeDynarrIter           (_m, _m.end - 1); }
 	const T & back() const noexcept   { return *_detail::MakeDynarrIter<const T *>(_m, _m.end - 1); }
 
 	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
 	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
-
-	T &       at(size_type index)   OEL_ALWAYS_INLINE
-		{
-			const auto & cSelf = *this;
-			return const_cast<T &>(cSelf.at(index));
-		}
-	const T & at(size_type index) const
-		{
-			if (index < size()) // would be unsafe with signed size_type
-				return _m.data[index];
-			else
-				_detail::OutOfRange::raise("Bad index dynarray::at");
-		}
 
 	friend bool operator==(const dynarray & left, const dynarray & right)
 		{
@@ -937,10 +921,7 @@ typename dynarray<T, Alloc>::iterator
 
 template< typename InputRange, typename Alloc = allocator<> >
 dynarray(from_range_t, InputRange &&, Alloc = {})
-->	dynarray<
-		iter_value_t< iterator_t<InputRange> >,
-		Alloc
-	>;
+->	dynarray< range_value_t<InputRange>, Alloc >;
 
 #if defined __GNUC__ and __GNUC__ < 12
 	template< typename T, typename A >

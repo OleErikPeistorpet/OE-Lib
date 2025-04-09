@@ -15,11 +15,10 @@
 
 namespace oel::_detail
 {
-	template< typename Container, typename Range >
-	auto CanAppend(Container & c, Range && src)
-	->	decltype( c.append(static_cast<Range &&>(src)), true_type() );
+	template< typename Container >
+	auto HasUnorderedErase(Container & c) -> decltype( c.unordered_erase(c.begin()), true_type() );
 
-	false_type CanAppend(...);
+	false_type HasUnorderedErase(...);
 
 ////////////////////////////////////////////////////////////////////////////////
 
