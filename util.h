@@ -10,8 +10,6 @@
 #include "auxi/core_util.h"
 #include "auxi/range_traits.h"
 
-#include <stdexcept>
-
 
 /** @file
 * @brief Contains make_unique_for_overwrite, as_signed/as_unsigned, index_valid, ssize and more
@@ -144,16 +142,6 @@ struct
 
 namespace _detail
 {
-	struct OutOfRange
-	{	// Exception throwing has been split out from templates to avoid bloat
-		[[noreturn]] static void raise(const char * what)
-		{
-			OEL_THROW(std::out_of_range(what), what);
-		}
-	};
-
-
-
 	template< typename T, typename U,
 	          bool = std::is_empty_v<U> >
 	struct TightPair

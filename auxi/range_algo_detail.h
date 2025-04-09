@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "impl_algo.h"
+#include "impl_algo.h"  // for UDist
 #include "../dynarray.h"
 #include "../view/counted.h"
 
@@ -57,66 +57,6 @@ namespace oel::_detail
 	constexpr void Unique(Container & c, None...)
 	{
 		_detail::EraseEnd( c, std::unique(begin(c), end(c)) );
-	}
-
-////////////////////////////////////////////////////////////////////////////////
-
-	template< typename InputIter, typename RandomAccessIter >
-	InputIter CopyUnsf(InputIter src, size_t const n, RandomAccessIter const dest)
-	{
-		if constexpr (can_memmove_with<RandomAccessIter, InputIter>)
-		{
-		#if OEL_MEM_BOUND_DEBUG_LVL
-			if (n != 0)
-			{	// Dereference to detect out of range errors if the iterator has internal check
-				(void) *dest;
-				(void) *(dest + (n - 1));
-			}
-		#endif
-			_detail::MemcpyCheck(src, n, to_pointer_contiguous(dest));
-			return src + n;
-		}
-		else
-		{	for (size_t i{}; i != n; ++i)
-			{
-				dest[i] = *src;
-				++src;
-			}
-			return src;
-		}
-	}
-
-
-	template< typename InputRange, typename RandomAccessRange >
-	bool CopyFit(InputRange & src, RandomAccessRange & dest)
-	{
-		if constexpr (range_is_sized<InputRange>)
-		{
-			auto       n        = as_unsigned(_detail::Size(src));
-			auto const destSize = as_unsigned(_detail::Size(dest));
-			bool const success{n <= destSize};
-			if (!success)
-				n = destSize;
-
-			_detail::CopyUnsf(begin(src), n, begin(dest));
-			return success;
-		}
-		else
-		{	auto it = begin(src);  auto const last = end(src);
-			auto di = begin(dest);  auto const dl = end(dest);
-			while (it != last)
-			{
-				if (di != dl)
-				{
-					*di = *it;
-					++di; ++it;
-				}
-				else
-				{	return false;
-				}
-			}
-			return true;
-		}
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
