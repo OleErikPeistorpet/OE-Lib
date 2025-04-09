@@ -265,7 +265,7 @@ public:
 			if (index < size()) // would be unsafe with signed size_type
 				return _m.data[index];
 			else
-				_detail::OutOfRange::raise("Bad index dynarray::at");
+				_detail::OutOfRange::raise();
 		}
 
 	friend bool operator==(const dynarray & left, const dynarray & right)

@@ -10,8 +10,6 @@
 #include "auxi/core_util.h"
 #include "auxi/range_traits.h"
 
-#include <stdexcept>
-
 
 /** @file
 * @brief Contains as_signed/as_unsigned, ssize, index_valid and more
@@ -141,16 +139,6 @@ namespace _detail
 		RelocateWrap
 	{
 		alignas(T) unsigned char bytes[sizeof(T)];
-	};
-
-
-
-	struct OutOfRange
-	{	// Exception throwing has been split out from templates to avoid bloat
-		[[noreturn]] static void raise(const char * what)
-		{
-			OEL_THROW(std::out_of_range(what), what);
-		}
 	};
 
 
