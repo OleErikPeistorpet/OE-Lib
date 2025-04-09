@@ -10,8 +10,6 @@
 #include "auxi/core_util.h"
 #include "auxi/range_traits.h"
 
-#include <stdexcept>
-
 
 /** @file
 * @brief Contains make_unique_for_overwrite, as_signed/as_unsigned, index_valid, ssize and more
@@ -76,16 +74,6 @@ template< typename Integer, typename SizedRangeLike >
 	}
 
 
-//! Equivalent to std::make_unique_for_overwrite (C++20), for array types with unknown bound
-template< typename T,
-          enable_if< _detail::isUnboundedArray<T> > = 0
->  inline
-std::unique_ptr<T> make_unique_for_overwrite(size_t count)
-	{
-		return std::unique_ptr<T>{new std::remove_extent_t<T>[count]};
-	}
-
-
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {
@@ -146,16 +134,6 @@ struct
 
 namespace _detail
 {
-	struct OutOfRange
-	{	// Exception throwing has been split out from templates to avoid bloat
-		[[noreturn]] static void raise(const char * what)
-		{
-			OEL_THROW(std::out_of_range(what), what);
-		}
-	};
-
-
-
 	template< typename T, typename U,
 	          bool = std::is_empty_v<U> >
 	struct TightPair

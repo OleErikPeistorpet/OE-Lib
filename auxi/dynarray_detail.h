@@ -15,11 +15,20 @@
 namespace oel::_detail
 {
 	struct LengthError
-	{
+	{	// Exception throwing has been split out from templates to avoid bloat
 		[[noreturn]] static void raise()
 		{
 			constexpr auto what = "Going over dynarray max_size";
 			OEL_THROW(std::length_error(what), what);
+		}
+	};
+
+	struct OutOfRange
+	{
+		[[noreturn]] static void raise()
+		{
+			constexpr auto what = "Bad index dynarray::at";
+			OEL_THROW(std::out_of_range(what), what);
 		}
 	};
 
