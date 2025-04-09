@@ -95,6 +95,9 @@ using borrowed_iterator_t =
 	using std::iter_value_t;
 #endif
 
+template< typename Range >
+using range_value_t = iter_value_t< iterator_t<Range> >;
+
 //! May fail for std::output_iterator_tag
 template< typename Iterator, typename Tag >
 inline constexpr bool iter_is  =  std::is_base_of_v< Tag, decltype( _detail::CheckedIterTag<Iterator>() ) >;
