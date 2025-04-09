@@ -80,16 +80,6 @@ template< typename Integer, typename SizedRangeLike >
 	}
 
 
-//! Equivalent to std::make_unique_for_overwrite (C++20), for array types with unknown bound
-template< typename T,
-          enable_if< _detail::isUnboundedArray<T> > = 0
->  inline
-std::unique_ptr<T> make_unique_for_overwrite(size_t count)
-	{
-		return std::unique_ptr<T>{new std::remove_extent_t<T>[count]};
-	}
-
-
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {
