@@ -259,7 +259,7 @@ TEST_F(dynarrayConstructTest, constructForwardRangeNoSize)
 		EXPECT_EQ(n, d.size());
 		if (0 != n)
 		{
-			EXPECT_EQ(-6, d.front());
+			EXPECT_EQ(-6, d[0]);
 			EXPECT_EQ(-6, d.back());
 		}
 	}
@@ -294,10 +294,10 @@ TEST_F(dynarrayConstructTest, copyConstruct)
 	EXPECT_EQ(2, g_allocCount.nAllocations);
 
 	auto const z = dynarray(y, Al(7));
-	EXPECT_EQ(0.5, *z.front());
+	EXPECT_EQ(0.5, *z[0]);
 
 	auto const d = dynarray(std::move(z));
-	EXPECT_EQ(0.5, *d.front());
+	EXPECT_EQ(0.5, *d[0]);
 
 	auto const e = dynarray(std::move(d), Al(9));
 	EXPECT_EQ(9, e.get_allocator().id);
@@ -525,15 +525,15 @@ TEST_F(dynarrayConstructTest, moveAssignPolymorphicAlloc)
 	std::pmr::monotonic_buffer_resource bufRes{};
 	auto a = Nested(1);
 	auto b = Nested(1, &bufRes);
-	ASSERT_TRUE(b.get_allocator() == b.front().get_allocator());
-	ASSERT_TRUE(a.front().get_allocator() != b.front().get_allocator());
+	ASSERT_TRUE(b.get_allocator() == b[0].get_allocator());
+	ASSERT_TRUE(a[0].get_allocator() != b[0].get_allocator());
 
 	b = std::move(a);
 
 	EXPECT_EQ(b.get_allocator().resource(), &bufRes);
-	EXPECT_EQ(b.front().get_allocator().resource(), &bufRes);
+	EXPECT_EQ(b[0].get_allocator().resource(), &bufRes);
 	EXPECT_TRUE(a.get_allocator() != b.get_allocator());
-	EXPECT_TRUE(b.get_allocator() == b.front().get_allocator());
+	EXPECT_TRUE(b.get_allocator() == b[0].get_allocator());
 }
 #endif
 

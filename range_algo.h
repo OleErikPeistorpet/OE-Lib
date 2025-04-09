@@ -11,7 +11,7 @@
 
 
 /** @file
-* @brief Efficient range-based erase, copy functions, concat_to_dynarray and non-member append
+* @brief Efficient range-based erase, copy functions and concat_to_dynarray
 *
 * Designed to interface with the standard library.
 */
@@ -45,29 +45,31 @@ auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
 	}
 
 
-/** @brief Erase the element at index from container without maintaining order of elements after index.
-*
+//! Erase the element at index from container without maintaining order of elements after index
+/**
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template< typename Integer, typename RandomAccessContainer >
 constexpr void unordered_erase(RandomAccessContainer & c, Integer index)
-{
-	c[index] = std::move(c.back());
-	c.pop_back();
-}
-//! See unordered_erase(RandomAccessContainer &, Integer) or dynarray::unordered_erase
-template< typename Integer, typename T, typename A >  inline
-void unordered_erase(dynarray<T, A> & d, Integer index)  { d.unordered_erase(d.begin() + index); }
+	{
+		if constexpr (decltype( _detail::HasUnorderedErase(c) )::value)
+		{
+			c.unordered_erase(c.begin() + index);
+		}
+		else
+		{	c[index] = std::move(c.back());
+			c.pop_back();
+		}
+	}
 
+//! Erase from container all elements for which predicate returns true
 /**
-* @brief Erase from container all elements for which predicate returns true
-*
-* This mimics `std::erase_if` (C++20) for sequence containers  */
+* This mimics `std::erase_if` for sequence containers, with slight extra optimization for oel containers. */
 template< typename Container, typename UnaryPredicate >
 constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c, std::move(p)); }
+
+//! Erase consecutive duplicate elements in container
 /**
-* @brief Erase consecutive duplicate elements in container
-*
 * Calls Container::unique if available (with fallback std::unique).
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
 template< typename Container >
@@ -115,28 +117,5 @@ inline constexpr auto copy =
 * Requires that dest models std::ranges::random_access_range. */
 inline constexpr auto copy_fit =
 	[](auto && source, auto && dest) -> bool   { return _detail::CopyFit(source, dest); };
-
-
-
-struct _appendFn
-{
-	template< typename Container, typename InputRange >
-	void operator()(Container & c, InputRange && source) const
-	{
-		using iter::as_contiguous_address;
-
-	#if __cpp_concepts >= 201907
-		if constexpr (requires{ c.append_range(static_cast<InputRange &&>(source)); })
-			c.append_range(static_cast<InputRange &&>(source));
-		else
-	#endif
-		if constexpr (decltype( _detail::CanAppend(c, static_cast<InputRange &&>(source)) )::value)
-			c.append(static_cast<InputRange &&>(source));
-		else
-			c.append(as_contiguous_address(begin(source)), _detail::Size(source));
-	}
-};
-//! Generic way to call append_range or append on a container or string, with a source range
-inline constexpr _appendFn append;
 
 } // namespace oel

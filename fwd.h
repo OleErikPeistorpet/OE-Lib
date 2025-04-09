@@ -67,6 +67,13 @@ inline namespace debug
 template< typename T, typename Alloc = allocator<> >
 class dynarray;
 
+
+template
+<	template< typename > typename ElemStruct,
+	typename Alloc = allocator<>
+>
+class struct_of_growarr;
+
 #if OEL_MEM_BOUND_DEBUG_LVL
 }
 #endif

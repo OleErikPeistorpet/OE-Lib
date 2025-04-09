@@ -91,6 +91,9 @@ using borrowed_iterator_t =
 	using std::iter_value_t;
 #endif
 
+template< typename Range >
+using range_value_t = iter_value_t< iterator_t<Range> >;
+
 template< typename Iterator >
 inline constexpr bool iter_is_forward       = _detail::IterIs<Iterator, std::forward_iterator_tag>();
 
