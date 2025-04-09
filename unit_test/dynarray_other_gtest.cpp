@@ -58,7 +58,6 @@ void testCompileSomeDynarrayMembers()
 	dynarray<int>::allocate_size_overhead();
 	d.front();
 	d.back();
-	d.at(0);
 }
 
 TEST(dynarrayOtherTest, zeroBitRepresentation)
@@ -177,9 +176,9 @@ TEST(dynarrayOtherTest, withReferenceWrapper)
 	using Ref = std::reference_wrapper< dynarray<int> const >;
 	dynarray<Ref> refs{arr[0], arr[1]};
 	refs.push_back(arr[2]);
-	EXPECT_EQ(3, refs.at(2).get().at(1));
-	EXPECT_TRUE(refs.at(0) == refs.at(1));
-	EXPECT_TRUE(refs.at(1) != refs.at(2));
+	EXPECT_EQ(3, refs[2].get()[1]);
+	EXPECT_TRUE(refs[0] == refs[1]);
+	EXPECT_TRUE(refs[1] != refs[2]);
 }
 
 #if __cpp_lib_flat_set

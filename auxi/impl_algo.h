@@ -20,7 +20,7 @@ namespace oel::_detail
 		iter_is< iterator_t<Range>, std::forward_iterator_tag >
 		or ranges::sized_range<Range>;
 
-
+////////////////////////////////////////////////////////////////////////////////
 
 	template< typename T >
 	void Destroy([[maybe_unused]] T * first, [[maybe_unused]] const T * last) noexcept

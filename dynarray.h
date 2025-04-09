@@ -232,20 +232,6 @@ public:
 	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
 	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
 
-	OEL_ALWAYS_INLINE
-	T &       at(size_type index)
-		{
-			const auto & cSelf = *this;
-			return const_cast<T &>(cSelf.at(index));
-		}
-	const T & at(size_type index) const
-		{
-			if( index < size() ) // would be unsafe with signed size_type
-				return _m.data[index];
-			else
-				_detail::OutOfRange::raise();
-		}
-
 	friend bool operator==(const dynarray & left, const dynarray & right)
 		{
 			return left.size() == right.size() and

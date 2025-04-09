@@ -81,7 +81,7 @@ constexpr void unordered_erase(RandomAccessContainer & c, Integer index)
 
 //! Erase from container all elements for which predicate returns true
 /**
-* This mimics `std::erase_if` for sequence containers, with slight extra optimization for dynarray. */
+* This mimics `std::erase_if` for sequence containers, with slight extra optimization for oel containers. */
 template< typename Container, typename UnaryPredicate >
 constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c, std::move(p)); }
 

@@ -23,15 +23,6 @@ namespace oel::_detail
 		}
 	};
 
-	struct OutOfRange
-	{
-		[[noreturn]] static void raise()
-		{
-			constexpr auto what = "Bad index dynarray::at";
-			OEL_THROW(std::out_of_range(what), what);
-		}
-	};
-
 ////////////////////////////////////////////////////////////////////////////////
 
 	struct DebugAllocationHeader

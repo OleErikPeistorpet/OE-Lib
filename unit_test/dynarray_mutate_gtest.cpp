@@ -237,8 +237,8 @@ TEST_F(dynarrayTest, assignTrivialReloc)
 	dest = {TrivialRelocat{-1.0}};
 	EXPECT_EQ(1U, dest.size());
 	dest = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
-	EXPECT_EQ(1.0, *dest.at(0));
-	EXPECT_EQ(2.0, *dest.at(1));
+	EXPECT_EQ(1.0, *dest[0]);
+	EXPECT_EQ(2.0, *dest[1]);
 	EXPECT_EQ(TrivialRelocat::nConstructions - ssize(dest), TrivialRelocat::nDestruct);
 	#if OEL_HAS_EXCEPTIONS
 	{
@@ -247,7 +247,7 @@ TEST_F(dynarrayTest, assignTrivialReloc)
 		EXPECT_THROW(
 			dest.assign_range(view::subrange(&obj, &obj + 1)),
 			TestException );
-		EXPECT_TRUE(dest.empty() or *dest.at(1) == 2.0);
+		EXPECT_TRUE(dest.empty() or *dest[1] == 2.0);
 	}
 	#endif
 	{
@@ -283,11 +283,11 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 
 	EXPECT_EQ(5U, das.size());
 
-	EXPECT_EQ("My", das.at(0));
-	EXPECT_EQ("computer", das.at(1));
-	EXPECT_EQ("emits", das.at(2));
-	EXPECT_EQ("Hawking", das.at(3));
-	EXPECT_EQ("radiation", das.at(4));
+	EXPECT_EQ("My", das[0]);
+	EXPECT_EQ("computer", das[1]);
+	EXPECT_EQ("emits", das[2]);
+	EXPECT_EQ("Hawking", das[3]);
+	EXPECT_EQ("radiation", das[4]);
 
 	decltype(das) copyDest;
 
@@ -309,10 +309,10 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 	EXPECT_EQ(das[4], copyDest[2]);
 
 	copyDest = {std::string()};
-	EXPECT_EQ("", copyDest.at(0));
+	EXPECT_EQ("", copyDest[0]);
 	copyDest = {das[0], das[4]};
 	EXPECT_EQ(2U, copyDest.size());
-	EXPECT_EQ(das[4], copyDest.at(1));
+	EXPECT_EQ(das[4], copyDest[1]);
 
 	copyDest = std::initializer_list<std::string>{};
 	EXPECT_TRUE(copyDest.empty());
@@ -516,7 +516,7 @@ TEST_F(dynarrayTest, emplace)
 						{	dest.emplace(dest.begin() + insertOffset);
 
 							EXPECT_EQ(initSize + 1, ssize(dest));
-							EXPECT_FALSE( dest.at(insertOffset).hasValue() );
+							EXPECT_FALSE( dest[insertOffset].hasValue() );
 						}
 						if (insertOffset == 0)
 						{
@@ -962,10 +962,6 @@ TEST_F(dynarrayTest, misc)
 	daSrc.insert(daSrc.begin() + 1, 1);
 	ASSERT_EQ(3U, daSrc.size());
 
-#if OEL_HAS_EXCEPTIONS
-	ASSERT_NO_THROW(daSrc.at(2));
-	ASSERT_THROW(daSrc.at(3), std::out_of_range);
-#endif
 	std::deque<size_t> dequeSrc{4, 5};
 
 	dynarray<size_t> dest;
