@@ -103,14 +103,6 @@ using enable_if = typename std::enable_if<Condition, int>::type;
 
 namespace _detail
 {
-	template< typename >
-	inline constexpr bool isUnboundedArray = false;
-
-	template< typename T >
-	inline constexpr bool isUnboundedArray<T[]> = true;
-
-
-
 	template< typename T >
 	constexpr T MoveIfNotCopyable(T & ob)
 	{

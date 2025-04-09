@@ -160,17 +160,6 @@ TEST(utilTest, indexValid)
 	}
 }
 
-TEST(utilTest, makeUnique)
-{
-	auto ps = oel::make_unique_for_overwrite<std::string[]>(2);
-	EXPECT_TRUE(ps[0].empty());
-	EXPECT_TRUE(ps[1].empty());
-
-	auto a = oel::make_unique_for_overwrite<size_t[]>(5);
-	for (size_t i{}; i < 5u; ++i)
-		a[i] = i;
-}
-
 TEST(utilTest, memberFn)
 {
 	struct Moo
