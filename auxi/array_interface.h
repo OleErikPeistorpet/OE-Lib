@@ -37,21 +37,6 @@ struct _arrayInterface
 	auto & back() noexcept         { return static_cast<D &>      (*this).end()[-1]; }
 	auto & back() const noexcept   { return static_cast<const D &>(*this).end()[-1]; }
 
-	auto & at(size_t index)   OEL_ALWAYS_INLINE
-		{
-			const auto & cSelf = *this;
-			using T = std::remove_const_t< std::remove_reference_t<decltype( cSelf.at(index) )> >;
-			return const_cast<T &>(cSelf.at(index));
-		}
-	auto & at(size_t index) const
-		{
-			auto & derived = static_cast<const D &>(*this);
-			if (index < static_cast<size_t>( derived.size() ))
-				return derived.data()[index];
-			else
-				_detail::OutOfRange::raise("oel: at() bad index");
-		}
-
 	friend bool operator==(const D & left, const D & right)
 		{
 			return left.size() == right.size()

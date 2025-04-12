@@ -114,18 +114,6 @@ namespace _detail
 	}
 
 
-	template< typename T, typename Size >
-	struct InplaceGrowarrProxy
-	{
-		Size size;
-		T    data[1];
-
-		bool derefValid(const T * pos) const
-		{
-			return static_cast<size_t>(pos - data) < static_cast<size_t>(size);
-		}
-	};
-
 	template< typename T, size_t Capacity, typename Size >
 	struct InplaceGrowarrBase
 	{
@@ -178,10 +166,10 @@ namespace _detail
 	};
 
 
-	template< typename T, size_t C, typename S,
-	          bool = std::is_trivially_copyable_v<T>
+	template< typename T, size_t Capacity, typename Size,
+	          bool = std::is_trivially_copyable_v<T> and sizeof(Size) + sizeof(T) * Capacity <= 8 * sizeof(int)
 	>
-	struct InplaceGrowarrSpecial : InplaceGrowarrBase<T, C, S> {};
+	struct InplaceGrowarrSpecial : InplaceGrowarrBase<T, Capacity, Size> {};
 
 	template< typename T, size_t Capacity, typename Size >
 	struct InplaceGrowarrSpecial<T, Capacity, Size, false>
@@ -233,7 +221,7 @@ namespace _detail
 			_detail::Relocate(other.data(), other._size, this->data());
 			this->_size = other._size;
 			if constexpr (is_trivially_relocatable<T>::value)
-				other->_size = 0;
+				other._size = 0;
 		}
 	};
 }

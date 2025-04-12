@@ -229,6 +229,19 @@ public:
 	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
 	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
 
+	T &       at(size_t index)   OEL_ALWAYS_INLINE
+		{
+			const auto & cSelf = *this;
+			return const_cast<T &>(cSelf.at(index));
+		}
+	const T & at(size_t index) const
+		{
+			if (index < size())
+				return _m.data[index];
+			else
+				_detail::OutOfRange::raise("oel: at() bad index");
+		}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
