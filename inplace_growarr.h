@@ -8,6 +8,7 @@
 
 #include "auxi/array_interface.h"
 #include "auxi/inplace_growarr_detail.h"
+#include "optimize_ext/default.h"
 
 /** @file
 */
@@ -51,11 +52,9 @@ is_trivially_relocatable<T> specify_trivial_relocate(inplace_growarr<T, C, S>);
 * Behaviour which equals that of std::vector is mostly not documented. */
 template< typename T, size_t Capacity, typename Size >
 class inplace_growarr
- :	public _arrayInterface< inplace_growarr<T, Capacity, Size> >, private _detail::InplaceGrowarrSpecial<T, Capacity, Size>
+ :	public _arrayInterface< inplace_growarr<T, Capacity, Size> >
 {
 	static_assert(Capacity <= std::numeric_limits<Size>::max(), "Capacity does not fit in type Size");
-
-	using _base = typename inplace_growarr::InplaceGrowarrBase;
 
 public:
 	using value_type      = T;
@@ -93,9 +92,29 @@ public:
 
 	//! T can be deduced - TODO more description
 	template< typename InputRange >
-	inplace_growarr(from_range_t, InputRange && source)   { append(source); }
+	inplace_growarr(from_range_t, InputRange && r)   { append(r); }
 
-	inplace_growarr(std::initializer_list<T> il)          { append(il); }
+	inplace_growarr(std::initializer_list<T> il)     { append(il); }
+
+	inplace_growarr(inplace_growarr && other) noexcept  { _relocateFrom(other); }
+	explicit inplace_growarr(const inplace_growarr & other)
+		{
+			_size = other._size;
+			_detail::UninitCopy(other.data(), other._size, data());
+		}
+
+	~inplace_growarr() noexcept   { _detail::Destroy(data(), data() + _size); }
+
+	inplace_growarr & operator =(inplace_growarr && other) &
+		noexcept(std::is_nothrow_move_assignable_v<T> or is_trivially_relocatable<T>::value);
+	inplace_growarr & operator =(const inplace_growarr & other) &
+		{
+			if (this != &other)
+				_doAssign(other.data(), other._size);
+
+			return *this;
+		}
+	inplace_growarr & operator =(const inplace_growarr &&) = delete;
 
 	inplace_growarr & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
@@ -212,12 +231,11 @@ public:
 	iterator       begin() noexcept         OEL_ALWAYS_INLINE { return data(); }
 	const_iterator begin() const noexcept   OEL_ALWAYS_INLINE { return data(); }
 
-	iterator       end() noexcept         OEL_ALWAYS_INLINE { return data() + _size; }
-	const_iterator end() const noexcept   OEL_ALWAYS_INLINE { return data() + _size; }
+	iterator       end() noexcept         { return data() + _size; }
+	const_iterator end() const noexcept   { return data() + _size; }
 
-	// T *       data() noexcept
-	// const T * data() const noexcept
-	using _base::data;
+	T *       data() noexcept         { return reinterpret_cast<T *>(_data); }
+	const T * data() const noexcept   { return reinterpret_cast<const T *>(_data); }
 
 	T &       operator[](size_t index) noexcept
 		{
@@ -238,7 +256,17 @@ public:
 
 
 private:
-	using _base::_size;
+	Size           _size{};
+	storage_for<T> _data[Capacity];
+
+
+	void _relocateFrom(inplace_growarr & other) noexcept
+	{
+		_detail::Relocate(other.data(), other._size, data());
+		_size = other._size;
+		if constexpr (is_trivially_relocatable<T>::value)
+			other._size = 0;
+	}
 
 
 	template< typename Range > // pass dummy int to prefer this overload
@@ -270,11 +298,50 @@ private:
 	}
 
 
+	template< typename InputIter >
+	InputIter _doAssign(InputIter src, Size const count)
+	{
+		if constexpr (can_memmove_with<T *, InputIter>)
+		{
+			_size = count;
+			_detail::MemcpyCheck(src, count, _data);
+
+			return src + count;
+		}
+		else
+		{	auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
+			{
+				while (dest != dLast)
+				{
+					*dest = *src_;
+					++src_; ++dest;
+				}
+				return src_;
+			};
+			if (_size < count)
+			{	// assign to old elements as far as we can
+				src = cpy(src, data(), data() + _size);
+				while (_size < count)
+				{	// each iteration updates _size for exception safety
+					::new(static_cast<void *>(data() + _size)) T(*src);
+					++src; ++_size;
+				}
+			}
+			else // downsizing, assign new and destroy rest
+			{	T *const newEnd = data() + count;
+				src = cpy(src, data(), newEnd);
+				_detail::Destroy(newEnd, data() + _size);
+				_size = count;
+			}
+			return src;
+		}
+	}
+
 	template< typename SizedRange >
 	iterator_t<SizedRange> _assign(size_t count, SizedRange & src)
 	{
 		if (Capacity >= count)
-			return this->doAssign(adl_begin(src), count);
+			return _doAssign(adl_begin(src), count);
 
 		_detail::BadAlloc::raise();
 	}
@@ -416,6 +483,23 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 
 
 template< typename T, size_t Capacity, typename Size>
+inplace_growarr<T, Capacity, Size> &  inplace_growarr<T, Capacity, Size>::operator =(inplace_growarr && other) &
+	noexcept(std::is_nothrow_move_assignable_v<T> or is_trivially_relocatable<T>::value)
+{
+	if constexpr (is_trivially_relocatable<T>::value)
+	{
+		_detail::Destroy(data(), data() + _size);
+		_relocateFrom(other);
+	}
+	else
+	{	(void) _detail::AssertNothrowMoveConstruct<T>{};
+		_doAssign(std::move_iterator{other.data()}, other._size);
+	}
+	return *this;
+}
+
+
+template< typename T, size_t Capacity, typename Size>
 typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::unordered_erase(iterator pos) &
 {
 	if constexpr (is_trivially_relocatable<T>::value)
@@ -424,7 +508,7 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 		elem.~T();
 		--_size;
 		auto mem = reinterpret_cast< storage_for<T> * >(&elem);
-		*mem = this->_data[_size];  // relocate last element to pos
+		*mem = _data[_size];  // relocate last element to pos
 	}
 	else
 	{	*pos = std::move(this->back());

@@ -11,7 +11,6 @@ static_assert( std::is_nothrow_default_constructible<FcaMayThrow>{});
 static_assert(    std::is_nothrow_move_constructible<FcaString>{});
 static_assert(not std::is_nothrow_move_assignable<FcaMayThrow>{});
 
-static_assert(    std::is_trivially_copyable_v< inplace_growarr<int, 1> >);
 static_assert(not std::is_trivially_copyable_v< FcaString >);
 
 // The fixture for testing inplace_growarr.

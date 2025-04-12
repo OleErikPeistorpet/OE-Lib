@@ -7,13 +7,10 @@
 
 
 #include "auxi/impl_algo.h"
-#include "optimize_ext/default.h"
 #include "allocator.h"
 
 
-namespace oel
-{
-namespace _detail
+namespace oel::_detail
 {
 	template< typename InputIter, typename T >
 	InputIter UninitCopy(InputIter src, size_t const n, T *__restrict dest)
@@ -112,118 +109,4 @@ namespace _detail
 		}
 		return size - nErase;
 	}
-
-
-	template< typename T, size_t Capacity, typename Size >
-	struct InplaceGrowarrBase
-	{
-		Size           _size{};
-		storage_for<T> _data[Capacity];
-
-
-		T *       data() noexcept       { return reinterpret_cast<T *>(_data); }
-		const T * data() const noexcept { return reinterpret_cast<const T *>(_data); }
-
-
-		template< typename InputIter >
-		InputIter doAssign(InputIter src, Size const count)
-		{
-			if constexpr (can_memmove_with<T *, InputIter>)
-			{
-				_size = count;
-				_detail::MemcpyCheck(src, count, _data);
-
-				return src + count;
-			}
-			else
-			{	auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
-				{
-					while (dest != dLast)
-					{
-						*dest = *src_;
-						++src_; ++dest;
-					}
-					return src_;
-				};
-				if (_size < count)
-				{	// assign to old elements as far as we can
-					src = cpy(src, data(), data() + _size);
-					while (_size < count)
-					{	// each iteration updates _size for exception safety
-						::new(static_cast<void *>(data() + _size)) T(*src);
-						++src; ++_size;
-					}
-				}
-				else // downsizing, assign new and destroy rest
-				{	T *const newEnd = data() + count;
-					src = cpy(src, data(), newEnd);
-					_detail::Destroy(newEnd, data() + _size);
-					_size = count;
-				}
-				return src;
-			}
-		}
-	};
-
-
-	template< typename T, size_t Capacity, typename Size,
-	          bool = std::is_trivially_copyable_v<T> and sizeof(Size) + sizeof(T) * Capacity <= 8 * sizeof(int)
-	>
-	struct InplaceGrowarrSpecial : InplaceGrowarrBase<T, Capacity, Size> {};
-
-	template< typename T, size_t Capacity, typename Size >
-	struct InplaceGrowarrSpecial<T, Capacity, Size, false>
-	 :	InplaceGrowarrBase<T, Capacity, Size>
-	{
-		constexpr InplaceGrowarrSpecial() = default;
-
-		InplaceGrowarrSpecial(InplaceGrowarrSpecial && other) noexcept
-		{
-			_relocateFrom(other);
-		}
-
-		InplaceGrowarrSpecial(const InplaceGrowarrSpecial & other)
-		{
-			this->_size = other._size;
-			_detail::UninitCopy(other.data(), other._size, this->data());
-		}
-
-		InplaceGrowarrSpecial & operator =(InplaceGrowarrSpecial && other) &
-			 noexcept(std::is_nothrow_move_assignable_v<T> or is_trivially_relocatable<T>::value)
-		{
-			if constexpr (is_trivially_relocatable<T>::value)
-			{
-				_detail::Destroy(this->data(), this->data() + this->_size);
-				_relocateFrom(other);
-			}
-			else
-			{	(void) AssertNothrowMoveConstruct<T>{};
-				this->doAssign(std::move_iterator{other.data()}, other._size);
-			}
-			return *this;
-		}
-
-		InplaceGrowarrSpecial & operator =(const InplaceGrowarrSpecial & other) &
-		{
-			if (this != &other)
-				this->doAssign(other.data(), other._size);
-
-			return *this;
-		}
-
-		~InplaceGrowarrSpecial() noexcept
-		{
-			_detail::Destroy(this->data(), this->data() + this->_size);
-		}
-
-		void _relocateFrom(InplaceGrowarrSpecial & other) noexcept
-		{
-			_detail::Relocate(other.data(), other._size, this->data());
-			this->_size = other._size;
-			if constexpr (is_trivially_relocatable<T>::value)
-				other._size = 0;
-		}
-	};
 }
-
-} // namespace oel
