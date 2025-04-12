@@ -579,16 +579,15 @@ private:
 template< typename T, typename Alloc >
 template< typename Range >
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::insert_range(const_iterator pos, Range && src) &
+	dynarray<T, Alloc>::insert_range(const_iterator pos, Range && source) &
 {
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1
 
-	static_assert( _detail::rangeIsForwardOrSized<Range>,
-		"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
+	(void) _detail::AssertForwardOrSizedRange<Range>{};
 
-	auto       first = adl_begin(src);
-	auto const count = _detail::UDist(src);
+	auto       first = adl_begin(source);
+	auto const count = _detail::UDist(source);
 
 	size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
 	T * dLast;

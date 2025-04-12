@@ -14,6 +14,39 @@
 
 namespace oel::_detail
 {
+	template< typename Range >
+	inline constexpr auto rangeIsForwardOrSized = iter_is_forward< iterator_t<Range> > or rangeIsSized<Range>;
+
+	// Used only if rangeIsForwardOrSized
+	template< typename Range >
+	auto UDist(Range & r)
+	{
+		if constexpr (rangeIsSized<Range>)
+		{
+			return as_unsigned(_detail::Size(r));
+		}
+		else
+		{	auto    it = begin(r);
+			auto const l = end(r);
+			using D = iter_difference_t<decltype(it)>;
+			std::make_unsigned_t<D> n{};
+			while (it != l) { ++it; ++n; }
+
+			return n;
+		}
+	}
+
+
+	template< typename Range >
+	struct AssertForwardOrSizedRange
+	{
+	#if OEL_HAS_EXCEPTIONS
+		static_assert(rangeIsForwardOrSized<Range>,
+			"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
+	#endif
+	};
+
+
 	template< typename T >
 	struct AssertNothrowMoveConstruct
 	{
@@ -140,28 +173,4 @@ namespace oel::_detail
 			}
 		}
 	};
-
-
-
-	template< typename Range >
-	inline constexpr auto rangeIsForwardOrSized = iter_is_forward< iterator_t<Range> > or rangeIsSized<Range>;
-
-	// Used only if rangeIsForwardOrSized
-	template< typename Range >
-	auto UDist(Range & r)
-	{
-		if constexpr (rangeIsSized<Range>)
-		{
-			return as_unsigned(_detail::Size(r));
-		}
-		else
-		{	auto    it = begin(r);
-			auto const l = end(r);
-			using D = iter_difference_t<decltype(it)>;
-			std::make_unsigned_t<D> n{};
-			while (it != l) { ++it; ++n; }
-
-			return n;
-		}
-	}
 }
