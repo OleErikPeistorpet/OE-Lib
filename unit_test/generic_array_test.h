@@ -143,13 +143,13 @@ void testAssign()
 						 MoveOnly{VALUES[1]} };
 		ArrayMoveOnly test;
 
-		test.assign(oel::view::move(src));
+		test.try_assign(oel::view::move(src));
 
 		EXPECT_EQ(2U, test.size());
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(view::counted(src, 0) | view::move);
+		test.try_assign(view::counted(src, 0) | view::move);
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
@@ -162,16 +162,18 @@ void testAssign()
 			TrivialRelocat obj{-5.0};
 			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
-				dest.assign(view::counted(&obj, 1)),
+				dest.try_assign(view::counted(&obj, 1)),
 				TestException );
 			EXPECT_TRUE(dest.begin() == dest.end());
 		}
 		#endif
 		EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 
-		dest = {TrivialRelocat{-1.0}};
+		dest.assign(1, TrivialRelocat{-1.0});
+		EXPECT_EQ(-1.0, *dest[0]);
 		EXPECT_EQ(1U, dest.size());
-		dest = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
+		auto il = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
+		dest.try_assign(il);
 		EXPECT_EQ(1.0, *dest[0]);
 		EXPECT_EQ(2.0, *dest[1]);
 		#if OEL_HAS_EXCEPTIONS
@@ -179,7 +181,7 @@ void testAssign()
 			TrivialRelocat obj{-3.3};
 			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
-				dest.assign(view::subrange(&obj, &obj + 1)),
+				dest.try_assign(view::subrange(&obj, &obj + 1)),
 				TestException );
 			EXPECT_TRUE(dest.empty() or *dest[1] == 2.0);
 		}
@@ -192,7 +194,7 @@ void testAssign()
 			TrivialRelocat obj{-1.3};
 			TrivialRelocat::countToThrowOn = 0;
 			EXPECT_THROW(
-				dest.assign(view::counted(&obj, 1)),
+				dest.try_assign(view::counted(&obj, 1)),
 				TestException );
 			EXPECT_TRUE(dest.empty());
 		#endif
@@ -207,13 +209,13 @@ void testAssignStringStream()
 	ArrayString das;
 
 	std::string * p = nullptr;
-	das.assign(view::subrange(p, p));
+	das.try_assign(view::subrange(p, p));
 
 	EXPECT_EQ(0U, das.size());
 
 	std::stringstream ss{"My computer emits Hawking radiation"};
 	std::istream_iterator<std::string> b{ss}, e;
-	das.assign(view::subrange(b, e));
+	das.try_assign(view::subrange(b, e));
 
 	EXPECT_EQ(5U, das.size());
 
@@ -225,30 +227,34 @@ void testAssignStringStream()
 
 	ArrayString copyDest;
 
-	copyDest.assign(view::counted(das.cbegin(), 2));
-	copyDest.assign( view::counted(begin(das), das.size()) );
+	copyDest.try_assign(view::counted(das.cbegin(), 2));
+	copyDest.try_assign( view::counted(begin(das), das.size()) );
 
 	EXPECT_TRUE(das == copyDest);
 
-	copyDest.assign(view::subrange(das.cbegin(), das.cbegin() + 1));
+	copyDest.try_assign(view::subrange(das.cbegin(), das.cbegin() + 1));
 
 	EXPECT_EQ(1U, copyDest.size());
 	EXPECT_EQ(das[0], copyDest[0]);
 
-	copyDest.assign(view::counted(das.cbegin() + 2, 3));
+	copyDest.try_assign(view::counted(das.cbegin() + 2, 3));
 
 	EXPECT_EQ(3U, copyDest.size());
 	EXPECT_EQ(das[2], copyDest[0]);
 	EXPECT_EQ(das[3], copyDest[1]);
 	EXPECT_EQ(das[4], copyDest[2]);
 
-	copyDest = {std::string()};
+	copyDest.try_assign(view::counted(static_cast<std::string *>(nullptr), 0));
+	EXPECT_TRUE(copyDest.empty());
+
+	auto il = {std::string{}};
+	copyDest.try_assign(il);
 	EXPECT_EQ("", copyDest[0]);
-	copyDest = {das[0], das[4]};
+	copyDest.assign(2, das[4]);
 	EXPECT_EQ(2U, copyDest.size());
 	EXPECT_EQ(das[4], copyDest[1]);
 
-	copyDest = std::initializer_list<std::string>{};
+	copyDest.assign(0, std::string{});
 	EXPECT_TRUE(copyDest.empty());
 }
 
@@ -261,11 +267,11 @@ void testAppend()
 		std::deque<double> src;
 		dest.append(src);
 
-		dest.try_append({});
+		dest.try_append(std::initializer_list<double>{});
 		EXPECT_EQ(0U, dest.size());
 
 		double const TEST_VAL = 6.6;
-		dest.try_append(2, TEST_VAL);
+		dest.append(2, TEST_VAL);
 		dest.append( view::subrange(dest.begin(), dest.end()) );
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
@@ -280,7 +286,8 @@ void testAppend()
 
 	{
 		ArrayInt int_dynarr;
-		int_dynarr.try_append({1, 2, 3, 4});
+		auto il = {1, 2, 3, 4};
+		int_dynarr.append(il);
 
 		double_dynarr.append(int_dynarr);
 	}

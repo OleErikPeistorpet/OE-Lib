@@ -246,7 +246,7 @@ TEST_F(inplaceGrowarrTest, misc)
 	dequeSrc.push_back(5);
 
 	FCArray7 dest0;
-	dest0.assign(daSrc);
+	dest0.try_assign(daSrc);
 
 	dest0.append( view::subrange(daSrc.cbegin(), daSrc.cend() - 1) );
 	dest0.pop_back();
@@ -269,7 +269,7 @@ TEST_F(inplaceGrowarrTest, misc)
 		it = di.unordered_erase(it);
 		EXPECT_EQ(end(di), it);
 
-		di = {1, -2};
+		di.assign(2, -1);
 		unordered_erase(di, 1);
 		unordered_erase(di, 0);
 		EXPECT_TRUE(di.empty());
