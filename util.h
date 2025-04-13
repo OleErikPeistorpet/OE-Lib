@@ -18,19 +18,23 @@
 */
 
 
-/** @brief Take the name of a member function and wrap it in a stateless function object
-*
-* `wrapped(object, args)` becomes the same as `object.func(args)`.
+//! Take the name of a member function and wrap it in a stateless lambda
+/**
+* Calling `wrapped(object, args)` becomes the same as `object.func(args)`.
 * This macro works for function templates and overload sets, unlike std::mem_fn.
-* Note that passing a function or pointer to member often optimizes worse. */
+*
+* Note that passing around a function object (which this is) often
+* optimizes better than a function (as pointer) or pointer to member.
+*/
 #define OEL_MEMBER_FN(func)  \
 	[](auto && ob_, auto &&... args_)  \
 	->	decltype( decltype(ob_)(ob_).func(decltype(args_)(args_)...) )  \
 		{  return decltype(ob_)(ob_).func(decltype(args_)(args_)...); }
 
-/** @brief Take the name of a member variable and wrap it in a stateless function object
-*
-* The call operator returns a forwarded reference like std::invoke. */
+//! Take the name of a member variable and wrap it in a stateless lambda
+/**
+* The call operator returns a forwarded reference, like std::invoke.
+*/
 #define OEL_MEMBER_VAR(var)  \
 	[](auto && ob_) noexcept  \
 	->	decltype( (decltype(ob_)(ob_).var) )  \
@@ -113,10 +117,10 @@ inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrit
 
 
 
-//! Same as `begin(range)` with a previous `using std::begin;`. For use in classes with a member named begin
+//! Same as `begin(range)` with a previous `using std::begin;`. Mainly for use in classes with a member named begin
 inline constexpr auto adl_begin =
 	[](auto && range) -> decltype(begin(range)) { return begin(range); };
-//! Same as `end(range)` with a previous `using std::end;`. For use in classes with a member named end
+//! Same as `end(range)` with a previous `using std::end;`. Mainly for use in classes with a member named end
 inline constexpr auto adl_end =
 	[](auto && range) -> decltype(end(range)) { return end(range); };
 

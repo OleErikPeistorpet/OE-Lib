@@ -14,7 +14,7 @@
 namespace oel::view
 {
 
-//! Same as std::ranges::owning_view, just with less functionality
+//! Very similar to std::ranges::owning_view
 template< typename Range >
 class owning
 {
