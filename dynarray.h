@@ -56,6 +56,8 @@ inline namespace debug
 *
 * Note that the allocator model is not quite standard: `destroy` is never used,
 * `construct` may not be called if T is trivially constructible and is not called when relocating elements.
+*
+* For any function which takes a range, `end(range)` is not needed if `range.size()` is valid.
 */
 template< typename T, typename Alloc/* = oel::allocator*/ >
 class dynarray
@@ -93,9 +95,6 @@ public:
 	explicit dynarray(size_type size, Alloc a = Alloc{});
 	dynarray(size_type size, const T & val, Alloc a = Alloc{})   : _m(a) { append(size, val); }
 
-	//! Equivalent to `std::vector(std::from_range, r, a)`, except `end(r)` is not needed if `r.size()` is valid
-	/**
-	* To move instead of copy, wrap `r` with view::move (The same applies for all functions taking a range) */
 	template< typename InputRange >
 	dynarray(from_range_t, InputRange && r, Alloc a = Alloc{})   : _m(a) { append(r); }
 
@@ -122,9 +121,7 @@ public:
 	friend void swap(dynarray & a, dynarray & b) noexcept  { a.swap(b); }
 
 	/**
-	* @brief Replace the contents with source range
-	* @param source must model std::ranges::input_range, except `end(source)` is not required if `source.size()` is valid
-	* @pre source shall not refer to any elements in this dynarray (same as std::vector::assign)
+	* @brief Almost same as std::vector::assign_range (C++23)
 	* @return Iterator `begin(source)` incremented by the number of elements in source
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
@@ -137,9 +134,7 @@ public:
 	* @brief Almost same as std::vector::append_range (C++23)
 	* @pre source shall not refer to any elements in this dynarray if reallocation happens.
 	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements
-	* @return Iterator `begin(source)` incremented by the number of elements in source
-	*
-	* Unlike std::vector, `end(source)` is not needed if `source.size()` is valid. */
+	* @return Iterator `begin(source)` incremented by the number of elements in source  */
 	template< typename InputRange >
 	auto append(InputRange && source) -> borrowed_iterator_t<InputRange>;
 
@@ -173,20 +168,20 @@ public:
 			return _doEmplace< forward_t<Args>... >(pos, static_cast<Args &&>(args)...);
 		}
 
-	/** @brief Beware, passing an element of same array is often unsafe (otherwise same as std::vector::emplace_back)
-	* @pre args shall not refer to any element of this dynarray, unless `size() < capacity()` */
+	//! Beware, passing an element of same dynarray is often unsafe (otherwise same as std::vector::emplace_back)
+	/** @pre args shall not refer to any element of this container, unless `size() < capacity()` */
 	template< typename... Args >
 	T &  emplace_back(Args &&... args) &;
 
-	/** @brief Beware, passing an element of same array is often unsafe (otherwise same as std::vector::push_back)
-	* @pre val shall not be a reference to an element of this dynarray, unless `size() < capacity()` */
+	//! Beware, passing an element of same dynarray is often unsafe (otherwise same as std::vector::push_back)
+	/** @pre val shall not be a reference to an element of this container, unless `size() < capacity()` */
 	void push_back(T && val)       { emplace_back(std::move(val)); }
 	//! @copydoc push_back(T &&)
 	void push_back(const T & val)  { emplace_back(val); }
 
 	void pop_back() noexcept
 		{
-			OEL_ASSERT(_m.data < _m.end);
+			OEL_ASSERT(_m.data < _m.end); // not empty
 			--_m.end;
 			_m.end-> ~T();
 			(void) _debugSizeUpdater{_m};

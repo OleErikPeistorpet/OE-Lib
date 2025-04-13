@@ -33,8 +33,9 @@ struct _transformFn
 *
 * Unlike std::views::transform, copies or moves the function into the iterator rather than
 * storing it just in the view, thus saving one indirection when dereferencing the iterator.
-* Moreover, the function does not need to model std::regular_invocable, meaning it's all right to return different results
-* for the same input. This is at least true when used in OE-Lib, and probably anywhere that accepts an input_range.
+* Moreover, the function does not need to model std::regular_invocable, meaning it's all right to return
+* different results for the same input, as long as the call operator is not const (like mutable lambda).
+* This is at least true when used in OE-Lib, and probably anywhere that accepts an input_range.
 *
 * https://en.cppreference.com/w/cpp/ranges/transform_view  */
 inline constexpr _transformFn transform;
