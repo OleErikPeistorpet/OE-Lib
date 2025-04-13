@@ -35,8 +35,16 @@ struct _arrayInterface
 	auto & front() noexcept        { return static_cast<D &>      (*this)[0]; }
 	auto & front() const noexcept  { return static_cast<const D &>(*this)[0]; }
 
-	auto & back() noexcept         { return static_cast<D &>      (*this).end()[-1]; }
-	auto & back() const noexcept   { return static_cast<const D &>(*this).end()[-1]; }
+	auto & back() noexcept
+		{
+			auto & d = static_cast<D &>(*this);
+			return d[d.size() - 1];
+		}
+	auto & back() const noexcept
+		{
+			auto & d = static_cast<const D &>(*this);
+			return d[d.size() - 1];
+		}
 
 	friend bool operator==(const D & left, const D & right)
 		{

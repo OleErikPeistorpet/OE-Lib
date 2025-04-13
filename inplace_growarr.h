@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2015 Ole Erik Peistorpet
+// Copyright 2016 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -173,7 +173,6 @@ public:
 			else
 				_detail::BadAlloc::raise();
 		}
-
 	//! Throws bad_alloc when full
 	void     push_back(T && val)       { emplace_back(std::move(val)); }
 	//! Throws bad_alloc when full
@@ -190,7 +189,7 @@ public:
 
 	void     pop_back() noexcept
 		{
-			OEL_ASSERT(0 < _size);
+			OEL_ASSERT(_size > 0);
 			--_size;
 			data()[_size].~T();
 		}
@@ -210,10 +209,9 @@ public:
 	//! Equivalent to erase(first, end()) (but potentially faster), making first the new end
 	void     erase_to_end(iterator first) noexcept
 		{
-			T *const newEnd = to_pointer_contiguous(first);
-			OEL_ASSERT(data() <= newEnd and newEnd <= data() + _size);
-			_detail::Destroy(newEnd, data() + _size);
-			_size = newEnd - data();
+			OEL_ASSERT(begin() <= first and first <= end());
+			_detail::Destroy(first, data() + _size);
+			_size = first - data();
 		}
 
 	void      clear() noexcept        { erase_to_end(begin()); }
@@ -368,7 +366,7 @@ inline auto inplace_growarr<T, Capacity, Size>::append(InputRange && source)
 {
 	if constexpr (_detail::rangeIsSized<InputRange>)
 	{
-		auto const n = _detail::Size(source);
+		auto const n = as_unsigned(_detail::Size(source));
 		if (_spareCapacity() >= n)
 		{
 			auto first = adl_begin(source);
@@ -406,7 +404,7 @@ void inplace_growarr<T, Capacity, Size>::append(size_type count, const T & val)
 
 template< typename T, size_t Capacity, typename Size >
 template< typename... Args >
-T & inplace_growarr<T, Capacity, Size>::unchecked_emplace_back(Args &&... args) &
+inline T & inplace_growarr<T, Capacity, Size>::unchecked_emplace_back(Args &&... args) &
 {
 	OEL_ASSERT(_size < Capacity);
 
@@ -426,21 +424,21 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 
 	if (Capacity != _size)
 	{
-		auto const pPos = const_cast<T *>(to_pointer_contiguous(pos));
-		size_t const nAfterPos = _size - (pPos - data());
+		auto const mutPos = const_cast<T *>(pos);
+		size_t const nAfterPos = _size - (mutPos - data());
 		// Temporary in case constructor throws or source is an element of this array at pos or after
 		storage_for<T> tmp;
 		::new(&tmp) T(static_cast<Args &&>(args)...);
 		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
 		std::memmove(
-			static_cast<void *>(pPos + 1),
-			static_cast<const void *>(pPos),
+			static_cast<void *>(mutPos + 1),
+			static_cast<const void *>(mutPos),
 			sizeof(T) * nAfterPos );
 		++_size;
 
-		std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
+		std::memcpy(static_cast<void *>(mutPos), &tmp, sizeof(T)); // relocate the new element to pos
 
-		return pPos;
+		return mutPos;
 	}
 	_detail::BadAlloc::raise();
 }
@@ -459,19 +457,19 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 
 	if (_spareCapacity() >= count)
 	{
-		auto const pPos = const_cast<T *>(to_pointer_contiguous(pos));
-		size_t const bytesAfterPos = sizeof(T) * ((data() + _size) - pPos);
-		T *const dLast = pPos + count;
+		auto const mutPos = const_cast<T *>(pos);
+		size_t const bytesAfterPos = sizeof(T) * ((data() + _size) - mutPos);
+		T *const dLast = mutPos + count;
 		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
-		std::memmove(static_cast<void *>(dLast), static_cast<const void *>(pPos), bytesAfterPos);
+		std::memmove(static_cast<void *>(dLast), static_cast<const void *>(mutPos), bytesAfterPos);
 		_size += static_cast<Size>(count);
 		// Construct new
 		if constexpr (can_memmove_with<T *, decltype(first)>)
 		{
-			_detail::MemcpyCheck(first, count, pPos);
+			_detail::MemcpyCheck(first, count, mutPos);
 		}
 		else
-		{	T * dest = pPos;
+		{	T * dest = mutPos;
 			OEL_TRY_
 			{
 				while (dest != dLast)
@@ -488,13 +486,13 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 			}
 		}
 
-		return pPos;
+		return mutPos;
 	}
 	_detail::BadAlloc::raise();
 }
 
 
-template< typename T, size_t Capacity, typename Size>
+template< typename T, size_t Capacity, typename Size >
 inplace_growarr<T, Capacity, Size> &  inplace_growarr<T, Capacity, Size>::operator =(inplace_growarr && other) &
 	noexcept(std::is_nothrow_move_assignable_v<T> or is_trivially_relocatable<T>::value)
 {
@@ -511,7 +509,7 @@ inplace_growarr<T, Capacity, Size> &  inplace_growarr<T, Capacity, Size>::operat
 }
 
 
-template< typename T, size_t Capacity, typename Size>
+template< typename T, size_t Capacity, typename Size >
 typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::unordered_erase(iterator pos) &
 {
 	if constexpr (is_trivially_relocatable<T>::value)
