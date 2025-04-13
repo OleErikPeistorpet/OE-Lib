@@ -106,7 +106,7 @@ public:
 	                                                      _alloTrait::select_on_container_copy_construction(other._m) ) {}
 	explicit dynarray(const dynarray & other, Alloc a)  : _m(a) { append(other); }
 
-	~dynarray() noexcept;
+	~dynarray();
 
 	dynarray & operator =(dynarray && other) &
 		noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value);
@@ -778,7 +778,7 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(const dynarray & other) &
 }
 
 template< typename T, typename Alloc >
-dynarray<T, Alloc>::~dynarray() noexcept
+dynarray<T, Alloc>::~dynarray()
 {
 	_detail::Destroy(_m.data, _m.end);
 }

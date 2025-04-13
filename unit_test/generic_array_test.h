@@ -262,11 +262,11 @@ void testAppend()
 		std::deque<double> src;
 		dest.append(src);
 
-		dest.append({});
+		dest.try_append({});
 		EXPECT_EQ(0U, dest.size());
 
 		double const TEST_VAL = 6.6;
-		dest.append(2, TEST_VAL);
+		dest.try_append(2, TEST_VAL);
 		dest.append( view::subrange(dest.begin(), dest.end()) );
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
@@ -281,7 +281,7 @@ void testAppend()
 
 	{
 		ArrayInt int_dynarr;
-		int_dynarr.append({1, 2, 3, 4});
+		int_dynarr.try_append({1, 2, 3, 4});
 
 		double_dynarr.append(int_dynarr);
 	}

@@ -12,6 +12,14 @@
 
 namespace oel::_detail
 {
+	template< typename Iterator >
+	struct TryReturn
+	{
+		bool     success;
+		Iterator srcLast;
+	};
+
+
 	template< typename InputIter, typename T >
 	InputIter UninitCopy(InputIter src, size_t const n, T *__restrict dest)
 	{

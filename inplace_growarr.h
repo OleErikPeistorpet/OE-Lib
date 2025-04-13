@@ -38,7 +38,7 @@ template< size_t Capacity, typename T >
 inplace_growarr<T, Capacity> make_inplace_growarr(size_t size, const T & val)
 	{
 		inplace_growarr<T, Capacity> res{};
-		res.append(size, val);
+		res.assign(size, val);
 		return res;
 	}
 
@@ -69,8 +69,9 @@ public:
 
 	inplace_growarr() = default;
 
-	/** @brief Elements are default initialized, meaning non-class T produces indeterminate values
-	* @throw bad_alloc if size > Capacity  */
+	/** @brief Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
+	*
+	* @copydetails resize_for_overwrite(size_type)  */
 	inplace_growarr(size_type size, for_overwrite_t)
 		{
 			if (Capacity < size)
@@ -79,7 +80,7 @@ public:
 			_detail::UninitDefaultConstructA::call(data(), data() + size);
 			_size = size;
 		}
-	//! Throws bad_alloc if size > Capacity. (Elements are value-initialized, same as std::vector)
+	//! (Value-initializes elements, same as std::vector)
 	explicit inplace_growarr(size_type size)
 		{
 			if (Capacity < size)
@@ -95,14 +96,14 @@ public:
 
 	inplace_growarr(std::initializer_list<T> il)     { append(il); }
 
-	inplace_growarr(inplace_growarr && other) noexcept  { _relocateFrom(other); }
+	inplace_growarr(inplace_growarr && other) noexcept    { _relocateFrom(other); }
 	explicit inplace_growarr(const inplace_growarr & other)
 		{
 			_size = other._size;
 			_detail::UninitCopy(other.data(), other._size, data());
 		}
 
-	~inplace_growarr() noexcept   { _detail::Destroy(data(), data() + _size); }
+	~inplace_growarr()   { _detail::Destroy(data(), data() + _size); }
 
 	inplace_growarr & operator =(inplace_growarr && other) &
 		noexcept(std::is_nothrow_move_assignable_v<T> or is_trivially_relocatable<T>::value);
@@ -117,54 +118,75 @@ public:
 
 	inplace_growarr & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
+	template< typename InputRange >
+	bool try_assign(InputRange && source)   { return _tryAssign(source).success; }
 	/**
 	* @brief Replace the contents with source
 	* @throw bad_alloc if count > Capacity  */
 	template< typename InputRange >
-	auto assign(InputRange && source) -> borrowed_iterator_t<InputRange>;
+	auto assign(InputRange && source) -> borrowed_iterator_t<InputRange>
+		{
+			auto res = _tryAssign(source);
+			if (res.success)
+				return res.srcLast;
+			else
+				_detail::BadAlloc::raise();
+		}
 
-	void assign(size_type count, const T & val)   { clear();  append(count, val); }
+	void assign(size_type count, const T & val)
+		{
+			clear();
+			if (!try_append(count, val))
+				_detail::BadAlloc::raise();
+		}
 
-	template< typename InputRange >
-	bool try_assign(InputRange && source)         { return false; } // TODO
-
-	/**
-	* @brief Add at end the elements from range (in order)
-	* @param source object which begin and end can be called on (an array, STL container or iterator_range)
-	* @return begin(source) incremented to end of source
+	/** @brief Almost same as std::vector::append_range (C++23)
+	* @return Iterator `begin(source)` incremented by the number of elements in source
 	*
-	* Any previous end iterator will point to the first element added.
-	* Strong exception safety, aka. commit or rollback semantics  */
+	* Unlike std::vector, `end(source)` is not needed if `source.size()` is valid.
+	* Any previous end iterator will point to the first element added. */
 	template< typename InputRange >
-	auto append(InputRange && source) -> borrowed_iterator_t<InputRange>;
-	//! Same as `std::vector::insert(end(), il)`
-	void append(std::initializer_list<T> il)  { append<>(il); }
-	//! Same as `std::vector::insert(end(), count, val)`
-	void append(size_type count, const T & val);
-
+	auto append(InputRange && source) -> borrowed_iterator_t<InputRange>
+		{
+			auto res = _tryAppend(source);
+			if (res.success)
+				return res.srcLast;
+			else
+				_detail::BadAlloc::raise();
+		}
+	//! Like std::vector::append_range, but returns bool indicating success
 	template< typename InputRange >
-	bool try_append(InputRange && source)     { return false; } // TODO
+	bool try_append(InputRange && source)         { return _tryAppend(source).success; }
+	//! Like `std::vector::insert(end(), il)`, but returns bool indicating success
+	bool try_append(std::initializer_list<T> il)  { return try_append<>(il); }
+	//! Like `std::vector::insert(end(), count, val)`, but returns bool indicating success
+	bool try_append(size_type count, const T & val);
 
 	/**
-	* @brief Added elements are default initialized, meaning non-class T produces indeterminate values
-	* @throw bad_alloc if n > Capacity  */
+	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
+	*
+	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 	void     resize_for_overwrite(size_type n)   { _doResize<_detail::UninitDefaultConstructA>(n); }
-	//! Throws bad_alloc if n > Capacity. (Value-initializes added elements, same as std::vector::resize)
 	void     resize(size_type n)                 { _doResize<_detail::UninitFillA>(n); }
 
 	template< typename Range >
-	iterator insert_range(const_iterator pos, Range && source) &;
+	bool     try_insert_range(const_iterator pos, Range && source);
 
 	template< typename Range >
-	bool     try_insert_range(const_iterator pos, Range && source)  { return false; } // TODO
+	iterator insert_range(const_iterator pos, Range && source) &
+		{
+			if (try_insert_range(pos, source))
+				return const_cast<T *>(pos);
+			else
+				_detail::BadAlloc::raise();
+		}
 
 	iterator insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
 	iterator insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
 
 	template< typename... Args >
-	iterator emplace(const_iterator pos, Args &&... elemInitArgs) &;  //!< Throws bad_alloc when full
+	iterator emplace(const_iterator pos, Args &&... args) &;
 
-	//! Throws bad_alloc when full
 	template< typename... Args >
 	T &      emplace_back(Args &&... args) &
 		{
@@ -173,18 +195,14 @@ public:
 			else
 				_detail::BadAlloc::raise();
 		}
-	//! Throws bad_alloc when full
+
 	void     push_back(T && val)       { emplace_back(std::move(val)); }
-	//! Throws bad_alloc when full
 	void     push_back(const T & val)  { emplace_back(val); }
 
-	//! Undefined behavior if full
 	template< typename... Args >
 	T &      unchecked_emplace_back(Args &&... args) &;
 
-	//! Undefined behavior if full
 	void     unchecked_push_back(T && val)       { unchecked_emplace_back(std::move(val)); }
-	//! Undefined behavior if full
 	void     unchecked_push_back(const T & val)  { unchecked_emplace_back(val); }
 
 	void     pop_back() noexcept
@@ -289,19 +307,8 @@ private:
 	}
 
 
-	template< typename InputRange >
-	auto _emplBackRange(InputRange & src)
-	{
-		auto it = adl_begin(src);
-		auto l  = adl_end(src);
-		for (; it != l; ++it)
-			emplace_back(*it);
-
-		return it;
-	}
-
 	template< typename InputIter >
-	InputIter _doAssign(InputIter src, Size const count)
+	InputIter _doAssign(InputIter src, size_type const count)
 	{
 		if constexpr (can_memmove_with<T *, InputIter>)
 		{
@@ -338,115 +345,92 @@ private:
 			return src;
 		}
 	}
+
+	template< typename InputRange >
+	_detail::TryReturn< iterator_t<InputRange> > _emplBackRange(InputRange & src)
+	{
+		auto it = adl_begin(src);
+		auto l  = adl_end(src);
+		for (; it != l; ++it)
+		{
+			if (Capacity == _size)
+				return {false, std::move(it)};
+
+			unchecked_emplace_back(*it);
+		}
+		return {true, std::move(it)};
+	}
+
+	template< typename InputRange >
+	_detail::TryReturn< iterator_t<InputRange> > _tryAssign(InputRange & src)
+	{
+		if constexpr (_detail::rangeIsSized<InputRange>)
+		{
+			auto      it = adl_begin(src);
+			auto const n = _detail::Size(src);
+
+			if (Capacity >= as_unsigned(n))
+				return {true, _doAssign( std::move(it), static_cast<size_type>(n) )};
+			else
+				return {false, std::move(it)};
+		}
+		else
+		{	clear();
+			return _emplBackRange(src);
+		}
+	}
+
+	template< typename InputRange >
+	_detail::TryReturn< iterator_t<InputRange> > _tryAppend(InputRange & src)
+	{
+		if constexpr (_detail::rangeIsSized<InputRange>)
+		{
+			auto      it = adl_begin(src);
+			auto const n = as_unsigned(_detail::Size(src));
+
+			bool const success{_spareCapacity() >= n};
+			if (success)
+			{
+				it = _detail::UninitCopy(std::move(it), n, data() + _size);
+				_size += static_cast<Size>(n);
+			}
+			return {success, std::move(it)};
+		}
+		else
+		{	auto const oldSize = _size;
+			OEL_TRY_
+			{
+				return _emplBackRange(src);
+			}	// Catch with cleanup needed only when called from constructor
+			OEL_CATCH_ALL
+			{
+				erase_to_end(begin() + oldSize);
+				OEL_RETHROW;
+			}
+		}
+	}
 };
 
-template< typename T, size_t Capacity, typename Size>
-template< typename InputRange >
-auto inplace_growarr<T, Capacity, Size>::assign(InputRange && source)
-->	borrowed_iterator_t<InputRange>
+template< typename T, size_t Capacity, typename Size >
+bool inplace_growarr<T, Capacity, Size>::try_append(size_type count, const T & val)
 {
-	if constexpr (_detail::rangeIsSized<InputRange>)
+	if (_spareCapacity() >= count)
 	{
-		auto const n = _detail::Size(source);
-		if (Capacity >= n)
-			return _doAssign(adl_begin(source), n);
+		size_type newSize = _size + count;
+		_detail::UninitFillA::call(data() + _size, data() + newSize, val);
+		_size = newSize;
 
-		_detail::BadAlloc::raise();
+		return true;
 	}
 	else
-	{	clear();
-		return _emplBackRange(source);
+	{	return false;
 	}
 }
 
-template< typename T, size_t Capacity, typename Size>
-template< typename InputRange >
-inline auto inplace_growarr<T, Capacity, Size>::append(InputRange && source)
-->	borrowed_iterator_t<InputRange>
-{
-	if constexpr (_detail::rangeIsSized<InputRange>)
-	{
-		auto const n = as_unsigned(_detail::Size(source));
-		if (_spareCapacity() >= n)
-		{
-			auto first = adl_begin(source);
-			first = _detail::UninitCopy(first, n, data() + _size);
-			_size += static_cast<Size>(n);
-
-			return first;
-		}
-		_detail::BadAlloc::raise();
-	}
-	else
-	{	auto const oldSize = _size;
-		OEL_TRY_
-		{
-			return _emplBackRange(source);
-		}
-		OEL_CATCH_ALL
-		{
-			erase_to_end(begin() + oldSize);
-			OEL_RETHROW;
-		}
-	}
-}
-
-template< typename T, size_t Capacity, typename Size >
-void inplace_growarr<T, Capacity, Size>::append(size_type count, const T & val)
-{
-	if (_spareCapacity() < count)
-		_detail::BadAlloc::raise();
-
-	size_type newSize = _size + count;
-	_detail::UninitFillA::call(data() + _size, data() + newSize, val);
-	_size = newSize;
-}
-
-template< typename T, size_t Capacity, typename Size >
-template< typename... Args >
-inline T & inplace_growarr<T, Capacity, Size>::unchecked_emplace_back(Args &&... args) &
-{
-	OEL_ASSERT(_size < Capacity);
-
-	T *const pos = data() + _size;
-	::new(static_cast<void *>(pos)) T(static_cast<Args &&>(args)...);
-	++_size;
-	return *pos;
-}
-
-template< typename T, size_t Capacity, typename Size >
-template< typename... Args >
-typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::
-	emplace(const_iterator pos, Args &&... args) &
-{
-	(void) _detail::AssertTrivialRelocate<T>{};
-	OEL_ASSERT(begin() <= pos and pos <= end());
-
-	if (Capacity != _size)
-	{
-		auto const mutPos = const_cast<T *>(pos);
-		size_t const nAfterPos = _size - (mutPos - data());
-		// Temporary in case constructor throws or source is an element of this array at pos or after
-		storage_for<T> tmp;
-		::new(&tmp) T(static_cast<Args &&>(args)...);
-		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
-		std::memmove(
-			static_cast<void *>(mutPos + 1),
-			static_cast<const void *>(mutPos),
-			sizeof(T) * nAfterPos );
-		++_size;
-
-		std::memcpy(static_cast<void *>(mutPos), &tmp, sizeof(T)); // relocate the new element to pos
-
-		return mutPos;
-	}
-	_detail::BadAlloc::raise();
-}
 
 template< typename T, size_t Capacity, typename Size >
 template< typename Range >
-typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::
-	insert_range(const_iterator pos, Range && source) &
+bool inplace_growarr<T, Capacity, Size>::try_insert_range(const_iterator pos, Range && source)
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
 	(void) _detail::AssertForwardOrSizedRange<Range>{};
@@ -486,9 +470,52 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 			}
 		}
 
+		return true;
+	}
+	else
+	{	return false;
+	}
+}
+
+template< typename T, size_t Capacity, typename Size >
+template< typename... Args >
+typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::
+	emplace(const_iterator pos, Args &&... args) &
+{
+	(void) _detail::AssertTrivialRelocate<T>{};
+	OEL_ASSERT(begin() <= pos and pos <= end());
+
+	if (Capacity != _size)
+	{
+		auto const mutPos = const_cast<T *>(pos);
+		size_t const nAfterPos = _size - (mutPos - data());
+		// Temporary in case constructor throws or source is an element of this array at pos or after
+		storage_for<T> tmp;
+		::new(&tmp) T(static_cast<Args &&>(args)...);
+		// Relocate [pos, end) to [pos + 1, end + 1), leaving memory at pos uninitialized (conceptually)
+		std::memmove(
+			static_cast<void *>(mutPos + 1),
+			static_cast<const void *>(mutPos),
+			sizeof(T) * nAfterPos );
+		++_size;
+
+		std::memcpy(static_cast<void *>(mutPos), &tmp, sizeof(T)); // relocate the new element to pos
+
 		return mutPos;
 	}
 	_detail::BadAlloc::raise();
+}
+
+template< typename T, size_t Capacity, typename Size >
+template< typename... Args >
+inline T & inplace_growarr<T, Capacity, Size>::unchecked_emplace_back(Args &&... args) &
+{
+	OEL_ASSERT(_size < Capacity);
+
+	T *const pos = data() + _size;
+	::new(static_cast<void *>(pos)) T(static_cast<Args &&>(args)...);
+	++_size;
+	return *pos;
 }
 
 
