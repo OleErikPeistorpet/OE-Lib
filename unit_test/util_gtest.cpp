@@ -37,8 +37,8 @@ namespace
 #endif
 
 	struct alignas(32) Foo { int a[24]; };
-	static_assert(alignof(oel::storage_for<Foo>) == 32);
-	static_assert(sizeof(oel::storage_for<Foo>) == sizeof(Foo));
+	static_assert(alignof(oel::_detail::RelocateWrap<Foo>) == 32);
+	static_assert(sizeof(oel::_detail::RelocateWrap<Foo>) == sizeof(Foo));
 
 	using ListI = std::list<int>::iterator;
 	static_assert(!oel::can_memmove_with< int *, float * >);

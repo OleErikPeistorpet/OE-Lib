@@ -129,19 +129,20 @@ template< typename, typename... None >
 constexpr bool allocator_can_realloc(None...)  { return false; }
 
 
-template< typename T >
-struct
-#ifdef __GNUC__
-	[[gnu::may_alias]]
-#endif
-	storage_for
-{
-	alignas(T) unsigned char as_bytes[sizeof(T)];
-};
-
-
 namespace _detail
 {
+	template< typename T >
+	struct
+	#ifdef __GNUC__
+		[[gnu::may_alias]]
+	#endif
+		RelocateWrap
+	{
+		alignas(T) unsigned char bytes[sizeof(T)];
+	};
+
+
+
 	template< typename T, typename U,
 	          bool = std::is_empty_v<U> >
 	struct TightPair
