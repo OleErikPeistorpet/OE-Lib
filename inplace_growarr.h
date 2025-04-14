@@ -33,14 +33,6 @@ struct _toInplaceGrowarrFn
 template< size_t Capacity, typename Size = size_t >
 inline constexpr _toInplaceGrowarrFn<Capacity, Size> to_inplace_growarr;
 
-//! Can be used to deduce T from val: `make_inplace_growarr<Capacity>(size, val)`
-template< size_t Capacity, typename T >
-inplace_growarr<T, Capacity> make_inplace_growarr(size_t size, const T & val)
-	{
-		inplace_growarr<T, Capacity> res{};
-		res.append(size, val);
-		return res;
-	}
 
 //! inplace_growarr is trivially relocatable if T is
 template< typename T, size_t C, typename S >
@@ -71,6 +63,10 @@ public:
 	using const_iterator         = const T *;
 	using reverse_iterator       = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+
+	static constexpr std::integral_constant<size_type, Capacity> capacity;
+	static constexpr std::integral_constant<size_type, Capacity> max_size;
 
 
 	inplace_growarr() = default;
@@ -214,9 +210,6 @@ public:
 	size_type size() const noexcept   { return _size; }
 	//! Equivalent to `capacity() - size()`
 	size_type spare_capacity() const noexcept   { return Capacity - _size; }
-
-	static constexpr size_type capacity() noexcept { return Capacity; }
-	static constexpr size_type max_size() noexcept { return Capacity; }
 
 	OEL_ALWAYS_INLINE
 	iterator       begin() noexcept         { return data(); }

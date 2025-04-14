@@ -42,14 +42,6 @@ TEST_F(inplaceGrowarrTest, toInplaceGrowarr)
 	static_assert(std::is_same_v< decltype(res2), inplace_growarr<char, 7, std::uint_fast8_t> >);
 }
 
-TEST_F(inplaceGrowarrTest, makeInplaceGrowarr)
-{
-	auto res  = oel::make_inplace_growarr<8>(3, 'x');
-	auto res2 = oel::make_inplace_growarr<2, unsigned>(0, 1);
-	static_assert(std::is_same_v< decltype(res),  inplace_growarr<char, 8> >);
-	static_assert(std::is_same_v< decltype(res2), inplace_growarr<unsigned, 2> >);
-}
-
 TEST_F(inplaceGrowarrTest, pushBackMoveOnly)
 {
 	testPushBack< inplace_growarr<MoveOnly, 5>, inplace_growarr<inplace_growarr<int, 3>, 2> >();
