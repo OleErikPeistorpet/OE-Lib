@@ -106,7 +106,7 @@ public:
 	                                                      _alloTrait::select_on_container_copy_construction(other._m) ) {}
 	explicit dynarray(const dynarray & other, Alloc a)  : _m(a) { append(other); }
 
-	~dynarray() noexcept;
+	~dynarray() = default;
 
 	dynarray & operator =(dynarray && other) &
 		noexcept( _alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value );
@@ -296,34 +296,36 @@ private:
 	using _argAlloc_7KQw  = Alloc; // guarding against name collision due to inheritance (MSVC)
 	using _usedAlloc_7KQw = allocator_type;
 
-	struct _memOwner : public _internBase, public _usedAlloc_7KQw
+	struct _dataOwner : _internBase, public _usedAlloc_7KQw
 	{
 		using B = ::oel::_detail::DynarrBase<value_type *>;
 
-		using B::data;  // owner
+		using B::data;
 		using B::end;
 		using B::reservEnd;
 
-		constexpr _memOwner(_argAlloc_7KQw & a) noexcept
+		constexpr _dataOwner(_argAlloc_7KQw & a) noexcept
 		 :	B{}, _usedAlloc_7KQw{std::move(a)}
 		{}
 
-		constexpr _memOwner(_memOwner && other) noexcept
+		constexpr _dataOwner(_dataOwner && other) noexcept
 		 :	B{other}, _usedAlloc_7KQw{std::move(other)}
 		{
 			other.reservEnd = other.end = other.data = nullptr;
 		}
 
-		~_memOwner()
+		~_dataOwner()
 		{
 			if( data )
 			{
-				auto cap = static_cast<size_t>(reservEnd - data);
+				::oel::_detail::Destroy(data, end);
+
+				auto cap = static_cast<::std::size_t>(reservEnd - data);
 				::oel::_detail::DebugAllocateWrapper<_usedAlloc_7KQw, value_type *>::dealloc(*this, data, cap);
 			}
 		}
 	}
-	_m; // the only non-static data member
+	_m; // exception safety helper, the only non-static data member
 
 	void _resetData(T *const newData, size_type const newCap)
 	{
@@ -439,17 +441,6 @@ private:
 	}
 
 
-	template< typename InputRange >
-	auto _emplBackRange(InputRange & src)
-	{
-		auto it = oel::begin_(src);
-		auto l  = oel::end_(src);
-		for( ; it != l; ++it )
-			emplace_back(*it);
-
-		return it;
-	}
-
 	template< typename InputIter >
 	InputIter _doAssign(InputIter src, size_type const count)
 	{
@@ -504,7 +495,7 @@ private:
 			while( _m.end != newEnd )
 			{	// each iteration updates _m.end for exception safety
 				_alloTrait::construct(_m, _m.end, *src);
-				++src; ++_m.end;
+				++_m.end; ++src;
 			}
 			return src;
 		}
@@ -516,6 +507,7 @@ private:
 		if( _spareCapacity() < count )
 			_growBy(count);
 
+		_debugSizeUpdater guard{_m};
 		if constexpr( can_memmove_with<T *, InputIter> )
 		{
 			_detail::MemcpyCheck(src, count, _m.end);
@@ -523,25 +515,13 @@ private:
 			_m.end += count;
 		}
 		else
-		{	T *__restrict dest = _m.end;
-			auto const   dLast = dest + count;
-			OEL_TRY_
+		{	auto const newEnd = _m.end + count;
+			while( _m.end != newEnd )
 			{
-				while( dest != dLast )
-				{
-					_alloTrait::construct(_m, dest, *src);
-					++dest; ++src;
-				}
+				_alloTrait::construct(_m, _m.end, *src);
+				++_m.end; ++src;
 			}
-			OEL_CATCH_ALL
-			{
-				_detail::Destroy(_m.end, dest);
-				OEL_RETHROW;
-			}
-			_m.end = dLast;
 		}
-		_debugSizeUpdater guard{_m};
-
 		return src;
 	}
 
@@ -709,16 +689,12 @@ inline auto dynarray<T, Alloc>::append(InputRange && source)
 		return _doAppend(oel::begin_(source), _detail::UDist(source));
 	}
 	else
-	{	auto const oldSize = size();
-		OEL_TRY_
-		{
-			return _emplBackRange(source);
-		}
-		OEL_CATCH_ALL
-		{
-			erase_to_end(begin() + oldSize);
-			OEL_RETHROW;
-		}
+	{	auto it = oel::begin_(source);
+		auto l  = oel::end_(source);
+		for( ; it != l; ++it )
+			emplace_back(*it);
+
+		return it;
 	}
 }
 
@@ -733,7 +709,7 @@ inline auto dynarray<T, Alloc>::assign(InputRange && source)
 	}
 	else
 	{	clear();
-		return _emplBackRange(source);
+		return append(source);
 	}
 }
 
@@ -743,9 +719,9 @@ dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
  :	_m(a)
 {
 	_initReserve(n);
-	_m.end = _m.reservEnd;
 	_detail::DefaultInit<allocator_type>::call(_m.data, _m.reservEnd, _m);
 
+	_m.end = _m.reservEnd;
 	(void) _debugSizeUpdater{_m};
 }
 
@@ -754,9 +730,9 @@ dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
  :	_m(a)
 {
 	_initReserve(n);
-	_m.end = _m.reservEnd;
 	_uninitFill::call(_m.data, _m.reservEnd, _m);
 
+	_m.end = _m.reservEnd;
 	(void) _debugSizeUpdater{_m};
 }
 
@@ -812,12 +788,6 @@ dynarray<T, Alloc> &
 		assign(other);
 
 	return *this;
-}
-
-template< typename T, typename Alloc >
-dynarray<T, Alloc>::~dynarray() noexcept
-{
-	_detail::Destroy(_m.data, _m.end);
 }
 
 

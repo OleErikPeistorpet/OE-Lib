@@ -424,7 +424,11 @@ void testStdIteratorInOelViewNotAmbiguous()
 {
 	auto v0 = std::array<int, 1>{} | view::move;
 	auto v  = view::subrange(v0.begin(), v0.end());
-	using I = oel::iterator_t< decltype(v) >;
+	static_assert(
+		std::is_same_v<
+			oel::iterator_t< decltype(v) >,
+			oel::sentinel_t< decltype(v) >
+		> );
 }
 
 #if OEL_STD_RANGES
