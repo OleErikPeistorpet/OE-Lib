@@ -592,7 +592,7 @@ typename dynarray<T, Alloc>::iterator
 	OEL_DYNARR_INSERT_STEP1
 
 	// Temporary in case constructor throws or args refer to an element of this dynarray
-	storage_for<T> tmp;
+	alignas(T) unsigned char tmp[sizeof(T)];
 	_alloTrait::construct(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 	if (_m.end < _m.reservEnd)
 	{	// Relocate [pos, end) to [pos + 1, end + 1)
@@ -870,8 +870,8 @@ inline typename dynarray<T, Alloc>::iterator
 		--_m.end;
 		_debugSizeUpdater guard{_m};
 
-		auto & mem = reinterpret_cast< storage_for<T> & >(elem);
-		mem     = *reinterpret_cast< storage_for<T> * >(_m.end); // relocate last element to pos
+		auto & mem = reinterpret_cast< _detail::RelocateWrap<T> & >(elem);
+		mem       = *reinterpret_cast< _detail::RelocateWrap<T> * >(_m.end); // relocate last element to pos
 	}
 	else
 	{	*pos = std::move(back());

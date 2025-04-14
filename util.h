@@ -14,7 +14,7 @@
 
 
 /** @file
-* @brief Contains make_unique_for_overwrite, as_signed/as_unsigned, index_valid, ssize and more
+* @brief Contains as_signed/as_unsigned, ssize, index_valid and more
 */
 
 
@@ -131,19 +131,20 @@ template< typename, typename... None >
 constexpr bool allocator_can_realloc(None...)  { return false; }
 
 
-template< typename T >
-struct
-#ifdef __GNUC__
-	[[gnu::may_alias]]
-#endif
-	storage_for
-{
-	alignas(T) unsigned char as_bytes[sizeof(T)];
-};
-
-
 namespace _detail
 {
+	template< typename T >
+	struct
+	#ifdef __GNUC__
+		[[gnu::may_alias]]
+	#endif
+		RelocateWrap
+	{
+		alignas(T) unsigned char bytes[sizeof(T)];
+	};
+
+
+
 	struct OutOfRange
 	{	// Exception throwing has been split out from templates to avoid bloat
 		[[noreturn]] static void raise(const char * what)
