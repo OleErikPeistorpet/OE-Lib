@@ -16,6 +16,13 @@
 namespace oel
 {
 
+template< typename Iterator >
+struct inplace_insert_range_return
+{
+	Iterator in;
+};
+
+
 template< size_t Capacity, typename Size >
 struct _toInplaceGrowarrFn
 {
@@ -115,7 +122,7 @@ public:
 
 	/** @brief Like std::inplace_vector::assign_range, but stops when full instead of throwing `bad_alloc`
 	* @return An iterator pointing to the first element of source that was not inserted,
-	*	or `end(source)` if no such element exists
+	*	or equal to `end(source)` if no such element exists
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template< typename InputRange >
@@ -125,7 +132,7 @@ public:
 
 	/** @brief Equivalent to std::inplace_vector::try_append_range
 	*
-	* Any previous end iterator will point to the first element added. */
+	* A previous end iterator will point to the first element added, after the call. */
 	template< typename InputRange >
 	auto try_append(InputRange && source) -> borrowed_iterator_t<InputRange>;
 	/**
@@ -146,10 +153,12 @@ public:
 	void resize(size_type n)                 { _doResize<_detail::UninitFillA>(n); }
 
 	/** @brief Similar to std::inplace_vector::insert_range
-	* @return Iterator `begin(source)` incremented by the number of elements in source
-	* @param source must model std::ranges::forward_range or `source.size()` must be valid. */
+	* @return Struct with `in` variable which is `begin(source)` incremented by the number of elements in source
+	* @param source must model std::ranges::forward_range or `source.size()` must be valid.
+	*
+	* After the call, pos points at the first element inserted. */
 	template< typename Range >
-	auto insert_range(const_iterator pos, Range && source) -> borrowed_iterator_t<Range>;
+	auto insert_range(const_iterator pos, Range && source) -> inplace_insert_range_return< borrowed_iterator_t<Range> >;
 
 	iterator insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
 	iterator insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
@@ -194,7 +203,7 @@ public:
 			_size = _detail::Erase(_size, data(), first, last);
 			return first;
 		}
-	//! Equivalent to `erase(first, end())` (but potentially faster), making first the new end
+	//! Equivalent to `erase(first, end())`, but potentially faster and does not require assignable T
 	void     erase_to_end(iterator first) noexcept
 		{
 			OEL_ASSERT(begin() <= first and first <= end());
@@ -418,7 +427,7 @@ void inplace_growarr<T, Capacity, Size>::append(size_type count, const T & val)
 template< typename T, size_t Capacity, typename Size >
 template< typename Range >
 auto inplace_growarr<T, Capacity, Size>::insert_range(const_iterator pos, Range && source)
-->	borrowed_iterator_t<Range>
+->	inplace_insert_range_return< borrowed_iterator_t<Range> >
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
 	(void) _detail::AssertForwardOrSizedRange<Range>{};
@@ -458,7 +467,7 @@ auto inplace_growarr<T, Capacity, Size>::insert_range(const_iterator pos, Range 
 			}
 		}
 
-		return srcIt;
+		return {std::move(srcIt)};
 	}
 	_detail::BadAlloc::raise();
 }
