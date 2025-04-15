@@ -28,7 +28,7 @@
 		</Expand>
 	</Type>
 
-	<Type Name="oel::fixcap_array&lt;*&gt;">
+	<Type Name="oel::inplace_growarr&lt;*&gt;">
 		<DisplayString Condition="_size == 0">{{size=0 }}</DisplayString>
 		<DisplayString>{{size={_size} back={(($T1 *)_data)[_size - 1]}}}</DisplayString>
 		<Expand>
@@ -46,15 +46,6 @@
 		<DisplayString>[{_pElem - ($T1)(_header + 1)}] {*_pElem}</DisplayString>
 		<Expand>
 			<Item Name="[array size]">_header-&gt;nObjects</Item>
-		</Expand>
-	</Type>
-
-	<Type Name="oel::debug::array_iterator&lt;*&gt;">
-		<DisplayString Condition="!_container">singular</DisplayString>
-		<DisplayString Condition="_pElem - _container-&gt;data == _container-&gt;size">end</DisplayString>
-		<DisplayString>[{_pElem - _container-&gt;data}] {*_pElem}</DisplayString>
-		<Expand>
-			<Item Name="[array size]">_container-&gt;size</Item>
 		</Expand>
 	</Type>
 </AutoVisualizer>
