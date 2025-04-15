@@ -256,9 +256,9 @@ TEST_F(inplaceGrowarrTest, misc)
 	{
 		inplace_growarr<int, 2> di{1, -2};
 		auto it = begin(di);
-		it = di.unordered_erase(it);
+		di.unordered_erase(it);
 		EXPECT_EQ(-2, *it);
-		it = di.unordered_erase(it);
+		di.unordered_erase(it);
 		EXPECT_EQ(end(di), it);
 
 		di.assign(2, -1);

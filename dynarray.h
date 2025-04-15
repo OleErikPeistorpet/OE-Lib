@@ -193,7 +193,7 @@ public:
 
 	//! Erase the element at pos without maintaining order of elements after pos.
 	/**
-	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
+	* Constant complexity (compared to linear in the distance between pos and `end()` for normal erase).
 	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
 	iterator  unordered_erase(iterator pos) &;
 

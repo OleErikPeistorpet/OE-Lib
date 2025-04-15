@@ -45,9 +45,9 @@ inline constexpr _toInplaceGrowarrFn<Capacity, Size> to_inplace_growarr;
 template< typename T, size_t C, typename S >
 is_trivially_relocatable<T> specify_trivial_relocate(inplace_growarr<T, C, S>);
 
+
+//! Resizable array, statically allocated. Specify maximum size as template argument.
 /**
-* @brief Resizable array, statically allocated. Specify maximum size as template argument.
-*
 * In general, only that which differs from std::inplace_vector (C++26) is documented.
 *
 * A few functions require that T is trivially relocatable (see oel::is_trivially_relocatable):
@@ -74,9 +74,8 @@ public:
 
 	inplace_growarr() = default;
 
-	/** @brief Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
-	*
-	* @copydetails resize_for_overwrite(size_type)  */
+	//! Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
+	/** @copydetails resize_for_overwrite(size_type)  */
 	inplace_growarr(size_type size, for_overwrite_t)
 		{
 			if (Capacity < size)
@@ -116,8 +115,8 @@ public:
 		}
 	inplace_growarr & operator =(const inplace_growarr &&) = delete;
 
-	/** @brief Like std::inplace_vector::assign_range, but stops when full instead of throwing `bad_alloc`
-	* @return An iterator pointing to the first element of source that was not inserted,
+	//! Like std::inplace_vector::assign_range, but stops when full instead of throwing `bad_alloc`
+	/** @return An iterator pointing to the first element of source that was not inserted,
 	*	or equal to `end(source)` if no such element exists
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
@@ -126,31 +125,29 @@ public:
 
 	void assign(size_type count, const T & val)   { clear();  append(count, val); }
 
-	/** @brief Equivalent to std::inplace_vector::try_append_range
-	*
+	//! Equivalent to std::inplace_vector::try_append_range
+	/**
 	* A previous end iterator will point to the first element added, after the call. */
 	template< typename InputRange >
 	auto try_append(InputRange && source) -> borrowed_iterator_t<InputRange>;
-	/**
-	* @brief Almost same as std::inplace_vector::append_range
-	* @return Iterator `begin(source)` incremented by the number of elements in source
-	*
+
+	//! Almost same as std::inplace_vector::append_range
+	/** @return Iterator `begin(source)` incremented by the number of elements in source
 	* @copydetails try_append(InputRange &&)  */
 	template< typename InputRange >
 	auto append(InputRange && source) -> borrowed_iterator_t<InputRange>;
 	//! Equivalent to `std::inplace_vector::insert(end(), count, val)`
 	void append(size_type count, const T & val);
 
+	//! Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	/**
-	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
-	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 	void resize_for_overwrite(size_type n)   { _doResize<_detail::UninitDefaultConstructA>(n); }
 	void resize(size_type n)                 { _doResize<_detail::UninitFillA>(n); }
 
-	/** @brief Similar to std::inplace_vector::insert_range
-	* @return Struct with `in` variable which is `begin(source)` incremented by the number of elements in source
-	* @param source must model std::ranges::forward_range or `source.size()` must be valid.
+	//! Similar to std::inplace_vector::insert_range
+	/** @return Struct with `in` variable which is `begin(source)` incremented by the number of elements in source
+	* @param source must model std::ranges::forward_range or `source.size()` must be valid
 	*
 	* After the call, pos points at the first element inserted. */
 	template< typename Range >
@@ -171,23 +168,28 @@ public:
 				_detail::BadAlloc::raise();
 		}
 
-	void     push_back(T && val)       { emplace_back(std::move(val)); }
-	void     push_back(const T & val)  { emplace_back(val); }
+	void push_back(T && val)       { emplace_back(std::move(val)); }
+	void push_back(const T & val)  { emplace_back(val); }
 
 	template< typename... Args >
-	T &      unchecked_emplace_back(Args &&... args) &;
+	T &  unchecked_emplace_back(Args &&... args) &;
 
-	void     unchecked_push_back(T && val)       { unchecked_emplace_back(std::move(val)); }
-	void     unchecked_push_back(const T & val)  { unchecked_emplace_back(val); }
+	void unchecked_push_back(T && val)       { unchecked_emplace_back(std::move(val)); }
+	void unchecked_push_back(const T & val)  { unchecked_emplace_back(val); }
 
-	void     pop_back() noexcept
+	void pop_back() noexcept
 		{
 			OEL_ASSERT(_size > 0);
 			--_size;
 			data()[_size].~T();
 		}
 
-	iterator unordered_erase(iterator pos) &;
+	//! Erase the element at pos without maintaining order of elements after pos
+	/**
+	* The iterator pos still corresponds to the same index in the sequence after the call.
+	* If pos pointed to the back element, it will be equal to end.
+	* Constant complexity (compared to linear in the distance between pos and `end()` for normal erase). */
+	void     unordered_erase(iterator pos);
 
 	iterator erase(iterator pos) &
 		{
@@ -531,7 +533,7 @@ inplace_growarr<T, Capacity, Size> &  inplace_growarr<T, Capacity, Size>::operat
 
 
 template< typename T, size_t Capacity, typename Size >
-typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::unordered_erase(iterator pos) &
+void inplace_growarr<T, Capacity, Size>::unordered_erase(iterator pos)
 {
 	if constexpr (is_trivially_relocatable<T>::value)
 	{
@@ -545,7 +547,6 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 	{	*pos = std::move(this->back());
 		pop_back();
 	}
-	return pos;
 }
 
 } // namespace oel
