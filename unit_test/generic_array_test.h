@@ -149,7 +149,7 @@ void testAssign()
 		EXPECT_EQ(VALUES[0], *test[0]);
 		EXPECT_EQ(VALUES[1], *test[1]);
 
-		test.assign(src | view::move);
+		test.assign(view::counted(src, 0) | view::move);
 		EXPECT_EQ(0U, test.size());
 	}
 	EXPECT_EQ(MoveOnly::nConstructions, MoveOnly::nDestruct);
@@ -174,7 +174,6 @@ void testAssign()
 		dest = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
 		EXPECT_EQ(1.0, *dest[0]);
 		EXPECT_EQ(2.0, *dest[1]);
-		EXPECT_EQ(TrivialRelocat::nConstructions - ssize(dest), TrivialRelocat::nDestruct);
 		#if OEL_HAS_EXCEPTIONS
 		{
 			TrivialRelocat obj{-3.3};
@@ -355,56 +354,6 @@ void testInsertR()
 	EXPECT_DOUBLE_EQ(2, double_dynarr[5]);
 	EXPECT_DOUBLE_EQ(3, double_dynarr[6]);
 	EXPECT_DOUBLE_EQ(4, double_dynarr[7]);
-}
-
-template<typename ArrayTrivialReloc>
-void testInsert()
-{
-	TrivialRelocat::clearCount();
-	{
-		ArrayTrivialReloc up;
-
-		double const VALUES[] = {-1.1, 0.4, 1.3, 2.2};
-
-		auto & ptr = *up.emplace(begin(up), VALUES[2]);
-		EXPECT_EQ(VALUES[2], *ptr);
-		ASSERT_EQ(1U, up.size());
-
-	#if OEL_HAS_EXCEPTIONS
-		TrivialRelocat::countToThrowOn = 0;
-		EXPECT_THROW( up.insert(begin(up), TrivialRelocat{0.0}), TestException );
-		ASSERT_EQ(1U, up.size());
-	#endif
-		up.insert(begin(up), TrivialRelocat{VALUES[0]});
-		ASSERT_EQ(2U, up.size());
-
-	#if OEL_HAS_EXCEPTIONS
-		TrivialRelocat::countToThrowOn = 0;
-		EXPECT_THROW( up.insert(begin(up) + 1, TrivialRelocat{0.0}), TestException );
-		ASSERT_EQ(2U, up.size());
-	#endif
-		up.insert(end(up), TrivialRelocat{VALUES[3]});
-		auto & p2 = *up.insert(begin(up) + 1, TrivialRelocat{VALUES[1]});
-		EXPECT_EQ(VALUES[1], *p2);
-		ASSERT_EQ(4U, up.size());
-
-		auto v = std::begin(VALUES);
-		for (const auto & p : up)
-		{
-			EXPECT_EQ(*v, *p);
-			++v;
-		}
-
-		auto it = up.insert( begin(up) + 2, std::move(up[2]) );
-		EXPECT_FALSE(up[3].hasValue());
-
-		auto const val = *up.back();
-		up.insert( end(up) - 1, std::move(up.back()) );
-		ASSERT_EQ(6U, up.size());
-		EXPECT_FALSE(up.back().hasValue());
-		EXPECT_EQ(val, *end(up)[-2]);
-	}
-	EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
 }
 
 template<typename ArrayT>

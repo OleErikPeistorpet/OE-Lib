@@ -57,7 +57,7 @@ TEST_F(inplaceGrowarrTest, pushBackMoveOnly)
 
 TEST_F(inplaceGrowarrTest, pushBackTrivialReloc)
 {
-	testPushBackTrivialReloc< inplace_growarr<TrivialRelocat, 5> >();
+	testPushBackTrivialReloc< inplace_growarr<TrivialRelocat, 7> >();
 }
 
 TEST_F(inplaceGrowarrTest, assign)
@@ -85,9 +85,70 @@ TEST_F(inplaceGrowarrTest, insertR)
 	testInsertR< inplace_growarr<double, 8>, inplace_growarr<int, 4> >();
 }
 
-TEST_F(inplaceGrowarrTest, insert)
+template< ptrdiff_t Cap >
+void testEmplace()
 {
-	testInsert< inplace_growarr<TrivialRelocat, 6> >();
+	TrivialRelocat::clearCount();
+
+	constexpr ptrdiff_t initSize{2};
+	double const firstVal {9};
+	double const secondVal{7.5};
+	for (ptrdiff_t insertOffset = 0; insertOffset <= initSize; ++insertOffset)
+		for (auto const constructThrowOnCount : {0, 1})
+		{
+			{	TrivialRelocat::countToThrowOn = -1;
+
+				inplace_growarr<TrivialRelocat, Cap> dest;
+				dest.emplace(dest.begin(), firstVal);
+				dest.emplace(dest.begin(), secondVal);
+
+				TrivialRelocat::countToThrowOn = constructThrowOnCount;
+
+				if constexpr (Cap == initSize)
+				{
+				#if OEL_HAS_EXCEPTIONS
+					EXPECT_THROW( dest.emplace(dest.begin() + insertOffset), std::bad_alloc );
+
+					EXPECT_EQ(initSize, ssize(dest));
+				#endif
+				}
+				else if (constructThrowOnCount == 0)
+				{
+				#if OEL_HAS_EXCEPTIONS
+					EXPECT_THROW( dest.emplace(dest.begin() + insertOffset), TestException );
+
+					EXPECT_EQ(initSize, ssize(dest));
+				#endif
+				}
+				else
+				{	dest.emplace(dest.begin() + insertOffset);
+
+					EXPECT_EQ(initSize + 1, ssize(dest));
+					EXPECT_FALSE( dest[insertOffset].hasValue() );
+				}
+				if (insertOffset == 0)
+				{
+					EXPECT_EQ(firstVal,  **(dest.end() - 1));
+					EXPECT_EQ(secondVal, **(dest.end() - 2));
+				}
+				else if (insertOffset == initSize)
+				{
+					EXPECT_EQ(secondVal, *dest[0]);
+					EXPECT_EQ(firstVal,  *dest[1]);
+				}
+				else
+				{	EXPECT_EQ(secondVal, *dest.front());
+					EXPECT_EQ(firstVal,  *dest.back());
+				}
+			}
+			EXPECT_EQ(TrivialRelocat::nConstructions, TrivialRelocat::nDestruct);
+		}
+}
+
+TEST_F(inplaceGrowarrTest, emplace)
+{
+	testEmplace<2>();
+	testEmplace<3>();
 }
 
 TEST_F(inplaceGrowarrTest, resize)
