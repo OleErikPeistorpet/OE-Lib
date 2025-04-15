@@ -115,13 +115,21 @@ public:
 		}
 	inplace_growarr & operator =(const inplace_growarr &&) = delete;
 
-	//! Like std::inplace_vector::assign_range, but stops when full instead of throwing `bad_alloc`
+	inplace_growarr & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
+
+	//! Like std::inplace_vector::assign_range, but stops when full instead of throwing bad_alloc
 	/** @return An iterator pointing to the first element of source that was not inserted,
 	*	or equal to `end(source)` if no such element exists
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template< typename InputRange >
 	auto try_assign(InputRange && source) -> borrowed_iterator_t<InputRange>;
+
+	//! Almost same as std::inplace_vector::assign_range
+	/** @return Iterator `begin(source)` incremented by the number of elements in source
+	* @copydetails try_assign(InputRange &&)  */
+	template< typename InputRange >
+	auto assign(InputRange && source) -> borrowed_iterator_t<InputRange>;
 
 	void assign(size_type count, const T & val)   { clear();  append(count, val); }
 
@@ -325,8 +333,19 @@ private:
 	{
 		auto it = adl_begin(src);
 		auto l  = adl_end(src);
-		for (; it != l and _size != Size{Capacity}; ++it)
+		for (; it != l and _size != Capacity; ++it)
 			unchecked_emplace_back(*it);
+
+		return it;
+	}
+
+	template< typename InputRange >
+	auto _emplBackRange(InputRange & src)
+	{
+		auto it = adl_begin(src);
+		auto l  = adl_end(src);
+		for (; it != l; ++it)
+			emplace_back(*it);
 
 		return it;
 	}
@@ -341,8 +360,8 @@ auto inplace_growarr<T, Capacity, Size>::try_assign(InputRange && source)
 	{
 		auto it = adl_begin(source);
 
-		auto n = as_unsigned(_detail::Size(source));
-		if (n > Capacity)
+		auto n = _detail::Size(source);
+		if (as_unsigned(n) > Capacity)
 			n = Capacity;
 
 		return _doAssign(std::move(it), static_cast<size_type>(n));
@@ -350,6 +369,27 @@ auto inplace_growarr<T, Capacity, Size>::try_assign(InputRange && source)
 	else
 	{	clear();
 		return _tryEmplBackRange(source);
+	}
+}
+
+template< typename T, size_t Capacity, typename Size >
+template< typename InputRange >
+auto inplace_growarr<T, Capacity, Size>::assign(InputRange && source)
+->	borrowed_iterator_t<InputRange>
+{
+	if constexpr (_detail::rangeIsSized<InputRange>)
+	{
+		auto      it = adl_begin(source);
+		auto const n = _detail::Size(source);
+
+		if (as_unsigned(n) > Capacity)
+			_detail::BadAlloc::raise();
+
+		return _doAssign(std::move(it), static_cast<size_type>(n));
+	}
+	else
+	{	clear();
+		return _emplBackRange(source);
 	}
 }
 
@@ -385,25 +425,20 @@ inline auto inplace_growarr<T, Capacity, Size>::append(InputRange && source)
 	{
 		auto      it = adl_begin(source);
 		auto const n = as_unsigned(_detail::Size(source));
-		if (spare_capacity() >= n)
-		{
-			it = _detail::UninitCopy(std::move(it), n, data() + _size);
-			_size += static_cast<Size>(n);
-			return it;
-		}
 
-		_detail::BadAlloc::raise();
+		if (as_unsigned(spare_capacity()) < n)
+			_detail::BadAlloc::raise();
+
+		it = _detail::UninitCopy(std::move(it), n, data() + _size);
+		_size += static_cast<Size>(n);
+
+		return it;
 	}
 	else
 	{	auto const oldSize = _size;
 		OEL_TRY_
 		{
-			auto it = adl_begin(source);
-			auto l  = adl_end(source);
-			for (; it != l; ++it)
-				emplace_back(*it);
-
-			return it;
+			return _emplBackRange(source);
 		}	// Catch with cleanup needed only when called from constructor
 		OEL_CATCH_ALL
 		{
@@ -435,42 +470,41 @@ auto inplace_growarr<T, Capacity, Size>::insert_range(const_iterator pos, Range 
 	OEL_ASSERT(begin() <= pos and pos <= end());
 
 	auto       srcIt = adl_begin(source);
-	auto const count = _detail::UDist(source);
+	auto const n = _detail::UDist(source);
 
-	if (spare_capacity() >= count)
+	if (as_unsigned(spare_capacity()) < n)
+		_detail::BadAlloc::raise();
+
+	auto mutPos = const_cast<T *>(pos);
+	size_t const bytesAfterPos = sizeof(T) * ((data() + _size) - mutPos);
+	T *const dLast = mutPos + n;
+	// Relocate elements to make space, leaving [pos, pos + n) uninitialized (conceptually)
+	std::memmove(static_cast<void *>(dLast), static_cast<const void *>(mutPos), bytesAfterPos);
+	_size += static_cast<Size>(n);
+	// Construct new
+	if constexpr (can_memmove_with<T *, decltype(srcIt)>)
 	{
-		auto mutPos = const_cast<T *>(pos);
-		size_t const bytesAfterPos = sizeof(T) * ((data() + _size) - mutPos);
-		T *const dLast = mutPos + count;
-		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
-		std::memmove(static_cast<void *>(dLast), static_cast<const void *>(mutPos), bytesAfterPos);
-		_size += static_cast<Size>(count);
-		// Construct new
-		if constexpr (can_memmove_with<T *, decltype(srcIt)>)
-		{
-			_detail::MemcpyCheck(srcIt, count, mutPos);
-			srcIt += count;
-		}
-		else
-		{	OEL_TRY_
-			{
-				while (mutPos != dLast)
-				{
-					::new(static_cast<void *>(mutPos)) T(*srcIt);
-					++mutPos; ++srcIt;
-				}
-			}
-			OEL_CATCH_ALL
-			{	// relocate back to fill hole
-				std::memmove(static_cast<void *>(mutPos), static_cast<const void *>(dLast), bytesAfterPos);
-				_size -= (dLast - mutPos);
-				OEL_RETHROW;
-			}
-		}
-
-		return {std::move(srcIt)};
+		_detail::MemcpyCheck(srcIt, n, mutPos);
+		srcIt += n;
 	}
-	_detail::BadAlloc::raise();
+	else
+	{	OEL_TRY_
+		{
+			while (mutPos != dLast)
+			{
+				::new(static_cast<void *>(mutPos)) T(*srcIt);
+				++mutPos; ++srcIt;
+			}
+		}
+		OEL_CATCH_ALL
+		{	// relocate back to fill hole
+			std::memmove(static_cast<void *>(mutPos), static_cast<const void *>(dLast), bytesAfterPos);
+			_size -= static_cast<Size>(dLast - mutPos);
+			OEL_RETHROW;
+		}
+	}
+
+	return {std::move(srcIt)};
 }
 
 template< typename T, size_t Capacity, typename Size >

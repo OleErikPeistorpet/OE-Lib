@@ -172,8 +172,7 @@ void testAssign()
 		dest.assign(1, TrivialRelocat{-1.0});
 		EXPECT_EQ(-1.0, *dest[0]);
 		EXPECT_EQ(1U, dest.size());
-		auto il = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
-		dest.try_assign(il);
+		dest = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
 		EXPECT_EQ(1.0, *dest[0]);
 		EXPECT_EQ(2.0, *dest[1]);
 		#if OEL_HAS_EXCEPTIONS
