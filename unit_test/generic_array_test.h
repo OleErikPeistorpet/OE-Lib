@@ -172,7 +172,9 @@ void testAssign()
 		dest.assign(1, TrivialRelocat{-1.0});
 		EXPECT_EQ(-1.0, *dest[0]);
 		EXPECT_EQ(1U, dest.size());
-		dest = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
+
+		auto il = {TrivialRelocat{1.0}, TrivialRelocat{2.0}};
+		dest.try_assign(il);
 		EXPECT_EQ(1.0, *dest[0]);
 		EXPECT_EQ(2.0, *dest[1]);
 		#if OEL_HAS_EXCEPTIONS
@@ -270,7 +272,7 @@ void testAppend()
 		EXPECT_EQ(0U, dest.size());
 
 		double const TEST_VAL = 6.6;
-		dest.append(2, TEST_VAL);
+		dest.try_append(2, TEST_VAL);
 		dest.append( view::subrange(dest.begin(), dest.end()) );
 		EXPECT_EQ(4U, dest.size());
 		for (const auto & d : dest)
@@ -314,7 +316,7 @@ void testAppendFromStringStream()
 	std::istream_iterator<int> it(ss);
 
 	// Should hit static_assert
-	//dest.insert_range(dest.begin(), view::subrange(it, std::istream_iterator<int>()));
+	//dest.try_insert(dest.begin(), view::subrange(it, std::istream_iterator<int>()));
 
 	it = dest.append(view::counted(it, 2));
 
@@ -325,28 +327,28 @@ void testAppendFromStringStream()
 }
 
 template<typename ArrayDouble, typename ArrayInt>
-void testInsertR()
+void testInsertRange()
 {
 	{
 		ArrayDouble dest;
 		// Test insert empty std iterator range to empty dynarray
 		std::deque<double> src;
-		dest.insert_range(dest.begin(), src);
+		dest.try_insert(dest.begin(), src);
 
-		dest.template insert_range< std::initializer_list<double> >(dest.begin(), {});
+		dest.template try_insert< std::initializer_list<double> >(dest.begin(), {});
 	}
 
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	ArrayDouble double_dynarr, double_dynarr2;
-	double_dynarr.insert_range(double_dynarr.begin(), arrayA);
-	double_dynarr.insert_range(double_dynarr.end(), double_dynarr2);
+	double_dynarr.try_insert(double_dynarr.begin(), arrayA);
+	double_dynarr.try_insert(double_dynarr.end(), double_dynarr2);
 
 	{
 		ArrayInt int_dynarr;
-		int_dynarr.insert_range(int_dynarr.begin(), std::initializer_list<int>{1, 2, 3, 4});
+		int_dynarr.try_insert(int_dynarr.begin(), std::initializer_list<int>{1, 2, 3, 4});
 
-		double_dynarr.insert_range(double_dynarr.end(), int_dynarr);
+		double_dynarr.try_insert(double_dynarr.end(), int_dynarr);
 	}
 
 	ASSERT_EQ(8U, double_dynarr.size());

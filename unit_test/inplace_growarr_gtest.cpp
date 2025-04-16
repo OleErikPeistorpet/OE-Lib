@@ -72,9 +72,9 @@ TEST_F(inplaceGrowarrTest, appendFromStringStream)
 	testAppendFromStringStream<	inplace_growarr<int, 5> >();
 }
 
-TEST_F(inplaceGrowarrTest, insertR)
+TEST_F(inplaceGrowarrTest, insertRange)
 {
-	testInsertR< inplace_growarr<double, 8>, inplace_growarr<int, 4> >();
+	testInsertRange< inplace_growarr<double, 8>, inplace_growarr<int, 4> >();
 }
 
 template< ptrdiff_t Cap >
