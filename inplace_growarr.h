@@ -29,7 +29,9 @@ struct _toInplaceGrowarrFn
 	template< typename InputRange >
 	auto operator()(InputRange && r) const   { return static_cast<InputRange &&>(r) | *this; }
 };
-//! `to_inplace_growarr<C>` is same as `std::ranges::to< inplace_growarr<T, C> >()` with T deduced from passed range
+//! `r | to_inplace_growarr<C>` is same as `r | std::ranges::to< inplace_growarr<T, C> >()` with T deduced from `r`
+/**
+* Regular function syntax can also be used: `to_inplace_growarr<30>(r)` */
 template< size_t Cap, typename SizeT = size_t >
 inline constexpr _toInplaceGrowarrFn<Cap, SizeT> to_inplace_growarr;
 
@@ -41,6 +43,8 @@ is_trivially_relocatable<T> specify_trivial_relocate(inplace_growarr<T, C, S>);
 
 //! Resizable array, statically allocated. Specify maximum size as template argument.
 /**
+* The type of the internal size variable can also be specified with the last, optional template argument.
+*
 * In general, only that which differs from std::inplace_vector (C++26) is documented.
 *
 * A few functions require that T is trivially relocatable (see oel::is_trivially_relocatable):
@@ -138,7 +142,7 @@ public:
 	//! Like `std::inplace_vector::insert(end(), count, val)`, but returns false instead of throwing bad_alloc
 	/** @return `count <= spare_capacity(*this)` which indicates success
 	*
-	* There are no effects if spare capacity is insufficient. */
+	* There are no effects if spare capacity is too small. */
 	bool try_append(size_type count, const T & val);
 
 	//! Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
@@ -147,13 +151,13 @@ public:
 	void resize_for_overwrite(size_type n)   { _doResize<_detail::UninitDefaultConstructA>(n); }
 	void resize(size_type n)                 { _doResize<_detail::UninitFillA>(n); }
 
-	//! Like std::inplace_vector::insert_range, but does not throw bad_alloc if spare capacity is insufficient
+	//! Like std::inplace_vector::insert_range, but does not throw bad_alloc if spare capacity is too small
 	/** @return Iterator `begin(source)` incremented by `n` if `n <= spare_capacity(*this)`, where
 	*	`n` is the number of elements in source. Else, on failure, returns `begin(source)` unchanged
 	* @param source must model std::ranges::forward_range or `source.size()` must be valid
 	*
 	* After the call, pos points at the first element inserted.
-	* If spare capacity is insufficient, there are no effects on this container. */
+	* If spare capacity is too small, there are no effects on this container. */
 	template< typename Range >
 	auto try_insert(const_iterator pos, Range && source) -> borrowed_iterator_t<Range>;
 
