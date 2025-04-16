@@ -317,11 +317,6 @@ private:
 	}
 
 
-	auto _spareCapacity() const
-	{
-		return static_cast<size_type>(_m.reservEnd - _m.end);
-	}
-
 	size_type _calcCapUnchecked(size_type const newSize) const
 	{
 		return std::max(2 * capacity(), newSize);
@@ -472,7 +467,7 @@ private:
 	template< typename InputIter >
 	InputIter _doAppend(InputIter src, size_type const count)
 	{
-		if (_spareCapacity() < count) OEL_UNLIKELY
+		if (oel::spare_capacity(*this) < count) OEL_UNLIKELY
 			_growBy(count);
 
 		if constexpr (can_memmove_with<T *, InputIter>)
@@ -591,7 +586,7 @@ typename dynarray<T, Alloc>::iterator
 
 	size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
 	T * dLast;
-	if (_spareCapacity() >= count)
+	if (oel::spare_capacity(*this) >= count)
 	{
 		dLast = pPos + count;
 		// Relocate elements to make space, leaving [pos, pos + count) uninitialized (conceptually)
@@ -661,7 +656,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 {
-	if (_spareCapacity() < count) OEL_UNLIKELY
+	if (oel::spare_capacity(*this) < count) OEL_UNLIKELY
 		_growBy(count);
 
 	auto const pos = _m.end;

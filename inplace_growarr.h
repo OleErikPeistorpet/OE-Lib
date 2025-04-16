@@ -223,8 +223,6 @@ public:
 
 	OEL_ALWAYS_INLINE
 	size_type size() const noexcept   { return _size; }
-	//! Equivalent to `capacity() - size()`
-	size_type spare_capacity() const noexcept   { return Capacity - _size; }
 
 	static constexpr size_type capacity() noexcept { return Capacity; }
 	static constexpr size_type max_size() noexcept { return Capacity; }
@@ -402,9 +400,9 @@ inline auto inplace_growarr<T, Capacity, Size>::try_append(InputRange && source)
 	{
 		auto it = adl_begin(source);
 
-		auto const n = as_unsigned(_detail::Size(source));
-		auto const spare = as_unsigned(spare_capacity());
-		auto const min = n < spare ? n : spare;
+		auto const n     = as_unsigned(_detail::Size(source));
+		auto const spare = as_unsigned(oel::spare_capacity(*this));
+		auto const min   = n < spare ? n : spare;
 
 		it = _detail::UninitCopy(std::move(it), min, data() + _size);
 		_size += static_cast<Size>(min);
@@ -426,7 +424,7 @@ inline auto inplace_growarr<T, Capacity, Size>::append(InputRange && source)
 		auto      it = adl_begin(source);
 		auto const n = as_unsigned(_detail::Size(source));
 
-		if (as_unsigned(spare_capacity()) < n)
+		if (as_unsigned(oel::spare_capacity(*this)) < n)
 			_detail::BadAlloc::raise();
 
 		it = _detail::UninitCopy(std::move(it), n, data() + _size);
@@ -451,7 +449,7 @@ inline auto inplace_growarr<T, Capacity, Size>::append(InputRange && source)
 template< typename T, size_t Capacity, typename Size >
 void inplace_growarr<T, Capacity, Size>::append(size_type count, const T & val)
 {
-	if (spare_capacity() < count)
+	if (oel::spare_capacity(*this) < count)
 		_detail::BadAlloc::raise();
 
 	size_type newSize = _size + count;
@@ -472,7 +470,7 @@ auto inplace_growarr<T, Capacity, Size>::insert_range(const_iterator pos, Range 
 	auto       srcIt = adl_begin(source);
 	auto const n = _detail::UDist(source);
 
-	if (as_unsigned(spare_capacity()) < n)
+	if (as_unsigned(oel::spare_capacity(*this)) < n)
 		_detail::BadAlloc::raise();
 
 	auto mutPos = const_cast<T *>(pos);

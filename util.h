@@ -74,6 +74,12 @@ template< typename Integer, typename SizedRangeLike >
 	}
 
 
+//! Equivalent to `c.capacity() - c.size()`
+template< typename Container >
+constexpr auto spare_capacity(Container && c) noexcept  { return c.capacity() - c.size(); }
+
+
+
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {
