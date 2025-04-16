@@ -75,7 +75,7 @@ class dynarray;
 }
 #endif
 
-template< typename T, size_t Capacity, typename Size = size_t >
+template< typename T, size_t Cap, typename SizeT = size_t >
 class inplace_growarr;
 
 

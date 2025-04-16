@@ -23,22 +23,22 @@ struct inplace_insert_range_return
 };
 
 
-template< size_t Capacity, typename Size >
+template< size_t Cap, typename SizeT >
 struct _toInplaceGrowarrFn
 {
 	template< typename InputRange >
 	friend auto operator |(InputRange && r, _toInplaceGrowarrFn)
 		{
 			using T = iter_value_t< iterator_t<InputRange> >;
-			return inplace_growarr<T, Capacity, Size>(from_range, static_cast<InputRange &&>(r));
+			return inplace_growarr<T, Cap, SizeT>(from_range, static_cast<InputRange &&>(r));
 		}
 
 	template< typename InputRange >
 	auto operator()(InputRange && r) const   { return static_cast<InputRange &&>(r) | *this; }
 };
-//! `to_inplace_growarr<C>` is same as `std::ranges::to< inplace_growarr<T, C> >()` with T deduced from `r`
-template< size_t Capacity, typename Size = size_t >
-inline constexpr _toInplaceGrowarrFn<Capacity, Size> to_inplace_growarr;
+//! `to_inplace_growarr<C>` is same as `std::ranges::to< inplace_growarr<T, C> >()` with T deduced from passed range
+template< size_t Cap, typename SizeT = size_t >
+inline constexpr _toInplaceGrowarrFn<Cap, SizeT> to_inplace_growarr;
 
 
 //! inplace_growarr is trivially relocatable if T is
@@ -55,15 +55,15 @@ is_trivially_relocatable<T> specify_trivial_relocate(inplace_growarr<T, C, S>);
 *
 * For any function which takes a range, `end(range)` is not needed if `range.size()` is valid.
 */
-template< typename T, size_t Capacity, typename Size >
+template< typename T, size_t Cap, typename SizeT >
 class inplace_growarr
- :	public _arrayInterface< inplace_growarr<T, Capacity, Size> >
+ :	public _arrayInterface< inplace_growarr<T, Cap, SizeT> >
 {
-	static_assert(Capacity <= std::numeric_limits<Size>::max(), "Capacity does not fit in type Size");
+	static_assert(Cap <= std::numeric_limits<SizeT>::max(), "Capacity does not fit in SizeT");
 
 public:
 	using value_type      = T;
-	using size_type       = Size;
+	using size_type       = SizeT;
 	using difference_type = ptrdiff_t;
 
 	using iterator               = T *;
@@ -78,7 +78,7 @@ public:
 	/** @copydetails resize_for_overwrite(size_type)  */
 	inplace_growarr(size_type size, for_overwrite_t)
 		{
-			if (Capacity < size)
+			if (Cap < size)
 				_detail::BadAlloc::raise();
 
 			_detail::UninitDefaultConstructA::call(data(), data() + size);
@@ -87,7 +87,7 @@ public:
 	//! (Value-initializes elements, same as standard containers)
 	explicit inplace_growarr(size_type size)
 		{
-			if (Capacity < size)
+			if (Cap < size)
 				_detail::BadAlloc::raise();
 
 			_detail::UninitFillA::call(data(), data() + size);
@@ -170,7 +170,7 @@ public:
 	template< typename... Args >
 	T &      emplace_back(Args &&... args) &
 		{
-			if (Capacity != _size)
+			if (Cap != _size)
 				return unchecked_emplace_back(static_cast<Args &&>(args)...);
 			else
 				_detail::BadAlloc::raise();
@@ -219,13 +219,13 @@ public:
 
 	void      clear() noexcept        { erase_to_end(begin()); }
 
-	bool      full() const noexcept   { return Capacity == _size; }
+	bool      full() const noexcept   { return Cap == _size; }
 
 	OEL_ALWAYS_INLINE
 	size_type size() const noexcept   { return _size; }
 
-	static constexpr size_type capacity() noexcept { return Capacity; }
-	static constexpr size_type max_size() noexcept { return Capacity; }
+	static constexpr size_type capacity() noexcept { return Cap; }
+	static constexpr size_type max_size() noexcept { return Cap; }
 
 	OEL_ALWAYS_INLINE
 	iterator       begin() noexcept         { return data(); }
@@ -257,8 +257,8 @@ public:
 
 
 private:
-	Size           _size{};
-	storage_for<T> _data[Capacity];
+	SizeT          _size{};
+	storage_for<T> _data[Cap];
 
 
 	void _relocateFrom(inplace_growarr & other) noexcept
@@ -273,7 +273,7 @@ private:
 	template< typename UninitFiller >
 	void _doResize(size_type const newSize)
 	{
-		if (Capacity < newSize)
+		if (Cap < newSize)
 			_detail::BadAlloc::raise();
 
 		T *const oldEnd = data() + _size;
@@ -331,7 +331,7 @@ private:
 	{
 		auto it = adl_begin(src);
 		auto l  = adl_end(src);
-		for (; it != l and _size != Capacity; ++it)
+		for (; it != l and _size != Cap; ++it)
 			unchecked_emplace_back(*it);
 
 		return it;
@@ -349,9 +349,9 @@ private:
 	}
 };
 
-template< typename T, size_t Capacity, typename Size >
+template< typename T, size_t Cap, typename SizeT >
 template< typename InputRange >
-auto inplace_growarr<T, Capacity, Size>::try_assign(InputRange && source)
+auto inplace_growarr<T, Cap, SizeT>::try_assign(InputRange && source)
 ->	borrowed_iterator_t<InputRange>
 {
 	if constexpr (_detail::rangeIsSized<InputRange>)
@@ -359,8 +359,8 @@ auto inplace_growarr<T, Capacity, Size>::try_assign(InputRange && source)
 		auto it = adl_begin(source);
 
 		auto n = _detail::Size(source);
-		if (as_unsigned(n) > Capacity)
-			n = Capacity;
+		if (as_unsigned(n) > Cap)
+			n = Cap;
 
 		return _doAssign(std::move(it), static_cast<size_type>(n));
 	}
@@ -370,9 +370,9 @@ auto inplace_growarr<T, Capacity, Size>::try_assign(InputRange && source)
 	}
 }
 
-template< typename T, size_t Capacity, typename Size >
+template< typename T, size_t Cap, typename SizeT >
 template< typename InputRange >
-auto inplace_growarr<T, Capacity, Size>::assign(InputRange && source)
+auto inplace_growarr<T, Cap, SizeT>::assign(InputRange && source)
 ->	borrowed_iterator_t<InputRange>
 {
 	if constexpr (_detail::rangeIsSized<InputRange>)
@@ -380,7 +380,7 @@ auto inplace_growarr<T, Capacity, Size>::assign(InputRange && source)
 		auto      it = adl_begin(source);
 		auto const n = _detail::Size(source);
 
-		if (as_unsigned(n) > Capacity)
+		if (as_unsigned(n) > Cap)
 			_detail::BadAlloc::raise();
 
 		return _doAssign(std::move(it), static_cast<size_type>(n));
@@ -391,9 +391,9 @@ auto inplace_growarr<T, Capacity, Size>::assign(InputRange && source)
 	}
 }
 
-template< typename T, size_t Capacity, typename Size >
+template< typename T, size_t Cap, typename SizeT >
 template< typename InputRange >
-inline auto inplace_growarr<T, Capacity, Size>::try_append(InputRange && source)
+inline auto inplace_growarr<T, Cap, SizeT>::try_append(InputRange && source)
 ->	borrowed_iterator_t<InputRange>
 {
 	if constexpr (_detail::rangeIsSized<InputRange>)
@@ -405,7 +405,7 @@ inline auto inplace_growarr<T, Capacity, Size>::try_append(InputRange && source)
 		auto const min   = n < spare ? n : spare;
 
 		it = _detail::UninitCopy(std::move(it), min, data() + _size);
-		_size += static_cast<Size>(min);
+		_size += static_cast<SizeT>(min);
 
 		return it;
 	}
@@ -414,9 +414,9 @@ inline auto inplace_growarr<T, Capacity, Size>::try_append(InputRange && source)
 	}
 }
 
-template< typename T, size_t Capacity, typename Size >
+template< typename T, size_t Cap, typename SizeT >
 template< typename InputRange >
-inline auto inplace_growarr<T, Capacity, Size>::append(InputRange && source)
+inline auto inplace_growarr<T, Cap, SizeT>::append(InputRange && source)
 ->	borrowed_iterator_t<InputRange>
 {
 	if constexpr (_detail::rangeIsSized<InputRange>)
@@ -428,7 +428,7 @@ inline auto inplace_growarr<T, Capacity, Size>::append(InputRange && source)
 			_detail::BadAlloc::raise();
 
 		it = _detail::UninitCopy(std::move(it), n, data() + _size);
-		_size += static_cast<Size>(n);
+		_size += static_cast<SizeT>(n);
 
 		return it;
 	}
@@ -446,8 +446,8 @@ inline auto inplace_growarr<T, Capacity, Size>::append(InputRange && source)
 	}
 }
 
-template< typename T, size_t Capacity, typename Size >
-void inplace_growarr<T, Capacity, Size>::append(size_type count, const T & val)
+template< typename T, size_t Cap, typename SizeT >
+void inplace_growarr<T, Cap, SizeT>::append(size_type count, const T & val)
 {
 	if (oel::spare_capacity(*this) < count)
 		_detail::BadAlloc::raise();
@@ -458,9 +458,9 @@ void inplace_growarr<T, Capacity, Size>::append(size_type count, const T & val)
 }
 
 
-template< typename T, size_t Capacity, typename Size >
+template< typename T, size_t Cap, typename SizeT >
 template< typename Range >
-auto inplace_growarr<T, Capacity, Size>::insert_range(const_iterator pos, Range && source)
+auto inplace_growarr<T, Cap, SizeT>::insert_range(const_iterator pos, Range && source)
 ->	inplace_insert_range_return< borrowed_iterator_t<Range> >
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
@@ -478,7 +478,7 @@ auto inplace_growarr<T, Capacity, Size>::insert_range(const_iterator pos, Range 
 	T *const dLast = mutPos + n;
 	// Relocate elements to make space, leaving [pos, pos + n) uninitialized (conceptually)
 	std::memmove(static_cast<void *>(dLast), static_cast<const void *>(mutPos), bytesAfterPos);
-	_size += static_cast<Size>(n);
+	_size += static_cast<SizeT>(n);
 	// Construct new
 	if constexpr (can_memmove_with<T *, decltype(srcIt)>)
 	{
@@ -497,7 +497,7 @@ auto inplace_growarr<T, Capacity, Size>::insert_range(const_iterator pos, Range 
 		OEL_CATCH_ALL
 		{	// relocate back to fill hole
 			std::memmove(static_cast<void *>(mutPos), static_cast<const void *>(dLast), bytesAfterPos);
-			_size -= static_cast<Size>(dLast - mutPos);
+			_size -= static_cast<SizeT>(dLast - mutPos);
 			OEL_RETHROW;
 		}
 	}
@@ -505,15 +505,15 @@ auto inplace_growarr<T, Capacity, Size>::insert_range(const_iterator pos, Range 
 	return {std::move(srcIt)};
 }
 
-template< typename T, size_t Capacity, typename Size >
+template< typename T, size_t Cap, typename SizeT >
 template< typename... Args >
-typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capacity, Size>::
-	emplace(const_iterator pos, Args &&... args) &
+typename inplace_growarr<T, Cap, SizeT>::iterator
+	inplace_growarr<T, Cap, SizeT>::emplace(const_iterator pos, Args &&... args) &
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
 	OEL_ASSERT(begin() <= pos and pos <= end());
 
-	if (Capacity != _size)
+	if (Cap != _size)
 	{
 		auto const mutPos = const_cast<T *>(pos);
 		size_t const nAfterPos = _size - (mutPos - data());
@@ -534,11 +534,11 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 	_detail::BadAlloc::raise();
 }
 
-template< typename T, size_t Capacity, typename Size >
+template< typename T, size_t Cap, typename SizeT >
 template< typename... Args >
-inline T & inplace_growarr<T, Capacity, Size>::unchecked_emplace_back(Args &&... args) &
+inline T & inplace_growarr<T, Cap, SizeT>::unchecked_emplace_back(Args &&... args) &
 {
-	OEL_ASSERT(_size < Capacity);
+	OEL_ASSERT(_size < Cap);
 
 	T *const pos = data() + _size;
 	::new(static_cast<void *>(pos)) T(static_cast<Args &&>(args)...);
@@ -547,8 +547,8 @@ inline T & inplace_growarr<T, Capacity, Size>::unchecked_emplace_back(Args &&...
 }
 
 
-template< typename T, size_t Capacity, typename Size >
-inplace_growarr<T, Capacity, Size> &  inplace_growarr<T, Capacity, Size>::operator =(inplace_growarr && other) &
+template< typename T, size_t Cap, typename SizeT >
+inplace_growarr<T, Cap, SizeT> &  inplace_growarr<T, Cap, SizeT>::operator =(inplace_growarr && other) &
 	noexcept(std::is_nothrow_move_assignable_v<T> or is_trivially_relocatable<T>::value)
 {
 	if constexpr (is_trivially_relocatable<T>::value)
@@ -564,8 +564,8 @@ inplace_growarr<T, Capacity, Size> &  inplace_growarr<T, Capacity, Size>::operat
 }
 
 
-template< typename T, size_t Capacity, typename Size >
-void inplace_growarr<T, Capacity, Size>::unordered_erase(iterator pos)
+template< typename T, size_t Cap, typename SizeT >
+void inplace_growarr<T, Cap, SizeT>::unordered_erase(iterator pos)
 {
 	if constexpr (is_trivially_relocatable<T>::value)
 	{
