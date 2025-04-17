@@ -11,13 +11,37 @@
 
 
 /** @file
-* @brief Efficient range-based erase, copy functions and non-member append
+* @brief Efficient erase, concat_to_dynarray and non-member append
 *
 * Designed to interface with the standard library.
 */
 
 namespace oel
 {
+
+//! Concatenate multiple ranges into a dynarray using a single memory allocation
+/**
+* Requires that Ranges all model std::ranges::forward_range or that `sources.size()...` is valid.
+* Example:
+@code
+constexpr auto header = "v1\n"sv;
+std::string_view body();
+
+auto result = concat_to_dynarray(header, body());
+@endcode  */
+template< typename... Ranges >  inline
+auto concat_to_dynarray(Ranges &&... sources)
+	{
+		return _detail::ConcatToDynarr(allocator<>{}, static_cast<Ranges &&>(sources)...);
+	}
+//! Equivalent to oel::concat_to_dynarray with an allocator instance for the dynarray
+/** @param a passed to the dynarray constructor. The used allocator type will be `std::allocator_traits<Alloc>::rebind_traits<T>`, where T is std::common_type_t of all range value types of Ranges. */
+template< typename Alloc, typename... Ranges >  inline
+auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
+	{
+		return _detail::ConcatToDynarr(std::move(a), static_cast<Ranges &&>(sources)...);
+	}
+
 
 /** @brief Erase the element at index from container without maintaining order of elements after index.
 *
@@ -51,49 +75,6 @@ constexpr void erase_adjacent_dup(Container & c)   { _detail::Unique(c); }
 
 
 
-template< typename Iterator >
-struct copy_return
-{
-	Iterator in;
-};
-/**
-* @brief Copies the elements in source range into the range beginning at iter
-* @return `begin(source)` incremented by source size
-* @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
-*
-* Requires that  `source.size()` or `end(source) - begin(source)` is valid, and that iter models random_access_iterator.
-* To move instead of copy, wrap source with view::move. To mimic std::copy_n, use view::counted.
-* (Views can be used for all functions taking a range as source)  */
-inline constexpr auto copy_unsafe =
-	[](auto && source, auto iter) -> copy_return< borrowed_iterator_t<decltype(source)> >
-	{
-		return{ _detail::CopyUnsf(begin(source), _detail::Size(source), iter) };
-	};
-/**
-* @brief Copies the elements in source range into dest range, throws std::out_of_range if dest is smaller than source
-* @return `begin(source)` incremented by the number of elements in source
-* @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
-*
-* Requires that `source.size()` or `end(source) - begin(source)` is valid, and that dest models random_access_range. */
-inline constexpr auto copy =
-	[](auto && source, auto && dest) -> copy_return< borrowed_iterator_t<decltype(source)> >
-	{
-		if (as_unsigned( _detail::Size(source) ) <= as_unsigned( _detail::Size(dest) ))
-			return copy_unsafe(source, begin(dest));
-		else
-			_detail::OutOfRange::raise("Too small dest oel::copy");
-	};
-/**
-* @brief Copies as many elements from source range as will fit in dest range
-* @return true if all elements were copied, false means truncation happened
-* @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
-*
-* Requires that dest models std::ranges::random_access_range. */
-inline constexpr auto copy_fit =
-	[](auto && source, auto && dest) -> bool   { return _detail::CopyFit(source, dest); };
-
-
-
 struct _appendFn
 {
 	template< typename Container, typename InputRange >
@@ -104,24 +85,13 @@ struct _appendFn
 			c.append_range(static_cast<InputRange &&>(source));
 		else
 	#endif
-			c.insert(c.end(), begin(source), end(source));
-	}
-
-	template< typename T, typename A, typename InputRange >
-	void operator()(dynarray<T, A> & c, InputRange && source) const
-	{
-		c.append(static_cast<InputRange &&>(source));
-	}
-
-	template< typename T, size_t C, typename S, typename InputRange >
-	void operator()(inplace_growarr<T, C, S> & c, InputRange && source) const
-	{
-		c.append(static_cast<InputRange &&>(source));
+		if constexpr (decltype( _detail::CanAppend(c, static_cast<InputRange &&>(source)) )::value)
+			c.append(static_cast<InputRange &&>(source));
+		else
+			c.append(to_pointer_contiguous(begin(source)), _detail::Size(source));
 	}
 };
-/** @brief Append source range at end of a container
-*
-* Generic function for use with dynarray or container that has standard library interface. */
+//! Generic way to call append_range or append on a container or string, with a source range
 inline constexpr _appendFn append;
 
 } // namespace oel

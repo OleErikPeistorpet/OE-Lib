@@ -223,13 +223,16 @@ public:
 
 	bool      full() const noexcept   { return Capacity == _size; }
 
-	size_type size() const noexcept   OEL_ALWAYS_INLINE { return _size; }
+	OEL_ALWAYS_INLINE
+	size_type size() const noexcept   { return _size; }
 
 	static constexpr size_type capacity() noexcept { return Capacity; }
 	static constexpr size_type max_size() noexcept { return Capacity; }
 
-	iterator       begin() noexcept         OEL_ALWAYS_INLINE { return data(); }
-	const_iterator begin() const noexcept   OEL_ALWAYS_INLINE { return data(); }
+	OEL_ALWAYS_INLINE
+	iterator       begin() noexcept         { return data(); }
+	OEL_ALWAYS_INLINE
+	const_iterator begin() const noexcept   { return data(); }
 
 	iterator       end() noexcept         { return data() + _size; }
 	const_iterator end() const noexcept   { return data() + _size; }
@@ -437,13 +440,12 @@ typename inplace_growarr<T, Capacity, Size>::iterator  inplace_growarr<T, Capaci
 	insert_range(const_iterator pos, ForwardRange && src) &
 {
 	(void) _detail::AssertTrivialRelocate<T>{};
+	static_assert( _detail::rangeIsForwardOrSized<ForwardRange>,
+		"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
 	OEL_ASSERT(begin() <= pos and pos <= end());
 
-	auto first = adl_begin(src);
-	auto const count = _detail::CountOrEnd(src);
-
-	static_assert( std::is_same_v<decltype(count), size_t const>,
-			"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
+	auto       first = adl_begin(src);
+	auto const count = _detail::UDist(src);
 
 	if (_spareCapacity() >= count)
 	{

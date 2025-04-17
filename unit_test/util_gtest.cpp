@@ -49,67 +49,67 @@ namespace
 	static_assert(!oel::iter_is_random_access<ListI>);
 }
 
-TEST(utilTest, ForwardT)
+TEST(utilTest, forwardT)
 {
-	using oel::_detail::ForwardT;
+	using oel::forward_t;
 
-	static_assert(std::is_same_v< ForwardT<double const>, double >);
-	static_assert(std::is_same_v< ForwardT<double &&>, double >);
-	static_assert(std::is_same_v< ForwardT<const double &&>, double >);
-	static_assert(std::is_same_v< ForwardT<const double &>, double >);
-	static_assert(std::is_same_v< ForwardT<double &>, double & >);
+	static_assert(std::is_same_v< forward_t<double const>, double >);
+	static_assert(std::is_same_v< forward_t<double &&>, double >);
+	static_assert(std::is_same_v< forward_t<const double &&>, double >);
+	static_assert(std::is_same_v< forward_t<const double &>, double >);
+	static_assert(std::is_same_v< forward_t<double &>, double & >);
 
-	static_assert(std::is_same_v< ForwardT<int[1]>, int(&&)[1] >);
-	static_assert(std::is_same_v< ForwardT<int(&&)[1]>, int(&&)[1] >);
-	static_assert(std::is_same_v< ForwardT<int(&)[1]>, int(&)[1] >);
-	static_assert(std::is_same_v< ForwardT<const int(&)[1]>, const int(&)[1] >);
+	static_assert(std::is_same_v< forward_t<int[1]>, int(&&)[1] >);
+	static_assert(std::is_same_v< forward_t<int(&&)[1]>, int(&&)[1] >);
+	static_assert(std::is_same_v< forward_t<int(&)[1]>, int(&)[1] >);
+	static_assert(std::is_same_v< forward_t<const int(&)[1]>, const int(&)[1] >);
 
 	using P = std::unique_ptr<int>;
-	static_assert(std::is_same_v< ForwardT<P const>, const P && >);
-	static_assert(std::is_same_v< ForwardT<const P &&>, const P && >);
-	static_assert(std::is_same_v< ForwardT<P &>, P & >);
-	static_assert(std::is_same_v< ForwardT<const P &>, const P & >);
+	static_assert(std::is_same_v< forward_t<P const>, const P && >);
+	static_assert(std::is_same_v< forward_t<const P &&>, const P && >);
+	static_assert(std::is_same_v< forward_t<P &>, P & >);
+	static_assert(std::is_same_v< forward_t<const P &>, const P & >);
 
 	// Small, non-trivial copy
-	static_assert(std::is_same_v< ForwardT<TrivialRelocat const>, const TrivialRelocat && >);
-	static_assert(std::is_same_v< ForwardT<const TrivialRelocat &&>, const TrivialRelocat && >);
-	static_assert(std::is_same_v< ForwardT<TrivialRelocat &>, TrivialRelocat & >);
-	static_assert(std::is_same_v< ForwardT<const TrivialRelocat &>, const TrivialRelocat & >);
+	static_assert(std::is_same_v< forward_t<TrivialRelocat const>, const TrivialRelocat && >);
+	static_assert(std::is_same_v< forward_t<const TrivialRelocat &&>, const TrivialRelocat && >);
+	static_assert(std::is_same_v< forward_t<TrivialRelocat &>, TrivialRelocat & >);
+	static_assert(std::is_same_v< forward_t<const TrivialRelocat &>, const TrivialRelocat & >);
 
 #ifdef _MSC_VER
-	static_assert(std::is_same_v< ForwardT<P>, P >);
-	static_assert(std::is_same_v< ForwardT<P &&>, P >);
+	static_assert(std::is_same_v< forward_t<P>, P >);
+	static_assert(std::is_same_v< forward_t<P &&>, P >);
 
-	static_assert(std::is_same_v< ForwardT<TrivialRelocat>, TrivialRelocat >);
-	static_assert(std::is_same_v< ForwardT<TrivialRelocat &&>, TrivialRelocat >);
+	static_assert(std::is_same_v< forward_t<TrivialRelocat>, TrivialRelocat >);
+	static_assert(std::is_same_v< forward_t<TrivialRelocat &&>, TrivialRelocat >);
 #else
-	static_assert(std::is_same_v< ForwardT<P>, P && >);
-	static_assert(std::is_same_v< ForwardT<P &&>, P && >);
+	static_assert(std::is_same_v< forward_t<P>, P && >);
+	static_assert(std::is_same_v< forward_t<P &&>, P && >);
 
-	static_assert(std::is_same_v< ForwardT<TrivialRelocat>, TrivialRelocat && >);
-	static_assert(std::is_same_v< ForwardT<TrivialRelocat &&>, TrivialRelocat && >);
+	static_assert(std::is_same_v< forward_t<TrivialRelocat>, TrivialRelocat && >);
+	static_assert(std::is_same_v< forward_t<TrivialRelocat &&>, TrivialRelocat && >);
 #endif
 	{
 		using A = std::array<std::size_t, 3>;
-		static_assert(std::is_same_v< ForwardT<A>, A && >);
-		static_assert(std::is_same_v< ForwardT<A &&>, A && >);
-		static_assert(std::is_same_v< ForwardT<A const>, const A && >);
-		static_assert(std::is_same_v< ForwardT<const A &&>, const A && >);
-		static_assert(std::is_same_v< ForwardT<A &>, A & >);
-		static_assert(std::is_same_v< ForwardT<const A &>, const A & >);
+		static_assert(std::is_same_v< forward_t<A>, A && >);
+		static_assert(std::is_same_v< forward_t<A &&>, A && >);
+		static_assert(std::is_same_v< forward_t<A const>, const A && >);
+		static_assert(std::is_same_v< forward_t<const A &&>, const A && >);
+		static_assert(std::is_same_v< forward_t<A &>, A & >);
+		static_assert(std::is_same_v< forward_t<const A &>, const A & >);
 	}
 	using A = std::array<double, 1>;
-	static_assert(std::is_same_v< ForwardT<A const>, A >);
-	static_assert(std::is_same_v< ForwardT<A &&>, A >);
-	static_assert(std::is_same_v< ForwardT<const A &&>, A >);
-	static_assert(std::is_same_v< ForwardT<const A &>, A >);
-	static_assert(std::is_same_v< ForwardT<A &>, A & >);
+	static_assert(std::is_same_v< forward_t<A const>, A >);
+	static_assert(std::is_same_v< forward_t<A &&>, A >);
+	static_assert(std::is_same_v< forward_t<const A &&>, A >);
+	static_assert(std::is_same_v< forward_t<const A &>, A >);
+	static_assert(std::is_same_v< forward_t<A &>, A & >);
 
 #if HAS_STD_PMR
 	using Alloc = std::pmr::polymorphic_allocator<int>;
-	static_assert(std::is_same_v< ForwardT<Alloc>, Alloc >);
-	static_assert(std::is_same_v< ForwardT<Alloc &&>, Alloc >);
-	static_assert(std::is_same_v< ForwardT<const Alloc &>, Alloc >);
+	static_assert(std::is_same_v< forward_t<Alloc>, Alloc >);
+	static_assert(std::is_same_v< forward_t<Alloc &&>, Alloc >);
+	static_assert(std::is_same_v< forward_t<const Alloc &>, Alloc >);
 #endif
 }
 
@@ -123,6 +123,8 @@ struct DummyRange
 
 TEST(utilTest, ssize)
 {
+	static_assert(oel::_detail::rangeIsSized< DummyRange<int> >);
+
 	using test  = decltype( oel::ssize(DummyRange<unsigned short>{0}) );
 	using test2 = decltype( oel::ssize(DummyRange<std::uintmax_t>{0}) );
 
@@ -156,17 +158,6 @@ TEST(utilTest, indexValid)
 		EXPECT_FALSE(index_valid(r2, size));
 		EXPECT_TRUE(index_valid(r2, size - 1));
 	}
-}
-
-TEST(utilTest, makeUnique)
-{
-	auto ps = oel::make_unique_for_overwrite<std::string[]>(2);
-	EXPECT_TRUE(ps[0].empty());
-	EXPECT_TRUE(ps[1].empty());
-
-	auto a = oel::make_unique_for_overwrite<size_t[]>(5);
-	for (size_t i{}; i < 5u; ++i)
-		a[i] = i;
 }
 
 TEST(utilTest, memberFn)
@@ -247,6 +238,7 @@ int * end(EmptyRandomAccessRange)   { return {}; }
 TEST(utilTest, detailSize_rangeNoMember)
 {
 	EmptyRandomAccessRange r;
+	static_assert(oel::_detail::rangeIsSized<decltype(r)>);
 	EXPECT_EQ(0, oel::_detail::Size(r));
 }
 
@@ -299,6 +291,9 @@ TEST(utilTest, detailCountOrEnd_disabledSize)
 	A src{1};
 	auto v = oel::view::subrange(TooSimpleIter<A::iterator>{src.begin()}, src.end());
 
-	auto n = oel::_detail::CountOrEnd(v);
+	static_assert( !oel::_detail::rangeIsSized<decltype(v)> );
+	static_assert(oel::_detail::rangeIsForwardOrSized<decltype(v)>);
+
+	auto n = oel::_detail::UDist(v);
 	EXPECT_EQ(1u, n);
 }

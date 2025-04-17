@@ -45,7 +45,10 @@ public:
 	constexpr bool empty()   { return _base.empty(); }
 
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)   { return std::move_iterator{_base.begin()}[index]; }
+		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)
+		{
+			return std::move_iterator{_base.begin()}[index];
+		}
 
 	constexpr View         base() &&                { return std::move(_base); }
 	constexpr View         base() const &&          { return _base; }

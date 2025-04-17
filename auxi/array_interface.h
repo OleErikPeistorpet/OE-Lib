@@ -20,16 +20,17 @@ struct _arrayInterface
 {
 	[[nodiscard]] bool empty() const noexcept   { return static_cast<const D &>(*this).size() == 0; }
 
-	auto cbegin() const   OEL_ALWAYS_INLINE { return static_cast<const D &>(*this).begin(); }
-	auto cend() const     OEL_ALWAYS_INLINE { return static_cast<const D &>(*this).end(); }
+	auto cbegin() const   { return static_cast<const D &>(*this).begin(); }
+	OEL_ALWAYS_INLINE
+	auto cend() const     { return static_cast<const D &>(*this).end(); }
 
-	auto rbegin()         OEL_ALWAYS_INLINE { return std::reverse_iterator{static_cast<D &>      (*this).end()}; }
-	auto rbegin() const   OEL_ALWAYS_INLINE { return std::reverse_iterator{static_cast<const D &>(*this).end()}; }
-	auto crbegin() const  OEL_ALWAYS_INLINE { return std::reverse_iterator{static_cast<const D &>(*this).end()}; }
+	auto rbegin()         { return std::reverse_iterator{static_cast<D &>      (*this).end()}; }
+	auto rbegin() const   { return std::reverse_iterator{static_cast<const D &>(*this).end()}; }
+	auto crbegin() const  { return std::reverse_iterator{static_cast<const D &>(*this).end()}; }
 
-	auto rend()         OEL_ALWAYS_INLINE { return std::reverse_iterator{static_cast<D &>      (*this).begin()}; }
-	auto rend() const   OEL_ALWAYS_INLINE { return std::reverse_iterator{static_cast<const D &>(*this).begin()}; }
-	auto crend() const  OEL_ALWAYS_INLINE { return std::reverse_iterator{static_cast<const D &>(*this).begin()}; }
+	auto rend()         { return std::reverse_iterator{static_cast<D &>      (*this).begin()}; }
+	auto rend() const   { return std::reverse_iterator{static_cast<const D &>(*this).begin()}; }
+	auto crend() const  { return std::reverse_iterator{static_cast<const D &>(*this).begin()}; }
 
 	auto & front() noexcept        { return static_cast<D &>      (*this)[0]; }
 	auto & front() const noexcept  { return static_cast<const D &>(*this)[0]; }

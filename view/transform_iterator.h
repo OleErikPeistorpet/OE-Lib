@@ -7,7 +7,7 @@
 
 
 #include "../util.h"  // for TightPair
-#include "../auxi/assignable.h"
+#include "../auxi/detail_assignable.h"
 
 /** @file
 */
@@ -51,16 +51,16 @@ template< typename UnaryFunc, typename Iterator >
 class transform_iterator
  :	private _detail::TransformIterBase<UnaryFunc, Iterator>
 {
-	using _base = typename transform_iterator::TransformIterBase;
+	using _super = typename transform_iterator::TransformIterBase;
 
-	using _base::m;
+	using _super::m;
 
 	static constexpr auto _isBidirectional = iter_is_bidirectional<Iterator>;
 
 public:
 	using iterator_category =
 		std::conditional_t<
-			std::is_copy_constructible_v<UnaryFunc> and _base::canCallConst,
+			std::is_copy_constructible_v<UnaryFunc> and _super::canCallConst,
 			std::conditional_t<
 				_isBidirectional,
 				std::bidirectional_iterator_tag,
@@ -69,24 +69,26 @@ public:
 			std::input_iterator_tag
 		>;
 	using difference_type = iter_difference_t<Iterator>;
-	using reference       = decltype( std::declval<typename _base::FnRef>()(*m.first) );
+	using reference       = decltype( std::declval<typename _super::FnRef>()(*m.first) );
 	using pointer         = void;
 	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
 
 	transform_iterator() = default;
-	constexpr transform_iterator(UnaryFunc f, Iterator it)   : _base{{std::move(it), std::move(f)}} {}
+	constexpr transform_iterator(UnaryFunc f, Iterator it)   : _super{{std::move(it), std::move(f)}} {}
 
-	constexpr Iterator         base() &&                       { return std::move(m.first); }
-	constexpr Iterator         base() const &&                            { return m.first; }
-	constexpr const Iterator & base() const & noexcept  OEL_ALWAYS_INLINE { return m.first; }
+	constexpr Iterator         base() &&                { return std::move(m.first); }
+	constexpr Iterator         base() const &&          { return m.first; }
+	OEL_ALWAYS_INLINE
+	constexpr const Iterator & base() const & noexcept  { return m.first; }
 
 	constexpr reference operator*() const
 		{
-			typename _base::FnRef f = m.second();
+			typename _super::FnRef f = m.second();
 			return f(*m.first);
 		}
 
-	constexpr transform_iterator & operator++()   OEL_ALWAYS_INLINE { ++m.first;  return *this; }
+	OEL_ALWAYS_INLINE
+	constexpr transform_iterator & operator++()   { ++m.first;  return *this; }
 	//! Post-increment: return type is transform_iterator if iterator_category is-a forward_iterator_tag, else void
 	constexpr auto                 operator++(int) &
 		{
@@ -100,8 +102,9 @@ public:
 				return tmp;
 			}
 		}
+	OEL_ALWAYS_INLINE
 	constexpr transform_iterator & operator--()
-		OEL_REQUIRES(_isBidirectional)          OEL_ALWAYS_INLINE { --m.first;  return *this; }
+		OEL_REQUIRES(_isBidirectional)          { --m.first;  return *this; }
 
 	constexpr transform_iterator   operator--(int) &
 		OEL_REQUIRES(_isBidirectional)

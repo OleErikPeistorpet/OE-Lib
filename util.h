@@ -10,8 +10,6 @@
 #include "auxi/core_util.h"
 #include "auxi/range_traits.h"
 
-#include <stdexcept>
-
 
 /** @file
 * @brief Contains make_unique_for_overwrite, as_signed/as_unsigned, index_valid, ssize and more
@@ -76,16 +74,6 @@ template< typename Integer, typename SizedRangeLike >
 	}
 
 
-//! Equivalent to std::make_unique_for_overwrite (C++20), for array types with unknown bound
-template< typename T,
-          enable_if< _detail::isUnboundedArray<T> > = 0
->  inline
-std::unique_ptr<T> make_unique_for_overwrite(size_t count)
-	{
-		return std::unique_ptr<T>{new std::remove_extent_t<T>[count]};
-	}
-
-
 //! Tag to select a constructor that allocates storage without filling it with objects
 struct reserve_tag
 {
@@ -146,16 +134,6 @@ struct
 
 namespace _detail
 {
-	struct OutOfRange
-	{	// Exception throwing has been split out from templates to avoid bloat
-		[[noreturn]] static void raise(const char * what)
-		{
-			OEL_THROW(std::out_of_range(what), what);
-		}
-	};
-
-
-
 	template< typename T, typename U,
 	          bool = std::is_empty_v<U> >
 	struct TightPair
@@ -167,19 +145,20 @@ namespace _detail
 		OEL_ALWAYS_INLINE constexpr       U & second()       { return _sec; }
 	};
 
-	template< typename Type_unique_name_for_MSVC, typename Empty_type_MSVC_unique_name >
-	struct TightPair<Type_unique_name_for_MSVC, Empty_type_MSVC_unique_name, true>
-	 :	Empty_type_MSVC_unique_name
+	// MSVC needs unique names to guard against name collision due to inheritance
+	template< typename FirstType_7KQw, typename EmptyType_7KQw >
+	struct TightPair<FirstType_7KQw, EmptyType_7KQw, true>
+	 :	EmptyType_7KQw
 	{
-		Type_unique_name_for_MSVC first;
+		FirstType_7KQw first;
 
 		TightPair() = default;
-		constexpr TightPair(Type_unique_name_for_MSVC f, Empty_type_MSVC_unique_name s)
-		 :	Empty_type_MSVC_unique_name{s}, first{std::move(f)}
+		constexpr TightPair(FirstType_7KQw f, EmptyType_7KQw s)
+		 :	EmptyType_7KQw{s}, first{std::move(f)}
 		{}
 
-		OEL_ALWAYS_INLINE constexpr const Empty_type_MSVC_unique_name & second() const { return *this; }
-		OEL_ALWAYS_INLINE constexpr       Empty_type_MSVC_unique_name & second()       { return *this; }
+		OEL_ALWAYS_INLINE constexpr const EmptyType_7KQw & second() const { return *this; }
+		OEL_ALWAYS_INLINE constexpr       EmptyType_7KQw & second()       { return *this; }
 	};
 }
 

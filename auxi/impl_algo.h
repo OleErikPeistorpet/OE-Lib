@@ -7,7 +7,7 @@
 
 
 #include "contiguous_iterator_to_ptr.h"
-#include "range_traits.h"
+#include "../util.h"  // for as_unsigned
 
 #include <cstring>
 
@@ -34,10 +34,10 @@ namespace oel::_detail
 
 	template< typename T >
 	void Destroy([[maybe_unused]] T * first, [[maybe_unused]] const T * last) noexcept
-	{	// first > last is OK, does nothing
+	{
 		if constexpr (!std::is_trivially_destructible_v<T>) // for speed with non-optimized builds
 		{
-			for (; first < last; ++first)
+			for (; first != last; ++first)
 				first-> ~T();
 		}
 	}
@@ -143,26 +143,25 @@ namespace oel::_detail
 
 
 
-	// If r is sized or multi-pass, returns element count as size_t, else end(r)
-	template< typename Range, typename... None >
-	inline auto CountOrEnd(Range & r, None...)
+	template< typename Range >
+	inline constexpr auto rangeIsForwardOrSized = iter_is_forward< iterator_t<Range> > or rangeIsSized<Range>;
+
+	// Used only if rangeIsForwardOrSized
+	template< typename Range >
+	auto UDist(Range & r)
 	{
-		if constexpr (iter_is_forward< iterator_t<Range> >)
+		if constexpr (rangeIsSized<Range>)
 		{
-			size_t n{};
-			auto it = begin(r);
+			return as_unsigned(_detail::Size(r));
+		}
+		else
+		{	auto    it = begin(r);
 			auto const l = end(r);
+			using D = iter_difference_t<decltype(it)>;
+			std::make_unsigned_t<D> n{};
 			while (it != l) { ++it; ++n; }
 
 			return n;
 		}
-		else
-		{	return end(r);
-		}
 	}
-
-	template< typename Range >
-	auto CountOrEnd(Range & r)
-	->	decltype( static_cast<size_t>(_detail::Size(r)) )
-	{	return    static_cast<size_t>(_detail::Size(r)); }
 }

@@ -136,6 +136,15 @@ namespace _detail
 	constexpr auto Size(Range && r, None...)
 	->	decltype(end(r) - begin(r))
 	{	return   end(r) - begin(r); }
+
+
+	template< typename Range, typename = void >
+	inline constexpr bool rangeIsSized = false;
+
+	template< typename Range >
+	inline constexpr bool rangeIsSized< Range,
+		std::void_t< decltype( _detail::Size(std::declval<Range &>()) ) >
+	>	= true;
 }
 
 } // oel

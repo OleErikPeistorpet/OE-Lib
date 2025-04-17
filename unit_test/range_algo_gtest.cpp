@@ -12,6 +12,7 @@
 #include <deque>
 #include <array>
 #include <valarray>
+#include <string_view>
 
 namespace view = oel::view;
 
@@ -78,70 +79,18 @@ TEST(rangeTest, eraseAdjacentDup)
 	EXPECT_FALSE(uniqueTest != expect);
 }
 
-TEST(rangeTest, copyUnsafe)
+// TODO: test with allocator, verify only 1 allocation
+TEST(rangeTest, concatToDynarray)
 {
-	std::valarray<int> src(2);
-	src[0] = 1;
-	src[1] = 2;
-	std::valarray<int> dest(2);
-	oel::copy_unsafe(src, begin(dest));
-	EXPECT_EQ(1, dest[0]);
-	EXPECT_EQ(2, dest[1]);
-}
+	using namespace std::string_view_literals;
 
-TEST(rangeTest, copy)
-{
-	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
-	int test2[5];
-	constexpr int N = 4;
-	test2[N] = -7;
+	auto body = [] { return "Test"sv; };
+	char const header[]{'v', '1', '\n'};
 
-#if OEL_HAS_EXCEPTIONS
-	EXPECT_THROW(oel::copy(test, view::counted(std::begin(test2), N)), std::out_of_range);
-#endif
-	auto success = oel::copy_fit(test, view::counted(std::begin(test2), N));
-	EXPECT_TRUE(std::equal(begin(test), begin(test) + N, test2));
-	EXPECT_EQ(-7, test2[N]);
-	EXPECT_FALSE(success);
+	auto result = oel::concat_to_dynarray(header, body());
 
-	ASSERT_EQ(4, test[N]);
-	auto l = oel::copy(test2, test).in;
-	EXPECT_EQ(-7, test[N]);
-	EXPECT_TRUE(std::end(test2) == l);
-	{
-		std::list<std::string> li{"aa", "bb"};
-		std::array<std::string, 2> strDest;
-		auto sLast = oel::copy(view::move(li), strDest).in;
-		EXPECT_EQ("aa", strDest[0]);
-		EXPECT_EQ("bb", strDest[1]);
-		EXPECT_TRUE(li.begin()->empty());
-		EXPECT_TRUE(std::next(li.begin())->empty());
-		EXPECT_TRUE(end(li) == sLast.base());
-	}
-	std::forward_list<std::string> li{"aa", "bb"};
-	std::array<std::string, 4> strDest;
-	success = oel::copy_fit(li, strDest);
-	EXPECT_EQ("aa", strDest[0]);
-	EXPECT_EQ("bb", strDest[1]);
-	EXPECT_TRUE(success);
-}
-
-TEST(rangeTest, copyRangeMutableBeginSize)
-{
-	int src[1] {1};
-	int dest[1];
-	auto v = ToMutableBeginSizeView(src);
-
-	oel::copy_unsafe(v, std::begin(dest));
-	EXPECT_EQ(1, dest[0]);
-	dest[0] = 0;
-
-	oel::copy(v, dest);
-	EXPECT_EQ(1, dest[0]);
-	dest[0] = 0;
-
-	oel::copy_fit(v, dest);
-	EXPECT_EQ(1, dest[0]);
+	std::string_view v{result.data(), result.size()};
+	EXPECT_EQ("v1\nTest"sv, v);
 }
 
 template<typename Container>
@@ -149,14 +98,17 @@ void testAppend()
 {
 	Container c;
 
-	auto il = {1, 2};
-	oel::append(c, il);
+	std::array<int, 2> const a{1, 7};
+	oel::append(c, a);
 	EXPECT_EQ(2U, c.size());
-	EXPECT_EQ(2, c.back());
+	EXPECT_EQ(7, c.back());
 }
 
 TEST(rangeTest, append)
 {
+#if __cpp_lib_containers_ranges
 	testAppend< std::list<int> >();
+#endif
+	testAppend< std::basic_string<int> >();
 	testAppend< oel::dynarray<int> >();
 }

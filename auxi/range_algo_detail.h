@@ -7,18 +7,26 @@
 
 
 #include "impl_algo.h"
-#include "../util.h" // for as_unsigned
+#include "../view/counted.h"
 
 #include <algorithm>
 
 
 namespace oel::_detail
 {
+	template< typename Container, typename Range >
+	auto CanAppend(Container & c, Range && src)
+	->	decltype( c.append(static_cast<Range &&>(src)), true_type() );
+
+	false_type CanAppend(...);
+
+
 	template< typename Container >
 	auto HasUnorderedErase(Container & c) -> decltype( c.unordered_erase(c.begin()), true_type() );
 
 	false_type HasUnorderedErase(...);
 
+////////////////////////////////////////////////////////////////////////////////
 
 	template< typename Container, typename Iterator >
 	constexpr auto EraseEnd(Container & c, Iterator f)
@@ -58,62 +66,24 @@ namespace oel::_detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template< typename InputIter, typename RandomAccessIter >
-	InputIter CopyUnsf(InputIter src, size_t const n, RandomAccessIter const dest)
+	template< typename Alloc, typename... Ranges >
+	auto ConcatToDynarr(Alloc a, Ranges &&... rs)
 	{
-		if constexpr (can_memmove_with<RandomAccessIter, InputIter>)
-		{
-		#if OEL_MEM_BOUND_DEBUG_LVL
-			if (n != 0)
-			{	// Dereference to detect out of range errors if the iterator has internal check
-				(void) *dest;
-				(void) *(dest + (n - 1));
-			}
-		#endif
-			_detail::MemcpyCheck(src, n, to_pointer_contiguous(dest));
-			return src + n;
-		}
-		else
-		{	for (size_t i{}; i < n; ++i)
-			{
-				dest[i] = *src;
-				++src;
-			}
-			return src;
-		}
-	}
+		static_assert((... and rangeIsForwardOrSized<Ranges>));
+		using T = std::common_type_t<
+				iter_value_t< iterator_t<Ranges> >...
+			>;
+		size_t const counts[]{_detail::UDist(rs)...};
 
+		size_t sum{};
+		for (auto n : counts)
+			sum += n;
 
-	template< typename InputRange, typename OutputRange, typename... None >
-	bool CopyFit(InputRange & src, OutputRange & dest, None...)
-	{
-		auto it = begin(src);  auto const last = end(src);
-		auto di = begin(dest);  auto const dl = end(dest);
-		while (it != last)
-		{
-			if (di != dl)
-			{
-				*di = *it;
-				++di; ++it;
-			}
-			else
-			{	return false;
-			}
-		}
-		return true;
-	}
+		auto d = dynarray<T>(reserve, sum, std::move(a));
 
-	template< typename SizedRange, typename RandomAccessRange >
-	auto CopyFit(SizedRange & src, RandomAccessRange & dest)
-	->	decltype( _detail::Size(src), bool() ) // better match if Size(src) is well-formed (SFINAE)
-	{
-		auto       n        = as_unsigned(_detail::Size(src));
-		auto const destSize = as_unsigned(_detail::Size(dest));
-		bool const success{n <= destSize};
-		if (!success)
-			n = destSize;
+		auto nIt = begin(counts);
+		(..., d.append( view::counted(begin(rs), *nIt++) ));
 
-		_detail::CopyUnsf(begin(src), n, begin(dest));
-		return success;
+		return d;
 	}
 }

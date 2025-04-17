@@ -46,7 +46,7 @@ struct dynarray_iterator
 
 	using const_iterator = dynarray_iterator<const value_type *>;
 
-	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
+	operator const_iterator() const noexcept
 	{
 		return {_pElem, _header, _allocationId};
 	}
@@ -63,7 +63,8 @@ struct dynarray_iterator
 		return _pElem;
 	}
 
-	dynarray_iterator & operator++() &  OEL_ALWAYS_INLINE
+	OEL_ALWAYS_INLINE
+	dynarray_iterator & operator++() &
 	{
 		++_pElem;
 		return *this;
@@ -76,7 +77,8 @@ struct dynarray_iterator
 		return tmp;
 	}
 
-	dynarray_iterator & operator--() &  OEL_ALWAYS_INLINE
+	OEL_ALWAYS_INLINE
+	dynarray_iterator & operator--() &
 	{
 		--_pElem;
 		return *this;
@@ -101,19 +103,22 @@ struct dynarray_iterator
 		return *this;
 	}
 
-	[[nodiscard]] friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)  OEL_ALWAYS_INLINE
+	[[nodiscard]] friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)
 	{
-		return it += offset;
+		it._pElem += offset;
+		return it;
 	}
 
-	[[nodiscard]] friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)  OEL_ALWAYS_INLINE
+	[[nodiscard]] friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
 	{
-		return it += offset;
+		it._pElem += offset;
+		return it;
 	}
 
-	[[nodiscard]] friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)  OEL_ALWAYS_INLINE
+	[[nodiscard]] friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
 	{
-		return it -= offset;
+		it._pElem -= offset;
+		return it;
 	}
 
 	friend difference_type operator -(const dynarray_iterator & left, const dynarray_iterator & right)
@@ -122,10 +127,8 @@ struct dynarray_iterator
 	}
 
 	reference operator[](difference_type offset) const
-	{	// not `*(*this + offset)` to save function calls when inlining is disabled
-		auto tmp = *this;
-		tmp._pElem += offset;
-		return *tmp;
+	{
+		return *(*this + offset);
 	}
 
 	friend bool operator==(const dynarray_iterator & left, const dynarray_iterator & right)

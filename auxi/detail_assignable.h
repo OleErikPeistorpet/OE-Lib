@@ -37,12 +37,12 @@ namespace oel::_detail
 			OEL_ALWAYS_INLINE constexpr operator       T &()       { return _val; }
 		};
 
-		using Empty_type_MSVC_unique_name = T;
+		using EmptyType_7KQw = T;
 
-		struct ImplEmpty : Empty_type_MSVC_unique_name
+		struct ImplEmpty : EmptyType_7KQw
 		{
-			constexpr ImplEmpty(Empty_type_MSVC_unique_name src) noexcept
-			 :	Empty_type_MSVC_unique_name(src) {}
+			constexpr ImplEmpty(EmptyType_7KQw src) noexcept
+			 :	EmptyType_7KQw(src) {}
 
 			ImplEmpty() = default;
 			ImplEmpty(const ImplEmpty &) = default;
