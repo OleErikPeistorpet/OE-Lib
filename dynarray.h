@@ -540,15 +540,12 @@ private:
 	template< typename... Args >
 	iterator _doEmplace(const_iterator pos, Args... args)
 	{
-	#define OEL_DYNARR_INSERT_STEP1  \
-		(void) _detail::AssertTrivialRelocate<T>{};  \
-		\
-		_debugSizeUpdater guard{_m};  \
-		\
-		auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
-		OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);
+		(void) _detail::AssertTrivialRelocate<T>{};
 
-		OEL_DYNARR_INSERT_STEP1
+		_debugSizeUpdater guard{_m};
+
+		auto pPos = const_cast<T *>(to_pointer_contiguous(pos));
+		OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);
 
 		// Temporary in case constructor throws or args refer to an element of this dynarray
 		storage_for<T> tmp;
@@ -576,10 +573,13 @@ template< typename Range >
 typename dynarray<T, Alloc>::iterator
 	dynarray<T, Alloc>::insert_range(const_iterator pos, Range && source) &
 {
-	OEL_DYNARR_INSERT_STEP1
-#undef OEL_DYNARR_INSERT_STEP1
-
+	(void) _detail::AssertTrivialRelocate<T>{};
 	(void) _detail::AssertForwardOrSizedRange<Range>{};
+
+	_debugSizeUpdater guard{_m};
+
+	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));
+	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);
 
 	auto       first = adl_begin(source);
 	auto const count = _detail::UDist(source);
