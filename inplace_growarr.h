@@ -7,6 +7,7 @@
 
 
 #include "auxi/array_interface.h"
+#include "auxi/forward_t.h"
 #include "auxi/inplace_growarr_detail.h"
 #include "optimize_ext/default.h"
 
@@ -425,7 +426,7 @@ bool inplace_growarr<T, Cap, SizeT>::try_append(size_type count, const T & val)
 	if (oel::spare_capacity(*this) >= count)
 	{
 		size_type const newSize{_size + count};
-		_detail::UninitFillA::call(data() + _size, data() + newSize, val);
+		_detail::UninitFillA::template call< forward_t<const T &> >(data() + _size, data() + newSize, val);
 		_size = newSize;
 
 		return true;

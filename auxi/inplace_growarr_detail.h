@@ -41,11 +41,11 @@ namespace oel::_detail
 
 	struct UninitFillA
 	{
-		template< typename T, typename... Args >
-		static void call(T *__restrict first, T *const last, const Args &... args)
+		template< typename... Args, typename T >
+		static void call(T *__restrict first, T * last, Args... args)
 		{
 			using A = allocator<>;
-			UninitFill<A>::call(first, last, A{}, args...);
+			UninitFill<A>::template call<Args...>(first, last, A{}, args...);
 		}
 	};
 
