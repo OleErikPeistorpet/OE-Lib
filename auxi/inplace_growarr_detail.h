@@ -12,34 +12,6 @@
 
 namespace oel::_detail
 {
-	template< typename InputIter, typename T >
-	InputIter UninitCopy(InputIter src, size_t const n, T *__restrict dest)
-	{
-		if constexpr (can_memmove_with<T *, InputIter>)
-		{
-			_detail::MemcpyCheck(src, n, dest);
-			return src + n;
-		}
-		else
-		{	T *const dFirst = dest;
-			OEL_TRY_
-			{
-				T * dLast = dest + i;
-				while (dest != dLast)
-				{
-					::new(static_cast<void *>(dest)) T(*src);
-					++dest; ++src;
-				}
-			}
-			OEL_CATCH_ALL
-			{
-				_detail::Destroy(dFirst, dest);
-				OEL_RETHROW;
-			}
-			return src;
-		}
-	}
-
 	struct UninitFillA
 	{
 		template< typename... Args, typename T >

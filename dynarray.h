@@ -455,7 +455,7 @@ private:
 				{	src = cpy(std::move(src), _m.data, _m.end);
 				}
 			}
-			while (_m.end < newEnd)
+			while (_m.end != newEnd)
 			{	// each iteration updates _m.end for exception safety
 				_alloTrait::construct(_m, _m.end, *src);
 				++src; ++_m.end;

@@ -93,12 +93,12 @@ public:
 		}
 
 	template< typename InputRange >
-	inplace_growarr(from_range_t, InputRange && r)   { append(r); }
+	inplace_growarr(from_range_t, InputRange && r);
 
-	inplace_growarr(std::initializer_list<T> il)     { append(il); }
+	inplace_growarr(std::initializer_list<T> il)     : inplace_growarr(from_range, il) {}
 
 	inplace_growarr(inplace_growarr && other) noexcept       { _relocateFrom(other); }
-	explicit inplace_growarr(const inplace_growarr & other)  { append(other); }
+	explicit inplace_growarr(const inplace_growarr & other)  : inplace_growarr(from_range, other) {}
 
 	~inplace_growarr()   { _detail::Destroy(data(), data() + _size); }
 
@@ -293,8 +293,8 @@ private:
 	{
 		if constexpr (can_memmove_with<T *, InputIter>)
 		{
-			_size = count;
 			_detail::MemcpyCheck(src, count, _data);
+			_size = count;
 
 			return src + count;
 		}
@@ -311,9 +311,9 @@ private:
 			if (_size < count)
 			{	// assign to old elements as far as we can
 				src = cpy(src, data(), data() + _size);
-				while (_size < count)
+				while (_size != count)
 				{	// each iteration updates _size for exception safety
-					::new(static_cast<void *>(data() + _size)) T(*src);
+					::new(_data + _size) T(*src);
 					++src; ++_size;
 				}
 			}
@@ -327,15 +327,24 @@ private:
 		}
 	}
 
-	template< typename InputRange >
-	auto _tryEmplBackRange(InputRange & src)
+	template< typename InputIter >
+	InputIter _doAppend(InputIter src, size_type const n)
 	{
-		auto it = adl_begin(src);
-		auto l  = adl_end(src);
-		for (; it != l and _size != Cap; ++it)
-			unchecked_emplace_back(*it);
-
-		return it;
+		if constexpr (can_memmove_with<T *, InputIter>)
+		{
+			_detail::MemcpyCheck(src, n, _data + _size);
+			src += n;
+			_size += n;
+		}
+		else
+		{	auto const newSize = _size + n;
+			while (_size != newSize)
+			{
+				::new(_data + _size) T(*src);
+				++src; ++_size;
+			}
+		}
+		return src;
 	}
 };
 
@@ -356,7 +365,7 @@ auto inplace_growarr<T, Cap, SizeT>::try_assign(InputRange && source)
 	}
 	else
 	{	clear();
-		return _tryEmplBackRange(source);
+		return try_append(source);
 	}
 }
 
@@ -373,13 +382,17 @@ inline auto inplace_growarr<T, Cap, SizeT>::try_append(InputRange && source)
 		auto const spare = as_unsigned(oel::spare_capacity(*this));
 		auto const min   = n < spare ? n : spare;
 
-		it = _detail::UninitCopy(std::move(it), min, data() + _size);
-		_size += static_cast<SizeT>(min);
-
-		return it;
+		return _doAppend(std::move(it), static_cast<size_type>(min));
 	}
 	else
-	{	return _tryEmplBackRange(source);
+	{	auto it = adl_begin(source);
+		auto l  = adl_end(source);
+		while (it != l and _size != Cap)
+		{
+			unchecked_emplace_back(*it);
+			++it;
+		}
+		return it;
 	}
 }
 
@@ -396,27 +409,15 @@ inline auto inplace_growarr<T, Cap, SizeT>::append(InputRange && source)
 		if (as_unsigned(oel::spare_capacity(*this)) < n)
 			_detail::BadAlloc::raise();
 
-		it = _detail::UninitCopy(std::move(it), n, data() + _size);
-		_size += static_cast<SizeT>(n);
-
-		return it;
+		return _doAppend(std::move(it), static_cast<size_type>(n));
 	}
 	else
-	{	auto const oldSize = _size;
-		OEL_TRY_
-		{
-			auto it = adl_begin(source);
-			auto l  = adl_end(source);
-			for (; it != l; ++it)
-				emplace_back(*it);
+	{	auto it = adl_begin(source);
+		auto l  = adl_end(source);
+		for (; it != l; ++it)
+			emplace_back(*it);
 
-			return it;
-		}	// Catch with cleanup needed only when called from constructor
-		OEL_CATCH_ALL
-		{
-			erase_to_end(begin() + oldSize);
-			OEL_RETHROW;
-		}
+		return it;
 	}
 }
 
@@ -524,6 +525,21 @@ inline T & inplace_growarr<T, Cap, SizeT>::unchecked_emplace_back(Args &&... arg
 	return *pos;
 }
 
+
+template< typename T, size_t Cap, typename SizeT >
+template< typename InputRange >
+inplace_growarr<T, Cap, SizeT>::inplace_growarr(from_range_t, InputRange && r)
+{
+	OEL_TRY_
+	{
+		append(r);
+	}
+	OEL_CATCH_ALL
+	{
+		_detail::Destroy(data(), data() + _size);
+		OEL_RETHROW;
+	}
+}
 
 template< typename T, size_t Cap, typename SizeT >
 inplace_growarr<T, Cap, SizeT> &  inplace_growarr<T, Cap, SizeT>::operator =(inplace_growarr && other) &
