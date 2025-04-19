@@ -24,10 +24,11 @@ namespace oel::_detail
 		{	T *const dFirst = dest;
 			OEL_TRY_
 			{
-				for (size_t i{}; i < n; ++i)
+				T * dLast = dest + i;
+				while (dest != dLast)
 				{
-					::new(static_cast<void *>(dest + i)) T(*src);
-					++src;;
+					::new(static_cast<void *>(dest)) T(*src);
+					++dest; ++src;
 				}
 			}
 			OEL_CATCH_ALL
