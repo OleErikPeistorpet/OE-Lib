@@ -50,10 +50,14 @@ private:
 
 #if OEL_STD_RANGES
 
-template< typename I >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::view::counted<I> > = true;
+namespace std::ranges
+{
 
 template< typename I >
-inline constexpr bool std::ranges::enable_view< oel::view::counted<I> > = true;
+inline constexpr bool enable_borrowed_range< oel::view::counted<I> > = true;
 
+template< typename I >
+inline constexpr bool enable_view< oel::view::counted<I> > = true;
+
+}
 #endif

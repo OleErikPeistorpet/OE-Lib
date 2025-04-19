@@ -80,11 +80,15 @@ inline constexpr _moveFn move;
 
 #if OEL_STD_RANGES
 
-template< typename V >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::_moveView<V> >
-	= std::ranges::enable_borrowed_range< std::remove_cv_t<V> >;
+namespace std::ranges
+{
 
 template< typename V >
-inline constexpr bool std::ranges::enable_view< oel::_moveView<V> > = true;
+inline constexpr bool enable_borrowed_range< oel::_moveView<V> >
+	= enable_borrowed_range< std::remove_cv_t<V> >;
 
+template< typename V >
+inline constexpr bool enable_view< oel::_moveView<V> > = true;
+
+}
 #endif
