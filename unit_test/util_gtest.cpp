@@ -260,7 +260,7 @@ struct TooSimpleIter
 	using reference = double &;
 	using pointer = void;
 	using difference_type = std::ptrdiff_t;
-	using iterator_category = std::forward_iterator_tag;
+	using iterator_category = std::random_access_iterator_tag;
 
 	I it;
 

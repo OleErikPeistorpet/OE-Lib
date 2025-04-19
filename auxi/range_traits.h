@@ -109,7 +109,7 @@ inline constexpr bool disable_sized_sentinel_for =
 	#if __cpp_lib_concepts >= 201907
 		std::disable_sized_sentinel_for<Sentinel, Iterator>;
 	#else
-		!(iter_is_random_access<Sentinel> or iter_is_random_access<Iterator>);
+		!iter_is_random_access<Iterator>;
 	#endif
 
 ////////////////////////////////////////////////////////////////////////////////
