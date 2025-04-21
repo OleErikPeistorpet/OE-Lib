@@ -73,20 +73,6 @@ TEST(dynarrayOtherTest, zeroBitRepresentation)
 		ASSERT_TRUE(0U == reinterpret_cast<const unsigned char *>(&f)[i]);
 }
 
-TEST(dynarrayOtherTest, reverseIter)
-{
-	using oel::to_pointer_contiguous;
-	dynarray<int> const d{0};
-
-	EXPECT_TRUE(d.rbegin().base() != d.cbegin());
-	EXPECT_TRUE(d.crbegin().base() == d.cend());
-	EXPECT_TRUE(d.rend().base()  != d.end());
-	EXPECT_TRUE(d.crend().base() == d.begin());
-	EXPECT_EQ(d.data(), &*d.crend().base());
-	auto pRbeginBase = to_pointer_contiguous(d.crbegin().base());
-	EXPECT_EQ(d.data() + 1, pRbeginBase);
-}
-
 TEST(dynarrayOtherTest, compare)
 {
 	dynarray<int> arr[3];
