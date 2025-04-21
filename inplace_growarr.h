@@ -289,12 +289,12 @@ private:
 
 
 	template< typename InputIter >
-	InputIter _doAssign(InputIter src, size_type const count)
+	InputIter _doAssign(InputIter src, size_t const count)
 	{
 		if constexpr (can_memmove_with<T *, InputIter>)
 		{
 			_detail::MemcpyCheck(src, count, _data);
-			_size = count;
+			_size = static_cast<SizeT>(count);
 
 			return src + count;
 		}
@@ -308,7 +308,7 @@ private:
 				}
 				return src_;
 			};
-			if (_size < count)
+			if (as_unsigned(_size) < count)
 			{	// assign to old elements as far as we can
 				src = cpy(src, data(), data() + _size);
 				while (_size != count)
@@ -321,23 +321,23 @@ private:
 			{	T *const newEnd = data() + count;
 				src = cpy(src, data(), newEnd);
 				_detail::Destroy(newEnd, data() + _size);
-				_size = count;
+				_size = static_cast<SizeT>(count);
 			}
 			return src;
 		}
 	}
 
 	template< typename InputIter >
-	InputIter _doAppend(InputIter src, size_type const n)
+	InputIter _doAppend(InputIter src, size_t const n)
 	{
 		if constexpr (can_memmove_with<T *, InputIter>)
 		{
 			_detail::MemcpyCheck(src, n, _data + _size);
 			src += n;
-			_size += n;
+			_size += static_cast<SizeT>(n);
 		}
 		else
-		{	auto const newSize = _size + n;
+		{	auto const newSize = _size + static_cast<SizeT>(n);
 			while (_size != newSize)
 			{
 				::new(_data + _size) T(*src);
@@ -361,7 +361,7 @@ auto inplace_growarr<T, Cap, SizeT>::try_assign(InputRange && source)
 		if (as_unsigned(n) > Cap)
 			n = Cap;
 
-		return _doAssign(std::move(it), static_cast<size_type>(n));
+		return _doAssign(std::move(it), n);
 	}
 	else
 	{	clear();
@@ -382,7 +382,7 @@ inline auto inplace_growarr<T, Cap, SizeT>::try_append(InputRange && source)
 		auto const spare = as_unsigned(oel::spare_capacity(*this));
 		auto const min   = n < spare ? n : spare;
 
-		return _doAppend(std::move(it), static_cast<size_type>(min));
+		return _doAppend(std::move(it), min);
 	}
 	else
 	{	auto it = adl_begin(source);
@@ -409,7 +409,7 @@ inline auto inplace_growarr<T, Cap, SizeT>::append(InputRange && source)
 		if (as_unsigned(oel::spare_capacity(*this)) < n)
 			_detail::BadAlloc::raise();
 
-		return _doAppend(std::move(it), static_cast<size_type>(n));
+		return _doAppend(std::move(it), n);
 	}
 	else
 	{	auto it = adl_begin(source);
