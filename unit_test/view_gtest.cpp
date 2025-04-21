@@ -283,6 +283,33 @@ TEST(viewTest, viewGenerate)
 	EXPECT_TRUE(d.empty());
 }
 
+TEST(viewTest, viewReverse)
+{
+	using oel::to_pointer_contiguous;
+
+	{
+		auto rv = oel::dynarray<int>{7, 8} | view::reverse;
+		auto v  = std::move(rv) | view::reverse;
+		EXPECT_EQ(7, v[0]);
+		EXPECT_EQ(8, v[1]);
+		static_assert(
+			std::is_same_v
+			<	decltype(v),
+				decltype( std::move(rv).base() )
+			> );
+	}
+	oel::dynarray<int> d{7};
+	auto rv = view::reverse(d);
+
+	EXPECT_TRUE(rv.begin().base() != d.begin());
+	EXPECT_TRUE(rv.begin().base() == d.cend());
+	EXPECT_TRUE(rv.end().base()   != d.end());
+	EXPECT_TRUE(rv.end().base()   == d.cbegin());
+	EXPECT_EQ(d[0], rv[0]);
+	auto pRbeginBase = to_pointer_contiguous(rv.begin().base());
+	EXPECT_EQ(d.data() + 1, pRbeginBase);
+}
+
 TEST(viewTest, viewMoveEndDifferentType)
 {
 	auto nonEmpty = [i = -1](int j) { return i + j; };

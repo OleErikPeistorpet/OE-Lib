@@ -78,8 +78,6 @@ public:
 	using iterator       = T *;
 	using const_iterator = const T *;
 #endif
-	using reverse_iterator       = std::reverse_iterator<iterator>;
-	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 
 	constexpr dynarray() noexcept(noexcept(Alloc{}))   : dynarray(Alloc{}) {}
@@ -239,17 +237,6 @@ public:
 	const_iterator end() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.end); }
 	OEL_ALWAYS_INLINE
 	const_iterator cend() const noexcept   { return end(); }
-
-	reverse_iterator       rbegin() noexcept         { return       reverse_iterator{end()}; }
-	const_reverse_iterator rbegin() const noexcept   { return const_reverse_iterator{end()}; }
-	const_reverse_iterator crbegin() const noexcept  { return const_reverse_iterator{end()}; }
-
-	OEL_ALWAYS_INLINE
-	reverse_iterator       rend() noexcept         { return       reverse_iterator{begin()}; }
-	OEL_ALWAYS_INLINE
-	const_reverse_iterator rend() const noexcept   { return const_reverse_iterator{begin()}; }
-	OEL_ALWAYS_INLINE
-	const_reverse_iterator crend() const noexcept  { return const_reverse_iterator{begin()}; }
 
 	T *       data() noexcept         { return _m.data; }
 	const T * data() const noexcept   { return _m.data; }
