@@ -55,14 +55,12 @@ class transform_iterator
 
 	using _super::m;
 
-	static constexpr auto _isBidirectional = iter_is_bidirectional<Iterator>;
-
 public:
 	using iterator_category =
 		std::conditional_t<
 			std::is_copy_constructible_v<UnaryFunc> and _super::canCallConst,
 			std::conditional_t<
-				_isBidirectional,
+				iter_is_bidirectional<Iterator>,
 				std::bidirectional_iterator_tag,
 				std::conditional_t< iter_is_forward<Iterator>, std::forward_iterator_tag, std::input_iterator_tag >
 			>,
@@ -100,11 +98,9 @@ public:
 				return tmp;
 			}
 		}
-	constexpr transform_iterator & operator--()
-		OEL_REQUIRES(_isBidirectional)          OEL_ALWAYS_INLINE { --m.first;  return *this; }
+	constexpr transform_iterator & operator--()   OEL_ALWAYS_INLINE { --m.first;  return *this; }
 
 	constexpr transform_iterator   operator--(int) &
-		OEL_REQUIRES(_isBidirectional)
 		{
 			auto tmp = *this;
 			--m.first;
