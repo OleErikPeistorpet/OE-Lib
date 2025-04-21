@@ -76,7 +76,6 @@ public:
 	constexpr bool empty()   { return _m.first.empty(); }
 
 	constexpr View         base() &&                { return std::move(_m.first); }
-	constexpr View         base() const &&          { return _m.first; }
 	constexpr const View & base() const & noexcept  { return _m.first; }
 };
 

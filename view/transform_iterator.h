@@ -74,9 +74,12 @@ public:
 	transform_iterator() = default;
 	constexpr transform_iterator(UnaryFunc f, Iterator it)   : _super{{std::move(it), std::move(f)}} {}
 
-	constexpr Iterator         base() &&                       { return std::move(m.first); }
-	constexpr Iterator         base() const &&                            { return m.first; }
-	constexpr const Iterator & base() const & noexcept  OEL_ALWAYS_INLINE { return m.first; }
+	constexpr const Iterator & base() const & noexcept   OEL_ALWAYS_INLINE { return m.first; }
+	constexpr Iterator         base() && noexcept
+		{
+			static_assert(std::is_nothrow_move_constructible_v<Iterator>);
+			return std::move(m.first);
+		}
 
 	constexpr reference operator*() const
 		{
