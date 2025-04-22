@@ -39,7 +39,7 @@ namespace oel::_detail
 
 		using EmptyType_7KQw = T;
 
-		struct ImplEmpty : EmptyType_7KQw
+		struct ImplEmpty : public EmptyType_7KQw
 		{
 			constexpr ImplEmpty(EmptyType_7KQw src) noexcept
 			 :	EmptyType_7KQw(src) {}
