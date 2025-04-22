@@ -7,6 +7,7 @@
 
 
 #include "all.h"
+#include "../auxi/detail_assignable.h"
 #include "../auxi/transform_iterator.h"
 
 /** @file
@@ -43,17 +44,17 @@ inline constexpr _transformFn transform;
 } // view
 
 template< typename View, typename Func >
-class _transformView
+class _iterTransformView
 {
-	using _iter = _transformIterator< false, Func, iterator_t<View> >;
+	using _iter = _iterTransformIterator< Func, iterator_t<View> >;
 
 	_detail::TightPair< View, typename _detail::AssignableWrap<Func>::Type > _m;
 
 public:
 	using difference_type = iter_difference_t<_iter>;
 
-	_transformView() = default;
-	constexpr _transformView(View v, Func f)   : _m{std::move(v), std::move(f)} {}
+	_iterTransformView() = default;
+	constexpr _iterTransformView(View v, Func f)   : _m{std::move(v), std::move(f)} {}
 
 	constexpr _iter begin()
 		{
@@ -79,7 +80,7 @@ public:
 		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)
 		{
 			Func & f = _m.second();
-			return f(_m.first.begin()[index]);
+			return f(_m.first.begin() + index);
 		}
 
 	constexpr View         base() &&                { return std::move(_m.first); }
@@ -89,20 +90,39 @@ public:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
+//
+// Only implementation details in rest of the file
 
 
 namespace _detail
 {
+	template< typename Func_7KQw >
+	struct DerefArg : public Func_7KQw
+	{
+		template< typename T >
+		constexpr decltype(auto) operator()(T && arg)
+		{
+			return static_cast<Func_7KQw &>(*this)( *static_cast<T &&>(arg) );
+		}
+
+		template< typename T >
+		constexpr auto operator()(T && arg) const
+		->	decltype( static_cast<const Func_7KQw &>(*this)( *static_cast<T &&>(arg) ) )
+			{  return static_cast<const Func_7KQw &>(*this)( *static_cast<T &&>(arg) ); }
+	};
+
+
 	template< typename F >
-	struct TransfPartial
+	struct TransformPartial
 	{
 		F _f;
 
 		template< typename Range >
-		friend constexpr auto operator |(Range && r, TransfPartial t)
+		friend constexpr auto operator |(Range && r, TransformPartial t)
 		{
-			return _transformView{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
+			return _iterTransformView{
+				view::all(static_cast<Range &&>(r)),
+				DerefArg<F>{std::move(t)._f} };
 		}
 
 		template< typename Range >
@@ -116,7 +136,7 @@ namespace _detail
 template< typename UnaryFunc >
 constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 {
-	return _detail::TransfPartial<UnaryFunc>{std::move(f)};
+	return _detail::TransformPartial<UnaryFunc>{std::move(f)};
 }
 
 } // oel
@@ -128,11 +148,11 @@ namespace std::ranges
 {
 
 template< typename V, typename F >
-inline constexpr bool enable_borrowed_range< oel::_transformView<V, F> >
+inline constexpr bool enable_borrowed_range< oel::_iterTransformView<V, F> >
 	= enable_borrowed_range< std::remove_cv_t<V> >;
 
 template< typename V, typename F >
-inline constexpr bool enable_view< oel::_transformView<V, F> > = true;
+inline constexpr bool enable_view< oel::_iterTransformView<V, F> > = true;
 
 }
 #endif

@@ -7,7 +7,7 @@
 
 
 #include "counted.h"
-#include "../auxi/transform_iterator.h"
+#include "../auxi/zip_transform_iterator.h"
 
 /** @file
 */
@@ -25,8 +25,7 @@ namespace oel::view
 inline constexpr auto zip_transform_n =
 	[](auto func, auto count, auto... iterators)
 	{
-		using I = _transformIterator<true, decltype(func), decltype(iterators)...>;
-		return counted(I{ std::move(func), std::move(iterators)... }, count);
+		return counted(_zipTransformIterator{ std::move(func), std::move(iterators)... }, count);
 	};
 
 }
