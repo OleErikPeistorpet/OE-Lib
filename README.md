@@ -7,7 +7,7 @@ Features relocation optimizations similar to [Folly fbvector](https://github.com
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
 C++17 is required. Oldest supported compilers:
-* Visual Studio 2017 (15.8)
+* Visual Studio 2019
 * GCC 7
 * Clang 5
 

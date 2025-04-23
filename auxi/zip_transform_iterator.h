@@ -6,6 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "iterator_facade.h"
 #include "transform_view.h"
 
 
@@ -14,6 +15,10 @@ namespace oel
 
 template< typename Func, typename... Iterators >
 class _zipTransformIterator
+ :	public _iteratorFacade
+	<	_zipTransformIterator<Func, Iterators...>,
+		std::common_type_t< iter_difference_t<Iterators>... >
+	>
 {
 	using _iSeq      = std::index_sequence_for<Iterators...>;
 	using _firstIter = std::tuple_element_t< 0, std::tuple<Iterators...> >;
@@ -23,10 +28,10 @@ class _zipTransformIterator
 public:
 	using iterator_category = decltype( _detail::TransformIterCat<true, Func, Iterators...>() );
 
-	using difference_type = std::common_type_t< iter_difference_t<Iterators>... >;
-	using reference       = decltype( std::declval<const Func &>()(*std::declval<const Iterators &>()...) );
-	using pointer         = void;
-	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
+	using typename _zipTransformIterator::_iteratorFacade::difference_type;
+	using reference  = decltype( std::declval<const Func &>()(*std::declval<const Iterators &>()...) );
+	using pointer    = void;
+	using value_type = std::remove_cv_t< std::remove_reference_t<reference> >;
 
 	_zipTransformIterator() = default;
 	constexpr _zipTransformIterator(Func f, Iterators... it)   : _m{ {std::move(it)...}, std::move(f) } {}
@@ -75,25 +80,11 @@ public:
 			_advance(offset, _iSeq{});
 			return *this;
 		}
-	constexpr _zipTransformIterator & operator-=(difference_type offset) &
-		{
-			_advance(-offset, _iSeq{});
-			return *this;
-		}
 
-	friend constexpr _zipTransformIterator operator +
-		(difference_type offset, _zipTransformIterator it)   { return it += offset; }
-	[[nodiscard]]  OEL_ALWAYS_INLINE
-	friend constexpr _zipTransformIterator operator +
-		(_zipTransformIterator it, difference_type offset)   { return it += offset; }
-	[[nodiscard]]  OEL_ALWAYS_INLINE
-	friend constexpr _zipTransformIterator operator -
-		(_zipTransformIterator it, difference_type offset)   { return it -= offset; }
-
-	constexpr difference_type operator -(const _zipTransformIterator & right) const
+	friend constexpr difference_type operator -(const _zipTransformIterator & left, const _zipTransformIterator & right)
 		OEL_REQUIRES(std::sized_sentinel_for<_firstIter, _firstIter>)
 		{
-			return std::get<0>(_m.first) - std::get<0>(right._m.first);
+			return std::get<0>(left._m.first) - std::get<0>(right._m.first);
 		}
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, _firstIter>)
@@ -108,46 +99,19 @@ public:
 			return std::get<0>(left._m.first) - right._s;
 		}
 
-	constexpr reference operator[](difference_type offset) const
+	friend constexpr bool operator!=(const _zipTransformIterator & left, const _zipTransformIterator & right)
 		{
-			auto tmp = *this;
-			tmp._advance(offset, _iSeq{});
-			return *tmp;
+			return std::get<0>(left._m.first) != std::get<0>(right._m.first);
 		}
-
-	constexpr bool operator!=(const _zipTransformIterator & right) const
+	friend constexpr bool operator <(const _zipTransformIterator & left, const _zipTransformIterator & right)
 		{
-			return std::get<0>(_m.first) != std::get<0>(right._m.first);
+			return std::get<0>(left._m.first) < std::get<0>(right._m.first);
 		}
-	constexpr bool operator==(const _zipTransformIterator & right) const
+	template< typename S >
+	friend constexpr bool operator!=(const _zipTransformIterator & left, _sentinelWrapper<S> right)
 		{
-			return std::get<0>(_m.first) == std::get<0>(right._m.first);
+			return std::get<0>(left._m.first) != right._s;
 		}
-	constexpr bool operator <(const _zipTransformIterator & right) const
-		{
-			return std::get<0>(_m.first) < std::get<0>(right._m.first);
-		}
-	constexpr bool operator >(const _zipTransformIterator & right) const   { return right < *this; }
-
-	constexpr bool operator<=(const _zipTransformIterator & right) const   { return !(right < *this); }
-
-	constexpr bool operator>=(const _zipTransformIterator & right) const   { return !(*this < right); }
-
-	template< typename S >
-	friend constexpr bool operator!=
-		(const _zipTransformIterator & left, _sentinelWrapper<S> right)   { return std::get<0>(left._m.first) != right._s; }
-
-	template< typename S >
-	friend constexpr bool operator!=
-		(_sentinelWrapper<S> left, const _zipTransformIterator & right)   { return std::get<0>(right._m.first) != left._s; }
-
-	template< typename S >
-	friend constexpr bool operator==
-		(const _zipTransformIterator & left, _sentinelWrapper<S> right)   { return std::get<0>(left._m.first) == right._s; }
-
-	template< typename S >
-	friend constexpr bool operator==
-		(_sentinelWrapper<S> left, const _zipTransformIterator & right)   { return right == left; }
 
 
 
@@ -178,7 +142,7 @@ private:
 	template< size_t... Ns >
 	constexpr void _advance(difference_type offset, std::index_sequence<Ns...>)
 	{
-		((std::get<Ns>(_m.first) += offset), ...);
+		( (std::get<Ns>(_m.first) += offset), ... );
 	}
 };
 

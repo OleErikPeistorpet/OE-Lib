@@ -221,7 +221,7 @@ TEST(utilTest, toPointerContiguous)
 
 #if __cpp_lib_concepts
 	auto addr = &a[1];
-	dynarray_iterator<const int *> it{addr, nullptr, 0};
+	dynarray_iterator<const int *> it{{}, addr, nullptr, 0};
 	auto result = std::to_address(it);
 	static_assert(std::is_same<const int *, decltype(result)>());
 	EXPECT_EQ(addr, result);

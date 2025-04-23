@@ -6,6 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "iterator_facade.h"
 #include "transform_view.h"
 
 
@@ -38,7 +39,8 @@ namespace _detail
 
 template< typename Func, typename Iterator >
 class _iterTransformIterator
- :	private _detail::TransformIterBase
+ :	public _iteratorFacade< _iterTransformIterator<Func, Iterator>, iter_difference_t<Iterator> >,
+	private _detail::TransformIterBase
 	<	std::is_invocable_v<const Func &, const Iterator &>,
 		Func, Iterator
 	>
@@ -105,25 +107,11 @@ public:
 			m.first += offset;
 			return *this;
 		}
-	constexpr _iterTransformIterator & operator-=(difference_type offset) &
-		{
-			m.first -= offset;
-			return *this;
-		}
 
-	friend constexpr _iterTransformIterator operator +
-		(difference_type offset, _iterTransformIterator it)   { return it += offset; }
-	[[nodiscard]]  OEL_ALWAYS_INLINE
-	friend constexpr _iterTransformIterator operator +
-		(_iterTransformIterator it, difference_type offset)   { return it += offset; }
-	[[nodiscard]]  OEL_ALWAYS_INLINE
-	friend constexpr _iterTransformIterator operator -
-		(_iterTransformIterator it, difference_type offset)   { return it -= offset; }
-
-	constexpr difference_type operator -(const _iterTransformIterator & right) const
+	friend constexpr difference_type operator -(const _iterTransformIterator & left, const _iterTransformIterator & right)
 		OEL_REQUIRES(std::sized_sentinel_for<Iterator, Iterator>)
 		{
-			return m.first - right.m.first;
+			return left.m.first - right.m.first;
 		}
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
@@ -138,40 +126,14 @@ public:
 			return left.m.first - right._s;
 		}
 
-	constexpr reference operator[](difference_type offset) const
-		{
-			auto tmp = *this;
-			tmp += offset;
-			return *tmp;
-		}
-	// These are not hidden friends because MSC 2017 gives error C3615
-	constexpr bool operator!=(const _iterTransformIterator & right) const   { return m.first != right.m.first; }
-
-	constexpr bool operator==(const _iterTransformIterator & right) const   { return m.first == right.m.first; }
-
-	constexpr bool operator <(const _iterTransformIterator & right) const   { return m.first < right.m.first; }
-
-	constexpr bool operator >(const _iterTransformIterator & right) const   { return right < *this; }
-
-	constexpr bool operator<=(const _iterTransformIterator & right) const   { return !(right < *this); }
-
-	constexpr bool operator>=(const _iterTransformIterator & right) const   { return !(*this < right); }
+	friend constexpr bool operator!=
+		(const _iterTransformIterator & left, const _iterTransformIterator & right)   { return left.m.first != right.m.first; }
+	friend constexpr bool operator <
+		(const _iterTransformIterator & left, const _iterTransformIterator & right)   { return left.m.first < right.m.first; }
 
 	template< typename S >
 	friend constexpr bool operator!=
 		(const _iterTransformIterator & left, _sentinelWrapper<S> right)   { return left.m.first != right._s; }
-
-	template< typename S >
-	friend constexpr bool operator!=
-		(_sentinelWrapper<S> left, const _iterTransformIterator & right)   { return right.m.first != left._s; }
-
-	template< typename S >
-	friend constexpr bool operator==
-		(const _iterTransformIterator & left, _sentinelWrapper<S> right)   { return left.m.first == right._s; }
-
-	template< typename S >
-	friend constexpr bool operator==
-		(_sentinelWrapper<S> left, const _iterTransformIterator & right)   { return right == left; }
 };
 
 #if __cpp_lib_concepts < 201907
@@ -184,4 +146,4 @@ public:
 		= disable_sized_sentinel_for<S, I>;
 #endif
 
-} // namespace oel
+} // oel
