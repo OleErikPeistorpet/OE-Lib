@@ -43,18 +43,21 @@ inline constexpr _transformFn transform;
 } // view
 
 
-template
-<	typename Func, typename View,
-	typename TransformIter = _iterTransformIterator< Func, iterator_t<View> >
->
+template< typename Func, typename View >
 struct _iterTransformView
- :	public _zipTransformView<TransformIter, Func, View>
+ :	public _zipTransformView
+	<	_iterTransformIterator< Func, iterator_t<View> >,
+		Func, View
+	>
 {
-	using _zipTransformView<TransformIter, Func, View>::_zipTransformView;
+	using _iterTransformView::_zipTransformView::_zipTransformView;
 
 	constexpr View         base() &&                { return std::get<0>(std::move(this->_m.first)); }
 	constexpr const View & base() const & noexcept  { return std::get<0>(this->_m.first); }
 };
+
+template< typename F, typename V >
+_iterTransformView(F, V) -> _iterTransformView<F, V>;
 
 
 
@@ -89,9 +92,8 @@ namespace _detail
 		template< typename Range >
 		friend constexpr auto operator |(Range && r, TransformPartial t)
 		{
-			using DF = DerefArg<F>;
-			return _iterTransformView< DF, decltype( view::all(static_cast<Range &&>(r)) ) >
-			{	DF{std::move(t)._f},
+			return _iterTransformView
+			{	DerefArg<F>{std::move(t)._f},
 				view::all(static_cast<Range &&>(r))
 			};
 		}
