@@ -13,6 +13,12 @@
 
 namespace view = oel::view;
 
+template< typename Iter >
+using MoveIter = decltype( view::move( view::counted(Iter{}, 0) ).begin() );
+
+static_assert(oel::can_memmove_with< int *, MoveIter< std::array<int, 1>::const_iterator > >);
+
+
 constexpr auto transformIterFromIntPtr(const int * p)
 {
 	struct
@@ -282,6 +288,14 @@ TEST(viewTest, viewGenerate)
 	EXPECT_TRUE(d.empty());
 }
 
+TEST(viewTest, moveToPointerContiguous)
+{
+	int src[1];
+	auto v = src | view::move;
+
+	EXPECT_EQ( src + 1, oel::iter::as_contiguous_address(v.end()) );
+}
+
 TEST(viewTest, viewMoveEndDifferentType)
 {
 	auto nonEmpty = [i = -1](int j) { return i + j; };
@@ -291,7 +305,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 
 	static_assert(oel::range_is_sized<decltype(v)>);
 	EXPECT_NE(v.begin(), v.end());
-	EXPECT_EQ(src + 1, v.end().base()._s);
+	EXPECT_EQ(src + 1, v.end()._s._s);
 }
 
 #if OEL_STD_RANGES

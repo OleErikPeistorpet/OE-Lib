@@ -1,56 +1,49 @@
 #pragma once
 
-// Copyright 2020 Ole Erik Peistorpet
+// Copyright 2021 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "all.h"
+#include "transform.h"
+#include "../auxi/iter_as_contiguous_address.h"
 
 /** @file
 */
 
 namespace oel
 {
-
-template< typename View >
-class _moveView
+namespace _iterMove
 {
-	View _base;
+	template< typename >
+	void iter_move() = delete;
 
-public:
-	using difference_type = iter_difference_t< iterator_t<View> >;
+	struct Fn
+	{
+		template< typename I >
+		constexpr auto operator()(I && it) const
+			noexcept(noexcept( iter_move(it) ))
+		->	decltype(          iter_move(it) )
+			{        return    iter_move(it); }
 
-	_moveView() = default;
-	constexpr explicit _moveView(View v)   : _base{std::move(v)} {}
-
-	constexpr auto begin()   { return std::move_iterator{_base.begin()}; }
-
-	template< typename V = View, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
-	constexpr auto end()
+		template< typename I, typename... None >
+		constexpr decltype(auto) operator()(I && it, None...) const
+			noexcept(noexcept(*it))
 		{
-		#if OEL_HAS_STD_MOVE_SENTINEL
-			if constexpr (!std::is_same_v< iterator_t<V>, sentinel_t<V> >)
-				return std::move_sentinel{_base.end()};
+			if constexpr( std::is_lvalue_reference_v<decltype(*it)> )
+				return std::move(*it);
 			else
-		#endif
-				return std::move_iterator{_base.end()};
-		}
+				return *it;
+        }
+	};
+}
 
-	template< typename V = View >  OEL_ALWAYS_INLINE
-	constexpr auto size()
-	->	decltype( std::declval<V>().size() )  { return _base.size(); }
+////////////////////////////////////////////////////////////////////////////////
 
-	constexpr bool empty()   { return _base.empty(); }
+//! Effectively same as std::ranges::iter_move
+inline constexpr _iterMove::Fn iter_move;
 
-	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)   { return std::move_iterator{_base.begin()}[index]; }
-
-	constexpr View         base() &&                { return std::move(_base); }
-	constexpr View         base() const &&          { return _base; }
-	constexpr const View & base() const & noexcept  { return _base; }
-};
 
 namespace view
 {
@@ -60,35 +53,35 @@ struct _moveFn
 	template< typename InputRange >
 	friend constexpr auto operator |(InputRange && r, _moveFn)
 		{
-			return _moveView{all( static_cast<InputRange &&>(r) )};
+			return _iterTransformView{iter_move, all( static_cast<InputRange &&>(r) )};
 		}
 
 	template< typename InputRange >
-	constexpr auto operator()(InputRange && r) const   { return static_cast<InputRange &&>(r) | _moveFn{}; }
+	constexpr auto operator()(InputRange && r) const   { return static_cast<InputRange &&>(r) | *this; }
 };
-/** @brief Very similar to views::move in the Range-v3 library and std::views::as_rvalue
-@code
+//! Very similar to views::move in the Range-v3 library and std::views::as_rvalue
+/** @code
 std::string moveFrom[2] {"abc", "def"};
 oel::dynarray movedStrings(moveFrom | view::move);
 @endcode  */
 inline constexpr _moveFn move;
 
-}
-
-} // oel
+} // view
 
 
-#if OEL_STD_RANGES
-
-namespace std::ranges
+namespace iter
 {
 
-template< typename V >
-inline constexpr bool enable_borrowed_range< oel::_moveView<V> >
-	= enable_borrowed_range< std::remove_cv_t<V> >;
+template< typename Iterator >
+constexpr decltype(auto) iter_move(const _iterTransform<oel::_iterMove::Fn, Iterator> & it)
+	noexcept(noexcept( oel::iter_move(it.base()) ))
+	{        return    oel::iter_move(it.base()); }
 
-template< typename V >
-inline constexpr bool enable_view< oel::_moveView<V> > = true;
+template< typename Iterator >
+constexpr auto as_contiguous_address(_iterTransform<oel::_iterMove::Fn, Iterator> it) noexcept
+->	decltype( as_contiguous_address(it.base()) )
+	{  return as_contiguous_address(it.base()); }
 
 }
-#endif
+
+}
