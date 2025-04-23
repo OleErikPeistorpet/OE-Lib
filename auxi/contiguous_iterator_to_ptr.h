@@ -16,43 +16,10 @@
 namespace oel
 {
 
-#if __cpp_lib_concepts >= 201907
-
-	constexpr auto to_pointer_contiguous(std::contiguous_iterator auto it) noexcept
-	{
-		return std::to_address(it);
-	}
-#else
-
-	//! Convert iterator to pointer. This should be overloaded for each LegacyContiguousIterator class (see cppreference)
-	template< typename T >
-	constexpr T * to_pointer_contiguous(T * it) noexcept { return it; }
-
-	#ifdef __GLIBCXX__
-
-	template< typename T, typename C >
-	constexpr T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, C> it) noexcept
-		{
-			return it.base();
-		}
-	#elif _LIBCPP_VERSION
-
-	template< typename T >
-	constexpr T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept  { return it.base(); }
-
-	#elif _CPPLIB_VER
-	template
-	<	typename ContiguousIterator,
-		enable_if
-		<	std::is_pointer_v<decltype( ContiguousIterator{}._Unwrapped() )>
-		> = 0
-	>
-	constexpr auto to_pointer_contiguous(const ContiguousIterator & it) noexcept
-		{
-			return it._Unwrapped();
-		}
-	#endif
-#endif
+constexpr auto to_pointer_contiguous(std::contiguous_iterator auto it) noexcept
+{
+	return std::to_address(it);
+}
 
 template< typename Iterator >
 constexpr auto to_pointer_contiguous(std::move_iterator<Iterator> it)

@@ -23,7 +23,7 @@ class owning
 public:
 	static_assert( std::is_move_assignable_v<Range> );
 
-	using difference_type = iter_difference_t< iterator_t<Range> >;
+	using difference_type = ranges::range_difference_t<Range>;
 
 	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
 
@@ -32,21 +32,19 @@ public:
 	owning & operator =(owning &&)      = default;
 	owning & operator =(const owning &) = delete;
 
-	constexpr auto begin()   { return oel::begin_(_r); }
+	constexpr auto begin()   { return ranges::begin(_r); }
 
-	constexpr auto end()     { return oel::end_(_r); }
+	constexpr auto end()     { return ranges::end(_r); }
 
-	template
-	<	typename R = Range,
-		typename SizeT = decltype( as_unsigned( _detail::Size(std::declval<R &>()) ) )
-	>	OEL_ALWAYS_INLINE
-	constexpr SizeT size()    { return static_cast<SizeT>(_detail::Size(_r)); }
+	OEL_ALWAYS_INLINE
+	constexpr auto size()
+		requires ranges::sized_range<Range>   { return ranges::size(_r); }
 
-	constexpr bool  empty()   { return _r.empty(); }
+	constexpr bool empty()   { return _r.empty(); }
 
 	OEL_ALWAYS_INLINE
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(requires{ _r[index]; })   { return _r[index]; }
+		requires requires{ _r[index]; }     { return _r[index]; }
 
 	constexpr Range base() &&   { return std::move(_r); }
 };
@@ -55,4 +53,4 @@ public:
 
 
 template< typename R >
-inline constexpr bool oel::enable_view< oel::view::owning<R> > = true;
+inline constexpr bool std::ranges::enable_view< oel::view::owning<R> > = true;

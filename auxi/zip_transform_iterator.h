@@ -45,10 +45,10 @@ class _zipTransformIterator
 public:
 	using iterator_category = decltype( _cat() );
 
-	using difference_type = std::common_type_t< iter_difference_t<Iterators>... >;
+	using difference_type = std::common_type_t< std::iter_difference_t<Iterators>... >;
 	using reference       = decltype( std::declval<const Func &>()(*std::declval<Iterators const>()...) );
 	using pointer         = void;
-	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
+	using value_type      = std::remove_cvref_t<reference>;
 
 	_zipTransformIterator() = default;
 	constexpr _zipTransformIterator(Func f, Iterators... it)   : _fn{std::move(f)}, _iters{std::move(it)...} {}
@@ -114,19 +114,19 @@ public:
 		(_zipTransformIterator it, difference_type offset)  { return it -= offset; }
 
 	friend constexpr difference_type operator -(const _zipTransformIterator & left, const _zipTransformIterator & right)
-		OEL_REQUIRES(std::sized_sentinel_for<_firstIter, _firstIter>)
+		requires std::sized_sentinel_for<_firstIter, _firstIter>
 		{
 			return std::get<0>(left._iters) - std::get<0>(right._iters);
 		}
 
 	template< typename S >
-		OEL_REQUIRES(std::sized_sentinel_for<S, _firstIter>)
+		requires std::sized_sentinel_for<S, _firstIter>
 	friend constexpr difference_type operator -(_sentinelWrapper<S> left, const _zipTransformIterator & right)
 		{
 			return left.se - std::get<0>(right._iters);
 		}
 	template< typename S >
-		OEL_REQUIRES(std::sized_sentinel_for<S, _firstIter>)
+		requires std::sized_sentinel_for<S, _firstIter>
 	friend constexpr difference_type operator -(const _zipTransformIterator & left, _sentinelWrapper<S> right)
 		{
 			return std::get<0>(left._iters) - right.se;
@@ -208,17 +208,5 @@ private:
 		( (std::get<Ns>(_iters) += offset), ... );
 	}
 };
-
-#if __cpp_lib_concepts < 201907
-	template< typename F, typename I0, typename... Is >
-	inline constexpr bool disable_sized_sentinel_for
-	<	_zipTransformIterator<F, I0, Is...>,
-		_zipTransformIterator<F, I0, Is...>
-	>	= disable_sized_sentinel_for<I0, I0>;
-
-	template< typename S, typename F, typename I0, typename... Is >
-	inline constexpr bool disable_sized_sentinel_for< _sentinelWrapper<S>, _zipTransformIterator<F, I0, Is...> >
-		= disable_sized_sentinel_for<S, I0>;
-#endif
 
 } // namespace oel

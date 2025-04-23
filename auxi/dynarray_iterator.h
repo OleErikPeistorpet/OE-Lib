@@ -32,12 +32,10 @@ template< typename Ptr >
 struct dynarray_iterator
 {
 	using iterator_category = std::random_access_iterator_tag;
-#if __cpp_lib_concepts
 	using iterator_concept  = std::contiguous_iterator_tag;
-#endif
 
 	using difference_type = ptrdiff_t;
-	using value_type      = iter_value_t<Ptr>;
+	using value_type      = std::iter_value_t<Ptr>;
 	using pointer         = Ptr;
 	using reference       = decltype( *Ptr{} );
 

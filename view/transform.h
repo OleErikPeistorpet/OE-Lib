@@ -51,32 +51,29 @@ struct _transformView
 	using _iter = _transformIterator< Func, iterator_t<View> >;
 
 
-	using difference_type = iter_difference_t<_iter>;
+	using difference_type = std::iter_difference_t<_iter>;
 
 	constexpr _iter begin()
 		{
 			return {_detail::MoveIfNotCopyable(_f), _v.begin()};
 		}
 	//! Return type either same as `begin()` or _sentinelWrapper
-	template< typename V = View,
-	          typename /*EnableIfHasEnd*/ = sentinel_t<V>
-	>
 	constexpr auto end()
 		{
-			if constexpr( std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> > )
+			if constexpr( std::is_empty_v<Func> and std::is_same_v< iterator_t<View>, sentinel_t<View> > )
 				return _iter(_f, _v.end());
 			else
-				return _sentinelWrapper< sentinel_t<V> >{_v.end()};
+				return _sentinelWrapper< sentinel_t<View> >{_v.end()};
 		}
 
-	template< typename V = View >  OEL_ALWAYS_INLINE
+	OEL_ALWAYS_INLINE
 	constexpr auto size()
-	->	decltype( std::declval<V>().size() )  { return _v.size(); }
+		requires requires{ _v.size(); }  { return _v.size(); }
 
 	constexpr bool empty()   { return _v.empty(); }
 
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(requires{ _v[index]; })
+		requires requires{ _v[index]; }
 		{
 			const Func & f = _f;
 			return f(_v[index]);
@@ -97,7 +94,7 @@ namespace _detail
 	template< typename F >
 	struct TransformPartial
 	#if OEL_HAS_STD_ADAPTOR_CLOSURE
-	 :	public std::ranges::range_adaptor_closure< TransformPartial<F> >
+	 :	public ranges::range_adaptor_closure< TransformPartial<F> >
 	#endif
 	{
 		F _f;
@@ -136,12 +133,14 @@ constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 
 } // oel
 
-template< typename V, typename F >
-inline constexpr bool oel::enable_view< oel::_transformView<V, F> > = true;
-
-#if OEL_STD_RANGES
+namespace std::ranges
+{
 
 template< typename V, typename F >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::_transformView<V, F> >
+inline constexpr bool enable_view< oel::_transformView<V, F> > = true;
+
+template< typename V, typename F >
+inline constexpr bool enable_borrowed_range< oel::_transformView<V, F> >
 	= enable_borrowed_range< std::remove_cv_t<V> >;
-#endif
+
+}

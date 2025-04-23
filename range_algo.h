@@ -29,10 +29,9 @@ template< typename Alloc, typename... Ranges >
 auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
 	{
 		static_assert(( ... and _detail::rangeIsForwardOrSized<Ranges> ));
-		using T = std::common_type_t<
-				iter_value_t< iterator_t<Ranges> >...
-			>;
-		size_t const counts[]{ _detail::UDist(sources)... };
+		using T = std::common_type_t< ranges::range_value_t<Ranges>... >;
+
+		size_t const counts[]{ as_unsigned(ranges::distance(sources))... };
 
 		size_t sum{};
 		for( auto n : counts )
@@ -41,7 +40,7 @@ auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
 		auto d = dynarray<T, Alloc>(reserve, sum, std::move(a));
 
 		auto * nIt = counts;
-		(..., d.append_range( view::counted(oel::begin_(sources), *nIt++) ));
+		(..., d.append_range( view::counted(ranges::begin(sources), *nIt++) ));
 
 		return d;
 	}
@@ -63,29 +62,31 @@ auto concat_to_dynarray(Ranges &&... sources)
 	}
 
 
-/** @brief Erase the element at index from container without maintaining order of elements after index.
-*
+//! Erase the element at index from container without maintaining order of elements after index
+/**
 * Constant complexity (compared to linear in the distance between position and last for standard erase).
 * The end iterator and any iterator, pointer and reference referring to the last element may become invalid. */
 template< typename Integer, typename RandomAccessContainer >
 constexpr void unordered_erase(RandomAccessContainer & c, Integer index)
 {
-	c[index] = std::move(c.back());
-	c.pop_back();
+	if constexpr( requires{ c.unordered_erase(c.begin() + index); } )
+	{
+		c.unordered_erase(c.begin() + index);
+	}
+	else
+	{	c[index] = std::move(c.back());
+		c.pop_back();
+	}
 }
-//! See unordered_erase(RandomAccessContainer &, Integer) or dynarray::unordered_erase
-template< typename Integer, typename T, typename A >  inline
-void unordered_erase(dynarray<T, A> & d, Integer index)  { d.unordered_erase(d.begin() + index); }
 
+//! Erase from container all elements for which predicate returns true
 /**
-* @brief Erase from container all elements for which predicate returns true
-*
-* This mimics `std::erase_if` (C++20) for sequence containers  */
+* This mimics `std::erase_if` for sequence containers, with slight extra optimization for dynarray. */
 template< typename Container, typename UnaryPredicate >
 constexpr void erase_if(Container & c, UnaryPredicate p)   { _detail::RemoveIf(c, std::move(p)); }
+
+//! Erase consecutive duplicate elements in container
 /**
-* @brief Erase consecutive duplicate elements in container
-*
 * Calls Container::unique if available (with fallback std::unique).
 * To erase duplicates anywhere, sort container contents first. (Or just use std::set or unordered_set)  */
 template< typename Container >
@@ -109,8 +110,8 @@ template< typename SizedRange, typename RandomAccessIter >  inline
 auto copy_unsafe(SizedRange && source, RandomAccessIter dest)
 ->	copy_return< _uncountedBorrowedIteratorT<SizedRange> >
 	{
-		return{ _detail::Copy(iter_uncounted( oel::begin_(source) ),
-		                      _detail::Size(source),
+		return{ _detail::Copy(iter_uncounted( ranges::begin(source) ),
+		                      ranges::size(source),
 		                      dest) };
 	}
 //! Copies as many elements from source range as will fit in dest range
@@ -135,23 +136,23 @@ template< typename InputRange, typename RandomAccessRange >
 auto oel::copy_fit(InputRange && source, RandomAccessRange && dest)
 ->	copy_return< _uncountedBorrowedIteratorT<InputRange> >
 {
-	if constexpr( range_is_sized<InputRange> )
+	if constexpr( ranges::sized_range<InputRange> )
 	{
-		auto       n        = as_unsigned(_detail::Size(source));
-		auto const destSize = as_unsigned(_detail::Size(dest));
+		auto       n        = ranges::size(source);
+		auto const destSize = ranges::size(dest);
 		if( n > destSize )
 			n = destSize;
 
 		return{
 			_detail::Copy
-			(	iter_uncounted(oel::begin_(source)),
+			(	iter_uncounted(ranges::begin(source)),
 				n,
-				oel::begin_(dest)
+				ranges::begin(dest)
 			) };
 	}
 	else
-	{	auto it = oel::begin_(source); auto const last = oel::end_(source);
-		auto di = oel::begin_(dest);   auto const dl   = oel::end_(dest);
+	{	auto it = ranges::begin(source); auto const last = ranges::end(source);
+		auto di = ranges::begin(dest);   auto const dl   = ranges::end(dest);
 		while( it != last and di != dl )
 		{
 			*di = *it;

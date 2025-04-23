@@ -5,6 +5,7 @@
 #include "dynarray.h"
 #include "optimize_ext/std_tuple.h"
 #include "optimize_ext/std_variant.h"
+#include "view/subrange.h"
 
 #include "gtest/gtest.h"
 #include <list>
@@ -68,8 +69,6 @@ struct DummyRange
 
 TEST(utilTest, ssize)
 {
-	static_assert(oel::range_is_sized< DummyRange<int> >);
-
 	using test  = decltype( oel::ssize(DummyRange<unsigned short>{0}) );
 	using test2 = decltype( oel::ssize(DummyRange<std::uintmax_t>{0}) );
 
@@ -164,71 +163,9 @@ TEST(utilTest, toPointerContiguous)
 	static_assert(std::is_same<P, int *>::value);
 	static_assert(std::is_same<CP, const int *>::value);
 
-#if __cpp_lib_concepts
 	auto addr = &a[1];
 	dynarray_iterator<const int *> it{addr, nullptr, 0};
 	auto result = std::to_address(it);
 	static_assert(std::is_same<const int *, decltype(result)>());
 	EXPECT_EQ(addr, result);
-#endif
-}
-
-struct EmptyRandomAccessRange {};
-
-int * begin(EmptyRandomAccessRange) { return {}; }
-int * end(EmptyRandomAccessRange)   { return {}; }
-
-TEST(utilTest, detailSize_rangeNoMember)
-{
-	EmptyRandomAccessRange r;
-	static_assert(oel::range_is_sized<decltype(r)>);
-	EXPECT_EQ(0, oel::_detail::Size(r));
-}
-
-template< typename I >
-struct TooSimpleIter
-{
-	using value_type = double;
-	using reference = double &;
-	using pointer = void;
-	using difference_type = std::ptrdiff_t;
-	using iterator_category = std::random_access_iterator_tag;
-
-	I it;
-
-	void operator++()
-	{
-		++it;
-	}
-
-	bool operator==(I right) const
-	{
-		return it == right;
-	}
-	bool operator!=(I right) const
-	{
-		return it != right;
-	}
-
-	friend std::ptrdiff_t operator -(I, TooSimpleIter)
-	{
-		static_assert(sizeof(I) == -1, "Not supposed to be here");
-		return {};
-	}
-};
-
-template< typename I >
-constexpr bool oel::disable_sized_sentinel_for< I, TooSimpleIter<I> > = true;
-
-TEST(utilTest, detailCountOrEnd_disabledSize)
-{
-	using A = std::array<double, 1>;
-	A src{1};
-	auto v = oel::view::subrange(TooSimpleIter<A::iterator>{src.begin()}, src.end());
-
-	static_assert( !oel::range_is_sized<decltype(v)> );
-	static_assert(oel::_detail::rangeIsForwardOrSized<decltype(v)>);
-
-	auto n = oel::_detail::UDist(v);
-	EXPECT_EQ(1u, n);
 }

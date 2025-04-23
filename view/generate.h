@@ -46,7 +46,7 @@ public:
 	using iterator_category = std::input_iterator_tag;
 	using reference         = decltype( std::declval<typename _base::FnRef>()() );
 	using pointer           = void;
-	using value_type        = std::remove_cv_t< std::remove_reference_t<reference> >;
+	using value_type        = std::remove_cvref_t<reference>;
 	using difference_type   = ptrdiff_t;
 
 	constexpr explicit generate_iterator(Generator g)   : _base{std::move(g)} {}
@@ -76,8 +76,6 @@ struct _generateFn
 		{
 			return counted( generate_iterator{std::move(g)}, count );
 		}
-#if __cpp_lib_concepts >= 201907
-
 	//! Returns an unbounded view that generates elements by calling the given generator function
 	/**
 	* Almost same as `generate` in the Range-v3 library. */
@@ -86,7 +84,6 @@ struct _generateFn
 		{
 			return subrange( generate_iterator{std::move(g)}, std::unreachable_sentinel );
 		}
-#endif
 };
 inline constexpr _generateFn generate;
 

@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h" // for as_unsigned
+#include "../auxi/range_traits.h"
 
 /** @file
 */
@@ -24,7 +24,7 @@ class subrange
 	OEL_NO_UNIQUE_ADDRESS Sentinel _end;
 
 public:
-	using difference_type = iter_difference_t<Iterator>;
+	using difference_type = std::iter_difference_t<Iterator>;
 
 	constexpr subrange(Iterator first, Sentinel last)   : _begin(std::move(first)), _end(last) {}
 
@@ -32,32 +32,29 @@ public:
 
 	constexpr Sentinel end() const   { return _end; }
 
-	//! Provided only if `begin()` can be subtracted from `end()`
-	template
-	<	typename I = Iterator,
-		enable_if< !disable_sized_sentinel_for<Sentinel, I> > = 0,
-		typename Ret = decltype( as_unsigned(std::declval<Sentinel>() - std::declval<I>()) )
-	>
-	constexpr Ret  size() const
+	constexpr auto size() const
+		requires std::sized_sentinel_for<Sentinel, Iterator>
 		{
-			return static_cast<Ret>(_end - _begin);
+			return static_cast< std::make_unsigned_t<difference_type> >(_end - _begin);
 		}
 
 	constexpr bool empty() const   { return _begin == _end; }
 
 	OEL_ALWAYS_INLINE
 	constexpr decltype(auto) operator[](difference_type index) const
-		OEL_REQUIRES(iter_is_random_access<Iterator>)              { return _begin[index]; }
+		requires iter_is_random_access<Iterator>                   { return _begin[index]; }
 };
 
 }
 
 
-template< typename I, typename S >
-inline constexpr bool oel::enable_view< oel::view::subrange<I, S> > = true;
-
-#if OEL_STD_RANGES
+namespace std::ranges
+{
 
 template< typename I, typename S >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::view::subrange<I, S> > = true;
-#endif
+inline constexpr bool enable_view< oel::view::subrange<I, S> > = true;
+
+template< typename I, typename S >
+inline constexpr bool enable_borrowed_range< oel::view::subrange<I, S> > = true;
+
+}

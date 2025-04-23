@@ -6,9 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "counted.h"
 #include "owning.h"
-#include "subrange.h"
 
 /** @file
 */
@@ -22,23 +20,13 @@ namespace _detail
 		template< typename Range >
 		constexpr auto operator()(Range && r) const
 		{
-			using UnCVR = std::remove_cv_t< std::remove_reference_t<Range> >;
-			if constexpr( enable_view<UnCVR> )
+			if constexpr( ranges::enable_view< std::remove_cvref_t<Range> > )
 			{
 				return static_cast<Range &&>(r);
 			}
-		#if OEL_STD_RANGES
 			else if constexpr(
-				requires{ std::ranges::ref_view{static_cast<Range &&>(r)}; } )
-			{	return    std::ranges::ref_view{static_cast<Range &&>(r)};
-			}
-		#endif
-			else if constexpr( std::is_lvalue_reference_v<Range> )
-			{
-				if constexpr( range_is_sized<Range> )
-					return view::counted(oel::begin_(r), oel::ssize(r));
-				else
-					return view::subrange(oel::begin_(r), oel::end_(r));
+				requires{ ranges::ref_view{static_cast<Range &&>(r)}; } )
+			{	return    ranges::ref_view{static_cast<Range &&>(r)};
 			}
 			else
 			{	return view::owning( static_cast<Range &&>(r) );
@@ -52,10 +40,10 @@ namespace _detail
 namespace view
 {
 
-//! Very similar to std::views::all
+//! Nearly same as std::views::all
 inline constexpr _detail::All all;
 
-//! Very similar to std::views::all_t
+//! Nearly same as std::views::all_t
 template< typename Range >
 using all_t = decltype( all(std::declval<Range>()) );
 

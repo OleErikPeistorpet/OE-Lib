@@ -20,33 +20,30 @@ class _moveView
 	View _base;
 
 public:
-	using difference_type = iter_difference_t< iterator_t<View> >;
+	using difference_type = ranges::range_difference_t<View>;
 
 	constexpr explicit _moveView(View && v)   : _base{std::move(v)} {}
 
 	constexpr auto begin()   { return std::move_iterator{_base.begin()}; }
 
-	template< typename V = View,
-	          typename /*EnableIfHasEnd*/ = sentinel_t<V>
-	>
 	constexpr auto end()
 		{
 		#if OEL_HAS_STD_MOVE_SENTINEL
-			if constexpr( !std::is_same_v< iterator_t<V>, sentinel_t<V> > )
+			if constexpr( !std::is_same_v< iterator_t<View>, sentinel_t<View> > )
 				return std::move_sentinel{_base.end()};
 			else
 		#endif
 				return std::move_iterator{_base.end()};
 		}
 
-	template< typename V = View >  OEL_ALWAYS_INLINE
+	OEL_ALWAYS_INLINE
 	constexpr auto size()
-	->	decltype( std::declval<V>().size() )  { return _base.size(); }
+		requires requires{ _base.size(); }  { return _base.size(); }
 
 	constexpr bool empty()   { return _base.empty(); }
 
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)
+		requires iter_is_random_access< iterator_t<View> >
 		{
 			return std::move_iterator{_base.begin()}[index];
 		}
@@ -60,7 +57,7 @@ namespace view
 
 struct _moveFn
 	#if OEL_HAS_STD_ADAPTOR_CLOSURE
-	:	public std::ranges::range_adaptor_closure<_moveFn>
+	:	public ranges::range_adaptor_closure<_moveFn>
 	#endif
 {
 #if !OEL_HAS_STD_ADAPTOR_CLOSURE
@@ -86,12 +83,14 @@ inline constexpr _moveFn move;
 } // oel
 
 
-template< typename V >
-inline constexpr bool oel::enable_view< oel::_moveView<V> > = true;
-
-#if OEL_STD_RANGES
+namespace std::ranges
+{
 
 template< typename V >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::_moveView<V> >
+inline constexpr bool enable_view< oel::_moveView<V> > = true;
+
+template< typename V >
+inline constexpr bool enable_borrowed_range< oel::_moveView<V> >
 	= enable_borrowed_range< std::remove_cv_t<V> >;
-#endif
+
+}

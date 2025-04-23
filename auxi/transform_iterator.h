@@ -67,10 +67,10 @@ class _transformIterator
 public:
 	using iterator_category = decltype( _cat() );
 
-	using difference_type = iter_difference_t<Iterator>;
+	using difference_type = std::iter_difference_t<Iterator>;
 	using reference       = decltype( std::declval<typename _super::FnRef>()(*it) );
 	using pointer         = void;
-	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
+	using value_type      = std::remove_cvref_t<reference>;
 
 	_transformIterator() = default;
 	constexpr _transformIterator(UnaryFunc f, Iterator it)   : _super{std::move(f), std::move(it)} {}
@@ -138,18 +138,18 @@ public:
 	friend constexpr _transformIterator operator -(_transformIterator ti, difference_type offset)  { return ti -= offset; }
 
 	friend constexpr difference_type operator -(const _transformIterator & left, const _transformIterator & right)
-		OEL_REQUIRES(std::sized_sentinel_for<Iterator, Iterator>)
+		requires std::sized_sentinel_for<Iterator, Iterator>
 		{
 			return left.it - right.it;
 		}
 
 	template< typename S >
-		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
+		requires std::sized_sentinel_for<S, Iterator>
 	friend constexpr difference_type operator -
 		(_sentinelWrapper<S> left, const _transformIterator & right)   { return left.se - right.it; }
 
 	template< typename S >
-		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
+		requires std::sized_sentinel_for<S, Iterator>
 	friend constexpr difference_type operator -
 		(const _transformIterator & left, _sentinelWrapper<S> right)   { return left.it - right.se; }
 
@@ -187,15 +187,5 @@ public:
 	friend constexpr bool operator!=
 		(_sentinelWrapper<S> left, const _transformIterator & right)   { return right.it != left.se; }
 };
-
-#if __cpp_lib_concepts < 201907
-	template< typename F, typename I >
-	inline constexpr bool disable_sized_sentinel_for< _transformIterator<F, I>, _transformIterator<F, I> >
-		= disable_sized_sentinel_for<I, I>;
-
-	template< typename S, typename F, typename I >
-	inline constexpr bool disable_sized_sentinel_for< _sentinelWrapper<S>, _transformIterator<F, I> >
-		= disable_sized_sentinel_for<S, I>;
-#endif
 
 } // namespace oel

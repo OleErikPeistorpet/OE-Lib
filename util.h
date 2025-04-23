@@ -56,16 +56,12 @@ inline constexpr auto as_unsigned =
 	};
 
 
-//! More generic than std::ssize, close to std::ranges::ssize
-/**
-* Ill-formed if `r.size()` is ill-formed and `begin(r)` cannot be subtracted from `end(r)` (SFINAE-friendly) */
+//! Same as std::ranges::ssize, except it can be found by ADL
 template< typename SizedRangeLike >
 constexpr auto ssize(SizedRangeLike && r)
-	noexcept(noexcept( _detail::Size(r) ))
-->	std::common_type_t< ptrdiff_t, decltype( as_signed(_detail::Size(r)) ) >
-	{
-		return std::common_type_t< ptrdiff_t, decltype( as_signed(_detail::Size(r)) ) >(_detail::Size(r));
-	}
+	noexcept(noexcept( ranges::ssize(static_cast<SizedRangeLike &&>(r)) ))
+->	decltype(          ranges::ssize(static_cast<SizedRangeLike &&>(r)) )
+	{        return    ranges::ssize(static_cast<SizedRangeLike &&>(r)); }
 
 
 //! Returns true if index is within bounds (for `r[index]`)
@@ -74,9 +70,9 @@ constexpr auto ssize(SizedRangeLike && r)
 template< typename Integer, typename SizedRangeLike >
 [[nodiscard]] constexpr bool index_valid(SizedRangeLike && r, Integer index)
 	{
-		static_assert( sizeof(Integer) >= sizeof _detail::Size(r) or std::is_unsigned_v<Integer>,
+		static_assert( sizeof(Integer) >= sizeof ranges::size(r) or std::is_unsigned_v<Integer>,
 			"Mismatched index type, please use a wider integer (or unsigned)" );
-		return as_unsigned(index) < as_unsigned(_detail::Size(r));
+		return as_unsigned(index) < as_unsigned(ranges::size(r));
 	}
 
 
@@ -102,15 +98,15 @@ struct for_overwrite_t
 };
 inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrite_t for convenience
 
-#if OEL_STD_RANGES and __cpp_lib_containers_ranges >= 202202
-	using std::from_range_t;
-	using std::from_range;
-#else
+#if __cpp_lib_containers_ranges < 202202
 	struct from_range_t
 	{
 		explicit from_range_t() = default;
 	};
 	inline constexpr from_range_t from_range;
+#else
+	using std::from_range_t;
+	using std::from_range;
 #endif
 
 
@@ -124,7 +120,6 @@ inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrit
 template< typename Iterator >
 Iterator iter_uncounted(Iterator it)  { return it; }
 
-#if __cpp_lib_concepts >= 201907
 template< typename Iterator >
 Iterator iter_uncounted(std::counted_iterator<Iterator> it)  { return std::move(it).base(); }
 
@@ -133,22 +128,15 @@ auto     iter_uncounted(std::move_iterator< std::counted_iterator<Iterator> > it
 	{
 		return std::move_iterator{std::move(it).base().base()};
 	}
-#endif
 
 //! Like std::ranges::borrowed_iterator_t, but strips away std::counted_iterator
 template< typename Range >
 using _uncountedBorrowedIteratorT =
-#if OEL_STD_RANGES
 	std::conditional_t<
-		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
-#endif
-		decltype( iter_uncounted( oel::begin_(std::declval<Range &>()) ) )
-#if OEL_STD_RANGES
-		, std::ranges::dangling
+		std::is_lvalue_reference_v<Range> or ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
+		decltype( iter_uncounted( ranges::begin(std::declval<Range &>()) ) ),
+		ranges::dangling
 	>;
-#else
-	;
-#endif
 
 
 //! Tells whether we can call member `reallocate(pointer, size_type)` on an instance of Alloc

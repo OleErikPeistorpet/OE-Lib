@@ -342,7 +342,7 @@ TEST_F(dynarrayTest, appendCase2)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.append_range( view::counted(oel::begin_(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.append_range( view::counted(std::begin(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.append_range(double_dynarr2);
 
 	{

@@ -7,7 +7,7 @@
 
 
 #include "contiguous_iterator_to_ptr.h"
-#include "../util.h"  // for as_unsigned
+#include "range_traits.h"
 
 #include <cstring>
 #include <memory> // for allocator_traits
@@ -15,6 +15,13 @@
 
 namespace oel::_detail
 {
+	template< typename Range >
+	inline constexpr auto rangeIsForwardOrSized =
+		iter_is< iterator_t<Range>, std::forward_iterator_tag >
+		or ranges::sized_range<Range>;
+
+
+
 	template< typename T >
 	void Destroy([[maybe_unused]] T * first, [[maybe_unused]] const T * last) noexcept
 	{
@@ -119,31 +126,4 @@ namespace oel::_detail
 			}
 		}
 	};
-
-
-
-	template< typename Range >
-	inline constexpr auto rangeIsForwardOrSized =
-		iter_is< iterator_t<Range>, std::forward_iterator_tag >
-		or range_is_sized<Range>;
-
-	// Used only if rangeIsForwardOrSized
-	template< typename Range >
-	auto UDist(Range & r)
-	{
-		if constexpr( range_is_sized<Range> )
-		{
-			return as_unsigned(_detail::Size(r));
-		}
-		else
-		{	auto    it = oel::begin_(r);
-			auto const l = oel::end_(r);
-			using D = iter_difference_t< decltype(it) >;
-			std::make_unsigned_t<D> n{};
-			while( it != l )
-			{	++it; ++n;
-			}
-			return n;
-		}
-	}
 }

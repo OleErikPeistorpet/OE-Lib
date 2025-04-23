@@ -8,25 +8,20 @@
 
 #include "core_util.h"
 
-//! Users can define (to override __cpp_lib_ranges or to not pay for include)
-#ifndef OEL_STD_RANGES
-	#if __cpp_lib_ranges < 201911
-	#define OEL_STD_RANGES  0
-	#else
-	#define OEL_STD_RANGES  1
-	#endif
-#endif
-
-#if OEL_STD_RANGES and __cpp_lib_ranges >= 202202
-	#define OEL_HAS_STD_ADAPTOR_CLOSURE  1
-#else
-	#define OEL_HAS_STD_ADAPTOR_CLOSURE  0
-#endif
-
-#if OEL_STD_RANGES
-#include <ranges>
-#endif
 #include <iterator>
+#include <ranges>
+
+#if __cpp_lib_ranges < 202202
+	#define OEL_HAS_STD_ADAPTOR_CLOSURE  0
+#else
+	#define OEL_HAS_STD_ADAPTOR_CLOSURE  1
+#endif
+
+#if defined(_LIBCPP_VERSION) and _LIBCPP_VERSION < 15000
+	#define OEL_HAS_STD_MOVE_SENTINEL  0
+#else
+	#define OEL_HAS_STD_MOVE_SENTINEL  1
+#endif
 
 /** @file
 */
@@ -67,37 +62,11 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-//! Like std::ranges::begin, but for C++17
-template< typename Range >  OEL_ALWAYS_INLINE
-constexpr auto begin_(Range && r) -> decltype( std::begin(r) )  { return std::begin(r); }
+namespace ranges = std::ranges;
 
-template< typename Range >  OEL_ALWAYS_INLINE
-constexpr auto end_(Range && r)   -> decltype( std::end(r) )  { return std::end(r); }
+using ranges::iterator_t;
+using ranges::sentinel_t;
 
-template< typename Range, typename... None >
-constexpr auto begin_(Range && r, None...) -> decltype( begin(r) )  { return begin(r); }
-
-template< typename Range, typename... None >
-constexpr auto end_(Range && r, None...)   -> decltype( end(r) )  { return end(r); }
-
-
-//! Return type of begin function (maybe found by ADL)
-template< typename Range >
-using iterator_t = decltype( oel::begin_(std::declval<Range &>()) );
-//! Return type of end function
-template< typename Range >
-using sentinel_t = decltype( oel::end_(std::declval<Range &>()) );
-
-#if __cpp_lib_concepts < 201907
-	template< typename Iterator >
-	using iter_difference_t = typename std::iterator_traits<Iterator>::difference_type;
-
-	template< typename Iterator >
-	using iter_value_t = typename std::iterator_traits<Iterator>::value_type;
-#else
-	using std::iter_difference_t;
-	using std::iter_value_t;
-#endif
 
 //! May fail for std::output_iterator_tag
 template< typename Iterator, typename Tag >
@@ -105,57 +74,6 @@ inline constexpr bool iter_is  =  std::is_base_of_v< Tag, decltype( _detail::Che
 
 template< typename Iterator >
 inline constexpr bool iter_is_random_access = iter_is<Iterator, std::random_access_iterator_tag>;
-
-//! Partial emulation of std::sized_sentinel_for (C++20)
-/**
-* Let i be an Iterator and s a Sentinel. If `s - i` is well-formed, then this value specifies whether
-* that subtraction is invalid or not O(1). Must be specialized for some iterator, sentinel pairs. */
-#if __cpp_lib_concepts < 201907
-	template< typename Sentinel, typename Iterator >
-	inline constexpr bool disable_sized_sentinel_for = !iter_is_random_access<Iterator>;
-#else
-	using std::disable_sized_sentinel_for;
-#endif
-
-#if OEL_STD_RANGES
-	using std::ranges::enable_view;
-#else
-	template< typename >
-	inline constexpr bool enable_view = false;
-#endif
-
-////////////////////////////////////////////////////////////////////////////////
-
-namespace _detail
-{
-	template< typename T, size_t N >
-	constexpr size_t Size(T(&)[N]) noexcept { return N; }
-
-	template< typename Range >
-	constexpr auto Size(Range && r) noexcept(noexcept( r.size() ))
-	->	decltype( r.size() ) { return r.size(); }
-
-	template
-	<	typename Range, typename... None,
-		enable_if<
-			!disable_sized_sentinel_for< sentinel_t<Range>, iterator_t<Range> >
-		> = 0
-	>
-	constexpr auto Size(Range && r, None...)
-	->	decltype( oel::end_(r) - oel::begin_(r) )
-	{	return    oel::end_(r) - oel::begin_(r); }
-}
-
-
-template< typename Range, typename = void >
-inline constexpr bool range_is_sized = false;
-
-template< typename Range >
-inline constexpr bool range_is_sized
-	<	Range,
-		std::void_t< decltype( _detail::Size(std::declval<Range &>()) ) >
-	>	= true;
-
 
 
 template< typename Sentinel >

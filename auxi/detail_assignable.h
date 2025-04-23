@@ -8,12 +8,6 @@
 
 #include "core_util.h"
 
-// Could this be inaccurate for some standard library implementations?
-#if __cpp_lib_constexpr_dynamic_alloc < 201907
-	#define OEL_HAS_STD_CONSTRUCT_AT  0
-#else
-	#define OEL_HAS_STD_CONSTRUCT_AT  1
-#endif
 
 namespace oel::_detail
 {
@@ -23,6 +17,7 @@ namespace oel::_detail
 	{
 		static_assert( std::is_trivially_copy_constructible_v<T> and std::is_trivially_destructible_v<T>,
 			"The user-supplied function must be move assignable, or trivially copy constructible and trivially destructible" );
+		static_assert( !std::is_empty_v<T> );
 
 		union Box
 		{
@@ -34,43 +29,22 @@ namespace oel::_detail
 			Box() = default;
 			Box(const Box &) = default;
 
-		#if OEL_HAS_STD_CONSTRUCT_AT
-			constexpr
-		#endif
-			void operator =(const Box & other) & noexcept
+			constexpr void operator =(const Box & other) & noexcept
 			{
-		#if OEL_HAS_STD_CONSTRUCT_AT
 				std::construct_at(this, other);
-		#else
-				::new(this) Box(other);
-		#endif
 			}
 
 			OEL_ALWAYS_INLINE constexpr operator const T &() const { return _val; }
 			OEL_ALWAYS_INLINE constexpr operator       T &()       { return _val; }
 		};
-
-		using T_7KQw = T;
-
-		struct BoxEmpty : public T
-		{
-			constexpr BoxEmpty(T_7KQw src) noexcept : T_7KQw(src) {}
-
-			BoxEmpty() = default;
-			BoxEmpty(const BoxEmpty &) = default;
-
-			OEL_ALWAYS_INLINE constexpr void operator =(const BoxEmpty &) & noexcept {}
-		};
-
-		using Type = std::conditional_t< std::is_empty_v<T>, BoxEmpty, Box >;
 	};
 
 	template< typename T >
 	struct AssignableImpl<T, true>
 	{
-		using Type = T;
+		using Box = T;
 	};
 
 	template< typename T >
-	using MakeAssignable = typename AssignableImpl<T>::Type;
+	using MakeAssignable = typename AssignableImpl<T>::Box;
 }

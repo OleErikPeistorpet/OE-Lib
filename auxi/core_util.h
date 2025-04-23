@@ -13,24 +13,8 @@
 #endif
 #include <type_traits>
 #include <utility> // for declval
-#include <version> // for __cpp_lib_concepts
 
 //! @cond INTERNAL
-
-#if __cpp_lib_concepts < 201907
-	#define OEL_REQUIRES(...)
-#else
-	#define OEL_REQUIRES(...) requires(__VA_ARGS__)
-
-	#if !defined _LIBCPP_VERSION or _LIBCPP_VERSION >= 15000
-	#define OEL_HAS_STD_MOVE_SENTINEL  1
-	#endif
-#endif
-
-#ifndef OEL_HAS_STD_MOVE_SENTINEL
-#define OEL_HAS_STD_MOVE_SENTINEL  0
-#endif
-
 
 #ifdef _MSC_VER
 	#if !_HAS_CXX20
@@ -78,12 +62,6 @@ using std::size_t;
 template< typename T >
 bool_constant< std::is_trivially_move_constructible_v<T> and std::is_trivially_destructible_v<T> >
 	specify_trivial_relocate(T &&);
-
-
-
-//! Same as std::enable_if_t<Condition, int>. Type int is intended as unused dummy
-template< bool Condition >
-using enable_if = typename std::enable_if<Condition, int>::type;
 
 
 

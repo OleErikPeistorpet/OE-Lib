@@ -27,15 +27,11 @@ namespace
 	using Iter = dynarray<float>::iterator;
 	using ConstIter = dynarray<float>::const_iterator;
 
-#if __cpp_lib_ranges >= 201907
 	static_assert(std::ranges::contiguous_range< dynarray<float> >);
-#endif
-#if __cpp_lib_concepts >= 201907
 	static_assert(std::contiguous_iterator<Iter>);
 	static_assert(std::contiguous_iterator<ConstIter>);
 	static_assert(std::sized_sentinel_for<ConstIter, Iter>);
 	static_assert(std::sized_sentinel_for<Iter, ConstIter>);
-#endif
 
 	static_assert(std::is_same_v<std::iterator_traits<ConstIter>::value_type, float>);
 

@@ -14,12 +14,10 @@
 namespace view = oel::view;
 using FL = std::forward_list<int>;
 
-#if OEL_STD_RANGES
-	#if defined __clang__ and __clang_major__ < 16
+#if defined __clang__ and __clang_major__ < 16
 	#define STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT  1
-	#else
+#else
 	#define STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT  0
-	#endif
 #endif
 
 TEST(viewTest, viewAll)
@@ -47,12 +45,8 @@ TEST(viewTest, viewAllSized)
 
 	Sized c{7, 8};
 	auto v = view::all(c);
-#if OEL_STD_RANGES
 	static_assert(std::is_same_v< decltype(v), std::ranges::ref_view<Sized> >);
-#else
-	using I = Sized::iterator;
-	static_assert(std::is_same_v< decltype(v), oel::_countedView<I> >);
-#endif
+
 	auto v2 = view::all(std::as_const(v));
 	static_assert(std::is_same_v< decltype(v), decltype(v2) >);
 
@@ -66,12 +60,8 @@ TEST(viewTest, viewAllLValue)
 	auto v = view::all(c);
 	// Should hit static_assert
 	//auto ov = view::owning(std::move(c));
-#if OEL_STD_RANGES
 	static_assert(std::is_same_v< decltype(v), std::ranges::ref_view<FL const> >);
-#else
-	using I = FL::const_iterator;
-	static_assert(std::is_same_v< decltype(v), view::subrange<I, I> >);
-#endif
+
 	auto v2 = view::all(v);
 	static_assert(std::is_same_v< decltype(v), decltype(v2) >);
 
@@ -117,14 +107,15 @@ TEST(viewTest, viewSubrange)
 	using V = view::subrange<int *, int *>;
 
 	static_assert(std::is_trivially_constructible<V, V &>::value);
-
-#if OEL_STD_RANGES
 	static_assert(std::ranges::contiguous_range<V>);
 	static_assert(std::ranges::borrowed_range<V>);
 	#if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
 	static_assert(std::ranges::view<V>);
 	#endif
-#endif
+	static_assert(
+		sizeof( view::subrange<int *, std::default_sentinel_t> ) == sizeof(int *),
+		"Not critical, this assert can be removed" );
+
 	static constexpr int src[3]{};
 	{
 		constexpr auto v = view::subrange(src + 1, src + 3);
@@ -141,13 +132,11 @@ TEST(viewTest, viewCounted)
 
 	static_assert(std::is_trivially_constructible<CV, CV &>::value);
 
-#if OEL_STD_RANGES
 	static_assert(std::ranges::contiguous_range<CV>);
 	static_assert(std::ranges::borrowed_range<CV>);
 	#if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
 	static_assert(std::ranges::view<CV>);
 	#endif
-#endif
 	{
 		oel::dynarray<int> i{1, 2};
 		auto test = view::counted(i.begin(), ssize(i));
@@ -181,7 +170,7 @@ TEST(viewTest, viewTransformBasics)
 	static_assert(std::is_same_v< decltype(itMoveOnly++), void >);
 	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *));
 	static_assert(sizeof v == sizeof v.base(), "Not critical, this assert can be removed");
-#if OEL_STD_RANGES
+
 	static_assert(std::ranges::random_access_range< decltype(v) >);
 	static_assert(std::ranges::input_range< decltype(v2) >);
 	static_assert(std::ranges::view< decltype(v) >);
@@ -191,7 +180,6 @@ TEST(viewTest, viewTransformBasics)
 		constexpr IEmptyLambda valueInit{};
 		[[maybe_unused]] constexpr auto copy = valueInit;
 	}
-#endif
 	{
 		auto it = v.begin();
 		EXPECT_FALSE( it >= v.end() );
@@ -298,9 +286,7 @@ TEST(viewTest, viewTransformMutableLambda)
 
 	using I = decltype(v.begin());
 	static_assert(std::is_same_v<I::iterator_category, std::input_iterator_tag>);
-#if OEL_STD_RANGES
 	static_assert(!std::forward_iterator<I>);
-#endif
 
 	oel::dynarray<int> test(oel::reserve, 3);
 	test.resize(1);
@@ -357,8 +343,6 @@ TEST(viewTest, testTransformMoveOnlyIterator)
 	EXPECT_EQ(7, *it);
 }
 
-#if __cpp_lib_concepts
-
 struct IterWithConceptOnly
 {
 	using iterator_concept = std::forward_iterator_tag;
@@ -380,7 +364,6 @@ void testTransformIterWithConceptOnly()
 	static_assert(std::is_same_v< I::iterator_category, std::forward_iterator_tag >);
 	static_assert(std::is_same_v< decltype(it++), I >);
 }
-#endif
 
 TEST(viewTest, viewZipTransformN)
 {
@@ -391,7 +374,7 @@ TEST(viewTest, viewZipTransformN)
 	EXPECT_EQ(3, v[1]);
 }
 
-#if !defined __GLIBCXX__ or __GNUC__ > 10 or !__cpp_lib_concepts
+#if !defined __GLIBCXX__ or __GNUC__ > 10
 
 constexpr StdArrInt2 generatedArray()
 {
@@ -433,7 +416,6 @@ TEST(viewTest, viewGenerate)
 	d.assign_range(oel::view::generate(Ints{}, 0));
 	EXPECT_TRUE(d.empty());
 
-#if OEL_STD_RANGES
 	auto v = view::generate([] { return 7; }, 1);
 	for (auto i : v)
 		EXPECT_EQ(7, i);
@@ -443,10 +425,8 @@ TEST(viewTest, viewGenerate)
 	using V = decltype(v);
 	static_assert(std::ranges::input_range<V>);
 	static_assert(std::ranges::sized_range<V>);
-#endif
 }
 
-#if __cpp_lib_concepts
 TEST(viewTest, viewGenerateUnbounded)
 {
 	auto v = view::generate([i = 6]() mutable{ return i++; });
@@ -455,7 +435,6 @@ TEST(viewTest, viewGenerateUnbounded)
 	it++;
 	EXPECT_EQ(7, *it);
 }
-#endif
 
 TEST(viewTest, viewMoveEndDifferentType)
 {
@@ -464,26 +443,12 @@ TEST(viewTest, viewMoveEndDifferentType)
 	oel::_transformIterator it{nonEmpty, src + 0};
 	auto v = view::subrange(it, makeSentinel(src + 1)) | view::move;
 
-#if OEL_STD_RANGES
 	static_assert(std::ranges::enable_borrowed_range< decltype(v) >);
-#endif
-	static_assert(oel::range_is_sized<decltype(v)>);
+	static_assert(std::ranges::sized_range< decltype(v) >);
+
 	EXPECT_NE(v.begin(), v.end());
 	EXPECT_EQ(src + 1, v.end().base().se);
 }
-
-void testStdIteratorInOelViewNotAmbiguous()
-{
-	auto v0 = std::array<int, 1>{} | view::move;
-	auto v  = view::subrange(v0.begin(), v0.end());
-	static_assert(
-		std::is_same_v<
-			oel::iterator_t< decltype(v) >,
-			oel::sentinel_t< decltype(v) >
-		> );
-}
-
-#if OEL_STD_RANGES
 
 TEST(viewTest, viewMoveMutableEmptyAndSize)
 {
@@ -515,5 +480,4 @@ TEST(viewTest, chainWithStd)
 	void( src | view::transform(f) | std::views::drop(1) | view::move );
 #endif
 }
-#endif
 #endif

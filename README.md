@@ -6,10 +6,10 @@ Features relocation optimizations similar to [Folly fbvector](https://github.com
 
 The library is distributed under the Boost Software License, and is header only, just include and go.
 
-The library can be built for C++17, but the `no_unique_address` attribute is needed. Oldest supported compilers:
+C++20 is required. Oldest supported compilers:
 * Visual Studio 2019
-* GCC 9
-* Clang 9 (versions not well tested)
+* GCC 10
+* Clang 13 (versions not well tested)
 
 ### Append
 

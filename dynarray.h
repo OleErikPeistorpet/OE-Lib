@@ -595,8 +595,8 @@ typename dynarray<T, Alloc>::iterator
 	static_assert( _detail::rangeIsForwardOrSized<Range>,
 		"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
 
-	auto       first = iter_uncounted(oel::begin_(source));
-	auto const count = _detail::UDist(source);
+	auto       first = iter_uncounted(ranges::begin(source));
+	auto const count = as_unsigned(ranges::distance(source));
 
 	size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
 	T * dLast;
@@ -651,10 +651,7 @@ template< typename T, typename Alloc >
 template< typename... Args >
 inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 {
-	if( _m.end == _m.reservEnd )
-#if __has_cpp_attribute(unlikely)
-		[[unlikely]]
-#endif	// braces here cause gcc 9 warning (Wattributes)
+	if( _m.end == _m.reservEnd ) [[unlikely]]
 		_growByOne();
 
 	_alloTrait::construct(_m.allo, _m.end, static_cast<Args &&>(args)...);
@@ -671,8 +668,8 @@ inline void dynarray<T, Alloc>::append_range(InputRange && source)
 	if constexpr( _detail::rangeIsForwardOrSized<InputRange> )
 	{
 		_doAppend(
-			iter_uncounted(oel::begin_(source)),
-			_detail::UDist(source) );
+			iter_uncounted(ranges::begin(source)),
+			as_unsigned(ranges::distance(source)) );
 	}
 	else
 	{	for( auto && e : source )
@@ -687,8 +684,8 @@ inline void dynarray<T, Alloc>::assign_range(InputRange && source)
 	if constexpr( _detail::rangeIsForwardOrSized<InputRange> )
 	{
 		_doAssign(
-			iter_uncounted(oel::begin_(source)),
-			_detail::UDist(source) );
+			iter_uncounted(ranges::begin(source)),
+			as_unsigned(ranges::distance(source)) );
 	}
 	else
 	{	clear();
@@ -876,10 +873,7 @@ typename dynarray<T, Alloc>::iterator
 
 template< typename InputRange, typename Alloc = allocator<> >
 dynarray(from_range_t, InputRange &&, Alloc = {})
-->	dynarray<
-		iter_value_t< iterator_t<InputRange> >,
-		Alloc
-	>;
+->	dynarray< ranges::range_value_t<InputRange>, Alloc >;
 
 #if defined __GNUC__ and __GNUC__ < 12
 	template< typename T, typename A >
