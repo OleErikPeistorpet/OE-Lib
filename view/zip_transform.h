@@ -26,7 +26,7 @@ namespace oel::view
 inline constexpr auto zip_transform =
 	[](auto func, auto &&... ranges)
 	{
-		using I = _zipTransformIterator< decltype(func), iterator_t<decltype(ranges)>... >;
+		using I = iter::_zipTransform< decltype(func), iterator_t<decltype(ranges)>... >;
 		using V = _zipTransformView< I, decltype(func), decltype( all(static_cast<decltype(ranges)>(ranges)) )... >;
 		return V{std::move(func), all( static_cast<decltype(ranges)>(ranges) )...};
 	};
@@ -39,7 +39,7 @@ inline constexpr auto zip_transform_n =
 	[](auto func, auto count, auto... iterators)
 	{
 		return counted(
-			_zipTransformIterator{std::move(func), std::move(iterators)...},
+			iter::_zipTransform{std::move(func), std::move(iterators)...},
 			count );
 	};
 
