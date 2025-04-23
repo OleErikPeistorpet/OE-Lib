@@ -7,7 +7,7 @@
 
 
 #include "dynarray_detail.h"
-#include "range_traits.h"
+#include "iterator_facade.h"
 
 
 #ifdef _MSC_VER
@@ -30,6 +30,7 @@ inline namespace debug
 * and one compares different to any iterator from a dynarray with non-zero capacity. */
 template< typename Ptr >
 struct dynarray_iterator
+ :	_iteratorFacade< dynarray_iterator<Ptr>, ptrdiff_t >
 {
 	#define OEL_ITER_VALIDATE_DEREF  \
 		OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex(_pElem, *_header) )
@@ -45,11 +46,11 @@ struct dynarray_iterator
 	using pointer         = Ptr;
 	using reference       = decltype( *Ptr{} );
 
-	using const_iterator = dynarray_iterator<const value_type *>;
+	using const_type = dynarray_iterator<const value_type *>;
 
-	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
+	operator const_type() const noexcept  OEL_ALWAYS_INLINE
 		{
-			return {_pElem, _header, _allocationId};
+			return{ {}, _pElem, _header, _allocationId };
 		}
 
 	reference operator*() const
@@ -96,61 +97,19 @@ struct dynarray_iterator
 			return *this;
 		}
 
-	dynarray_iterator & operator-=(difference_type offset) &
-		{
-			_pElem -= offset;
-			return *this;
-		}
-
-	friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)  { return it += offset; }
-	[[nodiscard]]
-	friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
-		{
-			it._pElem += offset;
-			return it;
-		}
-	[[nodiscard]]
-	friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
-		{
-			it._pElem -= offset;
-			return it;
-		}
-
 	friend difference_type operator -(const dynarray_iterator & left, const dynarray_iterator & right)
 		{
 			return left._pElem - right._pElem;
 		}
 
-	reference operator[](difference_type offset) const
-		{	// not *(*this + offset) to save a call when built without inlining
-			auto tmp = *this;
-			tmp._pElem += offset;
-			return *tmp;
-		}
-
-	friend bool operator==(const dynarray_iterator & left, const dynarray_iterator & right)
-		{
-			return left._pElem == right._pElem;
-		}
 	friend bool operator!=(const dynarray_iterator & left, const dynarray_iterator & right)
 		{
 			return left._pElem != right._pElem;
 		}
+
 	friend bool operator <(const dynarray_iterator & left, const dynarray_iterator & right)
 		{
 			return left._pElem < right._pElem;
-		}
-	friend bool operator >(const dynarray_iterator & left, const dynarray_iterator & right)
-		{
-			return left._pElem > right._pElem;
-		}
-	friend bool operator<=(const dynarray_iterator & left, const dynarray_iterator & right)
-		{
-			return left._pElem <= right._pElem;
-		}
-	friend bool operator>=(const dynarray_iterator & left, const dynarray_iterator & right)
-		{
-			return left._pElem >= right._pElem;
 		}
 
 
@@ -195,11 +154,11 @@ namespace oel::_detail
 		if( parent.data )
 		{
 			auto const h = _detail::DebugHeaderOf(parent.data);
-			return dynarray_iterator<Ptr>{pos, h, h->id};
+			return dynarray_iterator<Ptr>{{}, pos, h, h->id};
 		}
 		else
 		{	auto id = reinterpret_cast<std::uintptr_t>(&parent);
-			return dynarray_iterator<Ptr>{pos, &_detail::headerNoAllocation, id};
+			return dynarray_iterator<Ptr>{{}, pos, &_detail::headerNoAllocation, id};
 		}
 	#else
 		(void) parent;
