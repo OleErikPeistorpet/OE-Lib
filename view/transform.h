@@ -47,7 +47,7 @@ inline constexpr _transformFn transform;
 template< typename Func, typename View >
 struct _iterTransformView
  :	public _zipTransformView
-	<	_iterTransformIterator< Func, iterator_t<View> >,
+	<	iter::_iterTransform< Func, iterator_t<View> >,
 		Func, View
 	>
 {

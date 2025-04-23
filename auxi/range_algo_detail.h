@@ -71,7 +71,7 @@ namespace oel::_detail
 				(void) *(dest + (n - 1));
 			}
 		#endif
-			_detail::MemcpyCheck(src, n, to_pointer_contiguous(dest));
+			_detail::MemcpyCheck(src, n, as_contiguous_address(dest));
 			return src + n;
 		}
 		else

@@ -41,12 +41,15 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-template< typename Func, typename Iterator >
-class _iterTransformIterator
- :	public _iteratorFacade< _iterTransformIterator<Func, Iterator>, iter_difference_t<Iterator> >,
-	private _detail::TransformIterBase<Func, Iterator>
+namespace iter
 {
-	using _super = typename _iterTransformIterator::TransformIterBase;
+
+template< typename Func, typename Iterator >
+class _iterTransform
+ :	public _iteratorFacade< _iterTransform<Func, Iterator>, iter_difference_t<Iterator> >,
+	private oel::_detail::TransformIterBase<Func, Iterator>
+{
+	using _super = typename _iterTransform::TransformIterBase;
 
 	using _super::m;
 
@@ -72,8 +75,8 @@ public:
 	using pointer         = void;
 	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
 
-	_iterTransformIterator() = default;
-	constexpr _iterTransformIterator(Func f, Iterator it)   : _super{{ std::move(it), std::move(f) }} {}
+	_iterTransform() = default;
+	constexpr _iterTransform(Func f, Iterator it)   : _super{{ std::move(it), std::move(f) }} {}
 
 	constexpr const Iterator & base() const & noexcept   OEL_ALWAYS_INLINE { return m.first; }
 	constexpr Iterator         base() && noexcept
@@ -89,11 +92,9 @@ public:
 			return f(it);
 		}
 
-	constexpr _iterTransformIterator & operator++()  OEL_ALWAYS_INLINE
-		{
-			++m.first;  return *this;
-		}
-	//! Post-increment: return type is _iterTransformIterator if iterator_category is-a forward_iterator_tag, else void
+	constexpr _iterTransform & operator++()   OEL_ALWAYS_INLINE { ++m.first;  return *this; }
+
+	//! Post-increment: return type is _iterTransform if iterator_category is-a forward_iterator_tag, else void
 	constexpr auto operator++(int) &
 		{
 			if constexpr( std::is_same_v<iterator_category, std::input_iterator_tag> )
@@ -106,24 +107,22 @@ public:
 				return tmp;
 			}
 		}
-	constexpr _iterTransformIterator & operator--()  OEL_ALWAYS_INLINE
-		{
-			--m.first;  return *this;
-		}
-	constexpr _iterTransformIterator   operator--(int) &
+	constexpr _iterTransform & operator--()   OEL_ALWAYS_INLINE { --m.first;  return *this; }
+
+	constexpr _iterTransform   operator--(int) &
 		{
 			auto tmp = *this;
 			--m.first;
 			return tmp;
 		}
 
-	constexpr _iterTransformIterator & operator+=(difference_type offset) &
+	constexpr _iterTransform & operator+=(difference_type offset) &
 		{
 			m.first += offset;
 			return *this;
 		}
 
-	friend constexpr difference_type operator -(const _iterTransformIterator & left, const _iterTransformIterator & right)
+	friend constexpr difference_type operator -(const _iterTransform & left, const _iterTransform & right)
 		OEL_REQUIRES(std::sized_sentinel_for<Iterator, Iterator>)
 		{
 			return left.m.first - right.m.first;
@@ -131,41 +130,38 @@ public:
 
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
-	friend constexpr difference_type operator -(_sentinelWrapper<S> left, const _iterTransformIterator & right)
+	friend constexpr difference_type operator -(_sentinelWrapper<S> left, const _iterTransform & right)
 		{
 			return left.se - right.m.first;
 		}
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
-	friend constexpr difference_type operator -(const _iterTransformIterator & left, _sentinelWrapper<S> right)
+	friend constexpr difference_type operator -(const _iterTransform & left, _sentinelWrapper<S> right)
 		{
 			return left.m.first - right.se;
 		}
 
-	friend constexpr bool operator!=(const _iterTransformIterator & left, const _iterTransformIterator & right)
-		{
-			return left.m.first != right.m.first;
-		}
-	friend constexpr bool operator <(const _iterTransformIterator & left, const _iterTransformIterator & right)
-		{
-			return left.m.first < right.m.first;
-		}
+	friend constexpr bool operator!=
+		(const _iterTransform & left, const _iterTransform & right)   { return left.m.first != right.m.first; }
+
+	friend constexpr bool operator <
+		(const _iterTransform & left, const _iterTransform & right)   { return left.m.first < right.m.first; }
 
 	template< typename S >
-	friend constexpr bool operator!=(const _iterTransformIterator & left, _sentinelWrapper<S> right)
-		{
-			return left.m.first != right.se;
-		}
+	friend constexpr bool operator!=
+		(const _iterTransform & left, _sentinelWrapper<S> right)   { return left.m.first != right.se; }
 };
+
+} // namespace iter
 
 #if __cpp_lib_concepts < 201907
 	template< typename F, typename I >
-	inline constexpr bool disable_sized_sentinel_for< _iterTransformIterator<F, I>, _iterTransformIterator<F, I> >
+	inline constexpr bool disable_sized_sentinel_for< iter::_iterTransform<F, I>, iter::_iterTransform<F, I> >
 		= disable_sized_sentinel_for<I, I>;
 
 	template< typename S, typename F, typename I >
-	inline constexpr bool disable_sized_sentinel_for< _sentinelWrapper<S>, _iterTransformIterator<F, I> >
+	inline constexpr bool disable_sized_sentinel_for< _sentinelWrapper<S>, iter::_iterTransform<F, I> >
 		= disable_sized_sentinel_for<S, I>;
 #endif
 
-} // oel
+}

@@ -72,8 +72,8 @@ public:
 	using size_type       = size_t;
 
 #if OEL_MEM_BOUND_DEBUG_LVL
-	using iterator       = debug::dynarray_iterator<T *>;
-	using const_iterator = debug::dynarray_iterator<const T *>;
+	using iterator       = iter::_dynarrayChecked<T *>;
+	using const_iterator = iter::_dynarrayChecked<const T *>;
 #else
 	using iterator       = T *;
 	using const_iterator = const T *;
@@ -593,7 +593,7 @@ typename dynarray<T, Alloc>::iterator
 	\
 	_debugSizeUpdater guard{_m};  \
 	\
-	auto pPos = const_cast<T *>(to_pointer_contiguous(pos));  \
+	auto pPos = const_cast<T *>(iter::as_contiguous_address(pos));  \
 	OEL_ASSERT(_m.data <= pPos and pPos <= _m.end);
 
 	OEL_DYNARR_INSERT_STEP1
@@ -836,7 +836,7 @@ void dynarray<T, Alloc>::shrink_to_fit()
 template< typename T, typename Alloc >
 void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 {
-	T *const newEnd{to_pointer_contiguous(first)};
+	T *const newEnd{iter::as_contiguous_address(first)};
 	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
 
 	_detail::Destroy(newEnd, _m.end);
@@ -871,7 +871,7 @@ typename dynarray<T, Alloc>::iterator
 {
 	_debugSizeUpdater guard{_m};
 
-	T *const ptr{to_pointer_contiguous(pos)};
+	T *const ptr{iter::as_contiguous_address(pos)};
 	OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
 	if constexpr( is_trivially_relocatable<T>::value )
 	{
@@ -896,8 +896,8 @@ typename dynarray<T, Alloc>::iterator
 {
 	_debugSizeUpdater guard{_m};
 
-	T *            dest{to_pointer_contiguous(first)};
-	const T *const pLast{to_pointer_contiguous(last)};
+	T *            dest{iter::as_contiguous_address(first)};
+	const T *const pLast{iter::as_contiguous_address(last)};
 	OEL_ASSERT(_m.data <= dest and dest <= pLast and pLast <= _m.end);
 
 	if constexpr( is_trivially_relocatable<T>::value )

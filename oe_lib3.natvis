@@ -28,7 +28,7 @@
 		</Expand>
 	</Type>
 
-	<Type Name="oel::debug::dynarray_iterator&lt;*&gt;">
+	<Type Name="oel::iter::_dynarrayChecked&lt;*&gt;">
 		<DisplayString Condition="!_pElem">no allocation</DisplayString>
 		<DisplayString Condition="_header-&gt;id != _allocationId">invalidated</DisplayString>
 		<DisplayString Condition="_pElem - ($T1)(_header + 1) == _header-&gt;nObjects">end</DisplayString>

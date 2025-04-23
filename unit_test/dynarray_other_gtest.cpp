@@ -75,7 +75,7 @@ TEST(dynarrayOtherTest, zeroBitRepresentation)
 
 TEST(dynarrayOtherTest, reverseIter)
 {
-	using oel::to_pointer_contiguous;
+	using oel::iter::as_contiguous_address;
 	dynarray<int> const d{0};
 
 	EXPECT_TRUE(d.rbegin().base() != d.cbegin());
@@ -83,7 +83,7 @@ TEST(dynarrayOtherTest, reverseIter)
 	EXPECT_TRUE(d.rend().base()  != d.end());
 	EXPECT_TRUE(d.crend().base() == d.begin());
 	EXPECT_EQ(d.data(), &*d.crend().base());
-	auto pRbeginBase = to_pointer_contiguous(d.crbegin().base());
+	auto pRbeginBase = as_contiguous_address(d.crbegin().base());
 	EXPECT_EQ(d.data() + 1, pRbeginBase);
 }
 

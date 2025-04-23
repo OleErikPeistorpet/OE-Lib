@@ -128,6 +128,7 @@ inline constexpr auto append =
 	[](auto & container, auto && source)
 	{
 		using Ref = decltype(source);
+		using iter::as_contiguous_address;
 	#if __cpp_concepts >= 201907
 		if constexpr( requires{ container.append_range(static_cast<Ref>(source)); } )
 			container.append_range( static_cast<Ref>(source) );
@@ -136,7 +137,7 @@ inline constexpr auto append =
 		if constexpr( decltype( _detail::CanAppend(container, static_cast<Ref>(source)) )::value )
 			container.append( static_cast<Ref>(source) );
 		else
-			container.append( to_pointer_contiguous(begin(source)), _detail::Size(source) );
+			container.append( as_contiguous_address(begin(source)), _detail::Size(source) );
 	};
 
 } // namespace oel

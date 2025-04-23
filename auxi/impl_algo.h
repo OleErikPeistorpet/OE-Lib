@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "contiguous_iterator_to_ptr.h"
+#include "iter_as_contiguous_address.h"
 #include "../util.h"  // for as_unsigned
 
 #include <cstring>
@@ -41,7 +41,7 @@ namespace oel::_detail
 			(void) *src;
 			(void) *(src + (nElems - 1));
 		#endif
-			std::memcpy(dest, to_pointer_contiguous(src), sizeof(*src) * nElems);
+			std::memcpy(dest, as_contiguous_address(src), sizeof(*src) * nElems);
 		}
 	}
 
