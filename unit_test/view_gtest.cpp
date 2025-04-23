@@ -1,6 +1,11 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+
+// oel_iter_move should not find this
+int iter_move(void *);
+
+
 #include "views.h"
 #include "dynarray.h"
 #include "util.h"
@@ -12,6 +17,12 @@
 #include <sstream>
 
 namespace view = oel::view;
+
+template< typename Iter >
+using MoveIter = decltype( view::move( view::counted(Iter{}, 0) ).begin() );
+
+static_assert(oel::can_memmove_with< int *, MoveIter< std::array<int, 1>::const_iterator > >);
+
 
 constexpr auto transformIterFromIntPtr(const int * p)
 {
@@ -306,6 +317,21 @@ TEST(viewTest, viewGenerate)
 	EXPECT_TRUE(d.empty());
 }
 
+void iterMoveAdl()
+{
+	double * p{};
+	using R = decltype( oel_iter_move(p) );
+	static_assert(std::is_same_v<R, double &&>);
+}
+
+TEST(viewTest, moveToPointerContiguous)
+{
+	int src[1];
+	auto v = src | view::move;
+
+	EXPECT_EQ( src + 1, oel::to_pointer_contiguous(v.end()) );
+}
+
 TEST(viewTest, viewMoveEndDifferentType)
 {
 	auto nonEmpty = [i = -1](int j) { return i + j; };
@@ -315,7 +341,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 
 	static_assert(oel::range_is_sized<decltype(v)>);
 	EXPECT_NE(v.begin(), v.end());
-	EXPECT_EQ(src + 1, v.end().base()._s);
+	EXPECT_EQ(src + 1, v.end()._s._s);
 }
 
 #if OEL_STD_RANGES
