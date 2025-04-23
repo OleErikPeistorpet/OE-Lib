@@ -17,21 +17,23 @@ namespace oel
 {
 
 #if __cpp_lib_concepts >= 201907
+
 	constexpr auto to_pointer_contiguous(std::contiguous_iterator auto it) noexcept
 	{
 		return std::to_address(it);
 	}
 #else
+
 	namespace _detail
 	{
 		template< typename PtrLike >
-		OEL_ALWAYS_INLINE constexpr typename std::pointer_traits<PtrLike>::element_type * ToAddress(PtrLike p)
+		constexpr typename std::pointer_traits<PtrLike>::element_type * ToAddress(PtrLike p) noexcept
 		{
 			return p.operator->();
 		}
 
 		template< typename T >
-		OEL_ALWAYS_INLINE constexpr T * ToAddress(T * p) { return p; }
+		constexpr T * ToAddress(T * p) noexcept { return p; }
 	}
 
 
@@ -51,10 +53,10 @@ namespace oel
 		constexpr T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return it.base(); }
 
 	#elif _CPPLIB_VER
-		template< typename ContiguousIterator,
-			enable_if<
-				std::is_same_v< decltype(ContiguousIterator{}._Unwrapped()),
-				                typename ContiguousIterator::pointer >
+		template
+		<	typename ContiguousIterator,
+			enable_if
+			<	std::is_same_v<decltype( ContiguousIterator{}._Unwrapped() ), typename ContiguousIterator::pointer>
 			> = 0
 		>
 		constexpr auto to_pointer_contiguous(const ContiguousIterator & it) noexcept
@@ -65,9 +67,10 @@ namespace oel
 #endif
 
 template< typename Iterator >
-constexpr auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
-->	decltype( to_pointer_contiguous(it.base()) )
-	 { return to_pointer_contiguous(it.base()); }
+constexpr auto to_pointer_contiguous(std::move_iterator<Iterator> it)
+	noexcept(noexcept( to_pointer_contiguous(it.base()) ))
+->	decltype(          to_pointer_contiguous(it.base()) )
+	{        return    to_pointer_contiguous(it.base()); }
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -88,8 +91,8 @@ namespace _detail
 //! Is true if an IteratorSource range can be copied to an IteratorDest range with memmove
 template< typename IteratorDest, typename IteratorSource >
 inline constexpr bool can_memmove_with =
-	decltype(
-		_detail::CanMemmoveWith(std::declval<IteratorDest>(),
+	decltype
+	(	_detail::CanMemmoveWith(std::declval<IteratorDest>(),
 		                        std::declval<IteratorSource>())
 	)::value;
 
