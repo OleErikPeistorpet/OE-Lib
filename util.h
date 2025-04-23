@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "auxi/contiguous_iterator_to_ptr.h" // just convenient
 #include "auxi/core_util.h"
+#include "auxi/iter_as_contiguous_address.h" // just for convenience
 #include "auxi/range_traits.h"
 
 #include <stdexcept>

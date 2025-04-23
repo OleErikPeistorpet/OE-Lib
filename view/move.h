@@ -7,12 +7,14 @@
 
 
 #include "transform.h"
-#include "../auxi/contiguous_iterator_to_ptr.h"
+#include "../auxi/iter_as_contiguous_address.h"
 
 /** @file
 */
 
-namespace oel::_iterMove
+namespace oel
+{
+namespace _iterMove
 {
 	template< typename >
 	void iter_move() = delete;
@@ -38,14 +40,10 @@ namespace oel::_iterMove
 	};
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
 //! Effectively same as std::ranges::iter_move
-inline constexpr oel::_iterMove::Fn oel_iter_move;
+inline constexpr _iterMove::Fn iter_move;
 
 
-namespace oel
-{
 namespace view
 {
 
@@ -54,7 +52,7 @@ struct _moveFn
 	template< typename InputRange >
 	friend constexpr auto operator |(InputRange && r, _moveFn)
 		{
-			return _iterTransformView{oel_iter_move, all( static_cast<InputRange &&>(r) )};
+			return _iterTransformView{iter_move, all( static_cast<InputRange &&>(r) )};
 		}
 
 	template< typename InputRange >
@@ -70,15 +68,19 @@ inline constexpr _moveFn move;
 } // view
 
 
+namespace iter
+{
 
 template< typename Iterator >
-constexpr decltype(auto) iter_move(const _iterTransformIterator<_iterMove::Fn, Iterator> & it)
-	noexcept(noexcept( oel_iter_move(it.base()) ))
-	{        return    oel_iter_move(it.base()); }
+constexpr decltype(auto) iter_move(const _iterTransform<_iterMove::Fn, Iterator> & it)
+	noexcept(noexcept( oel::iter_move(it.base()) ))
+	{        return    oel::iter_move(it.base()); }
 
 template< typename Iterator >
-constexpr auto to_pointer_contiguous(_iterTransformIterator<_iterMove::Fn, Iterator> it) noexcept
-->	decltype( to_pointer_contiguous(it.base()) )
-	{  return to_pointer_contiguous(it.base()); }
+constexpr auto as_contiguous_address(_iterTransform<_iterMove::Fn, Iterator> it) noexcept
+->	decltype( as_contiguous_address(it.base()) )
+	{  return as_contiguous_address(it.base()); }
+
+}
 
 }

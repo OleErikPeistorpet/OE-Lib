@@ -83,10 +83,10 @@ public:
 
 
 
-namespace _detail
+namespace iter
 {
 	template< bool CanCallConst, typename Func, typename... Iterators >
-	constexpr auto TransformIterCat()
+	constexpr auto _transformCategory()
 	{
 		if constexpr (std::is_copy_constructible_v<Func> and CanCallConst)
 		{

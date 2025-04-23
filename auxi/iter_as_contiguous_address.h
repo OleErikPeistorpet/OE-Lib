@@ -15,10 +15,12 @@
 
 namespace oel
 {
+namespace iter
+{
 
 #if __cpp_lib_concepts >= 201907
 
-	constexpr auto to_pointer_contiguous(std::contiguous_iterator auto it) noexcept
+	constexpr auto as_contiguous_address(std::contiguous_iterator auto it) noexcept
 	{
 		return std::to_address(it);
 	}
@@ -26,19 +28,19 @@ namespace oel
 
 	//! Convert iterator to pointer. This should be overloaded for each LegacyContiguousIterator class (see cppreference)
 	template< typename T >
-	constexpr T * to_pointer_contiguous(T * it) noexcept { return it; }
+	constexpr T * as_contiguous_address(T * it) noexcept { return it; }
 
 	#ifdef __GLIBCXX__
 
 	template< typename T, typename C >
-	constexpr T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, C> it) noexcept
+	constexpr T * as_contiguous_address(__gnu_cxx::__normal_iterator<T *, C> it) noexcept
 		{
 			return it.base();
 		}
 	#elif _LIBCPP_VERSION
 
 	template< typename T >
-	constexpr T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept  { return it.base(); }
+	constexpr T * as_contiguous_address(std::__wrap_iter<T *> it) noexcept  { return it.base(); }
 
 	#elif _CPPLIB_VER
 	template
@@ -47,7 +49,7 @@ namespace oel
 		<	std::is_pointer_v<decltype( ContiguousIterator{}._Unwrapped() )>
 		> = 0
 	>
-	constexpr auto to_pointer_contiguous(const ContiguousIterator & it) noexcept
+	constexpr auto as_contiguous_address(const ContiguousIterator & it) noexcept
 		{
 			return it._Unwrapped();
 		}
@@ -55,23 +57,29 @@ namespace oel
 #endif
 
 template< typename Iterator >
-constexpr auto to_pointer_contiguous(std::move_iterator<Iterator> it)
-	noexcept(noexcept( to_pointer_contiguous(it.base()) ))
-->	decltype(          to_pointer_contiguous(it.base()) )
-	{        return    to_pointer_contiguous(it.base()); }
+constexpr auto as_contiguous_address(std::move_iterator<Iterator> it)
+	noexcept(noexcept( as_contiguous_address(it.base()) ))
+->	decltype(          as_contiguous_address(it.base()) )
+	{        return    as_contiguous_address(it.base()); }
+
+} // iter
 
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace _detail
 {
+	using iter::as_contiguous_address;
+
+
 	template< typename T >
 	std::is_trivially_copyable<T> CanMemmoveArrays(T * /*dest*/, const T *);
 
+
 	template< typename IteratorDest, typename IterSource >
 	auto CanMemmoveWith(IteratorDest dest, IterSource src)
-	->	decltype( _detail::CanMemmoveArrays(to_pointer_contiguous(dest), to_pointer_contiguous(src)) );
+	->	decltype( _detail::CanMemmoveArrays(as_contiguous_address(dest), as_contiguous_address(src)) );
 
-	// SFINAE fallback for cases where to_pointer_contiguous(iterator) would be ill-formed or return types are not compatible
+	// SFINAE fallback for cases where as_contiguous_address(iterator) would be ill-formed or return types are not compatible
 	false_type CanMemmoveWith(...);
 }
 
@@ -84,4 +92,4 @@ inline constexpr bool can_memmove_with =
 		                        std::declval<IteratorSource>())
 	)::value;
 
-} // oel
+}

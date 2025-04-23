@@ -123,6 +123,8 @@ struct _appendFn
 	template< typename Container, typename InputRange >
 	void operator()(Container & c, InputRange && source) const
 	{
+		using iter::as_contiguous_address;
+
 	#if __cpp_concepts >= 201907
 		if constexpr (requires{ c.append_range(static_cast<InputRange &&>(source)); })
 			c.append_range(static_cast<InputRange &&>(source));
@@ -131,7 +133,7 @@ struct _appendFn
 		if constexpr (decltype( _detail::CanAppend(c, static_cast<InputRange &&>(source)) )::value)
 			c.append(static_cast<InputRange &&>(source));
 		else
-			c.append(to_pointer_contiguous(begin(source)), _detail::Size(source));
+			c.append(as_contiguous_address(begin(source)), _detail::Size(source));
 	}
 };
 //! Generic way to call append_range or append on a container or string, with a source range
