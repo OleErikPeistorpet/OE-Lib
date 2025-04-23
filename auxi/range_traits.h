@@ -155,13 +155,3 @@ template< typename Sentinel >
 struct _sentinelWrapper { Sentinel se; };
 
 } // oel
-
-
-#if !OEL_HAS_STD_MOVE_SENTINEL
-
-// Small hack to let std::move_iterator< _sentinelWrapper<S> > compile
-template< typename S >
-struct std::iterator_traits< oel::_sentinelWrapper<S> >
- :	std::iterator_traits<S> {};
-
-#endif
