@@ -2,7 +2,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-// oel_iter_move should not find this
+// oel::iter_move should not find this
 int iter_move(void *);
 
 
@@ -320,7 +320,7 @@ TEST(viewTest, viewGenerate)
 void iterMoveAdl()
 {
 	double * p{};
-	using R = decltype( oel_iter_move(p) );
+	using R = decltype( oel::iter_move(p) );
 	static_assert(std::is_same_v<R, double &&>);
 }
 
@@ -329,7 +329,7 @@ TEST(viewTest, moveToPointerContiguous)
 	int src[1];
 	auto v = src | view::move;
 
-	EXPECT_EQ( src + 1, oel::to_pointer_contiguous(v.end()) );
+	EXPECT_EQ( src + 1, oel::iter::as_contiguous_address(v.end()) );
 }
 
 TEST(viewTest, viewMoveEndDifferentType)

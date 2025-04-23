@@ -200,28 +200,28 @@ TEST(utilTest, memberVar)
 
 TEST(utilTest, toPointerContiguous)
 {
-	using namespace oel;
+	using oel::iter::as_contiguous_address;
 	{
 		std::basic_string<wchar_t> s;
-		using P  = decltype( to_pointer_contiguous(s.begin()) );
-		using CP = decltype( to_pointer_contiguous(s.cbegin()) );
+		using P  = decltype( as_contiguous_address(s.begin()) );
+		using CP = decltype( as_contiguous_address(s.cbegin()) );
 		static_assert(std::is_same<P, wchar_t *>::value);
 		static_assert(std::is_same<CP, const wchar_t *>::value);
 
 		std::string_view v;
-		using Q = decltype( to_pointer_contiguous(v.begin()) );
+		using Q = decltype( as_contiguous_address(v.begin()) );
 		static_assert(std::is_same<Q, const char *>::value);
 	}
 	std::array<int, 3> a;
 
-	using P  = decltype(to_pointer_contiguous( std::make_move_iterator(a.begin()) ));
-	using CP = decltype( to_pointer_contiguous(a.cbegin()) );
+	using P  = decltype(as_contiguous_address( std::make_move_iterator(a.begin()) ));
+	using CP = decltype( as_contiguous_address(a.cbegin()) );
 	static_assert(std::is_same<P, int *>::value);
 	static_assert(std::is_same<CP, const int *>::value);
 
 #if __cpp_lib_concepts
 	auto addr = &a[1];
-	dynarray_iterator<const int *> it{{}, addr, nullptr, 0};
+	oel::iter::_dynarrayChecked<const int *> it{{}, addr, nullptr, 0};
 	auto result = std::to_address(it);
 	static_assert(std::is_same<const int *, decltype(result)>());
 	EXPECT_EQ(addr, result);
