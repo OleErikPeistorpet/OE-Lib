@@ -212,6 +212,10 @@ constexpr auto multBy2(StdArrInt2 a)
 	auto mult2 = [j = 2](int i) { return i * j; };
 	auto v = view::transform(a, mult2);
 
+#if OEL_STD_RANGES
+	static_assert(std::ranges::view< decltype(v) >);
+#endif
+
 	size_t i{};
 	for (auto val : v)
 		res[i++] = val;
@@ -300,6 +304,10 @@ TEST(viewTest, viewTransformAsOutput)
 
 	auto f = [](Pair & p) -> int & { return p.second; };
 	auto v = view::transform(test, std::function<int & (Pair &)>{f});
+
+	EXPECT_EQ(&v[0], &test[0].second);
+	EXPECT_EQ(&v[1], &test[1].second);
+
 	int n{};
 	auto it = v.begin();
 	for (ptrdiff_t i{}; i != ssize(v); ++i)
@@ -364,11 +372,17 @@ void testTransformIterWithConceptOnly()
 }
 #endif
 
-TEST(viewTest, viewZipTransformN)
+TEST(viewTest, viewZipTransform)
 {
 	int a[]{0, 1};
 	int b[]{1, 2};
-	auto v = view::zip_transform_n([](int x, int y) { return x + y; }, 1, a, b);
+	auto f = [](int x, int y) { return x + y; };
+	{
+		auto v = view::zip_transform(f, a, b);
+		EXPECT_EQ(1, v[0]);
+		EXPECT_EQ(3, v[1]);
+	}
+	auto v = view::zip_transform_n(f, 2, a, b);
 	EXPECT_EQ(1, v[0]);
 	EXPECT_EQ(3, v[1]);
 }
