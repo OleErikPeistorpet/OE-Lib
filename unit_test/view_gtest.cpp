@@ -208,24 +208,19 @@ TEST(viewTest, viewTransformMutableLambda)
 		return i++;
 	};
 	int dummy[3];
-	{
-		auto v = view::transform(dummy, iota);
 
-		using I = decltype(v.begin());
-		static_assert(std::is_same_v<I::iterator_category, std::input_iterator_tag>);
-	#if OEL_STD_RANGES
-		static_assert(std::ranges::input_range<decltype(v)>);
-	#endif
+	auto v = view::transform(dummy, iota);
 
-		oel::dynarray<int> test(oel::reserve, 3);
-		test.resize(1);
+	using I = decltype(v.begin());
+	static_assert(std::is_same_v<I::iterator_category, std::input_iterator_tag>);
+#if OEL_STD_RANGES
+	static_assert(std::ranges::input_range<decltype(v)>);
+#endif
 
-		test.assign(v);
-		EXPECT_EQ(0, test[0]);
-		EXPECT_EQ(1, test[1]);
-		EXPECT_EQ(2, test[2]);
-	}
-	auto test = view::transform(dummy, iota);
+	oel::dynarray<int> test(oel::reserve, 3);
+	test.resize(1);
+
+	test.assign(v);
 	EXPECT_EQ(0, test[0]);
 	EXPECT_EQ(1, test[1]);
 	EXPECT_EQ(2, test[2]);
@@ -238,6 +233,10 @@ TEST(viewTest, viewTransformAsOutput)
 
 	auto f = [](Pair & p) -> int & { return p.second; };
 	auto v = view::transform(test, std::function<int & (Pair &)>{f});
+
+	EXPECT_EQ(v[0], test[0].second);
+	EXPECT_EQ(v[1], test[1].second);
+
 	int n{};
 	auto const last = v.end();
 	for (auto it = v.begin(); it != last; ++it)
@@ -249,11 +248,17 @@ TEST(viewTest, viewTransformAsOutput)
 	EXPECT_EQ(-2, test[1].second);
 }
 
-TEST(viewTest, viewZipTransformN)
+TEST(viewTest, viewZipTransform)
 {
 	int a[]{0, 1};
 	int b[]{1, 2};
-	auto v = view::zip_transform_n([](int x, int y) { return x + y; }, 1, a, b);
+	auto f = [](int x, int y) { return x + y; };
+	{
+		auto v = view::zip_transform(f, a, b);
+		EXPECT_EQ(1, v[0]);
+		EXPECT_EQ(3, v[1]);
+	}
+	auto v = view::zip_transform_n(f, 2, a, b);
 	EXPECT_EQ(1, v[0]);
 	EXPECT_EQ(3, v[1]);
 }
