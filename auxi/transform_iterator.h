@@ -6,9 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "detail_assignable.h"
-#include "transform_detail.h"
-#include "../util.h"  // for TightPair
+#include "transform_view.h"
 
 
 namespace oel
