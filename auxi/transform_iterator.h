@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2020 Ole Erik Peistorpet
+// Copyright 2021 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -12,6 +12,10 @@
 
 namespace oel
 {
+
+template< typename Func, typename Iterator >
+class _iterTransformIterator;
+
 namespace _detail
 {
 	template< bool /*CanCallConst*/, typename Func, typename Iter >
@@ -37,9 +41,24 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
+struct _iterMoveFriendTransformIter
+{
+	// Equivalent to https://en.cppreference.com/w/cpp/iterator/move_iterator/iter_move
+	template< typename I >
+	friend constexpr decltype(auto) iter_move(const _iterTransformIterator<_iterMove::Fn, I> & it)
+		noexcept(noexcept( oel_iter_move(it.base()) ))
+		{        return    oel_iter_move(it.base()); }
+};
+
+
 template< typename Func, typename Iterator >
-class _iterTransformIterator
+class
+#ifdef _MSC_VER
+	__declspec(empty_bases)
+#endif
+	_iterTransformIterator
  :	public _iteratorFacade< _iterTransformIterator<Func, Iterator>, iter_difference_t<Iterator> >,
+	public _iterMoveFriendTransformIter,
 	private _detail::TransformIterBase
 	<	std::is_invocable_v<const Func &, const Iterator &>,
 		Func, Iterator
