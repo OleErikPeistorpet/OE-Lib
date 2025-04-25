@@ -12,13 +12,52 @@
 
 namespace oel
 {
+namespace _detail
+{
+	template< typename... Ts >
+	struct ToTuple
+	{
+		constexpr std::tuple<Ts...> operator()(Ts... values) const
+		{
+			return{ static_cast<Ts>(values)... };
+		}
+	};
+}
+
 
 template< typename Func, typename... Iterators >
-class _zipTransformIterator
+class _zipTransformIterator;
+
+class _iterMoveFriendZipTransform
+{
+	template< typename... Is, size_t... Ns >
+	static constexpr auto _doIterMove(const std::tuple<Is...> & iters, std::index_sequence<Ns...>)
+		{
+			using Ret = std::tuple< decltype( oel_iter_move(std::get<Ns>(iters)) )... >;
+			return Ret{oel_iter_move( std::get<Ns>(iters) )...};
+		}
+
+public:
+	// Almost same as https://en.cppreference.com/w/cpp/ranges/zip_view/iterator/iter_move
+	template< typename... Ts, typename... Iterators >
+	friend constexpr auto iter_move(const _zipTransformIterator< _detail::ToTuple<Ts...>, Iterators... > & it)
+		{
+			return _doIterMove(it.base(), std::index_sequence_for<Iterators...>{});
+		}
+};
+
+
+template< typename Func, typename... Iterators >
+class
+#ifdef _MSC_VER
+	__declspec(empty_bases)
+#endif
+	_zipTransformIterator
  :	public _iteratorFacade
 	<	_zipTransformIterator<Func, Iterators...>,
 		std::common_type_t< iter_difference_t<Iterators>... >
-	>
+	>,
+	public _iterMoveFriendZipTransform
 {
 	using _iSeq      = std::index_sequence_for<Iterators...>;
 	using _firstIter = std::tuple_element_t< 0, std::tuple<Iterators...> >;
