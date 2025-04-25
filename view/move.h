@@ -12,34 +12,6 @@
 /** @file
 */
 
-namespace oel::_detail
-{
-	struct IterMove
-	{
-		template< typename I >
-		constexpr auto operator()(I && it) const
-			noexcept(noexcept( iter_move(it) ))
-		->	decltype(          iter_move(it) )
-			{        return    iter_move(it); }
-
-		template< typename I, typename... None >
-		constexpr decltype(auto) operator()(I && it, None...) const
-			noexcept(noexcept(*it))
-		{
-			if constexpr( std::is_lvalue_reference_v<decltype(*it)> )
-				return std::move(*it);
-			else
-				return *it;
-        }
-	};
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-//! Effectively same as std::ranges::iter_move
-inline constexpr oel::_detail::IterMove oel_iter_move;
-
-
 namespace oel
 {
 namespace view
@@ -68,12 +40,7 @@ inline constexpr _moveFn move;
 
 
 template< typename Iterator >
-constexpr decltype(auto) iter_move(const _iterTransformIterator<_detail::IterMove, Iterator> & it)
-	noexcept(noexcept( oel_iter_move(it.base()) ))
-	{        return    oel_iter_move(it.base()); }
-
-template< typename Iterator >
-constexpr auto to_pointer_contiguous(_iterTransformIterator<_detail::IterMove, Iterator> it) noexcept
+constexpr auto to_pointer_contiguous(_iterTransformIterator<oelIterMove_::Fn, Iterator> it) noexcept
 ->	decltype( to_pointer_contiguous(it.base()) )
 	{  return to_pointer_contiguous(it.base()); }
 
