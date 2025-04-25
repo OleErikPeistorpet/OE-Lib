@@ -317,6 +317,41 @@ TEST(viewTest, viewGenerate)
 	EXPECT_TRUE(d.empty());
 }
 
+TEST(viewTest, viewZip)
+{
+	int numbers[]{7, 8};
+	std::string_view strings[]{"a", "b"};
+
+	auto z = view::zip(numbers, strings);
+	{
+		auto [i, s] = z[0];
+		EXPECT_EQ(7, i);
+		EXPECT_EQ("a", s);
+	}
+	{
+		auto [i, s] = *(z.end() - 1);
+		EXPECT_EQ(8, i);
+		EXPECT_EQ("b", s);
+	}
+}
+
+TEST(viewTest, viewZipAndMove)
+{
+	int numbers[]{7, 8};
+	std::string strings[]{"a", "b"};
+
+	auto zm = view::zip(numbers, strings) | view::move;
+
+	static_assert(
+		std::is_same_v
+		<	decltype(zm.begin())::reference,
+			std::tuple<int &&, std::string &&>
+		> );
+	auto s = std::get<1>(zm[1]);
+	EXPECT_EQ("b", s);
+	EXPECT_TRUE(strings[1].empty());
+}
+
 void iterMoveAdl()
 {
 	double * p{};
