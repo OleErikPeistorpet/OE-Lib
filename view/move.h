@@ -31,8 +31,9 @@ namespace _iterMove
 		constexpr decltype(auto) operator()(I && it, None...) const
 			noexcept(noexcept(*it))
 		{
-			if constexpr( std::is_lvalue_reference_v<decltype(*it)> )
-				return std::move(*it);
+			using T = decltype(*it);
+			if constexpr (std::is_lvalue_reference_v<T>)
+				return static_cast< std::remove_reference_t<T> && >(*it);
 			else
 				return *it;
         }
