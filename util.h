@@ -60,22 +60,25 @@ constexpr auto ssize(SizedRangeLike && r)
 		return std::common_type_t< ptrdiff_t, decltype(as_signed( _detail::Size(r) )) >(_detail::Size(r));
 	}
 
-namespace view
-{
-using oel::ssize;
-}
-
 
 //! Returns true if index is within bounds (for `r[index]`)
 /**
 * Requires that `r.size()` or `end(r) - begin(r)` is valid. */
 template< typename Integer, typename SizedRangeLike >
-[[nodiscard]] constexpr bool index_valid(SizedRangeLike & r, Integer index)
+[[nodiscard]] constexpr bool index_valid(SizedRangeLike && r, Integer index)
 	{
 		static_assert( sizeof(Integer) >= sizeof _detail::Size(r) or std::is_unsigned_v<Integer>,
 			"Mismatched index type, please use a wider integer (or unsigned)" );
 		return as_unsigned(index) < as_unsigned(_detail::Size(r));
 	}
+
+
+namespace view
+{
+using oel::ssize;
+using oel::index_valid;
+}
+
 
 
 //! Tag to select a constructor that allocates storage without filling it with objects
