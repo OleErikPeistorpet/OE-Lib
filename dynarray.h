@@ -384,7 +384,7 @@ private:
 
 	void _realloc(size_type const newCap, size_type const oldSize)
 	{
-		if constexpr (allocator_can_realloc<allocator_type>)
+		if constexpr( oel::allocator_can_realloc<allocator_type>() )
 		{
 			auto const p = _allocateWrap::realloc(_m, _m.data, newCap);
 			_m.data = p;

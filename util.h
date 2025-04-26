@@ -126,15 +126,19 @@ inline constexpr auto adl_end =
 
 
 
-//! Tells whether we can call member `reallocate(pointer, size_type)` on an instance of Alloc
-template< typename Alloc >
-inline constexpr bool allocator_can_realloc   = _detail::CanRealloc<Alloc>(0);
-
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is not for users (implementation)
+
+
+//! Tells whether we can call member `reallocate(pointer, size_type)` on an instance of Alloc
+template< typename Alloc >
+constexpr auto allocator_can_realloc()
+->	decltype(Alloc::can_reallocate())
+	{ return Alloc::can_reallocate(); }
+
+template< typename, typename... None >
+constexpr bool allocator_can_realloc(None...)  { return false; }
 
 
 template< typename T >

@@ -102,16 +102,6 @@ namespace _detail
 		else
 			return static_cast<T &&>(ob);
 	}
-
-
-
-	template< typename Alloc >  // pass dummy int to prefer this overload
-	constexpr auto CanRealloc(int)
-	->	decltype(Alloc::can_reallocate())
-	{	return   Alloc::can_reallocate(); }
-
-	template< typename >
-	constexpr bool CanRealloc(long) { return false; }
 }
 
 } // oel

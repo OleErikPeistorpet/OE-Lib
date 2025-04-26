@@ -48,8 +48,8 @@ namespace
 	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
 				  "Not critical, this assert can be removed");
 
-	static_assert(oel::allocator_can_realloc< TrackingAllocator<double> >);
-	static_assert(!oel::allocator_can_realloc< oel::allocator<MoveOnly> >);
+	static_assert(oel::allocator_can_realloc< TrackingAllocator<double> >());
+	static_assert(!oel::allocator_can_realloc< oel::allocator<MoveOnly> >());
 }
 
 void testCompileSomeDynarrayMembers()
