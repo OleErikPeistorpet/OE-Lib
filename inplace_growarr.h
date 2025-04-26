@@ -290,6 +290,7 @@ private:
 
 	template< typename InputIter >
 	InputIter _doAssign(InputIter src, size_t const count)
+		noexcept(std::is_nothrow_move_assignable_v<T>)
 	{
 		if constexpr (can_memmove_with<T *, InputIter>)
 		{
