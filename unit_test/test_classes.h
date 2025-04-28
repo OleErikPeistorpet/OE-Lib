@@ -24,7 +24,9 @@ class MemoryLeakDetector;
 extern MemoryLeakDetector * leakDetector;
 
 
-#if (defined _MSC_VER and __cpp_lib_ranges >= 201911) or __cpp_lib_ranges > 202000
+#if (defined _MSC_VER and __cpp_lib_ranges >= 201911) or  \
+	(!defined __GNUC__ and __cpp_lib_ranges > 202000) or  \
+	(__GNUC__ >= 12 and __cpp_lib_ranges)
 
 #include <ranges>
 
