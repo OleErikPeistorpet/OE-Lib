@@ -560,6 +560,15 @@ TEST_F(dynarrayConstructTest, moveAssignPolymorphicAlloc)
 	EXPECT_TRUE(a.get_allocator() != b.get_allocator());
 	EXPECT_TRUE(b.get_allocator() == b.front().get_allocator());
 }
+
+TEST_F(dynarrayConstructTest, allocShouldNotBeDeducedFromBothArgs)
+{
+	std::pmr::monotonic_buffer_resource mr;
+	auto pd = oel::dynarray< int, std::pmr::polymorphic_allocator<int> >(&mr);
+
+	auto ctad  = oel::dynarray(pd, &mr);
+	auto ctad2 = oel::dynarray(std::move(pd), &mr);
+}
 #endif
 
 #ifdef __GNUC__

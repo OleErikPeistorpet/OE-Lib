@@ -20,6 +20,9 @@
 namespace oel
 {
 
+using std::type_identity_t;
+
+
 //! `r | to_dynarray()` is equivalent to `r | std::ranges::to<dynarray>()`
 /**
 * Example, convert array of std::bitset to `dynarray<std::string>`:
@@ -96,12 +99,12 @@ public:
 
 	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})     : _m(a) { append_range(il); }
 
-	dynarray(dynarray && other) noexcept                 : _m(std::move(other._m)) {}
-	dynarray(dynarray && other, Alloc a);
+	dynarray(dynarray && other) noexcept                         : _m(std::move(other._m)) {}
+	dynarray(dynarray && other, type_identity_t<Alloc> a);
 	explicit dynarray(const dynarray & other)
 		:	dynarray( other, _alloTrait::select_on_container_copy_construction(other._m.allo) ) {}
 
-	explicit dynarray(const dynarray & other, Alloc a)   : _m(a) { append_range(other); }
+	explicit dynarray(const dynarray & other, type_identity_t<Alloc> a)   : _m(a) { append_range(other); }
 
 	~dynarray() = default;
 
@@ -717,7 +720,7 @@ dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
 }
 
 template< typename T, typename Alloc >
-dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)
+dynarray<T, Alloc>::dynarray(dynarray && other, type_identity_t<Alloc> a)
  :	_m(a) // moves from a
 {
 	if constexpr( !_alloTrait::is_always_equal::value )
