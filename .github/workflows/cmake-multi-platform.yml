@@ -14,37 +14,33 @@ jobs:
       fail-fast: true
 
       matrix:
-        os: [ubuntu-20.04, ubuntu-latest, macos-latest]
-        cpp_standard: [17, 20]
+        os: [ubuntu-22.04]
+        gcc_version: [9]
+        cpp_standard: [17]
         mem_bound_debug: [off]
         include:
-          - os: ubuntu-20.04
-            gcc_version: 7
-            cpp_standard: 17
-          - os: ubuntu-20.04
-            gcc_version: 8
-            cpp_standard: 17
-            mem_bound_debug: on
-          - os: ubuntu-20.04
-            gcc_version: 9
-            cpp_standard: 20
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             gcc_version: 10
             cpp_standard: 20
             mem_bound_debug: on
+          - os: ubuntu-22.04
+            gcc_version: 11
+            cpp_standard: 20
           - os: ubuntu-latest
             gcc_version: 12
-            cpp_standard: 17
+            cpp_standard: 20
           - os: ubuntu-latest
             gcc_version: 13
-            cpp_standard: 20
-          - os: macos-latest
             cpp_standard: 17
             mem_bound_debug: on
-        exclude:
+          - os: ubuntu-latest
+            gcc_version: 14
+            cpp_standard: 23
           - os: macos-latest
             cpp_standard: 17
-            mem_bound_debug: off
+          - os: macos-latest
+            cpp_standard: 20
+            mem_bound_debug: on
 
     steps:
     - if: runner.os == 'Linux'
