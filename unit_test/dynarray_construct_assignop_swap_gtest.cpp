@@ -116,7 +116,7 @@ TEST_F(dynarrayConstructTest, constructReserve)
 	ASSERT_EQ(0, g_allocCount.nConstructCalls);
 }
 
-TEST_F(dynarrayConstructTest, constructNDefaultTrivial)
+TEST_F(dynarrayConstructTest, constructForOverwriteTrivial)
 {
 	for (auto const n : sizes)
 	{
@@ -132,7 +132,7 @@ TEST_F(dynarrayConstructTest, constructNDefaultTrivial)
 	EXPECT_EQ(0, g_allocCount.nConstructCalls);
 }
 
-TEST_F(dynarrayConstructTest, constructNDefault)
+TEST_F(dynarrayConstructTest, constructForOverwrite)
 {
 	for (auto const n : sizes)
 	{
@@ -155,7 +155,7 @@ TEST_F(dynarrayConstructTest, constructNDefault)
 	}
 }
 
-TEST_F(dynarrayConstructTest, constructN)
+TEST_F(dynarrayConstructTest, constructNTrivial)
 {
 	for (auto const n : sizes)
 	{
@@ -165,27 +165,33 @@ TEST_F(dynarrayConstructTest, constructN)
 
 		dynarrayTrackingAlloc<TrivialDefaultConstruct> a(n);
 
-		ASSERT_EQ(as_signed(n), g_allocCount.nConstructCalls);
+		EXPECT_EQ(0, g_allocCount.nConstructCalls);
 
 		ASSERT_EQ(a.size(), n);
+
+		auto const asBytes = reinterpret_cast<const char *>(a.data());
+		auto const nBytes = a.size() * sizeof a[0];
+		for (size_t i{}; i != nBytes; ++i)
+			EXPECT_TRUE(asBytes[i] == 0);
 
 		if (n > 0)
 		{	ASSERT_EQ(nExpectAlloc, g_allocCount.nAllocations); }
 	}
 }
 
-TEST_F(dynarrayConstructTest, constructNChar)
+TEST_F(dynarrayConstructTest, constructN)
 {
 	for (auto const n : sizes)
 	{
+		g_allocCount.nConstructCalls = 0;
+
 		auto const nExpectAlloc = g_allocCount.nAllocations + 1;
 
-		dynarrayTrackingAlloc<unsigned char> a(n);
+		dynarrayTrackingAlloc<NontrivialConstruct> a(n);
+
+		ASSERT_EQ(as_signed(n), g_allocCount.nConstructCalls);
 
 		ASSERT_EQ(a.size(), n);
-
-		for (const auto & c : a)
-			ASSERT_EQ(0, c);
 
 		if (n > 0)
 		{	ASSERT_EQ(nExpectAlloc, g_allocCount.nAllocations); }
@@ -630,7 +636,7 @@ void testConstructNThrowing(const Arg &... arg)
 	}
 }
 
-TEST_F(dynarrayConstructTest, constructNDefaultThrowing)
+TEST_F(dynarrayConstructTest, constructForOverwriteThrowing)
 {
 	testConstructNThrowing<NontrivialConstruct>(for_overwrite);
 }

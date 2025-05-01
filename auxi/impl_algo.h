@@ -84,15 +84,14 @@ namespace oel::_detail
 		template< typename... Args, typename T >
 		static void call(T *__restrict first, T *const last, [[maybe_unused]] Alloc allo, Args const... args)
 		{
-			[[maybe_unused]] constexpr auto isByte = sizeof(T) == 1 and (std::is_integral_v<T> or std::is_enum_v<T>);
-
-			if constexpr (std::is_trivial_v<T> and sizeof...(Args) == 0)
+			if constexpr (std::is_trivially_default_constructible_v<T> and sizeof...(Args) == 0)
 			{
-				std::memset(first, 0, sizeof(T) * (last - first));
+				void * p{first};  // silence -Wclass-memaccess
+				std::memset(p, 0, sizeof(T) * (last - first));
 			}
-			else if constexpr (isByte)
+			else if constexpr (sizeof(T) == 1 and std::is_scalar_v<T>)
 			{
-				std::memset(first, static_cast<int>(args)..., last - first);
+				std::memset(first, int(args)..., last - first);
 			}
 			else
 			{	T *const init = first;
