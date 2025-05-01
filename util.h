@@ -41,6 +41,35 @@
 		{  return (decltype(ob_)(ob_).var); }
 
 
+
+namespace oelIterMove_
+{
+	template< typename > void iter_move() = delete;
+
+	struct Fn
+	{
+		template< typename I >
+		constexpr auto operator()(I && it) const
+			noexcept(noexcept( iter_move(it) ))
+		->	decltype(          iter_move(it) )
+			{        return    iter_move(it); }
+
+		template< typename I, typename... None >
+		constexpr decltype(auto) operator()(I && it, None...) const
+			noexcept(noexcept(*it))
+		{
+			if constexpr( std::is_lvalue_reference_v<decltype(*it)> )
+				return std::move(*it);
+			else
+				return *it;
+        }
+	};
+}
+
+//! Effectively same as std::ranges::iter_move
+inline constexpr oelIterMove_::Fn oel_iter_move;
+
+
 namespace oel
 {
 

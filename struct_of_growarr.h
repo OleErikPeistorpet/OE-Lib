@@ -178,11 +178,11 @@ public:
 
 	auto begin() noexcept
 		{
-			return _m.data._apply(_zipBegin<false, _detail::ElementTag>{});
+			return _m.data._apply(_zipBegin<false, _detail::ElementTag, _detail::RvalueElementTag>{});
 		}
 	auto begin() const noexcept
 		{
-			return _m.data._apply(_zipBegin<true, _detail::ConstElementTag>{});
+			return _m.data._apply(_zipBegin<true, _detail::ConstElementTag, void>{});
 		}
 	auto cbegin() const noexcept  { return begin(); }
 
@@ -210,10 +210,12 @@ public:
 
 	using zip_reference        = decltype( *begin() );
 	using zip_const_reference  = decltype( *cbegin() );
+	using zip_rvalue_reference = decltype( iter_move(begin()) );
 
 	// TODO
 	void push_back(zip_reference values);
 	void push_back(zip_const_reference values);
+	void push_back(zip_rvalue_reference values);
 
 
 
@@ -306,14 +308,14 @@ private:
 		}
 	};
 
-	template< bool Const, typename ElemTag >
+	template< bool Const, typename ElemTag, typename RvalueTag >
 	struct _zipBegin
 	{
 		template< typename... Ts >
 		auto operator()(const Ts &... fields) const noexcept
 		{
 			return oel::_zipTransformIterator(
-				_detail::Zip< ElemStruct<ElemTag> >{},
+				_detail::Zip< ElemStruct<ElemTag>, ElemStruct<RvalueTag> >{},
 				_detail::ptr_as_const<Const>(fields.p)... );
 		}
 	};

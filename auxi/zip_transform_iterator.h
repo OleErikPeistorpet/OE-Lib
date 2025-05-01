@@ -12,13 +12,51 @@
 
 namespace oel
 {
+namespace _detail
+{
+	template< typename RefStruct, typename RValueStruct >
+	struct Zip
+	{
+		template< typename... Ts >
+		RefStruct operator()(Ts &&... vals) const noexcept
+		{
+			return{ static_cast<Ts &&>(vals)... };
+		}
+
+		template< typename... Is, size_t... Ns >
+		static auto iter_move(const std::tuple<Is...> & iters, std::index_sequence<Ns...>) noexcept
+		{
+			return RValueStruct{std::move( *std::get<Ns>(iters) )...};
+		}
+	};
+}
+
 
 template< typename Func, typename... Iterators >
-class _zipTransformIterator
+class _zipTransformIterator;
+
+struct _iterMoveFriendZipTransform
+{
+	// Almost same as https://en.cppreference.com/w/cpp/ranges/zip_view/iterator/iter_move
+	template< typename RS, typename RV, typename... Iterators >
+	friend auto iter_move(const _zipTransformIterator< _detail::Zip<RS, RV>, Iterators... > & it) noexcept
+		{
+			return _detail::Zip<RS, RV>::iter_move(it.base(), std::index_sequence_for<Iterators...>{});
+		}
+};
+
+
+template< typename Func, typename... Iterators >
+class
+#ifdef _MSC_VER
+	__declspec(empty_bases)
+#endif
+	_zipTransformIterator
  :	public _iteratorFacade
 	<	_zipTransformIterator<Func, Iterators...>,
 		std::common_type_t< iter_difference_t<Iterators>... >
-	>
+	>,
+	public _iterMoveFriendZipTransform
 {
 	using _iSeq      = std::index_sequence_for<Iterators...>;
 	using _firstIter = std::tuple_element_t< 0, std::tuple<Iterators...> >;

@@ -37,22 +37,12 @@ namespace _detail
 	}
 
 
-	template< typename RefStruct >
-	struct Zip
-	{
-		template< typename... Ts >
-		RefStruct operator()(Ts &&... vals) const noexcept
-		{
-			return{ static_cast<Ts &&>(vals)... };
-		}
-	};
-
-
 	struct InternalTag {};
 	struct ViewTag {};
 	struct ConstViewTag {};
 	struct ElementTag {};
 	struct ConstElementTag {};
+	struct RvalueElementTag {};
 }
 
 
@@ -91,6 +81,16 @@ struct field_array<_detail::ConstElementTag, T, A>
 	const T & operator()() const noexcept         { return _val; }
 
 	explicit operator const T &() const noexcept  { return _val; }
+};
+
+template< typename T, align_val_t A >
+struct field_array<_detail::RvalueElementTag, T, A>
+{
+	T && _val;
+
+	T && operator()() noexcept         { return std::move(_val); }
+
+	explicit operator T &&() noexcept  { return std::move(_val); }
 };
 
 } // oel
