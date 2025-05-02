@@ -193,21 +193,21 @@ public:
 			(void) _debugSizeUpdater{_m};
 		}
 
-	//! Erase the element at pos without maintaining order of elements after pos.
+	//! Erase the element at pos without maintaining order of elements after pos
 	/**
-	* Constant complexity (compared to linear in the distance between pos and end() for normal erase).
-	* @return iterator corresponding to the same index in the sequence as pos, same as for std containers. */
-	iterator  unordered_erase(iterator pos) &;
+	* The iterator pos remains valid, same as if it was returned by `erase`.
+	* Constant complexity (compared to linear in the distance between pos and `end()` for normal erase). */
+	void     unordered_erase(iterator pos);
 
-	iterator  erase(iterator pos) &;
+	iterator erase(iterator pos) &;
 
-	iterator  erase(iterator first, const_iterator last) &;
+	iterator erase(iterator first, const_iterator last) &;
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require assignable T
-	void      erase_to_end(iterator first) noexcept;
+	void     erase_to_end(iterator first) noexcept;
 
-	void      clear() noexcept   { erase_to_end(begin()); }
+	void     clear() noexcept   { erase_to_end(begin()); }
 
-	void      reserve(size_type minCap)
+	void     reserve(size_type minCap)
 		{
 			if (capacity() < minCap)
 				_realloc(_calcCapChecked(minCap), size());
@@ -849,8 +849,7 @@ void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 }
 
 template< typename T, typename Alloc >
-inline typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::unordered_erase(iterator pos) &
+inline void dynarray<T, Alloc>::unordered_erase(iterator pos)
 {
 	if constexpr (is_trivially_relocatable<T>::value)
 	{
@@ -867,7 +866,6 @@ inline typename dynarray<T, Alloc>::iterator
 	{	*pos = std::move(back());
 		pop_back();
 	}
-	return pos;
 }
 
 template< typename T, typename Alloc >
