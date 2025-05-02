@@ -849,10 +849,11 @@ void testUnorderedErase()
 	d.emplace_back(1);
 	d.emplace_back(-2);
 
-	auto it = d.unordered_erase(d.begin());
+	auto it = d.begin();
+	d.unordered_erase(it);
 	EXPECT_EQ(1U, d.size());
 	EXPECT_EQ(-2, *(*it));
-	it = d.unordered_erase(it);
+	d.unordered_erase(it);
 	EXPECT_EQ(end(d), it);
 }
 
