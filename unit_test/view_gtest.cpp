@@ -120,7 +120,7 @@ TEST(viewTest, viewSubrange)
 	{
 		constexpr auto v = view::subrange(src + 1, src + 3);
 		EXPECT_EQ(2, ssize(v));
-	}
+}
 	constexpr auto it = transformIterFromIntPtr(src);
 	constexpr auto v = view::subrange(it, makeSentinel(src + 3));
 	EXPECT_EQ(3, ssize(v));
@@ -268,8 +268,9 @@ TEST(viewTest, viewTransformSizedRange)
 
 TEST(viewTest, viewTransformNonSizedRange)
 {
-	std::forward_list<int> const li{-2, -3};
-	auto dest = view::transform(li, Square{}) | oel::to_dynarray();
+	auto dest = std::forward_list<int>{-2, -3}
+			| view::transform(Square{})
+			| oel::to_dynarray();
 	EXPECT_EQ(2U, dest.size());
 	EXPECT_EQ(4, dest[0]);
 	EXPECT_EQ(9, dest[1]);

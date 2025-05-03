@@ -133,8 +133,8 @@ public:
 	//! Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	/**
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void resize_for_overwrite(size_type n)   { _doResize<_detail::DefaultInit>(n); }
-	void resize(size_type n)                 { _doResize<_detail::ValueInit>(n); }
+	void resize_for_overwrite(size_type n)   { _doResize<_detail::DefaultConstruct>(n); }
+	void resize(size_type n)                 { _doResize<_detail::ValueConstruct>(n); }
 
 	//! Almost same as std::vector::insert_range
 	template< typename R >
@@ -415,6 +415,7 @@ private:
 	}
 
 
+	// TODO: optimize assign and append for view::value_init
 	template< typename InputIter >
 	void _doAssign(InputIter src, size_type const count)
 	{
@@ -684,7 +685,7 @@ dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
  :	_m(a)
 {
 	_initReserve(n);
-	_detail::DefaultInit::call(_m.data, _m.reservEnd, _m.allo);
+	_detail::DefaultConstruct::call(_m.data, _m.reservEnd, _m.allo);
 
 	_m.end = _m.reservEnd;
 	(void) _debugSizeUpdater{_m};
@@ -695,7 +696,7 @@ dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
  :	_m(a)
 {
 	_initReserve(n);
-	_detail::ValueInit::call(_m.data, _m.reservEnd, _m.allo);
+	_detail::ValueConstruct::call(_m.data, _m.reservEnd, _m.allo);
 
 	_m.end = _m.reservEnd;
 	(void) _debugSizeUpdater{_m};

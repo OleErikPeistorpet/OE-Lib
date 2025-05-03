@@ -5,6 +5,7 @@
 #include "mem_leak_detector.h"
 #include "view/move.h"
 #include "view/repeat.h"
+#include "view/value_init.h"
 #include "dynarray.h"
 
 #include <deque>
@@ -371,7 +372,7 @@ TEST_F(dynarrayTest, appendSizeOverflow)
 	using T = std::uint_least16_t;
 	dynarray<T> c(1);
 	EXPECT_THROW(
-		c.append_range(view::repeat(T{}, PTRDIFF_MAX)),
+		c.append_range(view::value_init<T>(PTRDIFF_MAX)),
 		std::length_error );
 }
 #endif
@@ -939,7 +940,7 @@ TEST_F(dynarrayTest, greaterThanMax)
 	dynarray<int> di;
 	n = SIZE_MAX / sizeof(int) + 1;
 	EXPECT_THROW(
-		di.assign_range( view::repeat(int{}, n) ),
+		di.assign_range( view::value_init<int>(n) ),
 		std::length_error );
 	EXPECT_TRUE(di.empty());
 }

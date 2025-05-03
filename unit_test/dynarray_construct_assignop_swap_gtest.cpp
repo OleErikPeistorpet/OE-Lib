@@ -4,7 +4,7 @@
 #include "test_classes.h"
 #include "mem_leak_detector.h"
 #include "dynarray.h"
-#include "view/repeat.h"
+#include "view/value_init.h"
 
 #include <array>
 #include <string>
@@ -83,7 +83,7 @@ TEST_F(dynarrayConstructTest, greaterThanMax)
 
 	n = SIZE_MAX / sizeof(int) + 1;
 	EXPECT_THROW(
-		dynarray d(	from_range, view::repeat(int{}, n) ),
+		dynarray d(	from_range, view::value_init<int>(n) ),
 		std::length_error );
 }
 #endif
@@ -619,11 +619,11 @@ TEST_F(dynarrayConstructTest, selfCopyAssign)
 TEST_F(dynarrayConstructTest, constructInputRangeThrowing)
 {
 	std::stringstream ss("1 2");
-	std::istream_iterator<double> f{ss}, l{};
+	std::istream_iterator<double> f{ss};
 	MoveOnly::countToThrowOn = 1;
 
 	ASSERT_THROW(
-		dynarray<MoveOnly>(from_range, view::subrange(f, l)),
+		dynarray<MoveOnly>(from_range, view::counted(f, 2)),
 		TestException );
 }
 

@@ -18,4 +18,5 @@
 #include "view/repeat.h"
 #include "view/subrange.h"
 #include "view/transform.h"
+#include "view/value_init.h"
 #include "view/zip_transform.h"

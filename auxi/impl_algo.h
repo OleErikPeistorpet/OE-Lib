@@ -86,7 +86,7 @@ namespace oel::_detail
 	#undef OEL_CHECK_NULL_MEMCPY
 
 
-	struct ValueInit
+	struct ValueConstruct
 	{
 		template< typename Alloc, typename T >
 		static void call(T *__restrict first, T *const last, [[maybe_unused]] Alloc a)
@@ -112,14 +112,14 @@ namespace oel::_detail
 		}
 	};
 
-	struct DefaultInit
+	struct DefaultConstruct
 	{
 		template< typename Alloc, typename T >
 		static void call(T *__restrict first, T *const last, Alloc & a)
 		{
 			if constexpr( !std::is_trivially_default_constructible_v<T> )
 			{
-				ValueInit::call(first, last, a);
+				ValueConstruct::call(first, last, a);
 			}
 			else
 			{	(void) first; (void) last; (void) a;
