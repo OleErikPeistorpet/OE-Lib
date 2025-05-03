@@ -136,25 +136,16 @@ public:
 	* Any elements held before the call are either assigned to or destroyed. */
 	template< typename InputRange >
 	auto assign(InputRange && source) -> borrowed_iterator_t<InputRange>;
-
-	void assign(size_type count, const T & val)   { clear();  append(count, val); }
-
-	/**
-	* @brief Almost same as std::vector::append_range (C++23)
-	* @pre source shall not refer to any elements in this dynarray if reallocation happens.
+	
+	//! Almost same as std::vector::append_range (C++23)
+	/** @pre source shall not refer to any elements in this dynarray if reallocation happens.
 	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements
 	* @return Iterator `begin(source)` incremented by the number of elements in source  */
 	template< typename InputRange = std::initializer_list<T> >
 	auto append(InputRange && source) -> borrowed_iterator_t<InputRange>;
+	
+	//! Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	/**
-	* @brief Same as `std::vector::insert(end(), count, val)`
-	* @pre val shall not be a reference to an element of this dynarray if reallocation happens.
-	*	Reallocation is caused by `capacity() - size() < count` */
-	void append(size_type count, const T & val);
-
-	/**
-	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
-	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
 	void resize_for_overwrite(size_type n)   { _doResize< _detail::DefaultInit<allocator_type> >(n); }
 	void resize(size_type n)                 { _doResize<_uninitFill>(n); }
@@ -432,6 +423,7 @@ private:
 		return it;
 	}
 
+	// TODO: optimize assign and append for view::value_init
 	template< typename InputIter >
 	InputIter _doAssign(InputIter src, size_type const count)
 	{
@@ -666,19 +658,6 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	_debugSizeUpdater guard{_m};
 
 	return *(_m.end++);
-}
-
-template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::append(size_type count, const T & val)
-{
-	if (_spareCapacity() < count)
-		_growBy(count);
-
-	auto const pos = _m.end;
-	_uninitFill::template call< _detail::ConstParam<T> >(pos, pos + count, _m, val);
-
-	_debugSizeUpdater guard{_m};
-	_m.end += count;
 }
 
 template< typename T, typename Alloc >

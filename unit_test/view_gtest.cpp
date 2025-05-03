@@ -60,22 +60,20 @@ TEST(viewTest, viewAll)
 		EXPECT_EQ(&c[0], &v2[0]);
 		EXPECT_EQ(&c[1], &v2[1]);
 	}
+#if OEL_STD_RANGES
 	{	FL const c{7, 8};
 		auto v = view::all(c);
 		// Should hit static_assert
 		//auto ov = view::owning(std::move(c));
-	#if OEL_STD_RANGES
 		static_assert(std::is_same_v< decltype(v), std::ranges::ref_view<FL const> >);
-	#else
-		using I = FL::const_iterator;
-		static_assert(std::is_same_v< decltype(v), view::subrange<I, I> >);
-	#endif
+
 		auto v2 = view::all(v);
 		static_assert(std::is_same_v< decltype(v), decltype(v2) >);
 
 		EXPECT_EQ(c.begin(), v2.begin());
 		EXPECT_EQ(c.end(), v2.end());
 	}
+#endif
 }
 
 constexpr auto transformIterFromIntPtr(const int * p)
@@ -93,44 +91,37 @@ TEST(viewTest, subscript)
 {
 	std::array<int, 2> src{7, 8};
 	auto v0 = view::counted(begin(src), oel::ssize(src));
-	auto v1 = view::subrange(begin(src), end(src));
-	auto v2 = view::move(src);
-	auto v3 = view::owning(std::move(src));
+	auto v1 = view::move(src);
+	auto v2 = view::owning(std::move(src));
 
-	EXPECT_EQ(7, v0[0]);
+	EXPECT_EQ(8, v0[1]);
+	EXPECT_EQ(7, v1[0]);
 	EXPECT_EQ(8, v1[1]);
 	EXPECT_EQ(7, v2[0]);
-	EXPECT_EQ(8, v3[1]);
+	EXPECT_EQ(8, v2[1]);
 }
 
 TEST(viewTest, nestedEmpty)
 {
 	oel::dynarray<int> src{};
-	auto v = view::owning(view::subrange( begin(src), end(src) )) | view::move;
+	auto v = view::owning(view::counted( begin(src), ssize(src) )) | view::move;
 	EXPECT_TRUE(v.empty());
 }
 
-TEST(viewTest, viewSubrange)
+TEST(viewTest, viewUnbounded)
 {
-	using V = view::subrange<int *, int *>;
-
-	static_assert(std::is_trivially_constructible<V, V &>::value);
+	using V = view::unbounded<int *>;
 
 #if OEL_STD_RANGES
-	static_assert(std::ranges::contiguous_range<V>);
 	static_assert(std::ranges::borrowed_range<V>);
 	#if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
 	static_assert(std::ranges::view<V>);
 	#endif
 #endif
 	static constexpr int src[3]{};
-	{
-		constexpr auto v = view::subrange(src + 1, src + 3);
-		EXPECT_EQ(2, ssize(v));
-	}
-	constexpr auto it = transformIterFromIntPtr(src);
-	constexpr auto v = view::subrange(it, makeSentinel(src + 3));
-	EXPECT_EQ(3, ssize(v));
+	auto v = view::unbounded(src + 1);
+	EXPECT_EQ(v.begin(), src + 1);
+	static_assert(oel::enable_infinite_range< decltype(v) >);
 }
 
 TEST(viewTest, viewCounted)
@@ -256,7 +247,7 @@ TEST(viewTest, viewTransformSizedRange)
 	EXPECT_EQ(1, tv[0]);
 	EXPECT_EQ(2, tv[1]);
 
-	auto tsr = view::subrange(tv.begin(), tv.end());
+	auto tsr = view::counted(tv.begin(), ssize(tv));
 	auto dest = tsr | oel::to_dynarray();
 	EXPECT_EQ(2U, tsr.size());
 	EXPECT_EQ(2U, dest.size());
@@ -276,8 +267,9 @@ TEST(viewTest, viewTransformSizedRange)
 
 TEST(viewTest, viewTransformNonSizedRange)
 {
-	std::forward_list<int> const li{-2, -3};
-	auto dest = view::transform(li, Square{}) | oel::to_dynarray();
+	auto dest = std::forward_list<int>{-2, -3}
+			| view::transform(Square{})
+			| oel::to_dynarray();
 	EXPECT_EQ(2U, dest.size());
 	EXPECT_EQ(4, dest[0]);
 	EXPECT_EQ(9, dest[1]);
@@ -452,12 +444,14 @@ TEST(viewTest, moveToPointerContiguous)
 	EXPECT_EQ( src + 1, oel::iter::as_contiguous_address(v.end()) );
 }
 
+#if OEL_STD_RANGES
+
 TEST(viewTest, viewMoveEndDifferentType)
 {
 	auto nonEmpty = [i = -1](int j) { return i + j; };
 	int src[1];
 	auto it = view::transform(src, nonEmpty).begin();
-	auto v = view::subrange(it, makeSentinel(src + 1)) | view::move;
+	auto v = std::ranges::subrange(it, makeSentinel(src + 1)) | view::move;
 
 #if OEL_STD_RANGES
 	static_assert(std::ranges::enable_borrowed_range< decltype(v) >);
@@ -467,7 +461,14 @@ TEST(viewTest, viewMoveEndDifferentType)
 	EXPECT_EQ(src + 1, v.end().se.se);
 }
 
-#if OEL_STD_RANGES
+void testEnableInfiniteRange()
+{
+	std::forward_list<int> li{};
+	auto bounded = std::ranges::subrange(li);
+	auto unbound = std::ranges::subrange(li.begin(), std::unreachable_sentinel);
+	static_assert(not oel::enable_infinite_range< decltype(bounded) >);
+	static_assert(oel::enable_infinite_range< decltype(unbound) >);
+}
 
 TEST(viewTest, viewMoveMutableEmptyAndSize)
 {
@@ -477,7 +478,7 @@ TEST(viewTest, viewMoveMutableEmptyAndSize)
 	EXPECT_EQ(1U, v.size());
 }
 
-using IntGenIter = oel::iterator_t<decltype( view::generate(Ints{}, 0) )>;
+using IntGenIter = oel::iterator_t<decltype( view::generate(Ints{}) )>;
 static_assert(std::input_iterator<IntGenIter>);
 
 #if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT

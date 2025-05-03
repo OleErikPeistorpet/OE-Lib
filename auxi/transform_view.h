@@ -74,8 +74,12 @@ public:
 		}
 };
 
-} // oel
 
+template< typename I, typename F, typename... V >
+inline constexpr bool enable_infinite_range< _zipTransformView<I, F, V...> >
+	= (... and enable_infinite_range< std::remove_cv_t<V> >);
+
+} // oel
 
 template< typename I, typename F, typename... V >
 inline constexpr bool oel::enable_view< oel::_zipTransformView<I, F, V...> > = true;
