@@ -112,8 +112,12 @@ constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 	return _detail::TransformPartial<UnaryFunc>{std::move(f)};
 }
 
-} // oel
 
+template< typename F, typename V >
+inline constexpr bool enable_infinite_range< _iterTransformView<F, V> >
+	= enable_infinite_range< std::remove_cv_t<V> >;
+
+} // oel
 
 #if OEL_STD_RANGES
 

@@ -165,20 +165,3 @@ TEST(rangeTest, copyRangeMutableBeginSize)
 	oel::copy_fit(v, dest);
 	EXPECT_EQ(1, dest[0]);
 }
-
-template<typename Container>
-void testAppend()
-{
-	Container c;
-
-	auto il = {1, 2};
-	oel::append(c, il);
-	EXPECT_EQ(2U, c.size());
-	EXPECT_EQ(2, c.back());
-}
-
-TEST(rangeTest, append)
-{
-	testAppend< std::list<int> >();
-	testAppend< oel::dynarray<int> >();
-}

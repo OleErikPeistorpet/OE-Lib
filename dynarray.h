@@ -94,7 +94,6 @@ public:
 	dynarray(size_type size, for_overwrite_t, Alloc a = Alloc{});
 	//! (Value-initializes elements, same as std::vector)
 	explicit dynarray(size_type size, Alloc a = Alloc{});
-	dynarray(size_type size, const T & val, Alloc a = Alloc{})   : _m(a) { append(size, val); }
 
 	template< typename InputRange >
 	dynarray(from_range_t, InputRange && r, Alloc a = Alloc{})   : _m(a) { append(r); }
@@ -128,8 +127,6 @@ public:
 	template< typename InputRange >
 	auto assign(InputRange && source) -> borrowed_iterator_t<InputRange>;
 
-	void assign(size_type count, const T & val)   { clear();  append(count, val); }
-
 	/**
 	* @brief Almost same as std::vector::append_range (C++23)
 	* @pre source shall not refer to any elements in this dynarray if reallocation happens.
@@ -140,11 +137,6 @@ public:
 
 	//! Equivalent to `std::vector::insert(end(), il)`
 	void append(std::initializer_list<T> il)   { append<>(il); }
-	/**
-	* @brief Same as `std::vector::insert(end(), count, val)`
-	* @pre val shall not be a reference to an element of this dynarray if reallocation happens.
-	*	Reallocation is caused by `capacity() - size() < count` */
-	void append(size_type count, const T & val);
 
 	/**
 	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
@@ -426,6 +418,7 @@ private:
 		return it;
 	}
 
+	// TODO: optimize assign and append for view::value_init
 	template< typename InputIter >
 	InputIter _doAssign(InputIter src, size_type const count)
 	{
@@ -660,19 +653,6 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	_debugSizeUpdater guard{_m};
 
 	return *(_m.end++);
-}
-
-template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::append(size_type count, const T & val)
-{
-	if (_spareCapacity() < count)
-		_growBy(count);
-
-	auto const pos = _m.end;
-	_uninitFill::template call< _detail::ForwardT<const T &> >(pos, pos + count, _m, val);
-
-	_debugSizeUpdater guard{_m};
-	_m.end += count;
 }
 
 template< typename T, typename Alloc >
