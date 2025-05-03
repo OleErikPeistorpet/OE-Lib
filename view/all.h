@@ -8,7 +8,6 @@
 
 #include "counted.h"
 #include "owning.h"
-#include "subrange.h"
 
 /** @file
 */
@@ -32,10 +31,8 @@ namespace _detail
 		{
 			if constexpr (std::is_lvalue_reference_v<Range>)
 			{
-				if constexpr (range_is_sized<Range>)
-					return view::counted(begin(r), oel::ssize(r));
-				else
-					return view::subrange(begin(r), end(r));
+				static_assert(range_is_sized<Range>);
+				return view::counted(begin(r), oel::ssize(r));
 			}
 			else
 			{	return view::owning(static_cast<Range &&>(r));

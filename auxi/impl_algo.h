@@ -83,23 +83,19 @@ namespace oel::_detail
 	struct UninitFill
 	{
 		template< typename... Args, typename T >
-		static void call(T *__restrict first, T *const last, [[maybe_unused]] Alloc allo, Args const... args)
+		static void call(T *__restrict first, T *const last, [[maybe_unused]] Alloc allo)
 		{
-			if constexpr (std::is_trivially_default_constructible_v<T> and sizeof...(Args) == 0)
+			if constexpr (std::is_trivially_default_constructible_v<T>)
 			{
 				void * p{first};  // silence -Wclass-memaccess
 				std::memset(p, 0, sizeof(T) * (last - first));
-			}
-			else if constexpr (sizeof(T) == 1 and std::is_scalar_v<T>)
-			{
-				std::memset(first, int(args)..., last - first);
 			}
 			else
 			{	T *const init = first;
 				OEL_TRY_
 				{
 					for (; first != last; ++first)
-						std::allocator_traits<Alloc>::construct(allo, first, args...);
+						std::allocator_traits<Alloc>::construct(allo, first);
 				}
 				OEL_CATCH_ALL
 				{
@@ -117,12 +113,7 @@ namespace oel::_detail
 		static void call(T *__restrict first, T *const last, Alloc & a)
 		{
 			if constexpr (!std::is_trivially_default_constructible_v<T>)
-			{
 				UninitFill<Alloc>::call(first, last, a);
-			}
-			else
-			{	(void) first; (void) last; (void) a; // avoid VC++ 2017 warning C4100
-			}
 		}
 	};
 
