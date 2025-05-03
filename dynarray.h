@@ -7,7 +7,6 @@
 
 
 #include "allocator.h"
-#include "auxi/detail_const_param.h"
 #include "auxi/dynarray_iterator.h"
 #include "auxi/impl_algo.h"
 #include "optimize_ext/default.h"
@@ -88,8 +87,8 @@ public:
 	//! Construct empty dynarray with space reserved for exactly capacity elements
 	dynarray(reserve_tag, size_type capacity, Alloc a = Alloc{})   : _m(a) { _initReserve(capacity); }
 
-	/** @brief Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
-	*
+	//! Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
+	/**
 	* @copydetails resize_for_overwrite(size_type)  */
 	dynarray(size_type size, for_overwrite_t, Alloc a = Alloc{});
 	//! (Value-initializes elements, same as std::vector)
@@ -136,28 +135,20 @@ public:
 	template< typename InputRange >
 	void assign(InputRange && source);
 
-	void assign(size_type count, const T & val)   { clear();  append(count, val); }
-
 	//! Almost same as std::vector::append_range (C++23)
 	/** @pre source shall not refer to any elements in this dynarray if reallocation happens.
 	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements  */
 	template< typename InputRange = std::initializer_list<T> >
 	void append(InputRange && source);
 
-	//! Same as `std::vector::insert(end(), count, val)`
-	/** @pre val shall not be a reference to an element of this dynarray if reallocation happens.
-	*	Reallocation is caused by `capacity() - size() < count` */
-	void append(size_type count, const T & val);
-
+	//! Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	/**
-	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
-	*
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void resize_for_overwrite(size_type n)   { _doResize< _detail::DefaultInit<allocator_type> >(n); }
-	void resize(size_type n)                 { _doResize<_uninitFill>(n); }
+	void resize_for_overwrite(size_type n)   { _doResize<_detail::DefaultInit>(n); }
+	void resize(size_type n)                 { _doResize<_detail::ValueInit>(n); }
 
+	//! Almost same as std::vector::insert_range
 	/**
-	* @brief Almost same as std::vector::insert_range
 	* @param source must model std::ranges::forward_range or `source.size()` must be valid. */
 	template< typename Range >
 	iterator insert_range(const_iterator pos, Range && source) &;
@@ -288,7 +279,6 @@ public:
 private:
 	using _allocateWrap = _detail::DebugAllocateWrapper<allocator_type, T *>;
 	using _internBase   = _detail::DynarrBase<T *>;
-	using _uninitFill   = _detail::UninitFill<allocator_type>;
 	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
 	using _argAlloc_7KQw  = Alloc; // guarding against name collision due to inheritance (MSVC)
 	using _usedAlloc_7KQw = allocator_type;
@@ -427,7 +417,7 @@ private:
 
 		T *const newEnd = _m.data + newSize;
 		if( _m.end < newEnd )
-			UninitFiller::call(_m.end, newEnd, _m);
+			UninitFiller::call(_m.end, newEnd, static_cast<allocator_type &>(_m));
 		else
 			_detail::Destroy(newEnd, _m.end);
 
@@ -677,19 +667,6 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 }
 
 template< typename T, typename Alloc >
-inline void dynarray<T, Alloc>::append(size_type count, const T & val)
-{
-	if (_spareCapacity() < count)
-		_growBy(count);
-
-	auto const pos = _m.end;
-	_uninitFill::template call< _detail::ConstParam<T> >(pos, pos + count, _m, val);
-
-	_debugSizeUpdater guard{_m};
-	_m.end += count;
-}
-
-template< typename T, typename Alloc >
 template< typename InputRange >
 inline void dynarray<T, Alloc>::append(InputRange && source)
 {
@@ -732,7 +709,7 @@ dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
 {
 	_initReserve(n);
 	_m.end = _m.reservEnd;
-	_detail::DefaultInit<allocator_type>::call(_m.data, _m.reservEnd, _m);
+	_detail::DefaultInit::call<allocator_type>(_m.data, _m.reservEnd, _m);
 
 	(void) _debugSizeUpdater{_m};
 }
@@ -743,7 +720,7 @@ dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
 {
 	_initReserve(n);
 	_m.end = _m.reservEnd;
-	_uninitFill::call(_m.data, _m.reservEnd, _m);
+	_detail::ValueInit::call<allocator_type>(_m.data, _m.reservEnd, _m);
 
 	(void) _debugSizeUpdater{_m};
 }

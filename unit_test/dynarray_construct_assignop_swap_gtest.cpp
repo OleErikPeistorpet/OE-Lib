@@ -4,7 +4,7 @@
 #include "test_classes.h"
 #include "mem_leak_detector.h"
 #include "dynarray.h"
-#include "view/generate.h"
+#include "view/repeat.h"
 
 #include <array>
 #include <string>
@@ -85,12 +85,7 @@ TEST_F(dynarrayConstructTest, greaterThanMax)
 	EXPECT_THROW(Dynarr d(n, for_overwrite), std::length_error);
 	EXPECT_THROW(Dynarr d(n), std::length_error);
 	EXPECT_THROW(
-		Dynarr d
-		(	from_range,
-			view::generate(
-				[] { return Size2{}; }, 
-				n )
-		),
+		Dynarr d( from_range, view::repeat(Size2{}, n) ),
 		std::length_error );
 }
 #endif
