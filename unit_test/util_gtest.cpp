@@ -283,11 +283,23 @@ constexpr bool disable_sized_sentinel_for< I, TooSimpleIter<I> > = true;
 }
 #endif
 
+using A1 = std::array<double, 1>;
+
+struct TestRange
+{
+	TooSimpleIter<A1::iterator> f;
+	A1::iterator l;
+
+	auto begin() { return f; }
+	auto end()   { return l; }
+};
+
 TEST(utilTest, detailCountOrEnd_disabledSize)
 {
 	using A = std::array<double, 1>;
 	A src{1};
-	auto v = oel::view::subrange(TooSimpleIter<A::iterator>{src.begin()}, src.end());
+	using I = TooSimpleIter<A::iterator>;
+	auto v = TestRange{I{src.begin()}, src.end()};
 
 	static_assert( !oel::range_is_sized<decltype(v)> );
 	static_assert(oel::_detail::rangeIsForwardOrSized<decltype(v)>);

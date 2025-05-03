@@ -27,8 +27,48 @@
 
 namespace oel
 {
+
+using std::begin;  using std::end;
+
+
+#if OEL_STD_RANGES
+	using std::unreachable_sentinel_t;
+#else
+	//! Dummy substitute for std::unreachable_sentinel_t, cannot be used for iteration
+	struct unreachable_sentinel_t {};
+#endif
+
+
+//! Return type of begin function (found by ADL)
+template< typename Range >
+using iterator_t = decltype( begin(std::declval<Range &>()) );
+//! Return type of end function (found by ADL)
+template< typename Range >
+using sentinel_t = decltype( end(std::declval<Range &>()) );
+
+//! Like std::ranges::borrowed_iterator_t, but doesn't require that Range has `end()`
+template< typename Range >
+using borrowed_iterator_t =
+#if OEL_STD_RANGES
+	std::conditional_t<
+		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
+		iterator_t<Range>,
+		std::ranges::dangling
+	>;
+#else
+	iterator_t<Range>;
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+
 namespace _detail
 {
+	template< typename Range >
+	sentinel_t<Range> SentinelOrVoid(int);
+
+	template< typename > void SentinelOrVoid(long);
+
+
 	template< typename Iter >
 	typename std::iterator_traits<Iter>::iterator_category IterCat(int);
 
@@ -54,28 +94,13 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-using std::begin;  using std::end;
-
-
-//! Return type of begin function (found by ADL)
+/** @brief Used to specify that a range is infinite, like Range-v3 cardinality
+*
+* This enables some composed views to model std::ranges::sized_range, which can be important for performance. */
 template< typename Range >
-using iterator_t = decltype( begin(std::declval<Range &>()) );
-//! Return type of end function (found by ADL)
-template< typename Range >
-using sentinel_t = decltype( end(std::declval<Range &>()) );
+inline constexpr bool enable_infinite_range =
+	std::is_same_v< decltype(_detail::SentinelOrVoid<Range>(0)), unreachable_sentinel_t >;
 
-//! Like std::ranges::borrowed_iterator_t, but doesn't require that Range has end()
-template< typename Range >
-using borrowed_iterator_t =
-#if OEL_STD_RANGES
-	std::conditional_t<
-		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
-		iterator_t<Range>,
-		std::ranges::dangling
-	>;
-#else
-	iterator_t<Range>;
-#endif
 
 #if __cpp_lib_concepts < 201907
 	template< typename Iterator >

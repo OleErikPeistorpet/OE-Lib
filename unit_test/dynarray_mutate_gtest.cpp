@@ -4,6 +4,7 @@
 #include "test_classes.h"
 #include "mem_leak_detector.h"
 #include "view/move.h"
+#include "view/value_init.h"
 #include "dynarray.h"
 
 #include <deque>
@@ -214,7 +215,7 @@ TEST_F(dynarrayTest, assign)
 	EXPECT_EQ(VALUES[0], *test[0]);
 	EXPECT_EQ(VALUES[1], *test[1]);
 
-	test.assign(view::subrange(src, src) | view::move);
+	test.assign(view::counted(src, 0) | view::move);
 	EXPECT_EQ(0U, test.size());
 }
 
@@ -241,11 +242,9 @@ TEST_F(dynarrayTest, assignTrivialReloc)
 	EXPECT_EQ(TrivialRelocat::nConstructions - ssize(dest), TrivialRelocat::nDestruct);
 	#if OEL_HAS_EXCEPTIONS
 	{
-		TrivialRelocat obj{0};
+		auto v = view::value_init<TrivialRelocat>(1);
 		TrivialRelocat::countToThrowOn = 0;
-		EXPECT_THROW(
-			dest.assign(view::subrange(&obj, &obj + 1)),
-			TestException );
+		EXPECT_THROW(dest.assign(v), TestException);
 		EXPECT_TRUE(dest.empty() or *dest[1] == 2.0);
 	}
 	#endif
@@ -273,13 +272,13 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 	dynarrayTrackingAlloc<std::string> das;
 
 	std::string * p = nullptr;
-	das.assign(view::subrange(p, p));
+	das.assign(view::counted(p, 0));
 
 	EXPECT_EQ(0U, das.size());
 
 	std::stringstream ss{"My computer emits Hawking radiation"};
-	std::istream_iterator<std::string> b{ss}, e;
-	das.assign(view::subrange(b, e));
+	std::istream_iterator<std::string> b{ss};
+	das.assign(view::counted(b, 5));
 
 	EXPECT_EQ(5U, das.size());
 
@@ -296,7 +295,7 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 
 	EXPECT_TRUE(das == copyDest);
 
-	copyDest.assign(view::subrange(das.cbegin(), das.cbegin() + 1));
+	copyDest.assign(view::counted(das.cbegin(), 1));
 
 	EXPECT_EQ(1U, copyDest.size());
 	EXPECT_EQ(das[0], copyDest[0]);
@@ -329,13 +328,12 @@ TEST_F(dynarrayTest, appendCase1)
 	dest.append({});
 	EXPECT_EQ(0U, dest.size());
 
-	double const TEST_VAL = 6.6;
-	dest.append(2, TEST_VAL);
+	dest.append( view::value_init<double>(2) );
 	dest.reserve(2 * dest.size());
-	dest.append( view::subrange(dest.begin(), dest.end()) );
+	dest.append(view::counted( dest.begin(), ssize(dest) ));
 	EXPECT_EQ(4U, dest.size());
 	for (const auto & d : dest)
-		EXPECT_EQ(TEST_VAL, d);
+		EXPECT_EQ(0.0, d);
 }
 
 TEST_F(dynarrayTest, appendCase2)
@@ -371,7 +369,7 @@ TEST_F(dynarrayTest, appendSizeOverflow)
 {
 	dynarray<char> c(1);
 	EXPECT_THROW(
-		c.append(SIZE_MAX, '\0'),
+		c.append(view::value_init<char>(SIZE_MAX)),
 		std::length_error );
 }
 #endif
@@ -389,7 +387,11 @@ TEST_F(dynarrayTest, appendNonForwardRange)
 	it = dest.append(view::counted(it, 2));
 	it = dest.append(view::counted(it, 0));
 
-	it = dest.append(view::subrange(it, end));
+	#if OEL_STD_RANGES
+		it = dest.append(std::ranges::subrange(it, end));
+	#else
+		it = dest.append(view::counted(it, 1));
+	#endif
 
 	EXPECT_EQ(it, end);
 	EXPECT_EQ(3u, dest.size());
@@ -612,7 +614,7 @@ TEST_F(dynarrayTest, moveOnlyIterator)
 		EXPECT_EQ(2, dest[1]);
 		EXPECT_EQ(3, dest[2]);
 
-		it = dest.assign( view::subrange(std::move(it), v.end()) );
+		it = dest.assign( std::ranges::subrange(std::move(it), v.end()) );
 		EXPECT_EQ(v.end(), it);
 		EXPECT_EQ(1u, dest.size());
 		EXPECT_EQ(4, dest[0]);
@@ -922,9 +924,12 @@ TEST_F(dynarrayTest, greaterThanMax)
 	EXPECT_THROW(d.reserve(SIZE_MAX), std::length_error);
 	EXPECT_THROW(d.reserve(n), std::length_error);
 	EXPECT_THROW(d.resize(n), std::length_error);
-	EXPECT_THROW(d.resize_for_overwrite(n), std::length_error);
 	ASSERT_TRUE(d.empty());
-	EXPECT_THROW(d.append(n, Size2{{}}), std::length_error);
+	EXPECT_THROW(d.resize_for_overwrite(n), std::length_error);
+	EXPECT_THROW(
+		d.append( view::value_init<Size2>(n) ),
+		std::length_error );
+	EXPECT_TRUE(d.empty());
 }
 #endif
 
