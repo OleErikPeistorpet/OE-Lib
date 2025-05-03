@@ -209,13 +209,13 @@ TEST_F(dynarrayTest, assign)
 	                 MoveOnly{VALUES[1]} };
 	dynarray<MoveOnly> test;
 
-	test.assign(view::move(src));
+	test.assign_range(view::move(src));
 
 	EXPECT_EQ(2U, test.size());
 	EXPECT_EQ(VALUES[0], *test[0]);
 	EXPECT_EQ(VALUES[1], *test[1]);
 
-	test.assign(view::subrange(src, src) | view::move);
+	test.assign_range(view::subrange(src, src) | view::move);
 	EXPECT_EQ(0U, test.size());
 }
 
@@ -227,7 +227,7 @@ TEST_F(dynarrayTest, assignTrivialReloc)
 		TrivialRelocat obj{0};
 		TrivialRelocat::countToThrowOn = 0;
 		EXPECT_THROW(
-			dest.assign(view::counted(&obj, 1)),
+			dest.assign_range(view::counted(&obj, 1)),
 			TestException );
 		EXPECT_TRUE(dest.begin() == dest.end());
 	}
@@ -245,7 +245,7 @@ TEST_F(dynarrayTest, assignTrivialReloc)
 		TrivialRelocat obj{0};
 		TrivialRelocat::countToThrowOn = 0;
 		EXPECT_THROW(
-			dest.assign(view::subrange(&obj, &obj + 1)),
+			dest.assign_range(view::subrange(&obj, &obj + 1)),
 			TestException );
 		EXPECT_TRUE(dest.empty() or *dest.at(1) == 2.0);
 	}
@@ -259,7 +259,7 @@ TEST_F(dynarrayTest, assignTrivialReloc)
 		TrivialRelocat obj{0};
 		TrivialRelocat::countToThrowOn = 0;
 		EXPECT_THROW(
-			dest.assign(view::counted(&obj, 1)),
+			dest.assign_range(view::counted(&obj, 1)),
 			TestException );
 		EXPECT_TRUE(dest.empty());
 	#endif
@@ -274,13 +274,13 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 	dynarrayTrackingAlloc<std::string> das;
 
 	std::string * p = nullptr;
-	das.assign(view::subrange(p, p));
+	das.assign_range(view::subrange(p, p));
 
 	EXPECT_EQ(0U, das.size());
 
 	std::stringstream ss{"My computer emits Hawking radiation"};
 	std::istream_iterator<std::string> b{ss}, e;
-	das.assign(view::subrange(b, e));
+	das.assign_range(view::subrange(b, e));
 
 	EXPECT_EQ(5U, das.size());
 
@@ -292,17 +292,17 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 
 	decltype(das) copyDest;
 
-	copyDest.assign(view::counted(das.cbegin(), 2));
-	copyDest.assign( view::counted(begin(das), ssize(das)) );
+	copyDest.assign_range(view::counted(das.cbegin(), 2));
+	copyDest.assign_range( view::counted(begin(das), ssize(das)) );
 
 	EXPECT_TRUE(das == copyDest);
 
-	copyDest.assign(view::subrange(das.cbegin(), das.cbegin() + 1));
+	copyDest.assign_range(view::subrange(das.cbegin(), das.cbegin() + 1));
 
 	EXPECT_EQ(1U, copyDest.size());
 	EXPECT_EQ(das[0], copyDest[0]);
 
-	copyDest.assign(view::counted(das.cbegin() + 2, 3));
+	copyDest.assign_range(view::counted(das.cbegin() + 2, 3));
 
 	EXPECT_EQ(3U, copyDest.size());
 	EXPECT_EQ(das[2], copyDest[0]);
@@ -325,15 +325,15 @@ TEST_F(dynarrayTest, appendCase1)
 	oel::dynarray<double> dest;
 	// Test append empty std iterator range to empty dynarray
 	std::deque<double> src;
-	dest.append(src);
+	dest.append_range(src);
 
-	dest.append({});
+	dest.append_range({});
 	EXPECT_EQ(0U, dest.size());
 
 	double const TEST_VAL = 6.6;
-	dest.append( view::repeat(TEST_VAL, 2) );
+	dest.append_range( view::repeat(TEST_VAL, 2) );
 	dest.reserve(2 * dest.size());
-	dest.append( view::subrange(dest.begin(), dest.end()) );
+	dest.append_range( view::subrange(dest.begin(), dest.end()) );
 	EXPECT_EQ(4U, dest.size());
 	for (const auto & d : dest)
 		EXPECT_EQ(TEST_VAL, d);
@@ -344,14 +344,14 @@ TEST_F(dynarrayTest, appendCase2)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.append( view::counted(oel::begin_(arrayA), oel::ssize(arrayA)) );
-	double_dynarr.append(double_dynarr2);
+	double_dynarr.append_range( view::counted(oel::begin_(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.append_range(double_dynarr2);
 
 	{
 		dynarray<int> int_dynarr;
-		int_dynarr.append({1, 2, 3, 4});
+		int_dynarr.append_range({1, 2, 3, 4});
 
-		double_dynarr.append(int_dynarr);
+		double_dynarr.append_range(int_dynarr);
 	}
 
 	ASSERT_EQ(8U, double_dynarr.size());
@@ -372,7 +372,7 @@ TEST_F(dynarrayTest, appendSizeOverflow)
 {
 	dynarray<char> c(1);
 	EXPECT_THROW(
-		c.append(view::repeat('\0', SIZE_MAX)),
+		c.append_range(view::repeat('\0', SIZE_MAX)),
 		std::length_error );
 }
 #endif
@@ -386,9 +386,9 @@ TEST_F(dynarrayTest, appendNonForwardRange)
 	std::stringstream ss("1 2 3");
 	std::istream_iterator<int> i0(s0), it(ss), end{};
 
-	dest.append(view::counted(i0, 0));
-	dest.append(view::subrange(it, end));
-	dest.append(view::counted(i0, 0));
+	dest.append_range(view::counted(i0, 0));
+	dest.append_range(view::subrange(it, end));
+	dest.append_range(view::counted(i0, 0));
 
 	EXPECT_EQ(3u, dest.size());
 	for (int i = 0; i < 3; ++i)
@@ -585,13 +585,13 @@ TEST_F(dynarrayTest, mutableBeginSizeRange)
 	auto v = ToMutableBeginSizeView(src);
 	dynarray<int> dest;
 
-	dest.assign(v);
+	dest.assign_range(v);
 	EXPECT_EQ(1u, dest.size());
 
 	dest.insert_range(dest.begin(), v);
 	EXPECT_EQ(2u, dest.size());
 
-	dest.append(v);
+	dest.append_range(v);
 	EXPECT_EQ(3u, dest.size());
 }
 
@@ -604,7 +604,7 @@ TEST_F(dynarrayTest, moveOnlyIterator)
 		std::istringstream ss{"1 2 3 4"};
 		auto v = std::views::istream<int>(ss);
 
-		dest.append(view::counted(v.begin(), 3));
+		dest.append_range(view::counted(v.begin(), 3));
 		EXPECT_EQ(3u, dest.size());
 		EXPECT_EQ(1, dest[0]);
 		EXPECT_EQ(2, dest[1]);
@@ -612,14 +612,14 @@ TEST_F(dynarrayTest, moveOnlyIterator)
 
 		std::istringstream s2{"4"};
 		auto v2 = std::views::istream<int>(s2);
-		dest.assign(v2);
+		dest.assign_range(v2);
 		EXPECT_EQ(1u, dest.size());
 		EXPECT_EQ(4, dest[0]);
 	}
 	std::istringstream ss{"5 6 7"};
 	auto v = std::views::istream<int>(ss);
 
-	dest.assign(view::counted(v.begin(), 2));
+	dest.assign_range(view::counted(v.begin(), 2));
 	EXPECT_EQ(2u, dest.size());
 	EXPECT_EQ(5, dest[0]);
 	EXPECT_EQ(6, dest[1]);
@@ -930,7 +930,7 @@ TEST_F(dynarrayTest, greaterThanMax)
 	EXPECT_THROW(d.resize_for_overwrite(n), std::length_error);
 	EXPECT_TRUE(d.empty());
 	EXPECT_THROW(
-		d.assign( view::repeat(Size2{}, n) ),
+		d.assign_range( view::repeat(Size2{}, n) ),
 		std::length_error );
 	EXPECT_TRUE(d.empty());
 }
@@ -962,9 +962,9 @@ TEST_F(dynarrayTest, misc)
 	dynarray<size_t> dest;
 	dest.reserve(1);
 	dest = daSrc;
-	dest.append(daSrc);
-	dest.append(fASrc);
-	dest.append(dequeSrc);
+	dest.append_range(daSrc);
+	dest.append_range(fASrc);
+	dest.append_range(dequeSrc);
 
 	auto cap = dest.capacity();
 	dest.pop_back();

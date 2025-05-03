@@ -54,7 +54,7 @@ TEST(rangeTest, eraseIf)
 	std::list<int> li{1, 2, 3, 4, 5, 6};
 	std::list<int> const expect{1, 3, 5};
 	dynarray<int> test1;
-	test1.append(li);
+	test1.append_range(li);
 
 	auto isEven = [](int i) { return i % 2 == 0; };
 	erase_if(li, isEven);
@@ -71,7 +71,7 @@ TEST(rangeTest, eraseAdjacentDup)
 	std::list<int> li{1, 1, 2, 2, 2, 1, 3};
 	dynarray<int> const expect{1, 2, 1, 3};
 	dynarray<int> uniqueTest;
-	uniqueTest.assign(li);
+	uniqueTest.assign_range(li);
 
 	erase_adjacent_dup(li);
 	EXPECT_EQ(4U, li.size());
@@ -160,29 +160,4 @@ TEST(rangeTest, copyRangeMutableBeginSize)
 
 	oel::copy_fit(v, dest);
 	EXPECT_EQ(1, dest[0]);
-}
-
-template<typename Container>
-void testAppend()
-{
-	Container c;
-
-	oel::append( c, view::owning(oel::dynarray{7, 8}) );
-	EXPECT_EQ(2U, c.size());
-
-	std::array<int, 1> const a{9};
-	oel::append(c, a);
-
-	EXPECT_EQ(3U, c.size());
-	EXPECT_EQ(7, c.front());
-	EXPECT_EQ(9, c.back());
-}
-
-TEST(rangeTest, append)
-{
-#if __cpp_lib_containers_ranges
-	testAppend< std::list<int> >();
-#endif
-	testAppend< std::basic_string<int> >();
-	testAppend< oel::dynarray<int> >();
 }

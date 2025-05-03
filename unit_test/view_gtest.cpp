@@ -253,7 +253,7 @@ TEST(viewTest, viewTransformSizedRange)
 	EXPECT_EQ(4, src[1]);
 
 	std::forward_list<int> const li{-2};
-	dest.append( view::counted(li.begin(), 1) | view::transform(Square{}) );
+	dest.append_range( view::counted(li.begin(), 1) | view::transform(Square{}) );
 	EXPECT_EQ(3U, dest.size());
 	EXPECT_EQ(4, dest[2]);
 }
@@ -285,7 +285,7 @@ TEST(viewTest, viewTransformMutableLambda)
 	oel::dynarray<int> test(oel::reserve, 3);
 	test.resize(1);
 
-	test.assign(v);
+	test.assign_range(v);
 	EXPECT_EQ(0, test[0]);
 	EXPECT_EQ(1, test[1]);
 	EXPECT_EQ(2, test[2]);
@@ -398,7 +398,7 @@ TEST(viewTest, viewGenerate)
 	EXPECT_EQ(1, d[0]);
 	EXPECT_EQ(2, d[1]);
 
-	d.assign(oel::view::generate(Ints{}, 0));
+	d.assign_range(oel::view::generate(Ints{}, 0));
 	EXPECT_TRUE(d.empty());
 }
 
@@ -421,7 +421,11 @@ void testStdIteratorInOelViewNotAmbiguous()
 {
 	auto v0 = std::array<int, 1>{} | view::move;
 	auto v  = view::subrange(v0.begin(), v0.end());
-	using I = oel::iterator_t< decltype(v) >;
+	static_assert(
+		std::is_same_v<
+			oel::iterator_t< decltype(v) >,
+			oel::sentinel_t< decltype(v) >
+		> );
 }
 
 #if OEL_STD_RANGES
