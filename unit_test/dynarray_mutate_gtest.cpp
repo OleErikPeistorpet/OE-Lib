@@ -4,6 +4,7 @@
 #include "test_classes.h"
 #include "mem_leak_detector.h"
 #include "view/move.h"
+#include "view/repeat.h"
 #include "dynarray.h"
 
 #include <deque>
@@ -330,7 +331,7 @@ TEST_F(dynarrayTest, appendCase1)
 	EXPECT_EQ(0U, dest.size());
 
 	double const TEST_VAL = 6.6;
-	dest.append(2, TEST_VAL);
+	dest.append( view::repeat(TEST_VAL, 2) );
 	dest.reserve(2 * dest.size());
 	dest.append( view::subrange(dest.begin(), dest.end()) );
 	EXPECT_EQ(4U, dest.size());
@@ -371,7 +372,7 @@ TEST_F(dynarrayTest, appendSizeOverflow)
 {
 	dynarray<char> c(1);
 	EXPECT_THROW(
-		c.append(SIZE_MAX, '\0'),
+		c.append(view::repeat('\0', SIZE_MAX)),
 		std::length_error );
 }
 #endif
@@ -921,11 +922,15 @@ TEST_F(dynarrayTest, greaterThanMax)
 	auto const n = std::numeric_limits<size_t>::max() / 2 + 1;
 
 	EXPECT_THROW(d.reserve(SIZE_MAX), std::length_error);
+	EXPECT_TRUE(d.empty());
 	EXPECT_THROW(d.reserve(n), std::length_error);
+	EXPECT_TRUE(d.empty());
 	EXPECT_THROW(d.resize(n), std::length_error);
+	EXPECT_TRUE(d.empty());
 	EXPECT_THROW(d.resize_for_overwrite(n), std::length_error);
-	ASSERT_TRUE(d.empty());
-	EXPECT_THROW(d.append(n, Size2{{}}), std::length_error);
+	EXPECT_TRUE(d.empty());
+	EXPECT_THROW(d.assign(n, Size2{}), std::length_error);
+	EXPECT_TRUE(d.empty());
 }
 #endif
 

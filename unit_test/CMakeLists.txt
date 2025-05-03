@@ -36,6 +36,7 @@ add_executable(oel-test
 	incl_view_generate.cpp
 	incl_view_move.cpp
 	incl_view_owning.cpp
+	incl_view_repeat.cpp
 	incl_view_subrange.cpp
 	incl_view_transform.cpp
 	incl_transform_iterator.cpp

@@ -15,5 +15,6 @@
 #include "view/generate.h"
 #include "view/move.h"
 #include "view/owning.h"
+#include "view/repeat.h"
 #include "view/subrange.h"
 #include "view/transform.h"

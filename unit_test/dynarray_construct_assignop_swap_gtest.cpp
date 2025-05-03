@@ -4,7 +4,7 @@
 #include "test_classes.h"
 #include "mem_leak_detector.h"
 #include "dynarray.h"
-#include "view/generate.h"
+#include "view/repeat.h"
 
 #include <array>
 #include <string>
@@ -645,9 +645,7 @@ TEST_F(dynarrayConstructTest, copyConstructThrowing)
 {
 	for (auto i : {0, 1, 99})
 	{
-		auto v = view::generate(
-			[] { return TrivialRelocat{0.5}; },
-			100 );
+		auto v = view::repeat(TrivialRelocat{0.5}, 100);
 		auto a = dynarrayTrackingAlloc<TrivialRelocat>(from_range, v);
 
 		g_allocCount.nConstructCalls = 0;
