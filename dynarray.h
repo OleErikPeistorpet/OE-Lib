@@ -7,12 +7,10 @@
 
 
 #include "allocator.h"
-#include "auxi/detail_forward.h"
 #include "auxi/dynarray_iterator.h"
 #include "auxi/impl_algo.h"
 #include "optimize_ext/default.h"
 #include "view/move.h"
-#include "view/repeat.h"
 
 #include <algorithm>
 
@@ -94,15 +92,15 @@ public:
 	explicit dynarray(size_type size, Alloc a = Alloc{});
 
 	template< typename InputRange >
-	dynarray(from_range_t, InputRange && r, Alloc a = Alloc{})   : _m(a) { append(r); }
+	dynarray(from_range_t, InputRange && r, Alloc a = Alloc{})   : _m(a) { append_range(r); }
 
-	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})     : _m(a) { append(il); }
+	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})     : _m(a) { append_range(il); }
 
 	dynarray(dynarray && other) noexcept                : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, Alloc a);
 	explicit dynarray(const dynarray & other)           : dynarray( other,
 	                                                      _alloTrait::select_on_container_copy_construction(other._m) ) {}
-	explicit dynarray(const dynarray & other, Alloc a)  : _m(a) { append(other); }
+	explicit dynarray(const dynarray & other, Alloc a)  : _m(a) { append_range(other); }
 
 	~dynarray() noexcept;
 
@@ -112,7 +110,7 @@ public:
 	dynarray & operator =(const dynarray & other) &;
 	dynarray & operator =(const dynarray &&) = delete;
 
-	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
+	dynarray & operator =(std::initializer_list<T> il) &  { assign_range(il);  return *this; }
 
 	friend void swap(dynarray & a, dynarray & b) noexcept
 		{
@@ -133,23 +131,14 @@ public:
 	*
 	* Any elements held before the call are either assigned to or destroyed. */
 	template< typename InputRange >
-	auto assign(InputRange && source) -> borrowed_iterator_t<InputRange>;
-
-	void assign(size_type count, const T & val)
-		{	// TODO: unit test
-			clear();
-			if constexpr( std::is_reference_v< _detail::ForwardT<const T &> > )
-				append( view::repeat(std::ref(val), count) );
-			else
-				append( view::repeat(val, count) );
-		}
+	auto assign_range(InputRange && source) -> borrowed_iterator_t<InputRange>;
 
 	//! Almost same as std::vector::append_range (C++23)
 	/** @pre source shall not refer to any elements in this dynarray if reallocation happens.
 	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements
 	* @return Iterator `begin(source)` incremented by the number of elements in source  */
 	template< typename InputRange = std::initializer_list<T> >
-	auto append(InputRange && source) -> borrowed_iterator_t<InputRange>;
+	auto append_range(InputRange && source) -> borrowed_iterator_t<InputRange>;
 
 	/**
 	* @brief Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
@@ -684,7 +673,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 
 template< typename T, typename Alloc >
 template< typename InputRange >
-inline auto dynarray<T, Alloc>::append(InputRange && source)
+inline auto dynarray<T, Alloc>::append_range(InputRange && source)
 ->	borrowed_iterator_t<InputRange>
 {
 	if constexpr( _detail::rangeIsForwardOrSized<InputRange> )
@@ -707,7 +696,7 @@ inline auto dynarray<T, Alloc>::append(InputRange && source)
 
 template< typename T, typename Alloc >
 template< typename InputRange >
-inline auto dynarray<T, Alloc>::assign(InputRange && source)
+inline auto dynarray<T, Alloc>::assign_range(InputRange && source)
 ->	borrowed_iterator_t<InputRange>
 {
 	if constexpr( _detail::rangeIsForwardOrSized<InputRange> )
@@ -752,7 +741,7 @@ dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)
 		allocator_type & myA = _m;
 		if( myA != other._m )
 		{
-			append(other | view::move);
+			append_range(other | view::move);
 			return;
 		}
 	}
@@ -768,7 +757,7 @@ dynarray<T, Alloc> &
 	if constexpr( !(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value) )
 	    if( myA != other._m )
 		{
-			assign(other | view::move);
+			assign_range(other | view::move);
 			return *this;
 		}
 
@@ -792,7 +781,7 @@ dynarray<T, Alloc> &
 	static_assert(!_alloTrait::propagate_on_container_copy_assignment::value or _alloTrait::is_always_equal::value,
 	              "Alloc propagate_on_container_copy_assignment unsupported");
 	if( this != &other ) // avoid memcpy data to itself
-		assign(other);
+		assign_range(other);
 
 	return *this;
 }

@@ -41,7 +41,7 @@ auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
 		auto d = dynarray<T, Alloc>(reserve, sum, std::move(a));
 
 		auto nIt = begin(counts);
-		(..., d.append( view::counted(begin(sources), *nIt++) ));
+		(..., d.append_range( view::counted(begin(sources), *nIt++) ));
 
 		return d;
 	}
@@ -120,24 +120,6 @@ auto copy_unsafe(SizedRange && source, RandomAccessIter dest)
 template< typename InputRange, typename RandomAccessRange >
 auto copy_fit(InputRange && source, RandomAccessRange && dest)
 ->	copy_return< borrowed_iterator_t<InputRange> >;
-
-
-
-//! Generic way to call append_range or append on a container or string, with a source range
-inline constexpr auto append =
-	[](auto & container, auto && source)
-	{
-		using Ref = decltype(source);
-	#if __cpp_concepts >= 201907
-		if constexpr( requires{ container.append_range(static_cast<Ref>(source)); } )
-			container.append_range( static_cast<Ref>(source) );
-		else
-	#endif
-		if constexpr( decltype( _detail::CanAppend(container, static_cast<Ref>(source)) )::value )
-			container.append( static_cast<Ref>(source) );
-		else
-			container.append( to_pointer_contiguous(begin(source)), _detail::Size(source) );
-	};
 
 } // namespace oel
 

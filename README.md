@@ -13,21 +13,7 @@ C++17 is required. Oldest supported compilers:
 
 ### Append
 
-You should use the `append` member function of dynarray instead of doing `insert` of multiple elements at the end. This is often substantially faster than with std::vector (likely due to inlining which lets the compiler optimize further). Example:
-
-	void moveAllToBackOf(std::vector<Foo> & dest)
-	{
-		dest.insert(dest.end(), std::move_iterator{fooList.begin()}, std::move_iterator{fooList.end()});
-	}
-
-Would be better as:
-
-	void moveAllToBackOf(oel::dynarray<Foo> & dest)
-	{
-		dest.append(fooList | oel::view::move);
-	}
-
-Compared to calling `push_back` or `emplace_back` in a loop, `append` has major benefits, mainly because of fewer memory allocations without having to worry about manual `reserve`. Moreover, calling `reserve` inside a loop is a performance pitfall that many aren't aware of. For example, see here: <https://stackoverflow.com/questions/48535727/why-are-c-stl-vectors-1000x-slower-when-doing-many-reserves>
+Compared to calling `push_back` or `emplace_back` in a loop, `append_range` has major benefits, mainly because of fewer memory allocations without having to worry about manual `reserve`. Moreover, calling `reserve` inside a loop is a performance pitfall that many aren't aware of. For example, see here: <https://stackoverflow.com/questions/48535727/why-are-c-stl-vectors-1000x-slower-when-doing-many-reserves>
 
 	for (int i{}; i < outerLimit; i++)
 	{
@@ -41,7 +27,7 @@ Should be something like:
 	for (int i{}; i < outerLimit; i++)
 	{
 		auto fn = [i, j = 0]() mutable { return i * j++; };
-		arr.append(oel::view::generate(fn, innerLimit));
+		arr.append_range(oel::view::generate(fn, innerLimit));
 	}
 
 Another good way, using `resize_for_overwrite`:

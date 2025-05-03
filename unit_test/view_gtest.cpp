@@ -184,7 +184,7 @@ TEST(viewTest, viewTransformSizedRange)
 	EXPECT_EQ(3, src[1]);
 
 	std::forward_list<int> const li{-2};
-	auto last = dest.append( view::counted(li.begin(), 1) | view::transform(Square{}) );
+	auto last = dest.append_range( view::counted(li.begin(), 1) | view::transform(Square{}) );
 	EXPECT_EQ(3U, dest.size());
 	EXPECT_EQ(4, dest[2]);
 	EXPECT_EQ(li.end(), last.base());
@@ -219,7 +219,7 @@ TEST(viewTest, viewTransformMutableLambda)
 	oel::dynarray<int> test(oel::reserve, 3);
 	test.resize(1);
 
-	test.assign(v);
+	test.assign_range(v);
 	EXPECT_EQ(0, test[0]);
 	EXPECT_EQ(1, test[1]);
 	EXPECT_EQ(2, test[2]);
@@ -279,7 +279,7 @@ TEST(viewTest, viewGenerate)
 	EXPECT_EQ(1, d[0]);
 	EXPECT_EQ(2, d[1]);
 
-	d.assign(oel::view::generate(Ints{}, 0));
+	d.assign_range(oel::view::generate(Ints{}, 0));
 	EXPECT_TRUE(d.empty());
 }
 

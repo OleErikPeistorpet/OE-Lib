@@ -143,7 +143,7 @@ TEST(dynarrayOtherTest, oelDynarrWithStdAlloc)
 		EXPECT_EQ(0, MoveOnly::nDestruct);
 
 		MoveOnly arr[2] {MoveOnly{1.0}, MoveOnly{2.0}};
-		v.assign(oel::view::move(arr));
+		v.assign_range(oel::view::move(arr));
 
 	#if OEL_HAS_EXCEPTIONS
 		MoveOnly::countToThrowOn = 0;
