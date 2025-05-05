@@ -27,14 +27,17 @@ struct field_array  {};
 namespace _detail
 {
 	template< bool AddConst, typename P >
-	auto ptr_as_const(P ptr) noexcept
+	auto ptr_as_const_impl()
 	{
 		using PT = std::pointer_traits<P>;
 		if constexpr (AddConst)
-			return PT::template rebind< typename PT::element_type const >(ptr);
+			return PT::template rebind< typename PT::element_type const >();
 		else
-			return ptr;
+			return P{};
 	}
+
+	template< bool AddConst, typename P >
+	using PtrAsConst = decltype( ptr_as_const_impl<AddConst, P>() );
 
 
 	struct InternalTag {};

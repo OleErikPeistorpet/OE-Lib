@@ -14,7 +14,7 @@ namespace oel
 {
 namespace _detail
 {
-	template< typename RefStruct, typename RValueStruct >
+	template< typename RefStruct, typename RvalueStruct >
 	struct Zip
 	{
 		template< typename... Ts >
@@ -26,7 +26,7 @@ namespace _detail
 		template< typename... Is, size_t... Ns >
 		static auto iter_move(const std::tuple<Is...> & iters, std::index_sequence<Ns...>) noexcept
 		{
-			return RValueStruct{std::move( *std::get<Ns>(iters) )...};
+			return RvalueStruct{std::move( *std::get<Ns>(iters) )...};
 		}
 	};
 }

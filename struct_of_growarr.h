@@ -20,7 +20,7 @@
 namespace oel
 {
 
-using std::tuple;
+using std::as_const;
 
 
 //! struct_of_growarr is trivially relocatable if Alloc is
@@ -92,9 +92,9 @@ public:
 		}
 
 	template< typename... Ranges >
-	auto append(Ranges &&... sources) -> tuple< borrowed_iterator_t<Ranges>... >;
+	auto append(Ranges &&... sources) -> std::tuple< borrowed_iterator_t<Ranges>... >;
 
-	// TODO
+	// TODO. Is this signature even a good idea? std::move doesn't work with normal container
 	auto append(struct_of_growarr && source);
 	auto append(const struct_of_growarr & source);
 
@@ -169,20 +169,26 @@ public:
 
 	allocator_type get_allocator() const noexcept   { return _m; }
 
-	auto operator->() noexcept         { return _arrowProxy<_detail::ViewTag>{mut_views()}; }
-	auto operator->() const noexcept   { return _arrowProxy<_detail::ConstViewTag>{const_views()}; }
+	auto operator->() noexcept
+		{
+			return _arrowProxy<_detail::ViewTag>{ _arrays._apply(_views<_detail::ViewTag>{_m.size}) };
+		}
+	auto operator->() const noexcept
+		{
+			return _arrowProxy<_detail::ConstViewTag>{ _arrays._apply(_views<_detail::ConstViewTag>{_m.size}) };
+		}
 
-	auto mut_views() noexcept           { return _m.data._apply(_views<_detail::ViewTag>{_m.size}); }
+	auto mut_views() noexcept           { return *operator->().operator->(); }
 
-	auto const_views() const noexcept   { return _m.data._apply(_views<_detail::ConstViewTag>{_m.size}); }
+	auto const_views() const noexcept   { return *operator->().operator->(); }
 
 	auto begin() noexcept
 		{
-			return _m.data._apply(_zipBegin<false, _detail::ElementTag, _detail::RvalueElementTag>{});
+			return _m.data._apply(_zipBegin<_detail::ElementTag, _detail::RvalueElementTag>{});
 		}
 	auto begin() const noexcept
 		{
-			return _m.data._apply(_zipBegin<true, _detail::ConstElementTag, void>{});
+			return _m.data._apply(_zipBegin<_detail::ConstElementTag, void>{});
 		}
 	auto cbegin() const noexcept  { return begin(); }
 
@@ -197,12 +203,12 @@ public:
 	decltype(auto) back() const noexcept   { return begin()[_m.size - 1]; }
 
 	template< typename Func >
-	auto zip_transform(Func f) noexcept
+	auto zip_transform(Func f)
 		{
 			return _m.data._apply( _zipTransform<false, Func>{std::move(f), _m.size} );
 		}
 	template< typename Func >
-	auto zip_transform(Func f) const noexcept
+	auto zip_transform(Func f) const
 		{
 			return _m.data._apply( _zipTransform<true, Func>{std::move(f), _m.size} );
 		}
@@ -308,15 +314,17 @@ private:
 		}
 	};
 
-	template< bool Const, typename ElemTag, typename RvalueTag >
+	template< typename ElemTag, typename RvalueTag >
 	struct _zipBegin
 	{
 		template< typename... Ts >
 		auto operator()(const Ts &... fields) const noexcept
 		{
-			return oel::_zipTransformIterator(
-				_detail::Zip< ElemStruct<ElemTag>, ElemStruct<RvalueTag> >{},
-				_detail::ptr_as_const<Const>(fields.p)... );
+			constexpr bool isConst{std::is_same_v<ElemTag, _detail::ConstElementTag>};
+			return _zipTransformIterator
+			{	_detail::Zip< ElemStruct<ElemTag>, ElemStruct<RvalueTag> >{},
+				_detail::PtrAsConst< isConst, decltype(fields.p) >(fields.p)...
+			};
 		}
 	};
 
@@ -327,12 +335,13 @@ private:
 		size_type size;
 
 		template< typename... Ts >
-		auto operator()(const Ts &... fields) const noexcept
+		auto operator()(const Ts &... fields)
 		{
-			return oel::view::zip_transform_n(
-				std::move(fn),
+			return view::zip_transform_n
+			(	std::move(fn),
 				size,
-				_detail::ptr_as_const<Const>(fields.p)... );
+				_detail::PtrAsConst< Const, decltype(fields.p) >(fields.p)...
+			);
 		}
 	};
 
@@ -442,7 +451,7 @@ void struct_of_growarr<ElemStruct, Alloc>::push_back(Ts &&... args)
 template< template<typename> typename ElemStruct, typename Alloc >
 template< typename... Ranges >
 inline auto struct_of_growarr<ElemStruct, Alloc>::append(Ranges &&... sources)
-->	tuple< borrowed_iterator_t<Ranges>... >
+->	std::tuple< borrowed_iterator_t<Ranges>... >
 {
 	static_assert(... and _detail::rangeIsForwardOrSized<Ranges>);
 
