@@ -196,11 +196,19 @@ public:
 	auto end() const noexcept   { return begin() + _m.size; }
 	auto cend() const noexcept  { return begin() + _m.size; }
 
-	decltype(auto) operator[](size_type index) noexcept         { return begin()[index]; }
-	decltype(auto) operator[](size_type index) const noexcept   { return begin()[index]; }
+	decltype(auto) operator[](size_type index) noexcept
+		{
+			OEL_ASSERT(index < _m.size);
+			return _m.data._apply(_zipSubscript<_detail::ElementTag>{index});
+		}
+	decltype(auto) operator[](size_type index) const noexcept
+		{
+			OEL_ASSERT(index < _m.size);
+			return _m.data._apply(_zipSubscript<_detail::ConstElementTag>{index});
+		}
 
-	decltype(auto) back() noexcept         { return begin()[_m.size - 1]; }
-	decltype(auto) back() const noexcept   { return begin()[_m.size - 1]; }
+	decltype(auto) back() noexcept         { return (*this)[_m.size - 1]; }
+	decltype(auto) back() const noexcept   { return (*this)[_m.size - 1]; }
 
 	template< typename Func >
 	auto zip_transform(Func f)
@@ -325,6 +333,18 @@ private:
 			{	_detail::Zip< ElemStruct<ElemTag>, ElemStruct<RvalueTag> >{},
 				_detail::PtrAsConst< isConst, decltype(fields.p) >(fields.p)...
 			};
+		}
+	};
+
+	template< typename ElemTag >
+	struct _zipSubscript
+	{
+		size_type i;
+
+		template< typename... Ts >
+		auto operator()(const Ts &... fields) const noexcept
+		{
+			return ElemStruct<ElemTag>{ {fields.p[i]}... };
 		}
 	};
 
