@@ -59,29 +59,38 @@ namespace _detail
 	};
 
 
+	template< typename Ptr >
 	struct InternalTag {};
+
+	template< typename Ptr >
 	struct ViewTag {};
+	template< typename Ptr >
 	struct ConstViewTag {};
+
 	struct ElementTag {};
 	struct ConstElementTag {};
 	struct RvalueElementTag {};
 }
 
 
-template< typename T, align_val_t A >
-struct field_array<_detail::InternalTag, T, A>
+template< typename Ptr, typename T, align_val_t A >
+struct field_array< _detail::InternalTag<Ptr>, T, A >
 {
-	T * p;
+	std::pointer_traits<Ptr>::template rebind<T> p;
 };
 
 
-template< typename T, align_val_t A >
-struct field_array<_detail::ViewTag, T, A>
- :	public view::counted<T *> {};
+template< typename Ptr, typename T, align_val_t A >
+struct field_array< _detail::ViewTag<Ptr>, T, A >
+ :	public view::counted
+	<	typename std::pointer_traits<Ptr>::template rebind<T>
+	> {};
 
-template< typename T, align_val_t A >
-struct field_array<_detail::ConstViewTag, T, A>
- :	public view::counted<const T *> {};
+template< typename Ptr, typename T, align_val_t A >
+struct field_array< _detail::ConstViewTag<Ptr>, T, A >
+ :	public view::counted
+	<	typename std::pointer_traits<Ptr>::template rebind<T const>
+	> {};
 
 
 template< typename T, align_val_t A >

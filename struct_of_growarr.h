@@ -22,10 +22,13 @@ namespace oel
 using std::as_const;
 
 
-//! struct_of_growarr is trivially relocatable if Alloc is
-// TODO: check pointer if support fancy pointer
+//! struct_of_growarr is trivially relocatable if Alloc and Alloc::pointer is
 template< template<typename> typename E, typename Alloc >
-is_trivially_relocatable<Alloc> specify_trivial_relocate(struct_of_growarr<E, Alloc>);
+bool_constant
+<	is_trivially_relocatable<Alloc>::value and
+	is_trivially_relocatable< typename std::allocator_traits<Alloc>::pointer >::value
+>
+	specify_trivial_relocate(struct_of_growarr<E, Alloc>);
 
 
 //! Structure of resizable arrays, dynamically allocated.
@@ -52,6 +55,7 @@ public:
 	using difference_type = ptrdiff_t;
 	using size_type       = size_t;
 
+	// TODO: checked iterator or at least assert in view::counted[]
 	template< F, typename... I >
 	using zip_iterator = _zipTransformIterator< F, I... >;
 
@@ -170,11 +174,13 @@ public:
 
 	auto operator->() noexcept
 		{
-			return _arrowProxy<_detail::ViewTag>{ _arrays._apply(_views<_detail::ViewTag>{_m.size}) };
+			using T = _detail::ViewTag<_ptr>;
+			return _arrowProxy<T>{ _m.data._apply(_views<T>{_m.size}) };
 		}
 	auto operator->() const noexcept
 		{
-			return _arrowProxy<_detail::ConstViewTag>{ _arrays._apply(_views<_detail::ConstViewTag>{_m.size}) };
+			using T = _detail::ConstViewTag<_ptr>;
+			return _arrowProxy<T>{ _m.data._apply(_views<T>{_m.size}) };
 		}
 
 	auto mut_views() noexcept           { return *operator->().operator->(); }
@@ -238,15 +244,16 @@ public:
 
 
 private:
+	using _ptr        = typename _alloTrait::pointer;
+	using _uninitFill = _detail::UninitFill<allocator_type>;
+	using _alloc_7KQw = Alloc; // guarding against name collision due to inheritance (MSVC)
+
 	struct _internBase_7KQw
 	{
-		ElemStruct<_detail::InternalTag> data;
+		ElemStruct< _detail::InternalTag<_ptr> > data;
 		size_type size;
 		size_type capacity;
 	};
-
-	using _uninitFill = _detail::UninitFill<allocator_type>;
-	using _alloc_7KQw = Alloc; // guarding against name collision due to inheritance (MSVC)
 
 	struct _memOwner : public _internBase_7KQw, public _alloc_7KQw
 	{
