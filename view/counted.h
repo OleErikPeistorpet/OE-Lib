@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2019 Ole Erik Peistorpet
+// Copyright 2020 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -14,8 +14,8 @@
 namespace oel::view
 {
 
-/** @brief Wrapper for iterator and size
-*
+//! Wrapper for iterator and size
+/**
 * Satisfies the std::ranges::range concept only if Iterator is random-access. */
 template< typename Iterator >
 class counted
@@ -28,8 +28,9 @@ public:
 
 	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_begin); }
 	//! Provided only if Iterator is random-access
-	template< typename I = Iterator,
-	          enable_if< iter_is_random_access<I> > = 0
+	template
+	<	typename I = Iterator,
+		enable_if< iter_is_random_access<I> > = 0
 	>
 	constexpr Iterator end() const   { return _begin + _size; }
 
@@ -38,7 +39,12 @@ public:
 	constexpr bool empty() const noexcept   { return 0 == _size; }
 
 	constexpr decltype(auto) operator[](difference_type index) const
-		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE { return _begin[index]; }
+		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE
+		{
+			using U = std::make_unsigned_t<difference_type>;
+			OEL_ASSERT( static_cast<U>(index) < static_cast<U>(_size) );
+			return _begin[index];
+		}
 
 private:
 	Iterator       _begin;
