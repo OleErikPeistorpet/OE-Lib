@@ -174,17 +174,17 @@ public:
 			return _arrowProxy<T>{ _m.data._apply(_views<T>{_m.size}) };
 		}
 
-	auto mut_fields()           { return *operator->().operator->(); }
+	auto mut_fields()           { return *this->operator->().operator->(); }
 
-	auto const_fields() const   { return *operator->().operator->(); }
+	auto const_fields() const   { return *this->operator->().operator->(); }
 
 	auto begin()
 		{
-			return _m.data._apply(_zipBegin<_detail::ElementTag, _detail::RvalueElementTag>{});
+			return _m.data._apply(_makeZipIter<>{});
 		}
 	auto begin() const
 		{
-			return _m.data._apply(_zipBegin<_detail::ConstElementTag, void>{});
+			return _m.data._apply(_makeZipConstIter{});
 		}
 	auto cbegin() const  { return begin(); }
 
@@ -192,11 +192,19 @@ public:
 	auto end() const    { return begin() + _m.size; }
 	auto cend() const   { return begin() + _m.size; }
 
-	decltype(auto) operator[](size_type index)         { return begin()[index]; }
-	decltype(auto) operator[](size_type index) const   { return begin()[index]; }
+	decltype(auto) operator[](size_type index)
+		{
+			OEL_ASSERT(index < _m.size);
+			return *_m.data._apply(_makeZipIter<>{index});
+		}
+	decltype(auto) operator[](size_type index) const
+		{
+			OEL_ASSERT(index < _m.size);
+			return *_m.data._apply(_makeZipConstIter{index});
+		}
 
-	decltype(auto) back()         { return begin()[_m.size - 1]; }
-	decltype(auto) back() const   { return begin()[_m.size - 1]; }
+	decltype(auto) back()         { return (*this)[_m.size - 1]; }
+	decltype(auto) back() const   { return (*this)[_m.size - 1]; }
 
 	template< typename Func >
 	auto zip_transform(Func f)
@@ -300,9 +308,14 @@ private:
 		}
 	};
 
-	template< typename ElemTag, typename RvalueTag >
-	struct _zipBegin
+	template
+	<	typename ElemTag   = _detail::ElementTag,
+		typename RvalueTag = _detail::RvalueElementTag
+	>
+	struct _makeZipIter
 	{
+		size_type index;
+
 		template< typename... Ts >
 		auto operator()(const Ts &... fields) const
 		{
@@ -314,10 +327,14 @@ private:
 			constexpr bool isConst{std::is_same_v<ElemTag, _detail::ConstElementTag>};
 			return _zipTransformIterator
 			{	F{},
-				_detail::PtrAsConst< isConst, decltype(fields.p) >(fields.p)...
+				_detail::PtrAsConst< isConst, decltype(fields.p) >
+					(fields.p + index)
+				...
 			};
 		}
 	};
+
+	using _makeZipConstIter = _makeZipIter<_detail::ConstElementTag, void>;
 
 
 	size_type _spareCapacity() const
