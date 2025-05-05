@@ -10,7 +10,6 @@
 #include "auxi/impl_algo.h"
 #include "auxi/struct_of_growarr_detail.h"
 #include "optimize_ext/default.h"
-#include "view/zip_transform.h"
 
 #include <algorithm>
 
@@ -213,12 +212,12 @@ public:
 	template< typename Func >
 	auto zip_transform(Func f)
 		{
-			return _m.data._apply( _zipTransform<false, Func>{std::move(f), _m.size} );
+			return _m.data._apply( _detail::ZipTransform<false, Func>{std::move(f), _m.size} );
 		}
 	template< typename Func >
 	auto zip_transform(Func f) const
 		{
-			return _m.data._apply( _zipTransform<true, Func>{std::move(f), _m.size} );
+			return _m.data._apply( _detail::ZipTransform<true, Func>{std::move(f), _m.size} );
 		}
 
 
@@ -345,23 +344,6 @@ private:
 		auto operator()(const Ts &... fields) const noexcept
 		{
 			return ElemStruct<ElemTag>{ {fields.p[i]}... };
-		}
-	};
-
-	template< bool Const, typename F >
-	struct _zipTransform
-	{
-		F         fn;
-		size_type size;
-
-		template< typename... Ts >
-		auto operator()(const Ts &... fields)
-		{
-			return view::zip_transform_n
-			(	std::move(fn),
-				size,
-				_detail::PtrAsConst< Const, decltype(fields.p) >(fields.p)...
-			);
 		}
 	};
 

@@ -7,6 +7,7 @@
 
 
 #include "../view/counted.h"
+#include "../view/zip_transform.h"
 
 
 namespace oel
@@ -38,6 +39,24 @@ namespace _detail
 
 	template< bool AddConst, typename P >
 	using PtrAsConst = decltype( ptr_as_const_impl<AddConst, P>() );
+
+
+	template< bool Const, typename F >
+	struct ZipTransform
+	{	// TODO: optimize non-empty F sentinel
+		F      fn;
+		size_t count;
+
+		template< typename... Ts >
+		auto operator()(const Ts &... fields)
+		{
+			return view::zip_transform_n
+			(	std::move(fn),
+				count,
+				PtrAsConst< Const, decltype(fields.p) >(fields.p)...
+			);
+		}
+	};
 
 
 	struct InternalTag {};
