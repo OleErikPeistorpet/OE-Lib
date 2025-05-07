@@ -756,14 +756,15 @@ template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)
  :	_m(a) // moves from a
 {
-	const allocator_type & myA = _m;
 	if constexpr (!_alloTrait::is_always_equal::value)
+	{
+		allocator_type & myA = _m;
 		if (myA != other._m)
 		{
 			append(other | view::move);
 			return;
 		}
-
+	}
 	_moveInternBase(other._m);
 }
 
@@ -771,7 +772,7 @@ template< typename T, typename Alloc >
 dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 	noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value)
 {
-	allocator_type & myA = _m;
+	[[maybe_unused]] allocator_type & myA = _m;
 	if constexpr( !(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value) )
 	    if (myA != other._m)
 		{
