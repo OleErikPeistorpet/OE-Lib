@@ -769,7 +769,8 @@ dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)
 }
 
 template< typename T, typename Alloc >
-dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
+dynarray<T, Alloc> &
+	dynarray<T, Alloc>::operator =(dynarray && other) &
 	noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value)
 {
 	[[maybe_unused]] allocator_type & myA = _m;
@@ -794,7 +795,8 @@ dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(dynarray && other) &
 }
 
 template< typename T, typename Alloc >
-dynarray<T, Alloc> &  dynarray<T, Alloc>::operator =(const dynarray & other) &
+dynarray<T, Alloc> &
+	dynarray<T, Alloc>::operator =(const dynarray & other) &
 {
 	static_assert(!_alloTrait::propagate_on_container_copy_assignment::value or _alloTrait::is_always_equal::value,
 	              "Alloc propagate_on_container_copy_assignment unsupported");
@@ -858,7 +860,8 @@ void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
 }
 
 template< typename T, typename Alloc >
-inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_erase(iterator pos) &
+inline typename dynarray<T, Alloc>::iterator
+	dynarray<T, Alloc>::unordered_erase(iterator pos) &
 {
 	if constexpr (is_trivially_relocatable<T>::value)
 	{
@@ -879,7 +882,8 @@ inline typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::unordered_eras
 }
 
 template< typename T, typename Alloc >
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) &
+typename dynarray<T, Alloc>::iterator
+	dynarray<T, Alloc>::erase(iterator pos) &
 {
 	_debugSizeUpdater guard{_m};
 
@@ -903,7 +907,8 @@ typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator pos) &
 }
 
 template< typename T, typename Alloc >
-typename dynarray<T, Alloc>::iterator  dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
+typename dynarray<T, Alloc>::iterator
+	dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
 {
 	_debugSizeUpdater guard{_m};
 
