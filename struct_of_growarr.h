@@ -172,48 +172,48 @@ public:
 
 	allocator_type get_allocator() const noexcept   { return _m; }
 
-	auto operator->() noexcept
+	auto operator->()
 		{
 			using T = _detail::ViewTag<_ptr>;
 			return _arrowProxy<T>{ _m.data._apply(_views<T>{_m.size}) };
 		}
-	auto operator->() const noexcept
+	auto operator->() const
 		{
 			using T = _detail::ConstViewTag<_ptr>;
 			return _arrowProxy<T>{ _m.data._apply(_views<T>{_m.size}) };
 		}
 
-	auto mut_views() noexcept           { return *operator->().operator->(); }
+	auto mut_views()           { return *operator->().operator->(); }
 
-	auto const_views() const noexcept   { return *operator->().operator->(); }
+	auto const_views() const   { return *operator->().operator->(); }
 
-	auto begin() noexcept
+	auto begin()
 		{
 			return _m.data._apply(_zipBegin<_detail::ElementTag, _detail::RvalueElementTag>{});
 		}
-	auto begin() const noexcept
+	auto begin() const
 		{
 			return _m.data._apply(_zipBegin<_detail::ConstElementTag, void>{});
 		}
-	auto cbegin() const noexcept  { return begin(); }
+	auto cbegin() const  { return begin(); }
 
-	auto end() noexcept         { return begin() + _m.size; }
-	auto end() const noexcept   { return begin() + _m.size; }
-	auto cend() const noexcept  { return begin() + _m.size; }
+	auto end()          { return begin() + _m.size; }
+	auto end() const    { return begin() + _m.size; }
+	auto cend() const   { return begin() + _m.size; }
 
-	decltype(auto) operator[](size_type index) noexcept
+	decltype(auto) operator[](size_type index)
 		{
 			OEL_ASSERT(index < _m.size);
 			return _m.data._apply(_zipSubscript<_detail::ElementTag>{index});
 		}
-	decltype(auto) operator[](size_type index) const noexcept
+	decltype(auto) operator[](size_type index) const
 		{
 			OEL_ASSERT(index < _m.size);
 			return _m.data._apply(_zipSubscript<_detail::ConstElementTag>{index});
 		}
 
-	decltype(auto) back() noexcept         { return (*this)[_m.size - 1]; }
-	decltype(auto) back() const noexcept   { return (*this)[_m.size - 1]; }
+	decltype(auto) back()         { return (*this)[_m.size - 1]; }
+	decltype(auto) back() const   { return (*this)[_m.size - 1]; }
 
 	template< typename Func >
 	auto zip_transform(Func f)
@@ -322,7 +322,7 @@ private:
 		size_type size;
 
 		template< typename... Ts >
-		ElemStruct<Tag> operator()(const Ts &... fields) const noexcept
+		ElemStruct<Tag> operator()(const Ts &... fields) const
 		{
 			return{ {{fields.p, static_cast<difference_type>(size)}}... };
 		}
@@ -332,7 +332,7 @@ private:
 	struct _zipBegin
 	{
 		template< typename... Ts >
-		auto operator()(const Ts &... fields) const noexcept
+		auto operator()(const Ts &... fields) const
 		{
 			constexpr bool isConst{std::is_same_v<ElemTag, _detail::ConstElementTag>};
 			return _zipTransformIterator
@@ -348,7 +348,7 @@ private:
 		size_type i;
 
 		template< typename... Ts >
-		auto operator()(const Ts &... fields) const noexcept
+		auto operator()(const Ts &... fields) const
 		{
 			return ElemStruct<ElemTag>{ {fields.p[i]}... };
 		}
