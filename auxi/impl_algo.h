@@ -10,6 +10,7 @@
 #include "../util.h"  // for as_unsigned
 
 #include <cstring>
+#include <memory> // for allocator_traits
 
 
 namespace oel::_detail

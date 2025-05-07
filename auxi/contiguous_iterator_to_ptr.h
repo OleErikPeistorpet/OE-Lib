@@ -1,6 +1,6 @@
 #pragma once
 
-// Copyright 2014, 2015 Ole Erik Peistorpet
+// Copyright 2015 Ole Erik Peistorpet
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,7 +8,7 @@
 
 #include "core_util.h"
 
-#include <memory> // for pointer_traits
+#include <iterator>
 
 /** @file
 */
@@ -17,49 +17,39 @@ namespace oel
 {
 
 #if __cpp_lib_concepts >= 201907
+
 	constexpr auto to_pointer_contiguous(std::contiguous_iterator auto it) noexcept
 	{
 		return std::to_address(it);
 	}
 #else
-	namespace _detail
-	{
-		template< typename PtrLike >
-		OEL_ALWAYS_INLINE constexpr typename std::pointer_traits<PtrLike>::element_type * ToAddress(PtrLike p)
-		{
-			return p.operator->();
-		}
 
-		template< typename T >
-		OEL_ALWAYS_INLINE constexpr T * ToAddress(T * p) { return p; }
-	}
-
-
-	//! Convert iterator to pointer. This should be overloaded for each class of LegacyContiguousIterator (see cppreference)
+	//! Convert iterator to pointer. This should be overloaded for each LegacyContiguousIterator class (see cppreference)
 	template< typename T >
 	constexpr T * to_pointer_contiguous(T * it) noexcept { return it; }
 
 	#ifdef __GLIBCXX__
-		template< typename Ptr, typename C >
-		constexpr typename std::pointer_traits<Ptr>::element_type *
-			to_pointer_contiguous(__gnu_cxx::__normal_iterator<Ptr, C> it) noexcept
+
+	template< typename T, typename C >
+	constexpr T * to_pointer_contiguous(__gnu_cxx::__normal_iterator<T *, C> it) noexcept
 		{
-			return _detail::ToAddress(it.base());
+			return it.base();
 		}
 	#elif _LIBCPP_VERSION
-		template< typename T >
-		constexpr T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept { return it.base(); }
+
+	template< typename T >
+	constexpr T * to_pointer_contiguous(std::__wrap_iter<T *> it) noexcept  { return it.base(); }
 
 	#elif _CPPLIB_VER
-		template< typename ContiguousIterator,
-			enable_if<
-				std::is_same_v< decltype(ContiguousIterator{}._Unwrapped()),
-				                typename ContiguousIterator::pointer >
-			> = 0
-		>
-		constexpr auto to_pointer_contiguous(const ContiguousIterator & it) noexcept
+	template
+	<	typename ContiguousIterator,
+		enable_if
+		<	std::is_pointer_v<decltype( ContiguousIterator{}._Unwrapped() )>
+		> = 0
+	>
+	constexpr auto to_pointer_contiguous(const ContiguousIterator & it) noexcept
 		{
-			return _detail::ToAddress(it._Unwrapped());
+			return it._Unwrapped();
 		}
 	#endif
 #endif
@@ -88,8 +78,8 @@ namespace _detail
 //! Is true if an IteratorSource range can be copied to an IteratorDest range with memmove
 template< typename IteratorDest, typename IteratorSource >
 inline constexpr bool can_memmove_with =
-	decltype(
-		_detail::CanMemmoveWith(std::declval<IteratorDest>(),
+	decltype
+	(	_detail::CanMemmoveWith(std::declval<IteratorDest>(),
 		                        std::declval<IteratorSource>())
 	)::value;
 
