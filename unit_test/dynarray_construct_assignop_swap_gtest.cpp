@@ -4,6 +4,7 @@
 #include "test_classes.h"
 #include "mem_leak_detector.h"
 #include "dynarray.h"
+#include "view/generate.h"
 
 #include <array>
 #include <string>
@@ -30,18 +31,6 @@ protected:
 
 		g_allocCount.clear();
 		MyCounter::clearCount();
-	}
-
-	template<typename T>
-	void testFillTrivial(T val)
-	{
-		dynarrayTrackingAlloc<T> a(11, val);
-
-		ASSERT_EQ(a.size(), 11U);
-		for (const auto & e : a)
-			EXPECT_EQ(val, e);
-
-		ASSERT_EQ(g_allocCount.nDeallocations + 1, g_allocCount.nAllocations);
 	}
 };
 
@@ -95,7 +84,14 @@ TEST_F(dynarrayConstructTest, greaterThanMax)
 	EXPECT_THROW(Dynarr d(reserve, n), std::length_error);
 	EXPECT_THROW(Dynarr d(n, for_overwrite), std::length_error);
 	EXPECT_THROW(Dynarr d(n), std::length_error);
-	EXPECT_THROW(Dynarr d(n, Size2{{}}), std::length_error);
+	EXPECT_THROW(
+		Dynarr d
+		(	from_range,
+			view::generate(
+				[] { return Size2{}; }, 
+				n )
+		),
+		std::length_error );
 }
 #endif
 
@@ -198,29 +194,6 @@ TEST_F(dynarrayConstructTest, constructN)
 	}
 }
 
-TEST_F(dynarrayConstructTest, constructNFillTrivial)
-{
-	testFillTrivial(true);
-	testFillTrivial<char>(97);
-	testFillTrivial<int>(97);
-	testFillTrivial(std::byte{97});
-}
-
-TEST_F(dynarrayConstructTest, constructNFill)
-{
-	{
-		dynarrayTrackingAlloc<TrivialRelocat> a(11, TrivialRelocat(97));
-
-		ASSERT_EQ(a.size(), 11U);
-		for (const auto & e : a)
-			ASSERT_TRUE(97.0 == *e);
-
-		EXPECT_EQ(1 + 11, TrivialRelocat::nConstructions);
-
-		ASSERT_EQ(g_allocCount.nDeallocations + 1, g_allocCount.nAllocations);
-	}
-}
-
 
 TEST_F(dynarrayConstructTest, constructInitList)
 {
@@ -259,10 +232,7 @@ TEST_F(dynarrayConstructTest, deductionGuides)
 
 	dynarray fromTemp(from_range, std::array<int, 1>{});
 	static_assert(std::is_same< decltype(fromTemp)::allocator_type, oel::allocator<int> >());
-
-	dynarray sizeAndVal(2, 1.f);
-	static_assert(std::is_same<decltype(sizeAndVal)::value_type, float>());
-	EXPECT_TRUE(sizeAndVal.at(1) == 1.f);
+	static_assert(std::is_same< decltype(fromTemp)::value_type, int >());
 }
 
 TEST_F(dynarrayConstructTest, constructContiguousRange)
@@ -477,7 +447,7 @@ TEST_F(dynarrayConstructTest, moveAssign)
 TEST_F(dynarrayConstructTest, moveAssignStatefulAlloc)
 {
 	using PropagateAlloc = StatefulAllocator<MoveOnly, true>;
-	static_assert(std::is_nothrow_move_assignable< dynarray<MoveOnly, PropagateAlloc> >::value);
+	static_assert(std::is_nothrow_move_assignable_v< dynarray<MoveOnly, PropagateAlloc> >);
 	testMoveAssign(PropagateAlloc(0), PropagateAlloc(1));
 }
 
@@ -569,14 +539,14 @@ TEST_F(dynarrayConstructTest, moveAssignPolymorphicAlloc)
 
 TEST_F(dynarrayConstructTest, selfMoveAssign)
 {
-	dynarray<int> d(3, -3);
+	dynarray<int> d{6, 7, 8};
 	{
 		auto tmp = std::move(d);
 		d = std::move(d);
 		d = std::move(tmp);
 	}
 	EXPECT_EQ(3U, d.size());
-	EXPECT_EQ(-3, d.back());
+	EXPECT_EQ(8, d.back());
 }
 
 TEST_F(dynarrayConstructTest, selfCopyAssign)
@@ -615,8 +585,8 @@ TEST_F(dynarrayConstructTest, constructInputRangeThrowing)
 		TestException );
 }
 
-template<typename T, typename... Arg>
-void testConstructNThrowing(const Arg &... arg)
+template< typename T, typename... Arg >
+void testConstructNThrowing(Arg... forOverwrite)
 {
 	for (auto i : {0, 1, 99})
 	{
@@ -625,7 +595,7 @@ void testConstructNThrowing(const Arg &... arg)
 		T::countToThrowOn = i;
 
 		ASSERT_THROW(
-			dynarrayTrackingAlloc<T> a(100, arg...),
+			dynarrayTrackingAlloc<T> a(100, forOverwrite...),
 			TestException );
 
 		ASSERT_EQ(i + 1, g_allocCount.nConstructCalls);
@@ -646,17 +616,14 @@ TEST_F(dynarrayConstructTest, constructNThrowing)
 	testConstructNThrowing<NontrivialConstruct>();
 }
 
-TEST_F(dynarrayConstructTest, constructNFillThrowing)
-{
-	testConstructNThrowing<TrivialRelocat>(TrivialRelocat(-7));
-	TrivialRelocat::clearCount(); // testConstructNThrowing messes with counter
-}
-
 TEST_F(dynarrayConstructTest, copyConstructThrowing)
 {
 	for (auto i : {0, 1, 99})
 	{
-		dynarrayTrackingAlloc<TrivialRelocat> a(100, TrivialRelocat{0.5});
+		auto v = view::generate(
+			[] { return TrivialRelocat{0.5}; },
+			100 );
+		auto a = dynarrayTrackingAlloc<TrivialRelocat>(from_range, v);
 
 		g_allocCount.nConstructCalls = 0;
 		TrivialRelocat::clearCount();

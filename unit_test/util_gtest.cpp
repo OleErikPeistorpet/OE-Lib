@@ -208,11 +208,9 @@ TEST(utilTest, toPointerContiguous)
 		static_assert(std::is_same<P, wchar_t *>::value);
 		static_assert(std::is_same<CP, const wchar_t *>::value);
 
-	#if _HAS_CXX17
 		std::string_view v;
 		using Q = decltype( to_pointer_contiguous(v.begin()) );
 		static_assert(std::is_same<Q, const char *>::value);
-	#endif
 	}
 	std::array<int, 3> a;
 

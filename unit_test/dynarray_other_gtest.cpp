@@ -34,16 +34,16 @@ namespace
 	static_assert(std::sized_sentinel_for<Iter, ConstIter>);
 #endif
 
-	static_assert(std::is_same<std::iterator_traits<ConstIter>::value_type, float>());
+	static_assert(std::is_same_v<std::iterator_traits<ConstIter>::value_type, float>);
 
 	static_assert(oel::can_memmove_with<Iter, ConstIter>);
 	static_assert(oel::can_memmove_with<Iter, const float *>);
 	static_assert(oel::can_memmove_with< float *, std::move_iterator<Iter> >);
 	static_assert( !oel::can_memmove_with<int *, Iter> );
 
-	static_assert(std::is_trivially_copyable<Iter>::value);
-	static_assert(std::is_convertible<Iter, ConstIter>::value);
-	static_assert( !std::is_convertible<ConstIter, Iter>::value );
+	static_assert(std::is_trivially_copyable_v<Iter>);
+	static_assert(std::is_convertible_v<Iter, ConstIter>);
+	static_assert( !std::is_convertible_v<ConstIter, Iter> );
 
 	static_assert(sizeof(dynarray<float>) == 3 * sizeof(float *),
 				  "Not critical, this assert can be removed");
@@ -117,7 +117,7 @@ TEST(dynarrayOtherTest, allocAndIterEquality)
 }
 
 using MyAllocStr = oel::allocator<std::string>;
-static_assert(std::is_trivially_copyable<MyAllocStr>::value);
+static_assert(std::is_trivially_copyable_v<MyAllocStr>);
 
 TEST(dynarrayOtherTest, stdDequeWithOelAlloc)
 {
@@ -174,7 +174,7 @@ TEST(dynarrayOtherTest, stdVariant)
 
 TEST(dynarrayOtherTest, withReferenceWrapper)
 {
-	dynarray<int> arr[]{ dynarray<int>(/*size*/ 2, 1), {1, 1}, {1, 3} };
+	dynarray<int> arr[]{ dynarray<int>(2), {0, 0}, {1, 3} };
 	dynarray< std::reference_wrapper<const dynarray<int>> > refs{arr[0], arr[1]};
 	refs.push_back(arr[2]);
 	EXPECT_EQ(3, refs.at(2).get().at(1));

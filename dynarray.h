@@ -94,7 +94,6 @@ public:
 	dynarray(size_type size, for_overwrite_t, Alloc a = Alloc{});
 	//! (Value-initializes elements, same as std::vector)
 	explicit dynarray(size_type size, Alloc a = Alloc{});
-	dynarray(size_type size, const T & val, Alloc a = Alloc{})   : _m(a) { append(size, val); }
 
 	template< typename InputRange >
 	dynarray(from_range_t, InputRange && r, Alloc a = Alloc{})   : _m(a) { append(r); }
