@@ -78,8 +78,6 @@ public:
 	using iterator       = T *;
 	using const_iterator = const T *;
 #endif
-	using reverse_iterator       = std::reverse_iterator<iterator>;
-	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 
 	constexpr dynarray() noexcept(noexcept(Alloc{}))   : dynarray(Alloc{}) {}
@@ -211,21 +209,21 @@ public:
 
 	allocator_type get_allocator() const noexcept   { return _m; }
 
-	iterator       begin() noexcept          { return _detail::MakeDynarrIter           (_m, _m.data); }
-	const_iterator begin() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.data); }
-	const_iterator cbegin() const noexcept   OEL_ALWAYS_INLINE { return begin(); }
+	iterator       begin() noexcept         { return _detail::MakeDynarrIter           (_m, _m.data); }
+	const_iterator begin() const noexcept   { return _detail::MakeDynarrIter<const T *>(_m, _m.data); }
+	const_iterator cbegin() const noexcept  { return begin(); }
 
-	iterator       end() noexcept          { return _detail::MakeDynarrIter           (_m, _m.end); }
-	const_iterator end() const noexcept    { return _detail::MakeDynarrIter<const T *>(_m, _m.end); }
-	const_iterator cend() const noexcept   OEL_ALWAYS_INLINE { return end(); }
+	iterator       end() noexcept         { return _detail::MakeDynarrIter           (_m, _m.end); }
+	const_iterator end() const noexcept   { return _detail::MakeDynarrIter<const T *>(_m, _m.end); }
+	const_iterator cend() const noexcept  { return end(); }
 
-	reverse_iterator       rbegin() noexcept         OEL_ALWAYS_INLINE { return       reverse_iterator{end()}; }
-	const_reverse_iterator rbegin() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
-	const_reverse_iterator crbegin() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{end()}; }
+	auto      rbegin() noexcept         { return std::reverse_iterator{end()}; }
+	auto      rbegin() const noexcept   { return std::reverse_iterator{end()}; }
+	auto      crbegin() const noexcept  { return std::reverse_iterator{end()}; }
 
-	reverse_iterator       rend() noexcept         OEL_ALWAYS_INLINE { return       reverse_iterator{begin()}; }
-	const_reverse_iterator rend() const noexcept   OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
-	const_reverse_iterator crend() const noexcept  OEL_ALWAYS_INLINE { return const_reverse_iterator{begin()}; }
+	auto      rend() noexcept         { return std::reverse_iterator{begin()}; }
+	auto      rend() const noexcept   { return std::reverse_iterator{begin()}; }
+	auto      crend() const noexcept  { return std::reverse_iterator{begin()}; }
 
 	T *       data() noexcept         { return _m.data; }
 	const T * data() const noexcept   { return _m.data; }
