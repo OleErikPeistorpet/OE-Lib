@@ -90,10 +90,6 @@ namespace oel::_detail
 				void * p{first};  // silence -Wclass-memaccess
 				std::memset(p, 0, sizeof(T) * (last - first));
 			}
-			else if constexpr (sizeof(T) == 1 and std::is_scalar_v<T>)
-			{
-				std::memset(first, int(args)..., last - first);
-			}
 			else
 			{	T *const init = first;
 				OEL_TRY_
