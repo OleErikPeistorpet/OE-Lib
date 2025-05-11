@@ -174,7 +174,12 @@ public:
 			return _arrowProxy<T>{ _m.data._apply(_views<T>{_m.size}) };
 		}
 
-	auto mut_fields()           { return *this->operator->().operator->(); }
+	auto move_fields()
+		{
+			return _m.data._apply(_views<_detail::RvalueViewTag>{_m.size});
+		}
+
+	auto writable_fields()      { return *this->operator->().operator->(); }
 
 	auto const_fields() const   { return *this->operator->().operator->(); }
 
