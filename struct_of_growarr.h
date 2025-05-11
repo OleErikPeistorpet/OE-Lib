@@ -49,7 +49,7 @@ public:
 	using size_type       = size_t;
 
 	template< F, typename... I >
-	using zip_iterator = _zipTransformIterator< F, I... >;
+	using iterator = _zipTransformIterator< F, I... >;
 
 
 	constexpr struct_of_growarr() noexcept(noexcept(Alloc{}))   : _m(Alloc{}) {}
@@ -62,32 +62,24 @@ public:
 
 	explicit struct_of_growarr(size_type size, Alloc a = Alloc{});
 
-	struct_of_growarr(struct_of_growarr && other) noexcept              : _m(std::move(other._m)) {}
+	struct_of_growarr(struct_of_growarr && other) noexcept                 : _m(std::move(other._m)) {}
 	struct_of_growarr(struct_of_growarr && other, Alloc a);
 	explicit struct_of_growarr(const struct_of_growarr & other)
 		:	struct_of_growarr(other, _alloTrait::select_on_container_copy_construction(other._m) ) {}
+
 	explicit struct_of_growarr(const struct_of_growarr & other, Alloc a)   : _m(a) { append(other); }
 
 	~struct_of_growarr() noexcept;
 
 	struct_of_growarr & operator =(struct_of_growarr && other) &
-		noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value);
+		noexcept( _alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value );
 	struct_of_growarr & operator =(const struct_of_growarr &) = delete;
 
-	friend void swap(struct_of_growarr & a, struct_of_growarr & b) noexcept
-		{
-			using std::swap;
-
-			[[maybe_unused]] allocator_type & a0 = a._m;
-			[[maybe_unused]] allocator_type & a1 = b._m;
-			if constexpr (_alloTrait::propagate_on_container_swap::value)
-				swap(a0, a1);
-			else // Standard says this is undefined if allocators compare unequal
-				OEL_ASSERT(a0 == a1);
-		}
+	friend void swap(struct_of_growarr & a, struct_of_growarr & b) noexcept   { /*TODO*/ }
 
 	template< typename... Ranges >
-	auto append(Ranges &&... sources) -> std::tuple< borrowed_iterator_t<Ranges>... >;
+		requires( ... and _detail::rangeIsForwardOrSized<Ranges> );
+	void append(Ranges &&... sources);
 
 	template< typename StructOfGrowarrViews >
 	void append_fields(StructOfGrowarrViews && source);
@@ -108,7 +100,7 @@ public:
 		{
 			OEL_ASSERT(_m.size > 0);
 			--_m.size;
-			_m.end-> ~T();
+			// TODO
 		}
 	void pop_back(size_type count) noexcept   { erase_to_end(end() - count); }
 
@@ -116,13 +108,13 @@ public:
 	/**
 	* Constant complexity (compared to linear in the distance between pos and end() for normal erase). */
 	template< typename F, typename... I >
-	void unordered_erase(zip_iterator<F, I...> pos)
+	void unordered_erase(iterator<F, I...> pos)
 		{
 			_detail::unordered_erase(static_cast<_internBase_7KQw &>(_m), _asMut(pos)); }
 		}
 
 	template< typename F, typename... I >
-	void erase(zip_iterator<F, I...> pos)
+	void erase(iterator<F, I...> pos)
 		{
 			_detail::erase(static_cast<_internBase_7KQw &>(_m), _asMut(pos)); }
 		}
@@ -130,7 +122,7 @@ public:
 	void erase(size_type index)   { erase(begin() + index); }
 
 	template< typename F, typename... I >
-	void erase(zip_iterator<F, I...> first, zip_iterator<F, I...> last)
+	void erase(iterator<F, I...> first, iterator<F, I...> last)
 		{
 			_detail::erase(static_cast<_internBase_7KQw &>(_m), _asMut(first), _asMut(last)); }
 		}
@@ -141,14 +133,14 @@ public:
 		}
 
 	template< typename F, typename... I >
-	void erase_to_end(zip_iterator<F, I...> first) noexcept;
+	void erase_to_end(iterator<F, I...> first) noexcept;
 
-	void clear() noexcept                        { erase_to_end(begin()); }
+	void clear() noexcept   { erase_to_end(begin()); }
 
-	void reserve(size_type minCap)
+	void reserve(size_type min_cap)
 		{
-			if (_m.capacity < minCap)
-				_realloc(_calcCapChecked(minCap));
+			if( _m.capacity < min_cap )
+				_realloc(_calcCapChecked(min_cap));
 		}
 	//! It's probably a good idea to check that size < capacity before calling, maybe add some treshold to size
 	void shrink_to_fit();
@@ -174,7 +166,7 @@ public:
 			return _arrowProxy<T>{ _m.data._apply(_views<T>{_m.size}) };
 		}
 
-	auto mut_fields()           { return *this->operator->().operator->(); }
+	auto writable_fields()      { return *this->operator->().operator->(); }
 
 	auto const_fields() const   { return *this->operator->().operator->(); }
 
@@ -186,11 +178,9 @@ public:
 		{
 			return _m.data._apply(_makeZipConstIter{});
 		}
-	auto cbegin() const  { return begin(); }
 
 	auto end()          { return begin() + _m.size; }
 	auto end() const    { return begin() + _m.size; }
-	auto cend() const   { return begin() + _m.size; }
 
 	decltype(auto) operator[](size_type index)
 		{
@@ -225,44 +215,35 @@ public:
 
 
 private:
-	struct _internBase_7KQw
+	struct _dataOwner
 	{
-		ElemStruct<_detail::InternalTag> data;
-		size_type size;
-		size_type capacity;
-	};
+		ElemStruct<_detail::InternalTag> data{};
+		size_type size{};
+		size_type capacity{};
+		OEL_NO_UNIQUE_ADDRESS allocator_type allo;
 
-	using _uninitFill = _detail::UninitFill<allocator_type>;
-	using _alloc_7KQw = Alloc; // guarding against name collision due to inheritance (MSVC)
-
-	struct _memOwner : public _internBase_7KQw, public _alloc_7KQw
-	{
-		using _internBase_7KQw::data;
-		using _internBase_7KQw::size;
-		using _internBase_7KQw::capacity;
-
-		constexpr _memOwner(_alloc_7KQw & a) noexcept
-		 :	_internBase_7KQw{}, _alloc_7KQw{std::move(a)}
+		constexpr _dataOwner(Alloc & a) noexcept
+		 :	allo(std::move(a))
 		{}
 
-		constexpr _memOwner(_memOwner && other) noexcept
-		 :	_internBase_7KQw{other}, _alloc_7KQw{std::move(other)}
+		constexpr _dataOwner(_dataOwner && other) noexcept
+		 :	allo{std::move(other)}
 		{
-			other.data = nullptr;
+			other.data = {};
 			other.capacity = other.size = 0;
 		}
 
-		~_memOwner()
+		~_dataOwner()
 		{
-			if (data)
-				::oel::_detail::StructGrowarrAllocateWrap<_alloc_7KQw, Ts...>::dealloc(*this, data, capacity);
+			if( data )
+				_detail::StructGrowarrAllocateWrap<allocator_type, Ts...>::dealloc(allo, data, capacity);
 		}
 	}
 	_m; // the only non-static data member
 
 	void _resetData(T *const newData, size_type const newCap)
 	{
-		if (_m.data)
+		if( _m.data )
 			_allocateWrap::dealloc(_m, _m.data, _m.capacity);
 
 		_m.data     = newData;
@@ -271,7 +252,6 @@ private:
 
 	void _initReserve(size_type const capToCheck)
 	{
-		boost::pfr::get<0>(_m.data).p = _allocateChecked(capToCheck);
 		// TODO
 		_m.capacity = capToCheck;
 	}
@@ -386,37 +366,25 @@ private:
 		_resetData(newData, newCap);
 	}
 
-	// These are not defined inline as a compiler hint
-	void _growByOne();
-	void _growBy(size_type const);
+	void _growByOne()
+	{
+		_realloc(_calcCapAddOne());
+	}
+	// Not defined inline as a compiler hint
+	void _growBy(size_type);
 
 
 	template< typename UninitFiller >
 	void _doResize(size_type const newSize)
 	{
 		reserve(newSize);
-
-		T *const newEnd = _m.data + newSize;
-		if (_m.end < newEnd)
-			UninitFiller::call(_m.end, newEnd, _m);
-		else
-			_detail::Destroy(newEnd, _m.end);
-
-		_m.end = newEnd;
+		// TODO
 	}
 };
 
 
 template< template<typename> typename ElemStruct, typename Alloc >
-void struct_of_growarr<ElemStruct, Alloc>::_growByOne()
-{
-	_realloc(_calcCapAddOne());
-}
-
-
-template< template<typename> typename ElemStruct, typename Alloc >
-#if defined _MSC_VER
-	#error OEL_UNLIKELY
+#if defined _MSC_VER and _MSC_VER < 1930
 	__declspec(noinline) // to get the compiler to inline calling function
 #endif
 void struct_of_growarr<ElemStruct, Alloc>::_growBy(size_type const count)
@@ -441,42 +409,12 @@ void struct_of_growarr<ElemStruct, Alloc>::push_back(Ts &&... args)
 
 template< template<typename> typename ElemStruct, typename Alloc >
 template< typename... Ranges >
-inline auto struct_of_growarr<ElemStruct, Alloc>::append(Ranges &&... sources)
-->	std::tuple< borrowed_iterator_t<Ranges>... >
+	requires( ... and _detail::rangeIsForwardOrSized<Ranges> );
+inline void struct_of_growarr<ElemStruct, Alloc>::append(Ranges &&... sources)
 {
-	static_assert(... and _detail::rangeIsForwardOrSized<Ranges>);
-
-	count = std::min({UDist(sources)...});
-
-	if (_spareCapacity() < count) OEL_UNLIKELY
-		_growBy(count);
+	count = std::min({ as_unsigned(ranges::distance(sources))... });
 
 	// TODO
-	if constexpr (can_memmove_with<T *, InputIter>)
-	{
-		_detail::MemcpyCheck(src, count, _m.end);
-		src += count;
-		_m.end += count;
-	}
-	else
-	{	T *__restrict dest = _m.end;
-		auto const   dLast = dest + count;
-		OEL_TRY_
-		{
-			while (dest != dLast)
-			{
-				_alloTrait::construct(_m, dest, *src);
-				++dest; ++src;
-			}
-		}
-		OEL_CATCH_ALL
-		{
-			_detail::Destroy(_m.end, dest);
-			OEL_RETHROW;
-		}
-		_m.end = dLast;
-	}
-	return src;
 }
 
 
@@ -485,8 +423,7 @@ struct_of_growarr<ElemStruct, Alloc>::struct_of_growarr(size_type n, for_overwri
  :	_m(a)
 {
 	_initReserve(n);
-	_m.size = _m.capacity;
-	_detail::DefaultInit<allocator_type>::call(_m.data, _m.reservEnd, _m);
+	// TODO
 }
 
 
@@ -495,8 +432,7 @@ struct_of_growarr<ElemStruct, Alloc>::struct_of_growarr(size_type n, Alloc a)
  :	_m(a)
 {
 	_initReserve(n);
-	_m.size = _m.capacity;
-	_uninitFill::call(_m.data, _m.reservEnd, _m);
+	// TODO
 }
 
 
@@ -504,35 +440,16 @@ template< template<typename> typename ElemStruct, typename Alloc >
 struct_of_growarr<ElemStruct, Alloc>::struct_of_growarr(struct_of_growarr && other, Alloc a)
  :	_m(a) // moves from a
 {
-	const allocator_type & myA = _m;
-	OEL_CONST_COND if (!_alloTrait::is_always_equal::value and myA != other._m)
-		append(other | view::move);
-	else
-		_moveInternBase(other._m);
+	// TODO
 }
 
 
 template< template<typename> typename ElemStruct, typename Alloc >
 struct_of_growarr<ElemStruct, Alloc> &
 	struct_of_growarr<ElemStruct, Alloc>::operator =(struct_of_growarr && other) &
-	noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value)
+	noexcept( _alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value )
 {
-	allocator_type & myA = _m;
-	OEL_CONST_COND if (!_alloTrait::propagate_on_container_move_assignment::value and myA != other._m)
-	{
-		assign(other | view::move);
-	}
-	else // take allocated memory from other
-	{
-		if (_m.data)
-		{
-			_detail::Destroy(_m.data, _m.end);
-			_allocateWrap::dealloc(_m, _m.data, _m.capacity);
-		}
-		_moveInternBase(other._m);
-		if constexpr (_alloTrait::propagate_on_container_move_assignment::value)
-			myA = static_cast<allocator_type &&>(other._m);
-	}
+	// TODO
 	return *this;
 }
 
@@ -540,7 +457,7 @@ struct_of_growarr<ElemStruct, Alloc> &
 template< template<typename> typename ElemStruct, typename Alloc >
 void struct_of_growarr<ElemStruct, Alloc>::shrink_to_fit()
 {
-	if (_m.size != 0)
+	if( _m.size != 0 )
 	{
 		_realloc(_m.size);
 	}
@@ -554,82 +471,28 @@ void struct_of_growarr<ElemStruct, Alloc>::shrink_to_fit()
 template< template<typename> typename ElemStruct, typename Alloc >
 void struct_of_growarr<ElemStruct, Alloc>::erase_to_end(size_type first) noexcept
 {
-	T *const newEnd{to_pointer_contiguous(first)};
-	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
-
-	_detail::Destroy(newEnd, _m.end);
-	_m.end = newEnd;
+	// TODO
 }
 
 
 template< template<typename> typename ElemStruct, typename Alloc >
 void struct_of_growarr<ElemStruct, Alloc>::unordered_erase(size_type pos)
 {
-	if constexpr (is_trivially_relocatable<T>::value)
-	{
-		T & elem = *pos;
-		elem.~T();
-
-		--_m.end;
-
-		auto & mem = reinterpret_cast< storage_for<T> & >(elem);
-		mem     = *reinterpret_cast< storage_for<T> * >(_m.end); // relocate last element to pos
-	}
-	else
-	{	*pos = std::move(back());
-		pop_back();
-	}
-	return pos;
+	// TODO
 }
 
 
 template< template<typename> typename ElemStruct, typename Alloc >
 void struct_of_growarr<ElemStruct, Alloc>::erase(size_type pos)
 {
-	T *const ptr{to_pointer_contiguous(pos)};
-	OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
-	if constexpr (is_trivially_relocatable<T>::value)
-	{
-		ptr-> ~T();
-		auto const next = ptr + 1;
-		std::memmove( // relocate [pos + 1, end) to [pos, end - 1)
-			static_cast<void *>(ptr),
-			static_cast<const void *>(next),
-			sizeof(T) * (_m.end - next) );
-		--_m.end;
-	}
-	else
-	{	_m.end = std::move(ptr + 1, _m.end, ptr);
-		(*_m.end).~T();
-	}
-	return pos;
+	// TODO
 }
 
 
 template< template<typename> typename ElemStruct, typename Alloc >
 void struct_of_growarr<ElemStruct, Alloc>::erase(size_type first, size_type last)
 {
-	T *            dest{to_pointer_contiguous(first)};
-	const T *const pLast{to_pointer_contiguous(last)};
-	OEL_ASSERT(_m.data <= dest and dest <= pLast and pLast <= _m.end);
-
-	if constexpr (is_trivially_relocatable<T>::value)
-	{
-		_detail::Destroy(dest, pLast);
-		auto const nAfter = _m.end - pLast;
-		std::memmove( // relocate [last, end) to [first, first + nAfter)
-			static_cast<void *>(dest),
-			static_cast<const void *>(pLast),
-			sizeof(T) * nAfter );
-		_m.end = dest + nAfter;
-	}
-	else if (dest < pLast) // must avoid self-move-assigning the elements
-	{
-		dest = std::move(const_cast<T *>(pLast), _m.end, dest);
-		_detail::Destroy(dest, _m.end);
-		_m.end = dest;
-	}
-	return first;
+	// TODO
 }
 
 
