@@ -152,35 +152,6 @@ namespace _detail
 			OEL_THROW(std::out_of_range(what), what);
 		}
 	};
-
-
-
-	template< typename T, typename U,
-	          bool = std::is_empty_v<U> >
-	struct TightPair
-	{
-		T first;
-		U _sec;
-
-		OEL_ALWAYS_INLINE constexpr const U & second() const { return _sec; }
-		OEL_ALWAYS_INLINE constexpr       U & second()       { return _sec; }
-	};
-
-	// MSVC needs unique names to guard against name collision due to inheritance
-	template< typename FirstType_7KQw, typename EmptyType_7KQw >
-	struct TightPair<FirstType_7KQw, EmptyType_7KQw, true>
-	 :	EmptyType_7KQw
-	{
-		FirstType_7KQw first;
-
-		TightPair() = default;
-		constexpr TightPair(FirstType_7KQw f, EmptyType_7KQw s)
-		 :	EmptyType_7KQw{s}, first{std::move(f)}
-		{}
-
-		OEL_ALWAYS_INLINE constexpr const EmptyType_7KQw & second() const { return *this; }
-		OEL_ALWAYS_INLINE constexpr       EmptyType_7KQw & second()       { return *this; }
-	};
 }
 
 } // namespace oel

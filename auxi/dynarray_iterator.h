@@ -139,8 +139,8 @@ struct std::pointer_traits< oel::iter::_dynarrayChecked<Ptr> >
 
 namespace oel::_detail
 {
-	template< typename Ptr, typename P2 >
-	auto MakeDynarrIter(const DynarrBase<P2> & parent, Ptr const pos) noexcept
+	template< typename Ptr, typename DynarrInternal >
+	auto MakeDynarrIter(const DynarrInternal & parent, Ptr const pos) noexcept
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
 		if (parent.data)

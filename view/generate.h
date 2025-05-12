@@ -22,7 +22,7 @@ namespace _detail
 	{
 		using FnRef = const G &;
 
-		typename AssignableWrap<G>::Type f;
+		OEL_NO_UNIQUE_ADDRESS typename AssignableWrap<G>::Type fn;
 	};
 
 	template< typename G >
@@ -30,7 +30,7 @@ namespace _detail
 	{
 		using FnRef = G &;
 
-		typename AssignableWrap<G>::Type mutable f;
+		OEL_NO_UNIQUE_ADDRESS typename AssignableWrap<G>::Type mutable fn;
 	};
 }
 
@@ -52,7 +52,7 @@ public:
 
 	constexpr reference operator*() const
 		{
-			typename _base::FnRef g = this->f;
+			typename _base::FnRef g = this->fn;
 			return g();
 		}
 
