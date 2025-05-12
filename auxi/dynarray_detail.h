@@ -8,12 +8,19 @@
 
 #include "../util.h" // for from_range
 
-#include <cstdint>  // for uintptr_t
 #include <stdexcept>
 
 
 namespace oel::_detail
 {
+	template< typename T >
+	struct AssertTrivialRelocate
+	{
+		static_assert( is_trivially_relocatable<T>::value,
+			"insert, emplace require trivially relocatable T, see declaration of is_trivially_relocatable" );
+	};
+
+
 	struct LengthError
 	{
 		[[noreturn]] static void raise()
@@ -23,108 +30,6 @@ namespace oel::_detail
 		}
 	};
 
-////////////////////////////////////////////////////////////////////////////////
-
-	struct DebugAllocationHeader
-	{
-		std::uintptr_t id;
-		ptrdiff_t      nObjects;
-	};
-
-	inline constexpr DebugAllocationHeader headerNoAllocation{};
-
-	inline DebugAllocationHeader * DebugHeaderOf(void * p)
-	{
-		return static_cast<DebugAllocationHeader *>(p) - 1;
-	}
-
-	template< typename T >
-	inline bool HasValidIndex(const T * arrayElem, const DebugAllocationHeader & h)
-	{
-		auto index = arrayElem - reinterpret_cast<const T *>(&h + 1);
-		return static_cast<size_t>(index) < static_cast<size_t>(h.nObjects);
-	}
-
-	template< typename Alloc, typename Ptr >
-	struct DebugAllocateWrapper
-	{
-	#if OEL_MEM_BOUND_DEBUG_LVL == 0
-		static constexpr size_t sizeForHeader{};
-	#else
-		static constexpr auto _valSize      = sizeof(typename Alloc::value_type);
-		static constexpr auto sizeForHeader = ( sizeof(DebugAllocationHeader) + (_valSize - 1) ) / _valSize;
-
-		static Ptr _addHeader(const Alloc & a, Ptr p)
-		{
-			p += sizeForHeader;
-
-			auto const h = _detail::DebugHeaderOf(p);
-			// Take address, set highest and lowest bits for a hopefully unique bit pattern to compare later
-			constexpr auto maxMinBits = ~(~std::uintptr_t{} >> 1) | 1u;
-			::new(h) DebugAllocationHeader{reinterpret_cast<std::uintptr_t>(&a) | maxMinBits, 0};
-
-			return p;
-		}
-	#endif
-
-		static Ptr allocate(Alloc & a, size_t n)
-		{
-		#if OEL_MEM_BOUND_DEBUG_LVL
-			n += sizeForHeader;
-			Ptr p = a.allocate(n);
-			return _addHeader(a, p);
-		#else
-			return a.allocate(n);
-		#endif
-		}
-
-		static Ptr realloc(Alloc & a, Ptr p, size_t n)
-		{
-		#if OEL_MEM_BOUND_DEBUG_LVL
-			if (p)
-			{	// volatile to make sure the write isn't optimized away
-				static_cast<volatile std::uintptr_t &>(_detail::DebugHeaderOf(p)->id) = 0;
-				p -= sizeForHeader;
-			}
-			n += sizeForHeader;
-			p = a.reallocate(p, n);
-			return _addHeader(a, p);
-		#else
-			return a.reallocate(p, n);
-		#endif
-		}
-
-		static void dealloc(Alloc & a, Ptr p, size_t n) noexcept(noexcept( a.deallocate(p, n) ))
-		{
-		#if OEL_MEM_BOUND_DEBUG_LVL
-			static_cast<volatile std::uintptr_t &>(_detail::DebugHeaderOf(p)->id) = 0;
-			p -= sizeForHeader;
-			n += sizeForHeader;
-		#endif
-			a.deallocate(p, n);
-		}
-	};
-
-	template< typename DynarrInternal >
-	struct DebugSizeInHeaderUpdater
-	{
-	#if OEL_MEM_BOUND_DEBUG_LVL == 0
-		OEL_ALWAYS_INLINE DebugSizeInHeaderUpdater(DynarrInternal &) {}
-	#else
-		DynarrInternal & container;
-
-		~DebugSizeInHeaderUpdater()
-		{
-			if (container.data)
-			{
-				auto h = _detail::DebugHeaderOf(container.data);
-				h->nObjects = container.end - container.data;
-			}
-		}
-	#endif
-	};
-
-////////////////////////////////////////////////////////////////////////////////
 
 	template< typename Alloc >
 	struct ToDynarrPartial
