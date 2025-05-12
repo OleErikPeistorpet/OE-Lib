@@ -53,7 +53,7 @@ struct _moveFn
 	friend constexpr auto operator |(InputRange && r, _moveFn)
 		{
 			auto v = all( static_cast<InputRange &&>(r) );
-			return _iterTransformView< oel::_iterMove::Fn, decltype(v) >{{{std::move(v), iter_move}}};
+			return _iterTransformView< oel::_iterMove::Fn, decltype(v) >{{iter_move, std::move(v)}};
 		}
 
 	template< typename InputRange >

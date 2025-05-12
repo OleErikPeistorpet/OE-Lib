@@ -284,17 +284,6 @@ struct TrackingAllocator : TrackingAllocatorBase<T>
 		++g_allocCount.nConstructCalls;
 		new(raw) T(std::forward<Args>(args)...);;
 	}
-
-	// Testing collision with internal names in dynarray
-	using allocator_type = std::allocator<float>;
-	using Alloc = void;
-	struct oel {};
-	struct _detail {};
-	struct _internBase {};
-	struct _allocateWrap
-	{
-		void dealloc(TrackingAllocator, void *, std::size_t);
-	};
 };
 
 template<typename T, bool PropagateOnMoveAssign = false, bool UseConstruct = true>

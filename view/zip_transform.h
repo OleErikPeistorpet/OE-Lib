@@ -7,7 +7,6 @@
 
 
 #include "all.h"
-#include "../auxi/transform_view.h"
 #include "../auxi/zip_transform_iterator.h"
 
 /** @file
@@ -27,9 +26,9 @@ namespace oel::view
 inline constexpr auto zip_transform =
 	[](auto func, auto &&... ranges)
 	{
-		using I = iter::_zipTransform< decltype(func), iterator_t< decltype(ranges) >... >;
-		using V = _zipTransformView< I, decltype(func), decltype( all( decltype(ranges)(ranges) ) )... >;
-		return V{{ {all( decltype(ranges)(ranges) )...}, std::move(func) }};
+		return _zipTransformView{
+			std::move(func),
+			std::tuple{all( static_cast< decltype(ranges) >(ranges) )...} };
 	};
 
 //! Almost same as `zip_transform(func, std::views::counted(iterators, count)...)`

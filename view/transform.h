@@ -90,9 +90,9 @@ namespace _detail
 		{
 			auto v = view::all(static_cast<R &&>(range));
 			return _iterTransformView< DerefArg<F>, decltype(v) >
-			{{{	std::move(v),
-			    DerefArg<F>{std::move(t)._f}
-			}}};
+			{{	DerefArg<F>{std::move(t)._f},
+				std::move(v)
+			}};
 		}
 
 		template< typename R >
