@@ -55,9 +55,10 @@ namespace oel
 #endif
 
 template< typename Iterator >
-constexpr auto to_pointer_contiguous(std::move_iterator<Iterator> it) noexcept
-->	decltype( to_pointer_contiguous(it.base()) )
-	 { return to_pointer_contiguous(it.base()); }
+constexpr auto to_pointer_contiguous(std::move_iterator<Iterator> it)
+	noexcept(noexcept( to_pointer_contiguous(it.base()) ))
+->	decltype(          to_pointer_contiguous(it.base()) )
+	{        return    to_pointer_contiguous(it.base()); }
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -83,4 +84,4 @@ inline constexpr bool can_memmove_with =
 		                        std::declval<IteratorSource>())
 	)::value;
 
-} // namespace oel
+} // oel
