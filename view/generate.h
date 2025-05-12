@@ -23,7 +23,7 @@ namespace _detail
 	{
 		using FnRef = const G &;
 
-		MakeAssignable<G> f;
+		OEL_NO_UNIQUE_ADDRESS MakeAssignable<G> f;
 	};
 
 	template< typename G >
@@ -31,7 +31,7 @@ namespace _detail
 	{
 		using FnRef = G &;
 
-		MakeAssignable<G> mutable f;
+		OEL_NO_UNIQUE_ADDRESS MakeAssignable<G> mutable f;
 	};
 }
 

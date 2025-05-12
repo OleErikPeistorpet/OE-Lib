@@ -179,7 +179,8 @@ TEST(viewTest, viewTransformBasics)
 	static_assert(std::is_same_v< IEmptyLambda::iterator_category, std::random_access_iterator_tag >);
 	static_assert(std::is_same_v< decltype(itMoveOnly)::iterator_category, std::input_iterator_tag >);
 	static_assert(std::is_same_v< decltype(itMoveOnly++), void >);
-	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
+	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *));
+	static_assert(sizeof v == sizeof v.base(), "Not critical, this assert can be removed");
 #if OEL_STD_RANGES
 	static_assert(std::ranges::random_access_range< decltype(v) >);
 	static_assert(std::ranges::input_range< decltype(v2) >);

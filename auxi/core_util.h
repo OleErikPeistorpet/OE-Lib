@@ -32,6 +32,16 @@
 #endif
 
 
+#ifdef _MSC_VER
+	#if !_HAS_CXX20
+	#pragma warning(disable: 4848) // support for [[msvc::no_unique_address]] in C++17 and earlier is a vendor extension
+	#endif
+
+	#define OEL_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+	#define OEL_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
 #ifdef __GNUC__
 	#define OEL_ALWAYS_INLINE [[gnu::always_inline]]
 #elif _MSC_VER

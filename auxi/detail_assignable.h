@@ -26,13 +26,12 @@ namespace oel::_detail
 
 		union Box
 		{
-			struct {} _none;
+			struct {} _none{};
 			T _val;
-
-			OEL_ALWAYS_INLINE constexpr Box() noexcept : _none{} {}
 
 			constexpr Box(const T & src) noexcept : _val(src) {}
 
+			Box() = default;
 			Box(const Box &) = default;
 
 		#if OEL_HAS_STD_CONSTRUCT_AT

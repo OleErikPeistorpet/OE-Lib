@@ -107,13 +107,13 @@ namespace oel::_detail
 		}
 	};
 
-	template< typename ContainerBase >
+	template< typename DynarrInternal >
 	struct DebugSizeInHeaderUpdater
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL == 0
-		OEL_ALWAYS_INLINE DebugSizeInHeaderUpdater(ContainerBase &) noexcept {}
+		OEL_ALWAYS_INLINE DebugSizeInHeaderUpdater(DynarrInternal &) noexcept {}
 	#else
-		ContainerBase & container;
+		DynarrInternal & container;
 
 		~DebugSizeInHeaderUpdater()
 		{
@@ -127,16 +127,6 @@ namespace oel::_detail
 	};
 
 ////////////////////////////////////////////////////////////////////////////////
-
-	template< typename Ptr >
-	struct DynarrBase
-	{
-		Ptr data;
-		Ptr end;
-		Ptr reservEnd;
-	};
-
-
 
 	template< typename Alloc >
 	struct ToDynarrPartial

@@ -45,7 +45,8 @@ inline constexpr _transformFn transform;
 template< typename View, typename Func >
 struct _transformView
 {
-	_detail::TightPair< View, _detail::MakeAssignable<Func> > _m;
+	View _v;
+	OEL_NO_UNIQUE_ADDRESS _detail::MakeAssignable<Func> _f;
 
 	using _iter = transform_iterator< Func, iterator_t<View> >;
 
@@ -54,7 +55,7 @@ struct _transformView
 
 	constexpr _iter begin()
 		{
-			return {_detail::MoveIfNotCopyable(_m.second()), _m.first.begin()};
+			return {_detail::MoveIfNotCopyable(_f), _v.begin()};
 		}
 	//! Return type either same as `begin()` or oel::sentinel_wrapper
 	template< typename V = View,
@@ -63,26 +64,26 @@ struct _transformView
 	constexpr auto end()
 		{
 			if constexpr( std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> > )
-				return _iter(_m.second(), _m.first.end());
+				return _iter(_f, _v.end());
 			else
-				return sentinel_wrapper< sentinel_t<V> >{_m.first.end()};
+				return sentinel_wrapper< sentinel_t<V> >{_v.end()};
 		}
 
 	template< typename V = View >  OEL_ALWAYS_INLINE
 	constexpr auto size()
-	->	decltype( std::declval<V>().size() )  { return _m.first.size(); }
+	->	decltype( std::declval<V>().size() )  { return _v.size(); }
 
-	constexpr bool empty()   { return _m.first.empty(); }
+	constexpr bool empty()   { return _v.empty(); }
 
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(requires(View & v) { v[index]; })
+		OEL_REQUIRES(requires{ _v[index]; })
 		{
-			const Func & f = _m.second();
-			return f(_m.first[index]);
+			const Func & f = _f;
+			return f(_v[index]);
 		}
 
-	constexpr View         base() &&                { return std::move(_m.first); }
-	constexpr const View & base() const & noexcept  { return _m.first; }
+	constexpr View         base() &&                { return std::move(_v); }
+	constexpr const View & base() const & noexcept  { return _v; }
 };
 
 
@@ -105,7 +106,7 @@ namespace _detail
 		constexpr auto operator()(R && range) &&
 		{
 			using V = _transformView< view::all_t<R>, F >;
-			return V{{view::all( static_cast<R &&>(range) ), std::move(_f)}};
+			return V{view::all( static_cast<R &&>(range) ), std::move(_f)};
 		}
 
 		template< typename R >

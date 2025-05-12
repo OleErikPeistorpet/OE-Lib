@@ -26,7 +26,8 @@ namespace _detail
 
 		static constexpr auto canCallConst = true;
 
-		TightPair< Iter, MakeAssignable<Func> > m;
+		OEL_NO_UNIQUE_ADDRESS MakeAssignable<Func> fn;
+		Iter it;
 	};
 
 	template< typename Func, typename Iter >
@@ -36,7 +37,8 @@ namespace _detail
 
 		static constexpr auto canCallConst = false;
 
-		TightPair< Iter, MakeAssignable<Func> > mutable m;
+		OEL_NO_UNIQUE_ADDRESS MakeAssignable<Func> mutable fn;
+		Iter it;
 	};
 }
 
@@ -53,8 +55,7 @@ class transform_iterator
  :	private _detail::TransformIterBase<UnaryFunc, Iterator>
 {
 	using _super = typename transform_iterator::TransformIterBase;
-
-	using _super::m;
+	using _super::it;
 
 	static constexpr auto _cat()
 		{
@@ -74,127 +75,124 @@ public:
 	using iterator_category = decltype( _cat() );
 
 	using difference_type = iter_difference_t<Iterator>;
-	using reference       = decltype( std::declval<typename _super::FnRef>()(*m.first) );
+	using reference       = decltype( std::declval<typename _super::FnRef>()(*it) );
 	using pointer         = void;
 	using value_type      = std::remove_cv_t< std::remove_reference_t<reference> >;
 
 	transform_iterator() = default;
-	constexpr transform_iterator(UnaryFunc f, Iterator it)   : _super{{std::move(it), std::move(f)}} {}
+	constexpr transform_iterator(UnaryFunc f, Iterator it)   : _super{std::move(f), std::move(it)} {}
 
 	OEL_ALWAYS_INLINE
-	constexpr const Iterator & base() const & noexcept   { return m.first; }
+	constexpr const Iterator & base() const & noexcept   { return it; }
 	constexpr Iterator         base() && noexcept
 		{
 			static_assert( std::is_nothrow_move_constructible_v<Iterator> );
-			return std::move(m.first);
+			return std::move(it);
 		}
 
 	constexpr reference operator*() const
 		{
-			typename _super::FnRef f = m.second();
-			return f(*m.first);
+			typename _super::FnRef f = this->fn;
+			return f(*it);
 		}
 
 	constexpr reference operator[](difference_type offset) const
 		{
-			const UnaryFunc & f = m.second();
-			return f(m.first[offset]);
+			const UnaryFunc & f = this->fn;
+			return f(it[offset]);
 		}
 
 	OEL_ALWAYS_INLINE
-	constexpr transform_iterator & operator++()   { ++m.first;  return *this; }
+	constexpr transform_iterator & operator++()   { ++it;  return *this; }
 	//! Post-increment: return type is transform_iterator if iterator_category is-a forward_iterator_tag, else void
 	constexpr auto                 operator++(int) &
 		{
 			if constexpr( std::is_same_v<iterator_category, std::input_iterator_tag> )
 			{
-				++m.first;
+				++it;
 			}
 			else
 			{	auto tmp = *this;
-				++m.first;
+				++it;
 				return tmp;
 			}
 		}
 	OEL_ALWAYS_INLINE
-	constexpr transform_iterator & operator--()   { --m.first;  return *this; }
+	constexpr transform_iterator & operator--()   { --it;  return *this; }
 
 	constexpr transform_iterator   operator--(int) &
 		{
 			auto tmp = *this;
-			--m.first;
+			--it;
 			return tmp;
 		}
 
 	constexpr transform_iterator & operator+=(difference_type offset) &
 		{
-			m.first += offset;
+			it += offset;
 			return *this;
 		}
 	constexpr transform_iterator & operator-=(difference_type offset) &
 		{
-			m.first -= offset;
+			it -= offset;
 			return *this;
 		}
 
-	friend constexpr transform_iterator operator +(difference_type offset, transform_iterator it)  { return it += offset; }
+	friend constexpr transform_iterator operator +(difference_type offset, transform_iterator ti)  { return ti += offset; }
 	OEL_ALWAYS_INLINE
-	friend constexpr transform_iterator operator +(transform_iterator it, difference_type offset)  { return it += offset; }
+	friend constexpr transform_iterator operator +(transform_iterator ti, difference_type offset)  { return ti += offset; }
 
-	friend constexpr transform_iterator operator -(transform_iterator it, difference_type offset)  { return it -= offset; }
+	friend constexpr transform_iterator operator -(transform_iterator ti, difference_type offset)  { return ti -= offset; }
 
 	friend constexpr difference_type operator -(const transform_iterator & left, const transform_iterator & right)
 		OEL_REQUIRES(std::sized_sentinel_for<Iterator, Iterator>)
 		{
-			return left.m.first - right.m.first;
+			return left.it - right.it;
 		}
 
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
 	friend constexpr difference_type operator -
-		(sentinel_wrapper<S> left, const transform_iterator & right)   { return left.se - right.m.first; }
+		(sentinel_wrapper<S> left, const transform_iterator & right)   { return left.se - right.it; }
 
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
 	friend constexpr difference_type operator -
-		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first - right.se; }
+		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.it - right.se; }
 
-	friend constexpr bool operator==(const transform_iterator & left, const transform_iterator & right)
-		{
-			return left.m.first == right.m.first;
-		}
-	friend constexpr bool operator!=(const transform_iterator & left, const transform_iterator & right)
-		{
-			return left.m.first != right.m.first;
-		}
-	friend constexpr bool operator <(const transform_iterator & left, const transform_iterator & right)
-		{
-			return left.m.first < right.m.first;
-		}
+	friend constexpr bool operator==
+		(const transform_iterator & left, const transform_iterator & right)   { return left.it == right.it; }
+
+	friend constexpr bool operator!=
+		(const transform_iterator & left, const transform_iterator & right)   { return left.it != right.it; }
+
+	friend constexpr bool operator <
+		(const transform_iterator & left, const transform_iterator & right)   { return left.it < right.it; }
+
 	friend constexpr bool operator >
-		(const transform_iterator & left, const transform_iterator & right)  { return right < left; }
+		(const transform_iterator & left, const transform_iterator & right)   { return left.it > right.it; }
 
 	friend constexpr bool operator<=
-		(const transform_iterator & left, const transform_iterator & right)  { return !(right < left); }
+		(const transform_iterator & left, const transform_iterator & right)   { return left.it <= right.it; }
 
 	friend constexpr bool operator>=
-		(const transform_iterator & left, const transform_iterator & right)  { return !(left < right); }
+		(const transform_iterator & left, const transform_iterator & right)   { return left.it >= right.it; }
 
 	template< typename S >
 	friend constexpr bool operator==
-		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first == right.se; }
+		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.it == right.se; }
 
 	template< typename S >
 	friend constexpr bool operator==
-		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right == left; }
+		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right.it == left.se; }
 
 	template< typename S >
 	friend constexpr bool operator!=
-		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first != right.se; }
+		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.it != right.se; }
 
 	template< typename S >
 	friend constexpr bool operator!=
-		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right != left; }
+		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right.it != left.se; }
 };
 
 #if __cpp_lib_concepts < 201907
