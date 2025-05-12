@@ -218,14 +218,6 @@ TEST(utilTest, toPointerContiguous)
 	using CP = decltype( as_contiguous_address(a.cbegin()) );
 	static_assert(std::is_same<P, int *>::value);
 	static_assert(std::is_same<CP, const int *>::value);
-
-#if __cpp_lib_concepts
-	auto addr = &a[1];
-	oel::iter::_dynarrayChecked<const int *> it{{}, addr, nullptr, 0};
-	auto result = std::to_address(it);
-	static_assert(std::is_same<const int *, decltype(result)>());
-	EXPECT_EQ(addr, result);
-#endif
 }
 
 struct EmptyRandomAccessRange {};

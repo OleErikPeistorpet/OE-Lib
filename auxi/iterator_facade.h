@@ -23,9 +23,9 @@ struct _iteratorFacade
 		}
 
 	friend constexpr DerivedIter operator +(difference_type offset, DerivedIter it)  { return it += offset; }
-	[[nodiscard]]  OEL_ALWAYS_INLINE
+	OEL_ALWAYS_INLINE
 	friend constexpr DerivedIter operator +(DerivedIter it, difference_type offset)  { return it += offset; }
-	[[nodiscard]]  OEL_ALWAYS_INLINE
+	OEL_ALWAYS_INLINE
 	friend constexpr DerivedIter operator -(DerivedIter it, difference_type offset)  { return it += -offset; }
 
 	constexpr decltype(auto) operator[](difference_type offset) const

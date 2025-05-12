@@ -1,20 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
-	<Type Name="oel::debug::dynarray&lt;*&gt;">
-		<DisplayString Condition="_m.end == _m.data">{{size=0 }}</DisplayString>
-		<DisplayString>{{size={_m.end - _m.data} back={_m.end[-1]}}}</DisplayString>
-		<Expand>
-			<Item Name="[capacity]" ExcludeView="simple">_m.reservEnd - _m.data</Item>
-			<Item Name="[allocator]" ExcludeView="simple">($T2 &amp;)_m</Item>
-			<Item Name="[mem header]" ExcludeView="simple" Condition="_m.data">
-				((oel::_detail::DebugAllocationHeader *)_m.data)[-1]
-			</Item>
-			<ArrayItems>
-				<Size>_m.end - _m.data</Size>
-				<ValuePointer>_m.data</ValuePointer>
-			</ArrayItems>
-		</Expand>
-	</Type>
 	<Type Name="oel::dynarray&lt;*&gt;">
 		<DisplayString Condition="_m.end == _m.data">{{size=0 }}</DisplayString>
 		<DisplayString>{{size={_m.end - _m.data} back={_m.end[-1]}}}</DisplayString>
@@ -25,16 +10,6 @@
 				<Size>_m.end - _m.data</Size>
 				<ValuePointer>_m.data</ValuePointer>
 			</ArrayItems>
-		</Expand>
-	</Type>
-
-	<Type Name="oel::iter::_dynarrayChecked&lt;*&gt;">
-		<DisplayString Condition="!_pElem">no allocation</DisplayString>
-		<DisplayString Condition="_header-&gt;id != _allocationId">invalidated</DisplayString>
-		<DisplayString Condition="_pElem - ($T1)(_header + 1) == _header-&gt;nObjects">end</DisplayString>
-		<DisplayString>[{_pElem - ($T1)(_header + 1)}] {*_pElem}</DisplayString>
-		<Expand>
-			<Item Name="[array size]">_header-&gt;nObjects</Item>
 		</Expand>
 	</Type>
 </AutoVisualizer>

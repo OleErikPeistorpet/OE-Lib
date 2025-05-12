@@ -56,7 +56,6 @@ void testCompileSomeDynarrayMembers()
 {
 	dynarray<int> const d{0};
 	static_assert(std::is_same_v< decltype(d.get_allocator()), dynarray<int>::allocator_type >);
-	dynarray<int>::allocate_size_overhead();
 	d.back();
 }
 
