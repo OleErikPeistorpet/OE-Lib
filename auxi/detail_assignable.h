@@ -16,7 +16,8 @@ namespace oel::_detail
 	class AssignableWrap
 	{
 		static_assert( std::is_trivially_copy_constructible_v<T> and std::is_trivially_destructible_v<T>,
-			"The user-supplied function must be move assignable, or trivially copy constructible and trivially destructible" );
+			"The user-supplied function must be move assignable, or trivially copy constructible and trivially destructible"
+		);
 
 		union Impl
 		{
@@ -37,12 +38,12 @@ namespace oel::_detail
 			OEL_ALWAYS_INLINE constexpr operator       T &()       { return _val; }
 		};
 
-		using EmptyType_7KQw = T;
+		using T_7KQwa = T; // guarding against name collision due to inheritance (MSVC)
 
-		struct ImplEmpty : public EmptyType_7KQw
+		struct ImplEmpty : public T
 		{
-			constexpr ImplEmpty(EmptyType_7KQw src) noexcept
-			 :	EmptyType_7KQw(src) {}
+			constexpr ImplEmpty(T_7KQwa src) noexcept
+			 :	T_7KQwa(src) {}
 
 			ImplEmpty() = default;
 			ImplEmpty(const ImplEmpty &) = default;

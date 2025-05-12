@@ -98,11 +98,12 @@ public:
 
 	dynarray(std::initializer_list<T> il, Alloc a = Alloc{})     : _m(a) { append(il); }
 
-	dynarray(dynarray && other) noexcept                : _m(std::move(other._m)) {}
+	dynarray(dynarray && other) noexcept                 : _m(std::move(other._m)) {}
 	dynarray(dynarray && other, Alloc a);
-	explicit dynarray(const dynarray & other)           : dynarray( other,
-	                                                      _alloTrait::select_on_container_copy_construction(other._m) ) {}
-	explicit dynarray(const dynarray & other, Alloc a)  : _m(a) { append(other); }
+	explicit dynarray(const dynarray & other)
+		:	dynarray( other, _alloTrait::select_on_container_copy_construction(other._m.allo) ) {}
+
+	explicit dynarray(const dynarray & other, Alloc a)   : _m(a) { append(other); }
 
 	~dynarray() noexcept;
 
@@ -114,8 +115,7 @@ public:
 
 	dynarray & operator =(std::initializer_list<T> il) &  { assign(il);  return *this; }
 
-	void        swap(dynarray & other) noexcept;
-	friend void swap(dynarray & a, dynarray & b) noexcept   OEL_ALWAYS_INLINE { a.swap(b); }
+	friend void swap(dynarray & a, dynarray & b) noexcept   OEL_ALWAYS_INLINE { a._m.swap(b._m); }
 
 	/**
 	* @brief Almost same as std::vector::assign_range (C++23)
@@ -202,12 +202,12 @@ public:
 
 	size_type capacity() const noexcept        { return static_cast<size_t>(_m.reservEnd - _m.data); }
 
-	constexpr size_type max_size() const noexcept   { return _alloTrait::max_size(_m) - _allocateWrap::sizeForHeader; }
+	constexpr size_type max_size() const noexcept   { return _alloTrait::max_size(_m.allo) - _allocateWrap::sizeForHeader; }
 
 	//! How much smaller capacity is than the number passed to allocator_type::allocate
 	static constexpr size_type allocate_size_overhead() noexcept   { return _allocateWrap::sizeForHeader; }
 
-	allocator_type get_allocator() const noexcept   { return _m; }
+	allocator_type get_allocator() const noexcept   { return _m.allo; }
 
 	iterator       begin() noexcept         { return _detail::MakeDynarrIter           (_m, _m.data); }
 	const_iterator begin() const noexcept   { return _detail::MakeDynarrIter<const T *>(_m, _m.data); }
@@ -256,45 +256,69 @@ public:
 
 private:
 	using _allocateWrap = _detail::DebugAllocateWrapper<allocator_type, T *>;
-	using _internBase   = _detail::DynarrBase<T *>;
 	using _uninitFill   = _detail::UninitFill<allocator_type>;
-	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_internBase>;
-	using _argAlloc_7KQw  = Alloc; // guarding against name collision due to inheritance (MSVC)
-	using _usedAlloc_7KQw = allocator_type;
 
-	struct _memOwner : public _internBase, public _usedAlloc_7KQw
+	struct _memOwner
 	{
-		using B = ::oel::_detail::DynarrBase<value_type *>;
+		T * data{};  // owner
+		T * end{};
+		T * reservEnd{};
+		OEL_NO_UNIQUE_ADDRESS allocator_type allo;
 
-		using B::data;  // owner
-		using B::end;
-		using B::reservEnd;
-
-		constexpr _memOwner(_argAlloc_7KQw & a) noexcept
-		 :	B{}, _usedAlloc_7KQw{std::move(a)}
+		constexpr _memOwner(Alloc & a) noexcept
+		 :	allo{std::move(a)}
 		{}
 
 		constexpr _memOwner(_memOwner && other) noexcept
-		 :	B{other}, _usedAlloc_7KQw{std::move(other)}
+		 :	allo{std::move(other.allo)}
 		{
-			other.reservEnd = other.end = other.data = nullptr;
+			moveDataFrom(other);
 		}
 
 		~_memOwner()
 		{
+			dealloc();
+		}
+
+		void moveDataFrom(_memOwner & other) noexcept
+		{
+			data      = other.data;
+			end       = other.end;
+			reservEnd = other.reservEnd;
+			other.reservEnd = other.end = other.data = nullptr;
+		}
+
+		void swap(_memOwner & other) noexcept
+		{
+			using std::swap;
+
+			swap(data, other.data);
+			swap(end, other.end);
+			swap(reservEnd, other.reservEnd);
+
+			if constexpr (_alloTrait::propagate_on_container_swap::value)
+				swap(allo, other.allo);
+			else // Standard says this is undefined if allocators compare unequal
+				OEL_ASSERT(allo == other.allo);
+		}
+
+		void dealloc()
+			noexcept(noexcept( _allocateWrap::dealloc(allo, data, size_t{}) ))
+		{
 			if (data)
 			{
 				auto cap = static_cast<size_t>(reservEnd - data);
-				::oel::_detail::DebugAllocateWrapper<_usedAlloc_7KQw, value_type *>::dealloc(*this, data, cap);
+				_allocateWrap::dealloc(allo, data, cap);
 			}
 		}
 	}
 	_m; // the only non-static data member
 
+	using _debugSizeUpdater = _detail::DebugSizeInHeaderUpdater<_memOwner>;
+
 	void _resetData(T *const newData, size_type const newCap)
 	{
-		if (_m.data)
-			_allocateWrap::dealloc(_m, _m.data, capacity());
+		_m.dealloc();
 		// Beware, sets _m.data with no _debugSizeUpdater
 		_m.data      = newData;
 		_m.reservEnd = newData + newCap;
@@ -304,13 +328,6 @@ private:
 	{
 		_m.end = _m.data = _allocateChecked(capToCheck);
 		_m.reservEnd = _m.data + capToCheck;
-	}
-
-	void _moveInternBase(_internBase & src) noexcept
-	{
-		_internBase & dest = _m;
-		dest = src;
-		src  = {};
 	}
 
 
@@ -351,7 +368,7 @@ private:
 	T * _allocateChecked(size_type const n)
 	{
 		if (n <= max_size())
-			return _allocateWrap::allocate(_m, n);
+			return _allocateWrap::allocate(_m.allo, n);
 		else
 			_detail::LengthError::raise();
 	}
@@ -361,13 +378,13 @@ private:
 	{
 		if constexpr( oel::allocator_can_realloc<allocator_type>() )
 		{
-			auto const p = _allocateWrap::realloc(_m, _m.data, newCap);
+			auto const p = _allocateWrap::realloc(_m.allo, _m.data, newCap);
 			_m.data = p;
 			_m.end = p + oldSize;
 			_m.reservEnd = p + newCap;
 		}
 		else
-		{	auto const newData = _allocateWrap::allocate(_m, newCap);
+		{	auto const newData = _allocateWrap::allocate(_m.allo, newCap);
 			_m.end = _detail::Relocate(_m.data, oldSize, newData);
 			_resetData(newData, newCap);
 		}
@@ -396,7 +413,7 @@ private:
 
 		T *const newEnd = _m.data + newSize;
 		if (_m.end < newEnd)
-			UninitFiller::call(_m.end, newEnd, _m);
+			UninitFiller::call(_m.end, newEnd, _m.allo);
 		else
 			_detail::Destroy(newEnd, _m.end);
 
@@ -470,7 +487,7 @@ private:
 			}
 			while (_m.end != newEnd)
 			{	// each iteration updates _m.end for exception safety
-				_alloTrait::construct(_m, _m.end, *src);
+				_alloTrait::construct(_m.allo, _m.end, *src);
 				++src; ++_m.end;
 			}
 			return src;
@@ -496,7 +513,7 @@ private:
 			{
 				while (dest != dLast)
 				{
-					_alloTrait::construct(_m, dest, *src);
+					_alloTrait::construct(_m.allo, dest, *src);
 					++dest; ++src;
 				}
 			}
@@ -515,7 +532,7 @@ private:
 
 	T * _insertReallocImpl(size_type const newCap, T *const pos, size_type const count)
 	{
-		auto const newData = _allocateWrap::allocate(_m, newCap);
+		auto const newData = _allocateWrap::allocate(_m.allo, newCap);
 		// Exception free from here
 		auto const nBefore = pos - _m.data;
 		auto const nAfter  = _m.end - pos;
@@ -569,7 +586,7 @@ typename dynarray<T, Alloc>::iterator
 
 	// Temporary in case constructor throws or args refer to an element of this dynarray
 	alignas(T) unsigned char tmp[sizeof(T)];
-	_alloTrait::construct(_m, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
+	_alloTrait::construct(_m.allo, reinterpret_cast<T *>(&tmp), static_cast<Args &&>(args)...);
 	if (_m.end < _m.reservEnd)
 	{	// Relocate [pos, end) to [pos + 1, end + 1)
 		size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
@@ -625,7 +642,7 @@ typename dynarray<T, Alloc>::iterator
 		{
 			while (dest != dLast)
 			{
-				_alloTrait::construct(_m, dest, *first);
+				_alloTrait::construct(_m.allo, dest, *first);
 				++dest; ++first;
 			}
 		}
@@ -646,7 +663,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	if (_m.end == _m.reservEnd)
 		_growByOne();
 
-	_alloTrait::construct(_m, _m.end, static_cast<Args &&>(args)...);
+	_alloTrait::construct(_m.allo, _m.end, static_cast<Args &&>(args)...);
 
 	_debugSizeUpdater guard{_m};
 
@@ -698,7 +715,7 @@ dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
 {
 	_initReserve(n);
 	_m.end = _m.reservEnd;
-	_detail::DefaultInit<allocator_type>::call(_m.data, _m.reservEnd, _m);
+	_detail::DefaultInit<allocator_type>::call(_m.data, _m.reservEnd, _m.allo);
 
 	(void) _debugSizeUpdater{_m};
 }
@@ -709,7 +726,7 @@ dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
 {
 	_initReserve(n);
 	_m.end = _m.reservEnd;
-	_uninitFill::call(_m.data, _m.reservEnd, _m);
+	_uninitFill::call(_m.data, _m.reservEnd, _m.allo);
 
 	(void) _debugSizeUpdater{_m};
 }
@@ -719,15 +736,13 @@ dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)
  :	_m(a) // moves from a
 {
 	if constexpr (!_alloTrait::is_always_equal::value)
-	{
-		allocator_type & myA = _m;
-		if (myA != other._m)
+		if (_m.allo != other._m.allo)
 		{
 			append(other | view::move);
 			return;
 		}
-	}
-	_moveInternBase(other._m);
+
+	_m.moveDataFrom(other._m);
 }
 
 template< typename T, typename Alloc >
@@ -735,9 +750,8 @@ dynarray<T, Alloc> &
 	dynarray<T, Alloc>::operator =(dynarray && other) &
 	noexcept(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value)
 {
-	[[maybe_unused]] allocator_type & myA = _m;
 	if constexpr( !(_alloTrait::propagate_on_container_move_assignment::value or _alloTrait::is_always_equal::value) )
-	    if (myA != other._m)
+	    if (_m.allo != other._m.allo)
 		{
 			assign(other | view::move);
 			return *this;
@@ -747,11 +761,11 @@ dynarray<T, Alloc> &
 	if (_m.data)
 	{
 		_detail::Destroy(_m.data, _m.end);
-		_allocateWrap::dealloc(_m, _m.data, capacity());
+		_allocateWrap::dealloc(_m.allo, _m.data, capacity());
 	}
-	_moveInternBase(other._m);
+	_m.moveDataFrom(other._m);
 	if constexpr (_alloTrait::propagate_on_container_move_assignment::value)
-		myA = static_cast<allocator_type &&>(other._m);
+		_m.allo = std::move(other._m.allo);
 
 	return *this;
 }
@@ -772,26 +786,6 @@ template< typename T, typename Alloc >
 dynarray<T, Alloc>::~dynarray() noexcept
 {
 	_detail::Destroy(_m.data, _m.end);
-}
-
-template< typename T, typename Alloc >
-void dynarray<T, Alloc>::swap(dynarray & other) noexcept
-{
-	_internBase & x = _m;
-	_internBase & y = other._m;
-	std::swap(x, y);
-
-	[[maybe_unused]] allocator_type & a0 = _m;
-	[[maybe_unused]] allocator_type & a1 = other._m;
-	if constexpr (_alloTrait::propagate_on_container_swap::value)
-	{
-		using std::swap;
-		swap(a0, a1);
-	}
-	else
-	{	// Standard says this is undefined if allocators compare unequal
-		OEL_ASSERT(a0 == a1);
-	}
 }
 
 

@@ -25,7 +25,8 @@ class _zipTransform
 	using _iSeq      = std::index_sequence_for<Iterators...>;
 	using _firstIter = std::tuple_element_t< 0, std::tuple<Iterators...> >;
 
-	oel::_detail::TightPair< std::tuple<Iterators...>, typename oel::_detail::AssignableWrap<Func>::Type > _m;
+	OEL_NO_UNIQUE_ADDRESS typename oel::_detail::AssignableWrap<Func>::Type _fn;
+	std::tuple<Iterators...> _iters;
 
 public:
 	using iterator_category = decltype( iter::_transformCategory<true, Func, Iterators...>() );
@@ -36,15 +37,15 @@ public:
 	using value_type = std::remove_cv_t< std::remove_reference_t<reference> >;
 
 	_zipTransform() = default;
-	constexpr _zipTransform(Func f, Iterators... it)   : _m{ {std::move(it)...}, std::move(f) } {}
+	constexpr _zipTransform(Func f, Iterators... it)   : _fn{std::move(f)}, _iters{std::move(it)...} {}
 
 	//! Return type is `const std::tuple<Iterators...> &`
-	constexpr const auto & base() const & noexcept   OEL_ALWAYS_INLINE { return _m.first; }
+	constexpr const auto & base() const & noexcept   OEL_ALWAYS_INLINE { return _iters; }
 	//! Return type is `std::tuple<Iterators...>`
 	constexpr auto         base() && noexcept
 		{
-			static_assert(std::is_nothrow_move_constructible_v< decltype(_m.first) >);
-			return std::move(_m.first);
+			static_assert(std::is_nothrow_move_constructible_v< decltype(_iters) >);
+			return std::move(_iters);
 		}
 
 	constexpr reference operator*() const   OEL_ALWAYS_INLINE { return _apply(_iSeq{}); }
@@ -86,33 +87,33 @@ public:
 	friend constexpr difference_type operator -(const _zipTransform & left, const _zipTransform & right)
 		OEL_REQUIRES(std::sized_sentinel_for<_firstIter, _firstIter>)
 		{
-			return std::get<0>(left._m.first) - std::get<0>(right._m.first);
+			return std::get<0>(left._iters) - std::get<0>(right._iters);
 		}
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, _firstIter>)
 	friend constexpr difference_type operator -(_sentinelWrapper<S> left, const _zipTransform & right)
 		{
-			return left._s - std::get<0>(right._m.first);
+			return left._s - std::get<0>(right._iters);
 		}
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, _firstIter>)
 	friend constexpr difference_type operator -(const _zipTransform & left, _sentinelWrapper<S> right)
 		{
-			return std::get<0>(left._m.first) - right._s;
+			return std::get<0>(left._iters) - right._s;
 		}
 
 	friend constexpr bool operator!=(const _zipTransform & left, const _zipTransform & right)
 		{
-			return std::get<0>(left._m.first) != std::get<0>(right._m.first);
+			return std::get<0>(left._iters) != std::get<0>(right._iters);
 		}
 	friend constexpr bool operator <(const _zipTransform & left, const _zipTransform & right)
 		{
-			return std::get<0>(left._m.first) < std::get<0>(right._m.first);
+			return std::get<0>(left._iters) < std::get<0>(right._iters);
 		}
 	template< typename S >
 	friend constexpr bool operator!=(const _zipTransform & left, _sentinelWrapper<S> right)
 		{
-			return std::get<0>(left._m.first) != right._s;
+			return std::get<0>(left._iters) != right._s;
 		}
 
 
@@ -125,26 +126,26 @@ private:
 	template< size_t... Ns >
 	constexpr reference _apply(std::index_sequence<Ns...>) const
 	{
-		const Func & f = _m.second();
-		return f(*std::get<Ns>(_m.first)...);
+		const Func & f = _fn;
+		return f(*std::get<Ns>(_iters)...);
 	}
 
 	template< size_t... Ns >
 	OEL_ALWAYS_INLINE constexpr void _increment(std::index_sequence<Ns...>)
 	{
-		(++std::get<Ns>(_m.first), ...);
+		(++std::get<Ns>(_iters), ...);
 	}
 
 	template< size_t... Ns >
 	OEL_ALWAYS_INLINE constexpr void _decrement(std::index_sequence<Ns...>)
 	{
-		(--std::get<Ns>(_m.first), ...);
+		(--std::get<Ns>(_iters), ...);
 	}
 
 	template< size_t... Ns >
 	constexpr void _advance(difference_type offset, std::index_sequence<Ns...>)
 	{
-		( (std::get<Ns>(_m.first) += offset), ... );
+		( (std::get<Ns>(_iters) += offset), ... );
 	}
 };
 
