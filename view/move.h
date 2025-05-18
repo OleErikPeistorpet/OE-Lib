@@ -76,6 +76,8 @@ constexpr decltype(auto) iter_move(const _iterTransform<_iterMove::Fn, Iterator>
 	noexcept(noexcept( oel::iter_move(it.base()) ))
 	{        return    oel::iter_move(it.base()); }
 
+// TODO: _iterTransform with _iterMove::Fn should model std::contiguous_iterator
+
 template< typename Iterator >
 constexpr auto as_contiguous_address(_iterTransform<_iterMove::Fn, Iterator> it) noexcept
 ->	decltype( as_contiguous_address(it.base()) )
