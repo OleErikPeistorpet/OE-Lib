@@ -6,8 +6,10 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "dynarray.h"
+#include "util.h"  // for as_unsigned
 #include "auxi/range_algo_detail.h"
-#include "util.h"
+#include "view/counted.h"
 
 
 /** @file
@@ -18,6 +20,31 @@
 
 namespace oel
 {
+
+//! Equivalent to oel::concat_to_dynarray with an allocator instance for the dynarray
+/** @param a will be rebound to the type deduced from Ranges, which is std::common_type_t of all range value types
+*
+* Has the same effect as `std::views::concat(sources...) | to_dynarray(a)`. */
+template< typename Alloc, typename... Ranges >
+auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
+	{
+		static_assert((... and _detail::rangeIsForwardOrSized<Ranges>));
+		using T = std::common_type_t<
+				iter_value_t< iterator_t<Ranges> >...
+			>;
+		size_t const counts[]{_detail::UDist(sources)...};
+
+		size_t sum{};
+		for (auto n : counts)
+			sum += n;
+
+		auto d = dynarray<T, Alloc>(reserve, sum, std::move(a));
+
+		auto nIt = begin(counts);
+		(..., d.append( view::counted(begin(sources), *nIt++) ));
+
+		return d;
+	}
 
 //! Concatenate multiple ranges into a dynarray using a single memory allocation
 /**
@@ -32,16 +59,7 @@ auto result = concat_to_dynarray(header, body());
 template< typename... Ranges >  inline
 auto concat_to_dynarray(Ranges &&... sources)
 	{
-		return _detail::ConcatToDynarr(allocator<>{}, static_cast<Ranges &&>(sources)...);
-	}
-//! Equivalent to oel::concat_to_dynarray with an allocator instance for the dynarray
-/** @param a will be rebound to the type deduced from Ranges, which is std::common_type_t of all range value types
-*
-* Has the same effect as `std::views::concat(sources...) | to_dynarray(a)`. */
-template< typename Alloc, typename... Ranges >  inline
-auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
-	{
-		return _detail::ConcatToDynarr(std::move(a), static_cast<Ranges &&>(sources)...);
+		return oel::concat_to_dynarray_with_alloc(allocator<>{}, sources...);
 	}
 
 

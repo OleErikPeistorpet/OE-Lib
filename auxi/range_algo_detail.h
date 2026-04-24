@@ -6,9 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "impl_algo.h"
-#include "../dynarray.h"
-#include "../view/counted.h"
+#include "impl_algo.h" // for MemcpyCheck
 
 #include <algorithm>
 
@@ -84,28 +82,5 @@ namespace oel::_detail
 			}
 			return src;
 		}
-	}
-
-////////////////////////////////////////////////////////////////////////////////
-
-	template< typename Alloc, typename... Ranges >
-	auto ConcatToDynarr(Alloc a, Ranges &&... rs)
-	{
-		static_assert((... and rangeIsForwardOrSized<Ranges>));
-		using T = std::common_type_t<
-				iter_value_t< iterator_t<Ranges> >...
-			>;
-		size_t const counts[]{_detail::UDist(rs)...};
-
-		size_t sum{};
-		for (auto n : counts)
-			sum += n;
-
-		auto d = dynarray<T, Alloc>(reserve, sum, std::move(a));
-
-		auto nIt = begin(counts);
-		(..., d.append( view::counted(begin(rs), *nIt++) ));
-
-		return d;
 	}
 }
