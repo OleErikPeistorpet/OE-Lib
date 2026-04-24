@@ -62,7 +62,7 @@ namespace oel::_detail
 ////////////////////////////////////////////////////////////////////////////////
 
 	template< typename InputIter, typename RandomAccessIter >
-	InputIter CopyUnsf(InputIter src, size_t const n, RandomAccessIter const dest)
+	InputIter Copy(InputIter src, size_t const n, RandomAccessIter const dest)
 	{
 		if constexpr (can_memmove_with<RandomAccessIter, InputIter>)
 		{
@@ -83,39 +83,6 @@ namespace oel::_detail
 				++src;
 			}
 			return src;
-		}
-	}
-
-
-	template< typename InputRange, typename RandomAccessRange >
-	bool CopyFit(InputRange & src, RandomAccessRange & dest)
-	{
-		if constexpr (range_is_sized<InputRange>)
-		{
-			auto       n        = as_unsigned(_detail::Size(src));
-			auto const destSize = as_unsigned(_detail::Size(dest));
-			bool const success{n <= destSize};
-			if (!success)
-				n = destSize;
-
-			_detail::CopyUnsf(begin(src), n, begin(dest));
-			return success;
-		}
-		else
-		{	auto it = begin(src);  auto const last = end(src);
-			auto di = begin(dest);  auto const dl = end(dest);
-			while (it != last)
-			{
-				if (di != dl)
-				{
-					*di = *it;
-					++di; ++it;
-				}
-				else
-				{	return false;
-				}
-			}
-			return true;
 		}
 	}
 

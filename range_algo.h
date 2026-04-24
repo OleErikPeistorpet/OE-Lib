@@ -80,41 +80,28 @@ struct copy_return
 {
 	Iterator in;
 };
-/**
-* @brief Copies the elements in source range into the range beginning at iter
-* @return `begin(source)` incremented by source size
+
+//! Copies the elements in source into the range beginning at dest
+/** @return `begin(source)` incremented by source size
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* Requires that `source.size()` or `end(source) - begin(source)` is valid, and that iter models random_access_iterator.
-* To move instead of copy, wrap source with view::move. To mimic std::copy_n, use view::counted.
-* (Views can be used for all functions taking a range as source)  */
-inline constexpr auto copy_unsafe =
-	[](auto && source, auto iter) -> copy_return< borrowed_iterator_t<decltype(source)> >
+* Requires that `source.size()` or `end(source) - begin(source)` is valid, and that dest models random_access_iterator.
+* To move instead of copy, wrap source with view::move. (To mimic std::copy_n, use view::counted)  */
+template< typename SizedRange, typename RandomAccessIter >  inline
+auto copy_unsafe(SizedRange && source, RandomAccessIter dest)
+->	copy_return< borrowed_iterator_t<SizedRange> >
 	{
-		return{ _detail::CopyUnsf(begin(source), _detail::Size(source), iter) };
-	};
-/**
-* @brief Copies the elements in source range into dest range, throws std::out_of_range if dest is smaller than source
-* @return `begin(source)` incremented by the number of elements in source
-* @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
-*
-* Requires that `source.size()` or `end(source) - begin(source)` is valid, and that dest models random_access_range. */
-inline constexpr auto copy =
-	[](auto && source, auto && dest) -> copy_return< borrowed_iterator_t<decltype(source)> >
-	{
-		if (as_unsigned( _detail::Size(source) ) <= as_unsigned( _detail::Size(dest) ))
-			return copy_unsafe(source, begin(dest));
-		else
-			_detail::OutOfRange::raise("Too small dest oel::copy");
-	};
-/**
-* @brief Copies as many elements from source range as will fit in dest range
-* @return true if all elements were copied, false means truncation happened
+		return{ _detail::Copy(begin(source), _detail::Size(source), dest) };
+	}
+
+//! Copies as many elements from source range as will fit in dest range
+/** @return `begin(source)` incremented by source size
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
 * Requires that dest models std::ranges::random_access_range. */
-inline constexpr auto copy_fit =
-	[](auto && source, auto && dest) -> bool   { return _detail::CopyFit(source, dest); };
+template< typename InputRange, typename RandomAccessRange >
+auto copy_fit(InputRange && source, RandomAccessRange && dest)
+->	copy_return< borrowed_iterator_t<InputRange> >;
 
 
 
@@ -138,3 +125,35 @@ struct _appendFn
 inline constexpr _appendFn append;
 
 } // namespace oel
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Just implementation
+
+
+template< typename InputRange, typename RandomAccessRange >
+auto oel::copy_fit(InputRange && source, RandomAccessRange && dest)
+->	copy_return< borrowed_iterator_t<InputRange> >
+{
+	if constexpr (range_is_sized<InputRange>)
+	{
+		auto       n        = as_unsigned(_detail::Size(source));
+		auto const destSize = as_unsigned(_detail::Size(dest));
+		if (n > destSize)
+			n = destSize;
+
+		return {_detail::Copy( begin(source), n, begin(dest) )};
+	}
+	else
+	{	auto it = begin(source); auto const last = end(source);
+		auto di = begin(dest);   auto const dl = end(dest);
+		while (it != last and di != dl)
+		{
+			*di = *it;
+			++di; ++it;
+		}
+		return {it};
+	}
+}
