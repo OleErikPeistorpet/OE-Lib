@@ -144,11 +144,8 @@ public:
 	* @pre source shall not refer to any elements in this dynarray if reallocation happens.
 	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements
 	* @return Iterator `begin(source)` incremented by the number of elements in source  */
-	template< typename InputRange >
+	template< typename InputRange = std::initializer_list<T> >
 	auto append(InputRange && source) -> borrowed_iterator_t<InputRange>;
-
-	//! Equivalent to `std::vector::insert(end(), il)`
-	void append(std::initializer_list<T> il)   { append<>(il); }
 	/**
 	* @brief Same as `std::vector::insert(end(), count, val)`
 	* @pre val shall not be a reference to an element of this dynarray if reallocation happens.
