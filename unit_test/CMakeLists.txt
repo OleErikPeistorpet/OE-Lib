@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.11)
 
 project(oel-test CXX)
 
@@ -10,7 +10,13 @@ option(MEM_BOUND_DEBUG "Set OEL_MEM_BOUND_DEBUG_LVL=2" off)
 option(BUILD_GMOCK   "" off)
 option(INSTALL_GTEST "" off)
 option(gtest_force_shared_crt "" on)
-add_subdirectory(googletest)
+
+include(FetchContent)
+FetchContent_Declare(
+	googletest
+	URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+FetchContent_MakeAvailable(googletest)
 
 
 add_executable(oel-test
@@ -52,4 +58,8 @@ else()
 	target_compile_options(oel-test PRIVATE -Wall -Wextra -Wold-style-cast -Wshadow -Wconversion -Wno-sign-conversion)
 endif()
 
-target_link_libraries(oel-test gtest_main)
+
+target_link_libraries(oel-test GTest::gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(oel-test)
