@@ -26,19 +26,13 @@ inline namespace debug
 
 //! Checked iterator for dynarray
 /**
-* Note: a pair of value-initialized iterators count as an empty range (C++14 requirement)  */
+* Note: value-initialized iterators are valid to compare,
+* and one compares different to any iterator from a dynarray with non-zero capacity. */
 template< typename Ptr >
 struct dynarray_iterator
 {
-#define OEL_ITER_VALIDATE_DEREF  \
-	OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex(_pElem, *_header) )
-
-#if OEL_MEM_BOUND_DEBUG_LVL >= 2
-	// Test for iterator pair pointing to same container
-	#define OEL_ITER_CHECK_COMPATIBLE(a, b)  OEL_ASSERT((a)._allocationId == (b)._allocationId)
-#else
-	#define OEL_ITER_CHECK_COMPATIBLE(a, b)
-#endif
+	#define OEL_ITER_VALIDATE_DEREF  \
+		OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex(_pElem, *_header) )
 
 
 	using iterator_category = std::random_access_iterator_tag;
@@ -124,7 +118,6 @@ struct dynarray_iterator
 
 	friend difference_type operator -(const dynarray_iterator & left, const dynarray_iterator & right)
 		{
-			OEL_ITER_CHECK_COMPATIBLE(left, right);
 			return left._pElem - right._pElem;
 		}
 
@@ -137,31 +130,27 @@ struct dynarray_iterator
 
 	friend bool operator==(const dynarray_iterator & left, const dynarray_iterator & right)
 		{
-			OEL_ITER_CHECK_COMPATIBLE(left, right);
 			return left._pElem == right._pElem;
 		}
 	friend bool operator!=(const dynarray_iterator & left, const dynarray_iterator & right)
 		{
-			OEL_ITER_CHECK_COMPATIBLE(left, right);
 			return left._pElem != right._pElem;
 		}
 	friend bool operator <(const dynarray_iterator & left, const dynarray_iterator & right)
 		{
-			OEL_ITER_CHECK_COMPATIBLE(left, right);
 			return left._pElem < right._pElem;
 		}
 	friend bool operator >(const dynarray_iterator & left, const dynarray_iterator & right)
 		{
-			OEL_ITER_CHECK_COMPATIBLE(left, right);
 			return left._pElem > right._pElem;
 		}
 	friend bool operator<=(const dynarray_iterator & left, const dynarray_iterator & right)
 		{
-			return !(right < left);
+			return left._pElem <= right._pElem;
 		}
 	friend bool operator>=(const dynarray_iterator & left, const dynarray_iterator & right)
 		{
-			return !(left < right);
+			return left._pElem >= right._pElem;
 		}
 
 
@@ -170,8 +159,7 @@ struct dynarray_iterator
 	const _detail::DebugAllocationHeader * _header;
 	std::uintptr_t _allocationId;  //!< Used to check if this iterator has been invalidated by deallocation
 
-#undef OEL_ITER_CHECK_COMPATIBLE
-#undef OEL_ITER_VALIDATE_DEREF
+	#undef OEL_ITER_VALIDATE_DEREF
 };
 
 } // debug
