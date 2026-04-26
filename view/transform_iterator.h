@@ -110,8 +110,11 @@ public:
 			return tmp;
 		}
 
-	constexpr difference_type operator -(const transform_iterator & right) const
-		OEL_REQUIRES(std::sized_sentinel_for<Iterator, Iterator>)        { return m.first - right.m.first; }
+	friend constexpr difference_type operator -(const transform_iterator & left, const transform_iterator & right)
+		OEL_REQUIRES(std::sized_sentinel_for<Iterator, Iterator>)
+		{
+			return left.m.first - right.m.first;
+		}
 
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
@@ -123,9 +126,14 @@ public:
 	friend constexpr difference_type operator -
 		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first - right._s; }
 
-	constexpr bool operator==(const transform_iterator & right) const   { return m.first == right.m.first; }
-	// These are not hidden friends because MSC 2017 gives error C3615
-	constexpr bool operator!=(const transform_iterator & right) const   { return m.first != right.m.first; }
+	friend constexpr bool operator==(const transform_iterator & left, const transform_iterator & right)
+		{
+			return left.m.first == right.m.first;
+		}
+	friend constexpr bool operator!=(const transform_iterator & left, const transform_iterator & right)
+		{
+			return left.m.first != right.m.first;
+		}
 
 	template< typename S >
 	friend constexpr bool operator==

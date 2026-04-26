@@ -117,7 +117,7 @@ namespace oel::_detail
 				UninitFill<Alloc>::call(first, last, a);
 			}
 			else
-			{	(void) first; (void) last; (void) a; // avoid VC++ 2017 warning C4100
+			{	(void) first; (void) last; (void) a;
 			}
 		}
 	};
