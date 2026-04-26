@@ -23,8 +23,8 @@ namespace oel::_detail
 
 	template< typename Container, typename Iterator >
 	constexpr auto EraseEnd(Container & c, Iterator f)
-	->	decltype(c.erase_to_end(f))
-	{	return   c.erase_to_end(f); }
+	->	decltype( c.erase_to_end(f) )
+	{	return    c.erase_to_end(f); }
 
 	template< typename Container, typename Iterator, typename... None >
 	constexpr void EraseEnd(Container & c, Iterator f, None...)
@@ -49,7 +49,7 @@ namespace oel::_detail
 
 	template< typename Container >
 	constexpr auto Unique(Container & c)
-	->	decltype(c.unique()) { return c.unique(); }
+	->	decltype( c.unique() ) { return c.unique(); }
 
 	template< typename Container, typename... None >
 	constexpr void Unique(Container & c, None...)
@@ -62,10 +62,10 @@ namespace oel::_detail
 	template< typename InputIter, typename RandomAccessIter >
 	InputIter Copy(InputIter src, size_t const n, RandomAccessIter const dest)
 	{
-		if constexpr (can_memmove_with<RandomAccessIter, InputIter>)
+		if constexpr( can_memmove_with<RandomAccessIter, InputIter> )
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
-			if (n != 0)
+			if( n != 0 )
 			{	// Dereference to detect out of range errors if the iterator has internal check
 				(void) *dest;
 				(void) *(dest + (n - 1));
@@ -75,7 +75,7 @@ namespace oel::_detail
 			return src + n;
 		}
 		else
-		{	for (size_t i{}; i != n; ++i)
+		{	for( size_t i{}; i != n; ++i )
 			{
 				dest[i] = *src;
 				++src;

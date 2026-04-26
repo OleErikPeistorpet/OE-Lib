@@ -115,7 +115,7 @@ namespace _detail
 	template< size_t Align >
 	void * AlignAndStore(void *const orig) noexcept
 	{
-		if (orig)
+		if( orig )
 		{
 			auto i = reinterpret_cast<std::uintptr_t>(orig) + Align;
 			i &= ~(Align - 1);
@@ -134,7 +134,7 @@ namespace _detail
 	{
 		static void * call(size_t const nBytes)
 		{
-			if constexpr (Align > OEL_MALLOC_ALIGNMENT)
+			if constexpr( Align > OEL_MALLOC_ALIGNMENT )
 			{
 				auto p = ::malloc(nBytes + Align);
 				return AlignAndStore<Align>(p);
@@ -150,9 +150,9 @@ namespace _detail
 	{
 		static void * call(size_t const nBytes, void * old)
 		{
-			if constexpr (Align > OEL_MALLOC_ALIGNMENT)
+			if constexpr( Align > OEL_MALLOC_ALIGNMENT )
 			{
-				if (old)
+				if( old )
 					old = static_cast<void **>(old)[-1];
 
 				auto p = ::realloc(old, nBytes + Align);
@@ -167,9 +167,9 @@ namespace _detail
 	template< size_t Align >
 	void Free(void * p, size_t const nBytes) noexcept
 	{
-		if constexpr (Align > OEL_MALLOC_ALIGNMENT)
+		if constexpr( Align > OEL_MALLOC_ALIGNMENT )
 		{
-			if (p)
+			if( p )
 				p = static_cast<void **>(p)[-1];
 			else
 				return;
@@ -192,16 +192,16 @@ namespace _detail
 	{
 		auto const zeroSize = CheckZero ? (nBytes == 0) : false;
 	#if OEL_NEW_HANDLER
-		if (!zeroSize)
+		if( !zeroSize )
 		{
-			for (;;)
+			for( ;; )
 			{
 				auto p = AllocFunc::call(nBytes, old...);
-				if (p)
+				if( p )
 					return p;
 
 				auto const handler = std::get_new_handler();
-				if (handler)
+				if( handler )
 					handler();
 				else
 					OEL_ABORT(allocFailMsg);
@@ -212,7 +212,7 @@ namespace _detail
 		}
 	#else
 		auto p = AllocFunc::call(nBytes, old...);
-		if (p or zeroSize)
+		if( p or zeroSize )
 			return p;
 		else
 			BadAlloc::raise();

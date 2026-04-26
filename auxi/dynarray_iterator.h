@@ -43,7 +43,7 @@ struct dynarray_iterator
 	using difference_type = ptrdiff_t;
 	using value_type      = iter_value_t<Ptr>;
 	using pointer         = Ptr;
-	using reference       = decltype(*Ptr{});
+	using reference       = decltype( *Ptr{} );
 
 	using const_iterator = dynarray_iterator<const value_type *>;
 
@@ -192,7 +192,7 @@ namespace oel::_detail
 	auto MakeDynarrIter(const DynarrBase<P2> & parent, Ptr const pos) noexcept
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL
-		if (parent.data)
+		if( parent.data )
 		{
 			auto const h = _detail::DebugHeaderOf(parent.data);
 			return dynarray_iterator<Ptr>{pos, h, h->id};

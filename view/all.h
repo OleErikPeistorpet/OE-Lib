@@ -23,22 +23,22 @@ namespace _detail
 		template< std::ranges::viewable_range R >
 		constexpr auto operator()(R && r) const
 		{
-			return std::views::all(static_cast<R &&>(r));
+			return std::views::all( static_cast<R &&>(r) );
 		}
 	#endif
 
 		template< typename Range >
 		constexpr auto operator()(Range && r) const
 		{
-			if constexpr (std::is_lvalue_reference_v<Range>)
+			if constexpr( std::is_lvalue_reference_v<Range> )
 			{
-				if constexpr (range_is_sized<Range>)
+				if constexpr( range_is_sized<Range> )
 					return view::counted(begin(r), oel::ssize(r));
 				else
 					return view::subrange(begin(r), end(r));
 			}
 			else
-			{	return view::owning(static_cast<Range &&>(r));
+			{	return view::owning( static_cast<Range &&>(r) );
 			}
 		}
 	};

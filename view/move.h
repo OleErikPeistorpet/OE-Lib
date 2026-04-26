@@ -31,7 +31,7 @@ public:
 	constexpr auto end()
 		{
 		#if OEL_HAS_STD_MOVE_SENTINEL
-			if constexpr (!std::is_same_v< iterator_t<V>, sentinel_t<V> >)
+			if constexpr( !std::is_same_v< iterator_t<V>, sentinel_t<V> > )
 				return std::move_sentinel{_base.end()};
 			else
 		#endif
@@ -45,7 +45,10 @@ public:
 	constexpr bool empty()   { return _base.empty(); }
 
 	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)   { return std::move_iterator{_base.begin()}[index]; }
+		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)
+		{
+			return std::move_iterator{_base.begin()}[index];
+		}
 
 	constexpr View         base() &&                { return std::move(_base); }
 	constexpr const View & base() const & noexcept  { return _base; }
@@ -67,7 +70,7 @@ struct _moveFn
 };
 /** @brief Very similar to views::move in the Range-v3 library and std::views::as_rvalue
 @code
-std::string moveFrom[] {"abc", "def"};
+std::string moveFrom[]{ "abc", "def" };
 auto movedStrings = moveFrom | view::move | oel::to_dynarray();
 @endcode  */
 inline constexpr _moveFn move;

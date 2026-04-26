@@ -17,7 +17,7 @@ namespace oel
 namespace _detail
 {
 	template< typename Func, typename Iter,
-		bool = std::is_invocable_v< const Func &, decltype(*std::declval<Iter const>()) >
+		bool = std::is_invocable_v< const Func &, decltype( *std::declval<Iter const>() ) >
 	>
 	struct TransformIterBase
 	{
@@ -77,7 +77,7 @@ public:
 	constexpr const Iterator & base() const & noexcept   OEL_ALWAYS_INLINE { return m.first; }
 	constexpr Iterator         base() && noexcept
 		{
-			static_assert(std::is_nothrow_move_constructible_v<Iterator>);
+			static_assert( std::is_nothrow_move_constructible_v<Iterator> );
 			return std::move(m.first);
 		}
 
@@ -91,7 +91,7 @@ public:
 	//! Post-increment: return type is transform_iterator if iterator_category is-a forward_iterator_tag, else void
 	constexpr auto                 operator++(int) &
 		{
-			if constexpr (std::is_same_v<iterator_category, std::input_iterator_tag>)
+			if constexpr( std::is_same_v<iterator_category, std::input_iterator_tag> )
 			{
 				++m.first;
 			}

@@ -26,8 +26,8 @@
 */
 #define OEL_MEMBER_FN(func)  \
 	[](auto && ob_, auto &&... args_)  \
-	->	decltype( decltype(ob_)(ob_).func(decltype(args_)(args_)...) )  \
-		{  return decltype(ob_)(ob_).func(decltype(args_)(args_)...); }
+	->	decltype( decltype(ob_)(ob_).func( decltype(args_)(args_)... ) )  \
+		{  return decltype(ob_)(ob_).func( decltype(args_)(args_)... ); }
 
 //! Take the name of a member variable and wrap it in a stateless lambda
 /**
@@ -35,8 +35,8 @@
 */
 #define OEL_MEMBER_VAR(var)  \
 	[](auto && ob_) noexcept  \
-	->	decltype( (decltype(ob_)(ob_).var) )  \
-		{  return (decltype(ob_)(ob_).var); }
+	->	decltype( ( decltype(ob_)(ob_).var ) )  \
+		{  return ( decltype(ob_)(ob_).var ); }
 
 
 namespace oel
@@ -44,20 +44,26 @@ namespace oel
 
 //! Passed val of integral or enumeration type, returns val cast to the corresponding signed integer type
 inline constexpr auto as_signed =
-	[](auto val) noexcept -> std::make_signed_t<decltype(val)>    { return std::make_signed_t<decltype(val)>(val); };
+	[](auto val) noexcept -> std::make_signed_t< decltype(val) >
+	{
+		return std::make_signed_t< decltype(val) >(val);
+	};
 //! Passed val of integral or enumeration type, returns val cast to the corresponding unsigned integer type
 inline constexpr auto as_unsigned =
-	[](auto val) noexcept -> std::make_unsigned_t<decltype(val)>  { return std::make_unsigned_t<decltype(val)>(val); };
+	[](auto val) noexcept -> std::make_unsigned_t< decltype(val) >
+	{
+		return std::make_unsigned_t< decltype(val) >(val);
+	};
 
 
-/** @brief More generic than std::ssize, close to std::ranges::ssize
-*
+//! More generic than std::ssize, close to std::ranges::ssize
+/**
 * Ill-formed if `r.size()` is ill-formed and `begin(r)` cannot be subtracted from `end(r)` (SFINAE-friendly) */
 template< typename SizedRangeLike >
 constexpr auto ssize(SizedRangeLike && r)
-->	std::common_type_t< ptrdiff_t, decltype(as_signed( _detail::Size(r) )) >
+->	std::common_type_t< ptrdiff_t, decltype( as_signed(_detail::Size(r)) ) >
 	{
-		return std::common_type_t< ptrdiff_t, decltype(as_signed( _detail::Size(r) )) >(_detail::Size(r));
+		return std::common_type_t< ptrdiff_t, decltype( as_signed(_detail::Size(r)) ) >(_detail::Size(r));
 	}
 
 
@@ -110,10 +116,10 @@ inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrit
 
 //! Same as `begin(range)` with a previous `using std::begin;`. Mainly for use in classes with a member named begin
 inline constexpr auto adl_begin =
-	[](auto && range) -> decltype(begin(range)) { return begin(range); };
+	[](auto && range) -> decltype( begin(range) ) { return begin(range); };
 //! Same as `end(range)` with a previous `using std::end;`. Mainly for use in classes with a member named end
 inline constexpr auto adl_end =
-	[](auto && range) -> decltype(end(range)) { return end(range); };
+	[](auto && range) -> decltype( end(range) ) { return end(range); };
 
 
 
@@ -125,8 +131,8 @@ inline constexpr auto adl_end =
 //! Tells whether we can call member `reallocate(pointer, size_type)` on an instance of Alloc
 template< typename Alloc >
 constexpr auto allocator_can_realloc()
-->	decltype(Alloc::can_reallocate())
-	{ return Alloc::can_reallocate(); }
+->	decltype( Alloc::can_reallocate() )
+	{  return Alloc::can_reallocate(); }
 
 template< typename, typename... None >
 constexpr bool allocator_can_realloc(None...)  { return false; }
