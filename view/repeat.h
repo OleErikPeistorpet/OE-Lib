@@ -34,7 +34,7 @@ namespace view
 inline constexpr auto repeat =
 	[](auto && value, ptrdiff_t count)
 	{
-		using R = decltype(value);
+		using R = decltype( value );
 		return generate(
 			_detail::Repeat< std::decay_t<R> >{static_cast<R>(value)},
 			count );

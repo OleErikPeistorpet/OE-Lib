@@ -28,14 +28,14 @@ namespace oel
 template< typename Alloc, typename... Ranges >
 auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
 	{
-		static_assert((... and _detail::rangeIsForwardOrSized<Ranges>));
+		static_assert(( ... and _detail::rangeIsForwardOrSized<Ranges> ));
 		using T = std::common_type_t<
 				iter_value_t< iterator_t<Ranges> >...
 			>;
-		size_t const counts[]{_detail::UDist(sources)...};
+		size_t const counts[]{ _detail::UDist(sources)... };
 
 		size_t sum{};
-		for (auto n : counts)
+		for( auto n : counts )
 			sum += n;
 
 		auto d = dynarray<T, Alloc>(reserve, sum, std::move(a));
@@ -129,14 +129,14 @@ inline constexpr auto append =
 	{
 		using Ref = decltype(source);
 	#if __cpp_concepts >= 201907
-		if constexpr (requires{ container.append_range(static_cast<Ref>(source)); })
-			container.append_range(static_cast<Ref>(source));
+		if constexpr( requires{ container.append_range(static_cast<Ref>(source)); } )
+			container.append_range( static_cast<Ref>(source) );
 		else
 	#endif
-		if constexpr (decltype( _detail::CanAppend(container, static_cast<Ref>(source)) )::value)
-			container.append(static_cast<Ref>(source));
+		if constexpr( decltype( _detail::CanAppend(container, static_cast<Ref>(source)) )::value )
+			container.append( static_cast<Ref>(source) );
 		else
-			container.append(to_pointer_contiguous(begin(source)), _detail::Size(source));
+			container.append( to_pointer_contiguous(begin(source)), _detail::Size(source) );
 	};
 
 } // namespace oel
@@ -152,11 +152,11 @@ template< typename InputRange, typename RandomAccessRange >
 auto oel::copy_fit(InputRange && source, RandomAccessRange && dest)
 ->	copy_return< borrowed_iterator_t<InputRange> >
 {
-	if constexpr (range_is_sized<InputRange>)
+	if constexpr( range_is_sized<InputRange> )
 	{
 		auto       n        = as_unsigned(_detail::Size(source));
 		auto const destSize = as_unsigned(_detail::Size(dest));
-		if (n > destSize)
+		if( n > destSize )
 			n = destSize;
 
 		return {_detail::Copy( begin(source), n, begin(dest) )};
@@ -164,7 +164,7 @@ auto oel::copy_fit(InputRange && source, RandomAccessRange && dest)
 	else
 	{	auto it = begin(source); auto const last = end(source);
 		auto di = begin(dest);   auto const dl = end(dest);
-		while (it != last and di != dl)
+		while( it != last and di != dl )
 		{
 			*di = *it;
 			++di; ++it;

@@ -44,11 +44,11 @@ namespace _detail
 	template< typename Iter, typename Tag >
 	constexpr bool IterIs()
 	{
-		if constexpr (!std::is_copy_constructible_v<Iter>)
+		if constexpr( !std::is_copy_constructible_v<Iter> )
 			return false;
 
-		return std::is_base_of_v< Tag, decltype(_detail::IterCat<Iter>(0)) >
-		    or std::is_base_of_v< Tag, decltype(_detail::IterConcept<Iter>(0)) >;
+		return std::is_base_of_v< Tag, decltype( _detail::IterCat<Iter>(0) ) >
+		    or std::is_base_of_v< Tag, decltype( _detail::IterConcept<Iter>(0) ) >;
 	}
 }
 
@@ -118,7 +118,7 @@ namespace _detail
 {
 	template< typename Range >
 	constexpr auto Size(Range && r)
-	->	decltype(r.size()) { return r.size(); }
+	->	decltype( r.size() ) { return r.size(); }
 
 	template< typename Range, typename... None,
 		enable_if<
@@ -126,8 +126,8 @@ namespace _detail
 		> = 0
 	>
 	constexpr auto Size(Range && r, None...)
-	->	decltype(end(r) - begin(r))
-	{	return   end(r) - begin(r); }
+	->	decltype( end(r) - begin(r) )
+	{	return    end(r) - begin(r); }
 }
 
 

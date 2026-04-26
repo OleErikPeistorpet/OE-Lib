@@ -63,7 +63,7 @@ public:
 	template< typename V = View, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
 	constexpr auto end()
 		{
-			if constexpr (std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> >)
+			if constexpr( std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> > )
 				return _iter(_m.second(), _m.first.end());
 			else
 				return sentinel_wrapper< sentinel_t<V> >{_m.first.end()};

@@ -24,9 +24,9 @@ public:
 	using difference_type = iter_difference_t< iterator_t<Range> >;
 
 	owning() = default;
-	owning(owning &&) = default;
+	owning(owning &&)      = default;
 	owning(const owning &) = delete;
-	owning & operator =(owning &&) = default;
+	owning & operator =(owning &&)      = default;
 	owning & operator =(const owning &) = delete;
 
 	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
@@ -37,8 +37,9 @@ public:
 	constexpr auto end()
 	->	decltype( adl_end(std::declval<R &>()) )  { return adl_end(_r); }
 
-	template< typename R = Range,
-	          typename SizeT = decltype(as_unsigned( _detail::Size(std::declval<R &>()) ))
+	template
+	<	typename R = Range,
+		typename SizeT = decltype( as_unsigned( _detail::Size(std::declval<R &>()) ) )
 	>	OEL_ALWAYS_INLINE
 	constexpr SizeT size()    { return static_cast<SizeT>(_detail::Size(_r)); }
 

@@ -43,13 +43,13 @@
 	#define OEL_THROW(exception, msg) throw exception
 	#define OEL_RETHROW               throw
 	#define OEL_TRY_                  try
-	#define OEL_CATCH_ALL             catch (...)
+	#define OEL_CATCH_ALL             catch( ... )
 #else
 	#define OEL_HAS_EXCEPTIONS        0
 	#define OEL_THROW(exc, message)   OEL_ABORT(message)
 	#define OEL_RETHROW
 	#define OEL_TRY_
-	#define OEL_CATCH_ALL             if (false)
+	#define OEL_CATCH_ALL             if( false )
 #endif
 
 //! @endcond
@@ -83,7 +83,7 @@ namespace _detail
 	template< typename T >
 	constexpr T MoveIfNotCopyable(T & ob)
 	{
-		if constexpr (std::is_copy_constructible_v<T>)
+		if constexpr( std::is_copy_constructible_v<T> )
 			return ob;
 		else
 			return static_cast<T &&>(ob);

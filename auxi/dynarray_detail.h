@@ -90,7 +90,7 @@ namespace oel::_detail
 		static Ptr realloc(Alloc & a, Ptr p, size_t n)
 		{
 		#if OEL_MEM_BOUND_DEBUG_LVL
-			if (p)
+			if( p )
 			{	// volatile to make sure the write isn't optimized away
 				static_cast<volatile std::uintptr_t &>(_detail::DebugHeaderOf(p)->id) = 0;
 				p -= sizeForHeader;
@@ -124,7 +124,7 @@ namespace oel::_detail
 
 		~DebugSizeInHeaderUpdater()
 		{
-			if (container.data)
+			if( container.data )
 			{
 				auto h = _detail::DebugHeaderOf(container.data);
 				h->nObjects = container.end - container.data;
