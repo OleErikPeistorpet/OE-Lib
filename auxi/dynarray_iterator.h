@@ -53,7 +53,7 @@ public:
 
 	using const_iterator = dynarray_iterator<const value_type *>;
 
-	operator const_iterator() const noexcept  OEL_ALWAYS_INLINE
+	operator const_iterator() const noexcept
 	{
 		return {_pElem, _header, _allocationId};
 	}
@@ -96,31 +96,27 @@ public:
 		return tmp;
 	}
 
-	dynarray_iterator & operator+=(difference_type offset) &  OEL_ALWAYS_INLINE
+	dynarray_iterator & operator+=(difference_type offset) &
 	{
 		_pElem += offset;
 		return *this;
 	}
 
-	dynarray_iterator & operator-=(difference_type offset) &  OEL_ALWAYS_INLINE
+	dynarray_iterator & operator-=(difference_type offset) &
 	{
 		_pElem -= offset;
 		return *this;
 	}
 
-	[[nodiscard]] friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)
+	friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)  { return it += offset; }
+	[[nodiscard]]
+	friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
 	{
 		it._pElem += offset;
 		return it;
 	}
-
-	[[nodiscard]] friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
-	{
-		it._pElem += offset;
-		return it;
-	}
-
-	[[nodiscard]] friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
+	[[nodiscard]]
+	friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
 	{
 		it._pElem -= offset;
 		return it;
@@ -133,8 +129,10 @@ public:
 	}
 
 	reference operator[](difference_type offset) const
-	{
-		return *(*this + offset);
+	{	// not *(*this + offset) to save a call when built without inlining
+		auto tmp = *this;
+		tmp._pElem += offset;
+		return *tmp;
 	}
 
 	template< typename Ptr1 >

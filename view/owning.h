@@ -44,6 +44,7 @@ public:
 
 	constexpr bool  empty()   { return _r.empty(); }
 
+	OEL_ALWAYS_INLINE
 	constexpr decltype(auto) operator[](difference_type index)
 		OEL_REQUIRES(requires{ _r[index]; })   { return _r[index]; }
 
