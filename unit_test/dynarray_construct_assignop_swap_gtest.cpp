@@ -537,6 +537,14 @@ TEST_F(dynarrayConstructTest, moveAssignPolymorphicAlloc)
 }
 #endif
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wself-move"
+#endif
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
+
 TEST_F(dynarrayConstructTest, selfMoveAssign)
 {
 	dynarray<int> d{6, 7, 8};
