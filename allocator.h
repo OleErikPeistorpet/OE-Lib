@@ -8,8 +8,9 @@
 
 #include "auxi/core_util.h"
 
-#include <algorithm> // for max
 #include <cstdint>  // for uintptr_t
+#include <new>
+#include <stdlib.h> // for malloc, free_sized, etc.
 
 #ifndef OEL_HAS_FREE_SIZED
 	#if __STDC_VERSION_STDLIB_H__ < 202311
@@ -69,13 +70,13 @@ public:
 		}
 
 	//! `count` greater than max_size() causes overflow and undefined behavior
-	[[nodiscard]] static T * allocate(size_t count);
+	static T *  allocate(size_t count);
 
 	//! Like C23 `realloc` except for failure handling (same as allocate, throws bad_alloc or calls new_handler)
 	/** @pre If newCount is zero or greater than max_size(), the behavior is undefined  */
-	[[nodiscard]] static T * reallocate(T * ptr, size_t newCount);
+	static T *  reallocate(T * ptr, size_t newCount);
 
-	static void              deallocate(T * ptr, size_t count) noexcept;
+	static void deallocate(T * ptr, size_t count) noexcept;
 
 	allocator() = default;
 
@@ -95,7 +96,7 @@ public:
 private:
 	static constexpr size_t _alignment()
 	{
-		return std::max(alignof(T), size_t(OEL_MALLOC_ALIGNMENT));
+		return alignof(T) > OEL_MALLOC_ALIGNMENT ? alignof(T) : OEL_MALLOC_ALIGNMENT;
 	}
 };
 
@@ -186,8 +187,6 @@ namespace _detail
 	template< typename AllocFunc, bool CheckZero = true, typename... Ptr >
 #ifdef _MSC_VER
 	__declspec(restrict)
-#elif __GNUC__
-	[[gnu::malloc]]
 #endif
 	void * AllocAndHandleFail(size_t const nBytes, Ptr const... old) // should pass void * for fewer template instantiations
 	{
@@ -222,7 +221,10 @@ namespace _detail
 }
 
 template< typename T >
-T * allocator<T>::allocate(size_t count)
+#ifdef __GNUC__
+[[gnu::malloc]]
+#endif
+[[nodiscard]] T * allocator<T>::allocate(size_t count)
 {
 	OEL_ASSERT(count <= max_size());
 
@@ -231,7 +233,7 @@ T * allocator<T>::allocate(size_t count)
 }
 
 template< typename T >
-T * allocator<T>::reallocate(T * ptr, size_t count)
+[[nodiscard]] T * allocator<T>::reallocate(T * ptr, size_t count)
 {
 	OEL_ASSERT(0 < count and count <= max_size());
 
