@@ -37,10 +37,10 @@ protected:
 namespace
 {
 template< typename T = int >
-struct NonConstexprAlloc : oel::allocator<T>
+struct NonConstexprAlloc : DefaultAllocator<T>
 {
 	NonConstexprAlloc() {}
-	NonConstexprAlloc(const NonConstexprAlloc &) : allocator<T>{} {}
+	NonConstexprAlloc(const NonConstexprAlloc &) : DefaultAllocator<T>{} {}
 };
 }
 
@@ -232,7 +232,7 @@ TEST_F(dynarrayConstructTest, toDynarray)
 	}
 	ar;
 
-	auto d = ar | to_dynarray(StatefulAllocator<int>{7});
+	auto d = ar | to_dynarray(StatefulAllocator<>{7});
 	static_assert(std::is_same< decltype(d)::allocator_type, StatefulAllocator<int> >());
 	EXPECT_EQ(d.size(), ar.size());
 	EXPECT_EQ(7, d.get_allocator().id);
@@ -242,11 +242,11 @@ TEST_F(dynarrayConstructTest, deductionGuide)
 {
 	{
 		using D = decltype( dynarray(from_range, std::array<int, 1>{}) );
-		static_assert(std::is_same< D::allocator_type, oel::allocator<int> >());
+		static_assert(std::is_same< D::allocator_type, oel::allocator<0, int> >());
 		static_assert(std::is_same< D::value_type, int >());
 	}
 	auto v = view::generate([] { return MoveOnly{0.5}; }, 1);
-	dynarray d(from_range, v, StatefulAllocator<int>{});
+	dynarray d(from_range, v, StatefulAllocator<>{});
 	static_assert(std::is_same_v< decltype(d)::allocator_type, StatefulAllocator<MoveOnly> >);
 	static_assert(std::is_same_v< decltype(d)::value_type, MoveOnly >);
 	EXPECT_EQ(0.5, *d[0]);

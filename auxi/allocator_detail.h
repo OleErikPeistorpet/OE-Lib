@@ -35,6 +35,10 @@
 	#endif
 #endif
 
+#ifndef OEL_MALLOC_ALIGNMENT
+#define OEL_MALLOC_ALIGNMENT  __STDCPP_DEFAULT_NEW_ALIGNMENT__
+#endif
+
 #ifndef OEL_NEW_HANDLER
 #define OEL_NEW_HANDLER  !OEL_HAS_EXCEPTIONS
 #endif

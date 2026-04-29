@@ -52,16 +52,11 @@
 #endif
 
 
-#ifndef OEL_MALLOC_ALIGNMENT
-#define OEL_MALLOC_ALIGNMENT  __STDCPP_DEFAULT_NEW_ALIGNMENT__
-#endif
-
-
 //! Obscure Efficient Library
 namespace oel
 {
 
-template< typename T = unsigned char, unsigned int MinAlign = OEL_MALLOC_ALIGNMENT >
+template< unsigned int MinAlign = 0, typename T = unsigned char >
 struct allocator;
 
 #if OEL_MEM_BOUND_DEBUG_LVL

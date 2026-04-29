@@ -8,6 +8,8 @@
 
 #include "auxi/allocator_detail.h"
 
+#include <algorithm> // for max
+
 /** @file
 */
 
@@ -17,7 +19,7 @@ namespace oel
 //! Aligns memory to the greater of alignof(T) and MinAlign, and has `reallocate` function
 /**
 * Either throws std::bad_alloc or calls standard new_handler on failure, depending on value of OEL_NEW_HANDLER. */
-template< typename T, unsigned MinAlign >
+template< unsigned MinAlign, typename T >
 struct allocator
 {
 	using value_type = T;
@@ -28,7 +30,8 @@ struct allocator
 
 	static constexpr size_t align_value() noexcept
 		{
-			return alignof(T) > MinAlign ? alignof(T) : MinAlign;
+			constexpr auto n = std::max({ alignof(T), size_t{MinAlign}, size_t{OEL_MALLOC_ALIGNMENT} });
+			return n;
 		}
 
 	static constexpr size_t max_size() noexcept
@@ -68,12 +71,12 @@ struct allocator
 	allocator() = default;
 
 	template< typename U >  OEL_ALWAYS_INLINE
-	constexpr allocator(allocator<U, MinAlign>) noexcept {}
+	constexpr allocator(allocator<MinAlign, U>) noexcept {}
 
 	template< typename U >
 	struct rebind
 	{
-		using other = allocator<U, MinAlign>;
+		using other = allocator<MinAlign, U>;
 	};
 
 	friend constexpr bool operator==(allocator, allocator) noexcept  { return true; }

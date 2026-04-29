@@ -49,7 +49,7 @@ namespace
 				  "Not critical, this assert can be removed");
 
 	static_assert(oel::allocator_can_realloc< TrackingAllocator<double> >());
-	static_assert(!oel::allocator_can_realloc< oel::allocator<MoveOnly> >());
+	static_assert(!oel::allocator_can_realloc< oel::allocator<0, MoveOnly> >());
 }
 
 void testCompileSomeDynarrayMembers()
@@ -116,7 +116,7 @@ TEST(dynarrayOtherTest, allocAndIterEquality)
 	EXPECT_TRUE(dynarray<int>::const_iterator() == dynarray<int>::iterator{});
 }
 
-using MyAllocStr = oel::allocator<std::string>;
+using MyAllocStr = DefaultAllocator<std::string>;
 static_assert(std::is_trivially_copyable_v<MyAllocStr>);
 
 TEST(dynarrayOtherTest, stdDequeWithOelAlloc)

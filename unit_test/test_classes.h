@@ -220,9 +220,12 @@ struct TrackingAllocData
 extern TrackingAllocData g_allocCount;
 
 template<typename T>
-struct TrackingAllocatorBase : private oel::allocator<T>
+using DefaultAllocator = oel::allocator<0, T>;
+
+template<typename T>
+struct TrackingAllocatorBase : private DefaultAllocator<T>
 {
-	using _base = oel::allocator<T>;
+	using _base = DefaultAllocator<T>;
 
 	using value_type = T;
 
@@ -297,7 +300,7 @@ struct TrackingAllocator : TrackingAllocatorBase<T>
 	};
 };
 
-template<typename T, bool PropagateOnMoveAssign = false, bool UseConstruct = true>
+template< typename T = unsigned char, bool PropagateOnMoveAssign = false, bool UseConstruct = true >
 struct StatefulAllocator : std::conditional_t< UseConstruct, TrackingAllocator<T>, TrackingAllocatorBase<T> >
 {
 	using propagate_on_container_move_assignment = std::bool_constant<PropagateOnMoveAssign>;

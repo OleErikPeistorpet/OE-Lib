@@ -92,7 +92,7 @@ TEST(rangeTest, concatToDynarray)
 		EXPECT_EQ("v1\nTest"sv, v);
 	}
 
-	StatefulAllocator<char> a{7};
+	StatefulAllocator<> a{7};
 	auto result = oel::concat_to_dynarray_with_alloc(a, header, body());
 
 	std::string_view v{result.data(), result.size()};
