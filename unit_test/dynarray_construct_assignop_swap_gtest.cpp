@@ -214,25 +214,42 @@ TEST_F(dynarrayConstructTest, constructInitList)
 	}
 }
 
-TEST_F(dynarrayConstructTest, deductionGuides)
+TEST_F(dynarrayConstructTest, toDynarray)
 {
+	{
+		std::string moveFrom[] {"abc", "def"};
+		auto movedStrings = moveFrom | view::move | oel::to_dynarray();
+		EXPECT_EQ(2U, movedStrings.size());
+		EXPECT_TRUE(moveFrom[0].empty());
+	}
 	using Base = std::array<int, 2>;
 	struct NonMoveableRange : public Base
 	{
 		NonMoveableRange() : Base{} {}
 
-		NonMoveableRange(const NonMoveableRange &) = delete;
-		NonMoveableRange(NonMoveableRange &&) = delete;
+		NonMoveableRange(const NonMoveableRange&) = delete;
+		NonMoveableRange(NonMoveableRange&&) = delete;
 	}
 	ar;
 
-	auto d = ar | to_dynarray(StatefulAllocator<int>{});
+	auto d = ar | to_dynarray(StatefulAllocator<int>{7});
 	static_assert(std::is_same< decltype(d)::allocator_type, StatefulAllocator<int> >());
 	EXPECT_EQ(d.size(), ar.size());
+	EXPECT_EQ(7, d.get_allocator().id);
+}
 
-	dynarray fromTemp(from_range, std::array<int, 1>{});
-	static_assert(std::is_same< decltype(fromTemp)::allocator_type, oel::allocator<int> >());
-	static_assert(std::is_same< decltype(fromTemp)::value_type, int >());
+TEST_F(dynarrayConstructTest, deductionGuide)
+{
+	{
+		using D = decltype( dynarray(from_range, std::array<int, 1>{}) );
+		static_assert(std::is_same< D::allocator_type, oel::allocator<int> >());
+		static_assert(std::is_same< D::value_type, int >());
+	}
+	auto v = view::generate([] { return MoveOnly{0.5}; }, 1);
+	dynarray d(from_range, v, StatefulAllocator<int>{});
+	static_assert(std::is_same_v< decltype(d)::allocator_type, StatefulAllocator<MoveOnly> >);
+	static_assert(std::is_same_v< decltype(d)::value_type, MoveOnly >);
+	EXPECT_EQ(0.5, *d[0]);
 }
 
 TEST_F(dynarrayConstructTest, constructContiguousRange)

@@ -67,8 +67,8 @@ struct _moveFn
 };
 /** @brief Very similar to views::move in the Range-v3 library and std::views::as_rvalue
 @code
-std::string moveFrom[2] {"abc", "def"};
-oel::dynarray movedStrings(moveFrom | view::move);
+std::string moveFrom[] {"abc", "def"};
+auto movedStrings = moveFrom | view::move | oel::to_dynarray();
 @endcode  */
 inline constexpr _moveFn move;
 
