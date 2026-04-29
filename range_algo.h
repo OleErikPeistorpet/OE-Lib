@@ -123,24 +123,21 @@ auto copy_fit(InputRange && source, RandomAccessRange && dest)
 
 
 
-struct _appendFn
-{
-	template< typename Container, typename InputRange >
-	void operator()(Container & c, InputRange && source) const
+//! Generic way to call append_range or append on a container or string, with a source range
+inline constexpr auto append =
+	[](auto & container, auto && source)
 	{
+		using Ref = decltype(source);
 	#if __cpp_concepts >= 201907
-		if constexpr (requires{ c.append_range(static_cast<InputRange &&>(source)); })
-			c.append_range(static_cast<InputRange &&>(source));
+		if constexpr (requires{ container.append_range(static_cast<Ref>(source)); })
+			container.append_range(static_cast<Ref>(source));
 		else
 	#endif
-		if constexpr (decltype( _detail::CanAppend(c, static_cast<InputRange &&>(source)) )::value)
-			c.append(static_cast<InputRange &&>(source));
+		if constexpr (decltype( _detail::CanAppend(container, static_cast<Ref>(source)) )::value)
+			container.append(static_cast<Ref>(source));
 		else
-			c.append(to_pointer_contiguous(begin(source)), _detail::Size(source));
-	}
-};
-//! Generic way to call append_range or append on a container or string, with a source range
-inline constexpr _appendFn append;
+			container.append(to_pointer_contiguous(begin(source)), _detail::Size(source));
+	};
 
 } // namespace oel
 

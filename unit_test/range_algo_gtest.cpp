@@ -167,10 +167,15 @@ void testAppend()
 {
 	Container c;
 
-	std::array<int, 2> const a{1, 7};
-	oel::append(c, a);
+	oel::append( c, view::owning(oel::dynarray{7, 8}) );
 	EXPECT_EQ(2U, c.size());
-	EXPECT_EQ(7, c.back());
+
+	std::array<int, 1> const a{9};
+	oel::append(c, a);
+
+	EXPECT_EQ(3U, c.size());
+	EXPECT_EQ(7, c.front());
+	EXPECT_EQ(9, c.back());
 }
 
 TEST(rangeTest, append)
