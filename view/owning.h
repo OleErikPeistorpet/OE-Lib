@@ -57,17 +57,5 @@ public:
 }
 
 
-#if OEL_STD_RANGES
-
-namespace std::ranges
-{
-
 template< typename R >
-inline constexpr bool enable_borrowed_range< oel::view::owning<R> >
-	= enable_borrowed_range< std::remove_cv_t<R> >;
-
-template< typename R >
-inline constexpr bool enable_view< oel::view::owning<R> > = true;
-
-}
-#endif
+inline constexpr bool OEL_NS_OF_ENABLE_VIEW::enable_view< oel::view::owning<R> > = true;
