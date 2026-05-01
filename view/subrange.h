@@ -51,14 +51,9 @@ public:
 
 #if OEL_STD_RANGES
 
-namespace std::ranges
-{
-
 template< typename I, typename S >
-inline constexpr bool enable_borrowed_range< oel::view::subrange<I, S> > = true;
-
-template< typename I, typename S >
-inline constexpr bool enable_view< oel::view::subrange<I, S> > = true;
-
-}
+inline constexpr bool std::ranges::enable_borrowed_range< oel::view::subrange<I, S> > = true;
 #endif
+
+template< typename I, typename S >
+inline constexpr bool OEL_NS_OF_ENABLE_VIEW::enable_view< oel::view::subrange<I, S> > = true;

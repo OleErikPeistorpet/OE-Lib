@@ -100,8 +100,8 @@ inline constexpr bool iter_is_bidirectional = _detail::IterIs<Iterator, std::bid
 template< typename Iterator >
 inline constexpr bool iter_is_random_access = _detail::IterIs<Iterator, std::random_access_iterator_tag>();
 
-/** @brief Partial emulation of std::sized_sentinel_for (C++20)
-*
+//! Partial emulation of std::sized_sentinel_for (C++20)
+/**
 * Let i be an Iterator and s a Sentinel. If `s - i` is well-formed, then this value specifies whether
 * that subtraction is invalid or not O(1). Must be specialized for some iterator, sentinel pairs. */
 template< typename Sentinel, typename Iterator >
@@ -111,6 +111,16 @@ inline constexpr bool disable_sized_sentinel_for =
 	#else
 		!iter_is_random_access<Iterator>;
 	#endif
+
+
+#if OEL_STD_RANGES
+	#define OEL_NS_OF_ENABLE_VIEW  std::ranges
+#else
+	#define OEL_NS_OF_ENABLE_VIEW  oel
+
+	template< typename >
+	inline constexpr bool enable_view = false;
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 

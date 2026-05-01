@@ -116,15 +116,10 @@ constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 
 #if OEL_STD_RANGES
 
-namespace std::ranges
-{
-
 template< typename V, typename F >
-inline constexpr bool enable_borrowed_range< oel::_transformView<V, F> >
+inline constexpr bool std::ranges::enable_borrowed_range< oel::_transformView<V, F> >
 	= enable_borrowed_range< std::remove_cv_t<V> >;
+#endif
 
 template< typename V, typename F >
-inline constexpr bool enable_view< oel::_transformView<V, F> > = true;
-
-}
-#endif
+inline constexpr bool OEL_NS_OF_ENABLE_VIEW::enable_view< oel::_transformView<V, F> > = true;

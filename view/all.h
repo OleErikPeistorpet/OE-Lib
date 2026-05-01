@@ -19,18 +19,21 @@ namespace _detail
 {
 	struct All
 	{
-	#if OEL_STD_RANGES
-		template< std::ranges::viewable_range R >
-		constexpr auto operator()(R && r) const
-		{
-			return std::views::all( static_cast<R &&>(r) );
-		}
-	#endif
-
 		template< typename Range >
 		constexpr auto operator()(Range && r) const
 		{
-			if constexpr( std::is_lvalue_reference_v<Range> )
+			using R = std::remove_cv_t< std::remove_reference_t<Range> >;
+			if constexpr( OEL_NS_OF_ENABLE_VIEW::enable_view<R> and std::is_move_constructible_v<R> )
+			{
+				return static_cast<Range &&>(r);
+			}
+		#if OEL_STD_RANGES
+			else if constexpr(
+				requires{ std::ranges::ref_view{static_cast<Range &&>(r)}; } )
+			{	return    std::ranges::ref_view{static_cast<Range &&>(r)};
+			}
+		#endif
+			else if constexpr( std::is_lvalue_reference_v<Range> )
 			{
 				if constexpr( range_is_sized<Range> )
 					return view::counted(begin(r), oel::ssize(r));
@@ -48,7 +51,7 @@ namespace _detail
 //! View types and view creation functions. The API tries to mimic views in standard `<ranges>`
 namespace view
 {
-//! Substitute for std::views::all
+//! Very similar to std::views::all
 inline constexpr _detail::All all;
 }
 
