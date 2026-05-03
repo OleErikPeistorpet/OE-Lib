@@ -27,7 +27,7 @@ TEST(viewTest, viewAll)
 	using Sized = std::array<int, 2>;
 
 	{	auto v = view::all(FL{7});
-		static_assert(std::is_same_v< decltype(v), view::owning<FL> >);
+		static_assert(std::is_same_v< decltype(v), oel::_owningView<FL> >);
 
 		auto v2 = view::all(std::move(v));
 		static_assert(std::is_same_v< decltype(v), decltype(v2) >);

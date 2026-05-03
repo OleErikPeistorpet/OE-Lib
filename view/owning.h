@@ -11,12 +11,12 @@
 /** @file
 */
 
-namespace oel::view
+namespace oel
 {
 
 //! Very similar to std::ranges::owning_view, but base() guards more against silent copies
 template< typename Range >
-class owning
+class _owningView
 {
 	Range _r;
 
@@ -25,12 +25,12 @@ public:
 
 	using difference_type = iter_difference_t< iterator_t<Range> >;
 
-	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
+	constexpr explicit _owningView(Range && r)   : _r{std::move(r)} {}
 
-	owning(owning &&)      = default;
-	owning(const owning &) = delete;
-	owning & operator =(owning &&)      = default;
-	owning & operator =(const owning &) = delete;
+	_owningView(_owningView &&)      = default;
+	_owningView(const _owningView &) = delete;
+	_owningView & operator =(_owningView &&)      = default;
+	_owningView & operator =(const _owningView &) = delete;
 
 	constexpr auto begin()   { return oel::begin_(_r); }
 
@@ -51,8 +51,24 @@ public:
 	constexpr Range base() &&   { return std::move(_r); }
 };
 
+namespace view
+{
+
+struct _owningFn
+{
+	template< typename Range >
+	constexpr auto operator()(Range && r) const              { return _owningView{static_cast<Range &&>(r)}; }
+
+	template< typename Range >
+	friend constexpr auto operator |(Range && r, _owningFn)  { return _owningView{static_cast<Range &&>(r)}; }
+};
+//! Note this is a function object that can be chained with `|`
+inline constexpr _owningFn owning;
+
 }
+
+} // oel
 
 
 template< typename R >
-inline constexpr bool oel::enable_view< oel::view::owning<R> > = true;
+inline constexpr bool oel::enable_view< oel::_owningView<R> > = true;
