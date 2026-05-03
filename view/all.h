@@ -13,46 +13,35 @@
 /** @file
 */
 
-namespace oel
+namespace oel::view
 {
-namespace _detail
-{
-	struct All
+
+//! Very similar to std::views::all
+inline constexpr auto all =
+	[](auto && range)
 	{
-		template< typename Range >
-		constexpr auto operator()(Range && r) const
+		using Ref = decltype(range);
+		using UnCVR = std::remove_cv_t< std::remove_reference_t<Ref> >;
+		if constexpr( enable_view<UnCVR> )
 		{
-			using UnCVR = std::remove_cv_t< std::remove_reference_t<Range> >;
-			if constexpr( enable_view<UnCVR> )
-			{
-				return static_cast<Range &&>(r);
-			}
-		#if OEL_STD_RANGES
-			else if constexpr(
-				requires{ std::ranges::ref_view{static_cast<Range &&>(r)}; } )
-			{	return    std::ranges::ref_view{static_cast<Range &&>(r)};
-			}
-		#endif
-			else if constexpr( std::is_lvalue_reference_v<Range> )
-			{
-				if constexpr( range_is_sized<Range> )
-					return view::counted(oel::begin_(r), oel::ssize(r));
-				else
-					return view::subrange(oel::begin_(r), oel::end_(r));
-			}
+			return static_cast<Ref>(range);
+		}
+	#if OEL_STD_RANGES
+		else if constexpr(
+			requires{ std::ranges::ref_view{static_cast<Ref>(range)}; } )
+		{	return    std::ranges::ref_view{static_cast<Ref>(range)};
+		}
+	#endif
+		else if constexpr( std::is_lvalue_reference_v<Ref> )
+		{
+			if constexpr( range_is_sized<Ref> )
+				return view::counted(oel::begin_(range), oel::ssize(range));
 			else
-			{	return view::owning( static_cast<Range &&>(r) );
-			}
+				return view::subrange(oel::begin_(range), oel::end_(range));
+		}
+		else
+		{	return static_cast<Ref>(range) | view::owning;
 		}
 	};
+
 }
-
-
-//! View types and view creation functions. The API tries to mimic views in standard `<ranges>`
-namespace view
-{
-//! Very similar to std::views::all
-inline constexpr _detail::All all;
-}
-
-} // oel

@@ -14,6 +14,7 @@
 
 namespace oel
 {
+//! View types and view creation functions. The API tries to mimic views in standard `<ranges>`
 namespace view
 {
 
