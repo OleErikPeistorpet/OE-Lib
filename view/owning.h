@@ -11,25 +11,24 @@
 /** @file
 */
 
-namespace oel::view
+namespace oel
 {
 
-//! Very similar to std::ranges::owning_view
 template< typename Range >
-class owning
+class _owningView
 {
 	Range _r;
 
 public:
 	using difference_type = iter_difference_t< iterator_t<Range> >;
 
-	owning() = default;
-	owning(owning &&)      = default;
-	owning(const owning &) = delete;
-	owning & operator =(owning &&)      = default;
-	owning & operator =(const owning &) = delete;
+	constexpr explicit _owningView(Range && r)   : _r{std::move(r)} {}
 
-	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
+	_owningView() = default;
+	_owningView(_owningView &&)      = default;
+	_owningView(const _owningView &) = delete;
+	_owningView & operator =(_owningView &&)      = default;
+	_owningView & operator =(const _owningView &) = delete;
 
 	constexpr auto begin()    OEL_ALWAYS_INLINE { return adl_begin(_r); }
 
@@ -54,15 +53,31 @@ public:
 	void                    base() const && = delete;
 };
 
+namespace view
+{
+
+struct _owningFn
+{
+	template< typename Range >
+	constexpr auto operator()(Range && r) const              { return _owningView{static_cast<Range &&>(r)}; }
+
+	template< typename Range >
+	friend constexpr auto operator |(Range && r, _owningFn)  { return _owningView{static_cast<Range &&>(r)}; }
+};
+//! Very similar to std::ranges::owning_view
+inline constexpr _owningFn owning;
+
 }
+
+} // oel
 
 
 #if OEL_STD_RANGES
 
 template< typename R >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::view::owning<R> >
+inline constexpr bool std::ranges::enable_borrowed_range< oel::_owningView<R> >
 	= std::ranges::enable_borrowed_range< std::remove_cv_t<R> >;
 #endif
 
 template< typename R >
-inline constexpr bool OEL_NS_OF_ENABLE_VIEW::enable_view< oel::view::owning<R> > = true;
+inline constexpr bool OEL_NS_OF_ENABLE_VIEW::enable_view< oel::_owningView<R> > = true;

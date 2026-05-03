@@ -13,46 +13,34 @@
 /** @file
 */
 
-namespace oel
-{
-namespace _detail
-{
-	struct All
-	{
-		template< typename Range >
-		constexpr auto operator()(Range && r) const
-		{
-			using R = std::remove_cv_t< std::remove_reference_t<Range> >;
-			if constexpr( OEL_NS_OF_ENABLE_VIEW::enable_view<R> and std::is_move_constructible_v<R> )
-			{
-				return static_cast<Range &&>(r);
-			}
-		#if OEL_STD_RANGES
-			else if constexpr(
-				requires{ std::ranges::ref_view{static_cast<Range &&>(r)}; } )
-			{	return    std::ranges::ref_view{static_cast<Range &&>(r)};
-			}
-		#endif
-			else if constexpr( std::is_lvalue_reference_v<Range> )
-			{
-				if constexpr( range_is_sized<Range> )
-					return view::counted(begin(r), oel::ssize(r));
-				else
-					return view::subrange(begin(r), end(r));
-			}
-			else
-			{	return view::owning( static_cast<Range &&>(r) );
-			}
-		}
-	};
-}
-
-
-//! View types and view creation functions. The API tries to mimic views in standard `<ranges>`
-namespace view
+namespace oel::view
 {
 //! Very similar to std::views::all
-inline constexpr _detail::All all;
-}
+inline constexpr auto all =
+	[](auto && range)
+	{
+		using Ref = decltype(range);
+		using UnCVR = std::remove_cv_t< std::remove_reference_t<Ref> >;
+		if constexpr( OEL_NS_OF_ENABLE_VIEW::enable_view<UnCVR> and std::is_move_constructible_v<UnCVR> )
+		{
+			return static_cast<Ref>(range);
+		}
+	#if OEL_STD_RANGES
+		else if constexpr(
+			requires{ std::ranges::ref_view{static_cast<Ref>(range)}; } )
+		{	return    std::ranges::ref_view{static_cast<Ref>(range)};
+		}
+	#endif
+		else if constexpr( std::is_lvalue_reference_v<Ref> )
+		{
+			if constexpr( range_is_sized<Ref> )
+				return view::counted(begin(range), oel::ssize(range));
+			else
+				return view::subrange(begin(range), end(range));
+		}
+		else
+		{	return view::owning( static_cast<Ref>(range) );
+		}
+	};
 
-} // oel
+}
