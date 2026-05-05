@@ -44,4 +44,8 @@ inline constexpr auto all =
 		}
 	};
 
+//! Very similar to std::views::all_t
+template< typename Range >
+using all_t = decltype( all(std::declval<Range>()) );
+
 }

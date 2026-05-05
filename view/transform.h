@@ -102,8 +102,8 @@ namespace _detail
 		template< typename R >
 		friend constexpr auto operator |(R && range, TransformPartial t)
 		{
-			auto v = view::all(static_cast<R &&>(range));
-			return _transformView< decltype(v), F >{{std::move(v), std::move(t)._f}};
+			using V = _transformView< view::all_t<R>, F >;
+			return V{{view::all( static_cast<R &&>(range) ), std::move(t)._f}};
 		}
 
 		template< typename R >
