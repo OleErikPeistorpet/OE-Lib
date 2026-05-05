@@ -31,11 +31,12 @@ public:
 
 	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
 
-	constexpr auto begin()    OEL_ALWAYS_INLINE { return adl_begin(_r); }
+	constexpr auto begin()   OEL_ALWAYS_INLINE { return adl_begin(_r); }
 
-	template< typename R = Range >  OEL_ALWAYS_INLINE
-	constexpr auto end()
-	->	decltype( adl_end(std::declval<R &>()) )  { return adl_end(_r); }
+	template< typename R = Range,
+	          typename /*EnableIfHasEnd*/ = sentinel_t<R>
+	>	OEL_ALWAYS_INLINE
+	constexpr auto end()     { return adl_end(_r); }
 
 	template
 	<	typename R = Range,

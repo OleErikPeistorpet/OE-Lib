@@ -19,7 +19,7 @@ namespace view
 
 struct _transformFn
 {
-	//! Used with operator |
+	//! Right-hand side of operator |
 	template< typename UnaryFunc >
 	constexpr auto operator()(UnaryFunc f) const;
 
@@ -31,11 +31,11 @@ struct _transformFn
 };
 //! Similar to std::views::transform, same call signature
 /**
-* Unlike std::views::transform, copies or moves the function into the iterator rather than
+* Unlike std::views::transform: Copies or moves the function into the iterator rather than
 * storing it just in the view, thus saving one indirection when dereferencing the iterator.
 * Moreover, the function does not need to model std::regular_invocable if the call operator is not const
 * (mutable lambda is fine). Which means it's all right to return different results for the same input.
-* This is at least true when used in OE-Lib, and probably anywhere that accepts an input_range.
+* Then the iterator satisfies merely std::input_iterator.
 *
 * https://en.cppreference.com/w/cpp/ranges/transform_view  */
 inline constexpr _transformFn transform;
@@ -60,7 +60,9 @@ public:
 			return {_detail::MoveIfNotCopyable(_m.second()), _m.first.begin()};
 		}
 	//! Return type either same as `begin()` or oel::sentinel_wrapper
-	template< typename V = View, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
+	template< typename V = View,
+	          typename /*EnableIfHasEnd*/ = sentinel_t<V>
+	>
 	constexpr auto end()
 		{
 			if constexpr( std::is_empty_v<Func> and std::is_same_v< iterator_t<V>, sentinel_t<V> > )

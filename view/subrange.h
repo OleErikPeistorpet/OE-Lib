@@ -31,9 +31,10 @@ public:
 	constexpr Sentinel end() const   { return _m.second(); }
 
 	//! Provided only if begin() can be subtracted from end()
-	template< typename I = Iterator,
-	          enable_if< !disable_sized_sentinel_for<Sentinel, I> > = 0,
-	          typename Ret = decltype( as_unsigned(std::declval<Sentinel>() - std::declval<I>()) )
+	template
+	<	typename I = Iterator,
+		enable_if< !disable_sized_sentinel_for<Sentinel, I> > = 0,
+		typename Ret = decltype( as_unsigned(std::declval<Sentinel>() - std::declval<I>()) )
 	>
 	constexpr Ret  size() const
 		{
@@ -43,7 +44,10 @@ public:
 	constexpr bool empty() const   { return _m.first == _m.second(); }
 
 	constexpr decltype(auto) operator[](difference_type index) const
-		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE { return _m.first[index]; }
+		OEL_REQUIRES(iter_is_random_access<Iterator>)          OEL_ALWAYS_INLINE
+		{
+			return _m.first[index];
+		}
 };
 
 }

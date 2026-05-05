@@ -27,7 +27,9 @@ public:
 
 	constexpr auto begin()   { return std::move_iterator{_base.begin()}; }
 
-	template< typename V = View, typename /*EnableIfHasEnd*/ = sentinel_t<V> >
+	template< typename V = View,
+	          typename /*EnableIfHasEnd*/ = sentinel_t<V>
+	>
 	constexpr auto end()
 		{
 		#if OEL_HAS_STD_MOVE_SENTINEL

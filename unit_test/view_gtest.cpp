@@ -150,15 +150,16 @@ TEST(viewTest, viewTransformBasics)
 	auto itMoveOnly = v2.begin();
 
 	using IEmptyLambda = decltype(v.begin());
-	using IMoveOnly = decltype(itMoveOnly);
 
 	static_assert(std::is_same_v< IEmptyLambda::iterator_category, std::bidirectional_iterator_tag >);
-	static_assert(std::is_same_v< IMoveOnly::iterator_category, std::input_iterator_tag >);
+	static_assert(std::is_same_v< decltype(itMoveOnly)::iterator_category, std::input_iterator_tag >);
 	static_assert(std::is_same_v< decltype(itMoveOnly++), void >);
 	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
 #if OEL_STD_RANGES
-	static_assert(std::ranges::bidirectional_range<decltype(v)>);
-	static_assert(std::input_iterator<IMoveOnly>);
+	static_assert(std::ranges::bidirectional_range< decltype(v) >);
+	static_assert(std::ranges::input_range< decltype(v2) >);
+	using RVal = decltype( std::move(v) );
+	static_assert(std::ranges::borrowed_range<RVal>);
 	{
 		constexpr IEmptyLambda valueInit{};
 		[[maybe_unused]] constexpr auto copy = valueInit;
@@ -258,7 +259,8 @@ TEST(viewTest, viewTransformMutableLambda)
 	using I = decltype(v.begin());
 	static_assert(std::is_same_v<I::iterator_category, std::input_iterator_tag>);
 #if OEL_STD_RANGES
-	static_assert(std::ranges::input_range<decltype(v)>);
+	static_assert(!std::forward_iterator<I>);
+	static_assert(std::ranges::view< decltype(v) >);
 #endif
 
 	oel::dynarray<int> test(oel::reserve, 3);
