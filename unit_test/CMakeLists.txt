@@ -33,6 +33,7 @@ add_executable(oel-test
 	incl_pmr.cpp
 	incl_range_algo.cpp
 	incl_util.cpp
+	incl_view_all.cpp
 	incl_view_counted.cpp
 	incl_view_generate.cpp
 	incl_view_move.cpp

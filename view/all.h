@@ -51,8 +51,14 @@ namespace _detail
 //! View types and view creation functions. The API tries to mimic views in standard `<ranges>`
 namespace view
 {
+
 //! Very similar to std::views::all
 inline constexpr _detail::All all;
-}
 
-} // oel
+//! Very similar to std::views::all_t
+template< typename Range >
+using all_t = decltype( all(std::declval<Range>()) );
+
+} // view
+
+}
