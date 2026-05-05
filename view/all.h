@@ -23,7 +23,7 @@ namespace _detail
 		constexpr auto operator()(Range && r) const
 		{
 			using UnCVR = std::remove_cv_t< std::remove_reference_t<Range> >;
-			if constexpr( OEL_NS_OF_ENABLE_VIEW::enable_view<UnCVR> )
+			if constexpr( enable_view<UnCVR> )
 			{
 				return static_cast<Range &&>(r);
 			}

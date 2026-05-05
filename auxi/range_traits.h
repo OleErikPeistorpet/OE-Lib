@@ -80,14 +80,11 @@ using borrowed_iterator_t =
 #if __cpp_lib_concepts < 201907
 	template< typename Iterator >
 	using iter_difference_t = typename std::iterator_traits<Iterator>::difference_type;
-#else
-	using std::iter_difference_t;
-#endif
 
-#if __cpp_lib_concepts < 201907
 	template< typename Iterator >
 	using iter_value_t = typename std::iterator_traits<Iterator>::value_type;
 #else
+	using std::iter_difference_t;
 	using std::iter_value_t;
 #endif
 
@@ -104,20 +101,16 @@ inline constexpr bool iter_is_random_access = _detail::IterIs<Iterator, std::ran
 /**
 * Let i be an Iterator and s a Sentinel. If `s - i` is well-formed, then this value specifies whether
 * that subtraction is invalid or not O(1). Must be specialized for some iterator, sentinel pairs. */
-template< typename Sentinel, typename Iterator >
-inline constexpr bool disable_sized_sentinel_for =
-	#if __cpp_lib_concepts >= 201907
-		std::disable_sized_sentinel_for<Sentinel, Iterator>;
-	#else
-		!iter_is_random_access<Iterator>;
-	#endif
-
+#if __cpp_lib_concepts < 201907
+	template< typename Sentinel, typename Iterator >
+	inline constexpr bool disable_sized_sentinel_for = !iter_is_random_access<Iterator>;
+#else
+	using std::disable_sized_sentinel_for;
+#endif
 
 #if OEL_STD_RANGES
-	#define OEL_NS_OF_ENABLE_VIEW  std::ranges
+	using std::ranges::enable_view;
 #else
-	#define OEL_NS_OF_ENABLE_VIEW  oel
-
 	template< typename >
 	inline constexpr bool enable_view = false;
 #endif

@@ -58,4 +58,4 @@ public:
 
 
 template< typename R >
-inline constexpr bool OEL_NS_OF_ENABLE_VIEW::enable_view< oel::view::owning<R> > = true;
+inline constexpr bool oel::enable_view< oel::view::owning<R> > = true;
