@@ -12,6 +12,7 @@
 #include <sstream>
 
 namespace view = oel::view;
+using FL = std::forward_list<int>;
 
 #if OEL_STD_RANGES
 	#if defined __clang__ and __clang_major__ < 16
@@ -23,49 +24,59 @@ namespace view = oel::view;
 
 TEST(viewTest, viewAll)
 {
-	using FL = std::forward_list<int>;
+	{	using V = oel::_moveView< oel::_countedView<int *> >;
+		static_assert(std::is_same_v< view::all_t<const V &>, V >);
+	}
+
+	auto v = view::all(FL{7});
+	static_assert(std::is_same_v< decltype(v), view::owning<FL> >);
+
+	auto v2 = view::all(std::move(v));
+	static_assert(std::is_same_v< decltype(v), decltype(v2) >);
+
+	auto c = std::move(v2).base();
+	EXPECT_EQ(7, *c.begin());
+	EXPECT_TRUE(v2.empty());
+}
+
+TEST(viewTest, viewAllSized)
+{
 	using Sized = std::array<int, 2>;
 
-	{	auto v = view::all(FL{7});
-		static_assert(std::is_same_v< decltype(v), view::owning<FL> >);
+	static_assert(std::is_same_v< view::all_t<Sized>, oel::view::owning<Sized> >);
 
-		auto v2 = view::all(std::move(v));
-		static_assert(std::is_same_v< decltype(v), decltype(v2) >);
+	Sized c{7, 8};
+	auto v = view::all(c);
+#if OEL_STD_RANGES
+	static_assert(std::is_same_v< decltype(v), std::ranges::ref_view<Sized> >);
+#else
+	using I = Sized::iterator;
+	static_assert(std::is_same_v< decltype(v), oel::_countedView<I> >);
+#endif
+	auto v2 = view::all(std::as_const(v));
+	static_assert(std::is_same_v< decltype(v), decltype(v2) >);
 
-		auto c = std::move(v2).base();
-		EXPECT_EQ(7, *c.begin());
-		EXPECT_TRUE(v2.empty());
-	}
-	{	Sized c{7, 8};
-		auto v = view::all(c);
-	#if OEL_STD_RANGES
-		static_assert(std::is_same_v< decltype(v), std::ranges::ref_view<Sized> >);
-	#else
-		using I = Sized::iterator;
-		static_assert(std::is_same_v< decltype(v), oel::_countedView<I> >);
-	#endif
-		auto v2 = view::all(std::as_const(v));
-		static_assert(std::is_same_v< decltype(v), decltype(v2) >);
+	EXPECT_EQ(&c[0], &v2[0]);
+	EXPECT_EQ(&c[1], &v2[1]);
+}
 
-		EXPECT_EQ(&c[0], &v2[0]);
-		EXPECT_EQ(&c[1], &v2[1]);
-	}
-	{	FL const c{7, 8};
-		auto v = view::all(c);
-		// Should hit static_assert
-		//auto ov = view::owning(std::move(c));
-	#if OEL_STD_RANGES
-		static_assert(std::is_same_v< decltype(v), std::ranges::ref_view<FL const> >);
-	#else
-		using I = FL::const_iterator;
-		static_assert(std::is_same_v< decltype(v), view::subrange<I, I> >);
-	#endif
-		auto v2 = view::all(v);
-		static_assert(std::is_same_v< decltype(v), decltype(v2) >);
+TEST(viewTest, viewAllLValue)
+{
+	FL const c{7, 8};
+	auto v = view::all(c);
+	// Should hit static_assert
+	//auto ov = view::owning(std::move(c));
+#if OEL_STD_RANGES
+	static_assert(std::is_same_v< decltype(v), std::ranges::ref_view<FL const> >);
+#else
+	using I = FL::const_iterator;
+	static_assert(std::is_same_v< decltype(v), view::subrange<I, I> >);
+#endif
+	auto v2 = view::all(v);
+	static_assert(std::is_same_v< decltype(v), decltype(v2) >);
 
-		EXPECT_EQ(c.begin(), v2.begin());
-		EXPECT_EQ(c.end(), v2.end());
-	}
+	EXPECT_EQ(c.begin(), v2.begin());
+	EXPECT_EQ(c.end(), v2.end());
 }
 
 constexpr auto transformIterFromIntPtr(const int * p)

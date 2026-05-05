@@ -70,7 +70,7 @@ namespace oel::_detail
 		#endif
 			for( size_t i{}; i != n; ++i )
 			{
-				::new(static_cast<void *>(dest + i)) T( std::move(src[i]) );
+				::new( static_cast<void *>(dest + i) ) T( std::move(src[i]) );
 				src[i].~T();
 			}
 			return dest + n;
