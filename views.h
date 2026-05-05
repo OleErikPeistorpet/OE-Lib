@@ -10,6 +10,7 @@
 * The goal is not to be a general range library, but to provide views that optimize really well.
 */
 
+#include "view/all.h"
 #include "view/counted.h"
 #include "view/generate.h"
 #include "view/move.h"

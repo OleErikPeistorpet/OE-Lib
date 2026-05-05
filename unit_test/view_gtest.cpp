@@ -24,6 +24,10 @@ using FL = std::forward_list<int>;
 
 TEST(viewTest, viewAll)
 {
+	{	using V = oel::_moveView< oel::_countedView<int *> >;
+		static_assert(std::is_same_v< view::all_t<const V &>, V >);
+	}
+
 	auto v = view::all(FL{7});
 	static_assert(std::is_same_v< decltype(v), oel::_owningView<FL> >);
 
@@ -38,6 +42,8 @@ TEST(viewTest, viewAll)
 TEST(viewTest, viewAllSized)
 {
 	using Sized = std::array<int, 2>;
+
+	static_assert(std::is_same_v< view::all_t<Sized>, oel::_owningView<Sized> >);
 
 	Sized c{7, 8};
 	auto v = view::all(c);

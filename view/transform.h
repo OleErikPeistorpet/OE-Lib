@@ -106,15 +106,16 @@ namespace _detail
 			OEL_RANGE_REQUIRES(std::ranges::viewable_range<R>)
 		constexpr auto operator()(R && range) &&
 		{
-			auto v = view::all( static_cast<R &&>(range) );
-			return _transformView< decltype(v), F >{{ std::move(v), std::move(_f) }};
+			using V = _transformView< view::all_t<R>, F >;
+			return V{{view::all( static_cast<R &&>(range) ), std::move(_f)}};
 		}
 
 		template< typename R >
 			OEL_RANGE_REQUIRES(std::ranges::viewable_range<R>)
 		constexpr auto operator()(R && range) const &
 		{
-			return TransformPartial(*this)( static_cast<R &&>(range) );
+			using V = _transformView< view::all_t<R>, F >;
+			return V{{view::all( static_cast<R &&>(range) ), _f}};
 		}
 	#if !OEL_HAS_STD_ADAPTOR_CLOSURE
 		template< typename R >
