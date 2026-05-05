@@ -104,8 +104,8 @@ namespace _detail
 		template< typename R >
 		constexpr auto operator()(R && range) &&
 		{
-			auto v = view::all( static_cast<R &&>(range) );
-			return _transformView< decltype(v), F >{{std::move(v), std::move(_f)}};
+			using V = _transformView< view::all_t<R>, F >;
+			return V{{view::all( static_cast<R &&>(range) ), std::move(_f)}};
 		}
 
 		template< typename R >
