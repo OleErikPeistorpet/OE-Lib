@@ -23,7 +23,6 @@ class subrange
 public:
 	using difference_type = iter_difference_t<Iterator>;
 
-	subrange() = default;
 	constexpr subrange(Iterator first, Sentinel last)   : _m{std::move(first), last} {}
 
 	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_m.first); }

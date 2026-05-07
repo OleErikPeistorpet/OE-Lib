@@ -23,7 +23,6 @@ class counted
 public:
 	using difference_type = iter_difference_t<Iterator>;
 
-	counted() = default;
 	constexpr counted(Iterator first, difference_type n)   : _begin{std::move(first)}, _size{n} {}
 
 	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_begin); }

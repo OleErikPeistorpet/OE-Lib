@@ -13,6 +13,14 @@
 
 namespace view = oel::view;
 
+#if OEL_STD_RANGES
+	#if defined __clang__ and __clang_major__ < 16
+	#define STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT  1
+	#else
+	#define STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT  0
+	#endif
+#endif
+
 TEST(viewTest, viewAll)
 {
 	using FL = std::forward_list<int>;
@@ -101,8 +109,10 @@ TEST(viewTest, viewSubrange)
 
 #if OEL_STD_RANGES
 	static_assert(std::ranges::contiguous_range<V>);
-	static_assert(std::ranges::view<V>);
 	static_assert(std::ranges::borrowed_range<V>);
+	#if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
+	static_assert(std::ranges::view<V>);
+	#endif
 #endif
 	static constexpr int src[3]{};
 	{
@@ -122,8 +132,10 @@ TEST(viewTest, viewCounted)
 
 #if OEL_STD_RANGES
 	static_assert(std::ranges::contiguous_range<CV>);
-	static_assert(std::ranges::view<CV>);
 	static_assert(std::ranges::borrowed_range<CV>);
+	#if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
+	static_assert(std::ranges::view<CV>);
+	#endif
 #endif
 	{
 		oel::dynarray<int> i{1, 2};
@@ -262,7 +274,9 @@ TEST(viewTest, viewTransformMutableLambda)
 	static_assert(std::is_same_v<I::iterator_category, std::input_iterator_tag>);
 #if OEL_STD_RANGES
 	static_assert(!std::forward_iterator<I>);
+	#if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
 	static_assert(std::ranges::view< decltype(v) >);
+	#endif
 #endif
 
 	oel::dynarray<int> test(oel::reserve, 3);
@@ -344,7 +358,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 	EXPECT_EQ(src + 1, v.end().base()._s);
 }
 
-#if OEL_STD_RANGES
+#if OEL_STD_RANGES and !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
 
 TEST(viewTest, viewMoveMutableEmptyAndSize)
 {

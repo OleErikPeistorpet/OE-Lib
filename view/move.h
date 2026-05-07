@@ -22,7 +22,6 @@ class _moveView
 public:
 	using difference_type = iter_difference_t< iterator_t<View> >;
 
-	_moveView() = default;
 	constexpr explicit _moveView(View v)   : _base{std::move(v)} {}
 
 	constexpr auto begin()   { return std::move_iterator{_base.begin()}; }

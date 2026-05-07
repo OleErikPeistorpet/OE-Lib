@@ -27,7 +27,6 @@ public:
 
 	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
 
-	owning() = default;
 	owning(owning &&)      = default;
 	owning(const owning &) = delete;
 	owning & operator =(owning &&)      = default;

@@ -52,7 +52,6 @@ class _transformView
 public:
 	using difference_type = iter_difference_t<_iter>;
 
-	_transformView() = default;
 	constexpr _transformView(View v, Func f)   : _m{std::move(v), std::move(f)} {}
 
 	constexpr _iter begin()
