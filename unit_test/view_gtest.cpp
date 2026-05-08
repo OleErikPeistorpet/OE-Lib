@@ -26,7 +26,7 @@ TEST(viewTest, viewAll)
 
 		auto c = std::move(v2).base();
 		EXPECT_EQ(7, *c.begin());
-		EXPECT_TRUE(v2.base().empty());
+		EXPECT_TRUE(v2.empty());
 	}
 	{	Sized c{7, 8};
 		auto v = view::all(c);

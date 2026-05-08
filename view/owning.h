@@ -14,7 +14,7 @@
 namespace oel::view
 {
 
-//! Very similar to std::ranges::owning_view
+//! Very similar to std::ranges::owning_view, but base() guards more against silent copies
 template< typename Range >
 class owning
 {
@@ -23,13 +23,13 @@ class owning
 public:
 	using difference_type = iter_difference_t< iterator_t<Range> >;
 
+	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
+
 	owning() = default;
 	owning(owning &&)      = default;
 	owning(const owning &) = delete;
 	owning & operator =(owning &&)      = default;
 	owning & operator =(const owning &) = delete;
-
-	constexpr explicit owning(Range && r)   : _r{std::move(r)} {}
 
 	constexpr auto begin()   OEL_ALWAYS_INLINE { return adl_begin(_r); }
 
@@ -50,9 +50,7 @@ public:
 	constexpr decltype(auto) operator[](difference_type index)
 		OEL_REQUIRES(requires{ _r[index]; })   { return _r[index]; }
 
-	constexpr Range         base() &&                 { return std::move(_r); }
-	constexpr const Range & base() const & noexcept   { return _r; }
-	void                    base() const && = delete;
+	constexpr Range base() &&   { return std::move(_r); }
 };
 
 }
