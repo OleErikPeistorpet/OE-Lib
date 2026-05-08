@@ -44,6 +44,8 @@ TEST(viewTest, viewAll)
 	}
 	{	FL const c{7, 8};
 		auto v = view::all(c);
+		// Should hit static_assert
+		//auto ov = view::owning(std::move(c));
 	#if OEL_STD_RANGES
 		static_assert(std::is_same_v< decltype(v), std::ranges::ref_view<FL const> >);
 	#else
