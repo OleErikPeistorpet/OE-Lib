@@ -14,8 +14,8 @@
 namespace oel::view
 {
 
-/** @brief Wrapper for iterator and size
-*
+//! Wrapper for iterator and size
+/**
 * Satisfies the std::ranges::range concept only if Iterator is random-access. */
 template< typename Iterator >
 class counted

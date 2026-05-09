@@ -34,10 +34,7 @@ public:
 
 	constexpr auto begin()   OEL_ALWAYS_INLINE { return adl_begin(_r); }
 
-	template< typename R = Range,
-	          typename /*EnableIfHasEnd*/ = sentinel_t<R>
-	>	OEL_ALWAYS_INLINE
-	constexpr auto end()     { return adl_end(_r); }
+	constexpr auto end()     OEL_ALWAYS_INLINE { return adl_end(_r); }
 
 	template
 	<	typename R = Range,
