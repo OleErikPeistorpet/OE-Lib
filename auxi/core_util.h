@@ -13,6 +13,7 @@
 #endif
 #include <type_traits>
 #include <utility> // for declval
+#include <version> // for __cpp_lib_concepts
 
 //! @cond INTERNAL
 
