@@ -147,7 +147,7 @@ inline constexpr bool range_is_sized
 
 
 template< typename Sentinel >
-struct sentinel_wrapper   { Sentinel _s; };
+struct sentinel_wrapper { Sentinel se; };
 
 } // oel
 

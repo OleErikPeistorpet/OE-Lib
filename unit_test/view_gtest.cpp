@@ -356,7 +356,7 @@ TEST(viewTest, viewMoveEndDifferentType)
 #endif
 	static_assert(oel::range_is_sized<decltype(v)>);
 	EXPECT_NE(v.begin(), v.end());
-	EXPECT_EQ(src + 1, v.end().base()._s);
+	EXPECT_EQ(src + 1, v.end().base().se);
 }
 
 #if OEL_STD_RANGES

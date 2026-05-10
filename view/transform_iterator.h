@@ -119,12 +119,12 @@ public:
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
 	friend constexpr difference_type operator -
-		(sentinel_wrapper<S> left, const transform_iterator & right)   { return left._s - right.m.first; }
+		(sentinel_wrapper<S> left, const transform_iterator & right)   { return left.se - right.m.first; }
 
 	template< typename S >
 		OEL_REQUIRES(std::sized_sentinel_for<S, Iterator>)
 	friend constexpr difference_type operator -
-		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first - right._s; }
+		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first - right.se; }
 
 	friend constexpr bool operator==(const transform_iterator & left, const transform_iterator & right)
 		{
@@ -137,7 +137,7 @@ public:
 
 	template< typename S >
 	friend constexpr bool operator==
-		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first == right._s; }
+		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first == right.se; }
 
 	template< typename S >
 	friend constexpr bool operator==
@@ -145,11 +145,11 @@ public:
 
 	template< typename S >
 	friend constexpr bool operator!=
-		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first != right._s; }
+		(const transform_iterator & left, sentinel_wrapper<S> right)   { return left.m.first != right.se; }
 
 	template< typename S >
 	friend constexpr bool operator!=
-		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right.m.first != left._s; }
+		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right.m.first != left.se; }
 };
 
 #if __cpp_lib_concepts < 201907
