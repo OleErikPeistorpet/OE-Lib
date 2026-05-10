@@ -43,16 +43,14 @@ inline constexpr _transformFn transform;
 } // view
 
 template< typename View, typename Func >
-class _transformView
+struct _transformView
 {
-	using _iter = transform_iterator< Func, iterator_t<View> >;
-
 	_detail::TightPair< View, typename _detail::AssignableWrap<Func>::Type > _m;
 
-public:
-	using difference_type = iter_difference_t<_iter>;
+	using _iter = transform_iterator< Func, iterator_t<View> >;
 
-	constexpr _transformView(View v, Func f)   : _m{std::move(v), std::move(f)} {}
+
+	using difference_type = iter_difference_t<_iter>;
 
 	constexpr _iter begin()
 		{
@@ -89,20 +87,21 @@ public:
 namespace _detail
 {
 	template< typename F >
-	struct TransfPartial
+	struct TransformPartial
 	{
 		F _f;
 
-		template< typename Range >
-		friend constexpr auto operator |(Range && r, TransfPartial t)
+		template< typename R >
+		friend constexpr auto operator |(R && range, TransformPartial t)
 		{
-			return _transformView{view::all( static_cast<Range &&>(r) ), std::move(t)._f};
+			auto v = view::all(static_cast<R &&>(range));
+			return _transformView< decltype(v), F >{{std::move(v), std::move(t)._f}};
 		}
 
-		template< typename Range >
-		constexpr auto operator()(Range && r) const
+		template< typename R >
+		constexpr auto operator()(R && range) const
 		{
-			return static_cast<Range &&>(r) | *this;
+			return static_cast<R &&>(range) | *this;
 		}
 	};
 }
@@ -110,7 +109,7 @@ namespace _detail
 template< typename UnaryFunc >
 constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 {
-	return _detail::TransfPartial<UnaryFunc>{std::move(f)};
+	return _detail::TransformPartial<UnaryFunc>{std::move(f)};
 }
 
 } // oel

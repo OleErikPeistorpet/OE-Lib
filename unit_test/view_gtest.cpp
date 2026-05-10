@@ -172,6 +172,7 @@ TEST(viewTest, viewTransformBasics)
 #if OEL_STD_RANGES
 	static_assert(std::ranges::bidirectional_range< decltype(v) >);
 	static_assert(std::ranges::input_range< decltype(v2) >);
+	static_assert(std::ranges::view< decltype(v) >);
 	using RVal = decltype( std::move(v) );
 	static_assert(std::ranges::borrowed_range<RVal>);
 	{
@@ -274,9 +275,6 @@ TEST(viewTest, viewTransformMutableLambda)
 	static_assert(std::is_same_v<I::iterator_category, std::input_iterator_tag>);
 #if OEL_STD_RANGES
 	static_assert(!std::forward_iterator<I>);
-	#if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
-	static_assert(std::ranges::view< decltype(v) >);
-	#endif
 #endif
 
 	oel::dynarray<int> test(oel::reserve, 3);
@@ -353,12 +351,15 @@ TEST(viewTest, viewMoveEndDifferentType)
 	oel::transform_iterator it{nonEmpty, src + 0};
 	auto v = view::subrange(it, makeSentinel(src + 1)) | view::move;
 
+#if OEL_STD_RANGES
+	static_assert(std::ranges::enable_borrowed_range< decltype(v) >);
+#endif
 	static_assert(oel::range_is_sized<decltype(v)>);
 	EXPECT_NE(v.begin(), v.end());
 	EXPECT_EQ(src + 1, v.end().base()._s);
 }
 
-#if OEL_STD_RANGES and !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
+#if OEL_STD_RANGES
 
 TEST(viewTest, viewMoveMutableEmptyAndSize)
 {
@@ -371,6 +372,7 @@ TEST(viewTest, viewMoveMutableEmptyAndSize)
 using IntGenIter = oel::iterator_t<decltype( view::generate(Ints{}, 0) )>;
 static_assert(std::input_iterator<IntGenIter>);
 
+#if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
 TEST(viewTest, chainWithStd)
 {
 	auto f = [](int i) { return -i; };
@@ -380,4 +382,5 @@ TEST(viewTest, chainWithStd)
 	void( src | std::views::reverse | view::transform(f) | std::views::take(1) );
 	void( src | view::transform(f) | std::views::drop(1) | view::move );
 }
+#endif
 #endif
