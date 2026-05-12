@@ -74,7 +74,7 @@ constexpr auto transformIterFromIntPtr(const int * p)
 	{
 		auto operator()(int i) const { return i; }
 	};
-	return oel::transform_iterator<F, const int *>{F{}, p};
+	return oel::transform_iterator{F{}, p};
 }
 
 template< typename S >
@@ -364,6 +364,15 @@ void testTransformIterWithConceptOnly()
 	static_assert(std::is_same_v< decltype(it++), I >);
 }
 #endif
+
+TEST(viewTest, viewZipTransformN)
+{
+	int a[]{6};
+	int b[]{7};
+	auto res = view::zip_transform_n([](int x, int y) { return x + y; }, 1, a, b) | oel::to_dynarray();
+	EXPECT_EQ(1U, res.size());
+	EXPECT_EQ(13, res[0]);
+}
 
 constexpr StdArrInt2 generatedArray()
 {

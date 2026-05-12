@@ -192,7 +192,7 @@ public:
 
 	template< typename S >
 	friend constexpr bool operator!=
-		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right.m.first != left.se; }
+		(sentinel_wrapper<S> left, const transform_iterator & right)   { return right != left; }
 };
 
 #if __cpp_lib_concepts < 201907
