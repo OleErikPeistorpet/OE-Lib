@@ -7,23 +7,23 @@
 
 
 #include "../auxi/range_traits.h"
+#if __cpp_lib_concepts >= 201907
+#include "subrange.h"
+#endif
 
 /** @file
 */
 
-namespace oel::view
+namespace oel
 {
 
-//! Wrapper for iterator and size
-/**
-* Satisfies the std::ranges::range concept only if Iterator is random-access. */
 template< typename Iterator >
-class counted
+class _countedView
 {
 public:
 	using difference_type = iter_difference_t<Iterator>;
 
-	constexpr counted(Iterator first, difference_type n)   : _begin{std::move(first)}, _size{n} {}
+	constexpr _countedView(Iterator it, difference_type n)   : _begin{std::move(it)}, _size{n} {}
 
 	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_begin); }
 	//! Provided only if Iterator is random-access
@@ -39,22 +39,45 @@ public:
 	constexpr bool empty() const noexcept   { return 0 == _size; }
 
 	OEL_ALWAYS_INLINE
-	constexpr decltype(auto) operator[](difference_type index) const
-		OEL_REQUIRES(iter_is_random_access<Iterator>)              { return _begin[index]; }
+	constexpr decltype(auto) operator[](difference_type index) const   { return _begin[index]; }
 
 private:
 	Iterator       _begin;
 	difference_type _size;
 };
 
+namespace view
+{
+
+//! Very similar to std::views::counted
+/**
+* Without C++20: If iterator is not random-access, the view has no `end()` and is meant only for use within OE-Lib. */
+inline constexpr auto counted =
+	[](auto iterator, auto n)
+	{
+	#if __cpp_lib_concepts >= 201907
+		if constexpr( !iter_is_random_access< decltype(iterator) > )
+		{
+			return subrange(
+				std::counted_iterator(std::move(iterator), n),
+				std::default_sentinel );
+		}
+		else
+	#endif
+		{	return _countedView(std::move(iterator), n);
+		}
+	};
+
 }
+
+} // oel
 
 
 template< typename I >
-inline constexpr bool oel::enable_view< oel::view::counted<I> > = true;
+inline constexpr bool oel::enable_view< oel::_countedView<I> > = true;
 
 #if OEL_STD_RANGES
 
 template< typename I >
-inline constexpr bool std::ranges::enable_borrowed_range< oel::view::counted<I> > = true;
+inline constexpr bool std::ranges::enable_borrowed_range< oel::_countedView<I> > = true;
 #endif

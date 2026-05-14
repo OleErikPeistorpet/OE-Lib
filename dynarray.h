@@ -587,7 +587,7 @@ typename dynarray<T, Alloc>::iterator
 	static_assert( _detail::rangeIsForwardOrSized<Range>,
 		"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
 
-	auto       first = oel::begin_(source);
+	auto       first = iter_uncounted(oel::begin_(source));
 	auto const count = _detail::UDist(source);
 
 	size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
@@ -662,13 +662,13 @@ inline void dynarray<T, Alloc>::append_range(InputRange && source)
 {
 	if constexpr( _detail::rangeIsForwardOrSized<InputRange> )
 	{
-		_doAppend(oel::begin_(source), _detail::UDist(source));
+		_doAppend(
+			iter_uncounted(oel::begin_(source)),
+			_detail::UDist(source) );
 	}
 	else
-	{	auto it = oel::begin_(source);
-		auto l  = oel::end_(source);
-		for( ; it != l; ++it )
-			emplace_back(*it);
+	{	for( auto && e : source )
+			emplace_back( decltype(e)(e) );
 	}
 }
 
@@ -678,7 +678,9 @@ inline void dynarray<T, Alloc>::assign_range(InputRange && source)
 {
 	if constexpr( _detail::rangeIsForwardOrSized<InputRange> )
 	{
-		_doAssign(oel::begin_(source), _detail::UDist(source));
+		_doAssign(
+			iter_uncounted(oel::begin_(source)),
+			_detail::UDist(source) );
 	}
 	else
 	{	clear();
