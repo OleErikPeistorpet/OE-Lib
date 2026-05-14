@@ -42,7 +42,7 @@ TEST(viewTest, viewAll)
 		static_assert(std::is_same_v< decltype(v), std::ranges::ref_view<Sized> >);
 	#else
 		using I = Sized::iterator;
-		static_assert(std::is_same_v< decltype(v), view::counted<I> >);
+		static_assert(std::is_same_v< decltype(v), oel::_countedView<I> >);
 	#endif
 		auto v2 = view::all(std::as_const(v));
 		static_assert(std::is_same_v< decltype(v), decltype(v2) >);
@@ -126,7 +126,7 @@ TEST(viewTest, viewSubrange)
 
 TEST(viewTest, viewCounted)
 {
-	using CV = view::counted<int *>;
+	using CV = oel::_countedView<int *>;
 
 	static_assert(std::is_trivially_constructible<CV, CV &>::value);
 
@@ -370,6 +370,8 @@ void testTransformIterWithConceptOnly()
 }
 #endif
 
+#if !defined __GLIBCXX__ or __GNUC__ > 10 or !__cpp_lib_concepts
+
 constexpr StdArrInt2 generatedArray()
 {
 	StdArrInt2 res{};
@@ -390,6 +392,7 @@ constexpr void testViewGenerateConstexpr()
 	static_assert(res[0] == 1);
 	static_assert(res[1] == 2);
 }
+#endif
 
 struct Ints
 {
@@ -408,7 +411,30 @@ TEST(viewTest, viewGenerate)
 
 	d.assign_range(oel::view::generate(Ints{}, 0));
 	EXPECT_TRUE(d.empty());
+
+#if OEL_STD_RANGES
+	auto v = view::generate([] { return 7; }, 1);
+	for (auto i : v)
+		EXPECT_EQ(7, i);
+
+	static_assert(sizeof v <= 2 * sizeof(ptrdiff_t));
+
+	using V = decltype(v);
+	static_assert(std::ranges::input_range<V>);
+	static_assert(std::ranges::sized_range<V>);
+#endif
 }
+
+#if __cpp_lib_concepts
+TEST(viewTest, viewGenerateUnbounded)
+{
+	auto v = view::generate([i = 6]() mutable{ return i++; });
+	auto it = v.begin();
+	EXPECT_EQ(6, *it);
+	it++;
+	EXPECT_EQ(7, *it);
+}
+#endif
 
 TEST(viewTest, viewMoveEndDifferentType)
 {
@@ -445,9 +471,6 @@ TEST(viewTest, viewMoveMutableEmptyAndSize)
 	EXPECT_FALSE(v.empty());
 	EXPECT_EQ(1U, v.size());
 }
-
-using IntGenIter = oel::iterator_t<decltype( view::generate(Ints{}, 0) )>;
-static_assert(std::input_iterator<IntGenIter>);
 
 #if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
 TEST(viewTest, chainWithStd)

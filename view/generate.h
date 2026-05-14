@@ -40,7 +40,7 @@ template< typename Generator >
 class generate_iterator
  :	private _detail::GenerateIterBase<Generator>
 {
-	using _base = typename generate_iterator::GenerateIterBase;
+	using _base = _detail::GenerateIterBase<Generator>;
 
 public:
 	using iterator_category = std::input_iterator_tag;
@@ -65,11 +65,31 @@ public:
 
 namespace view
 {
-//! Returns a view that generates `count` elements by calling the given generator function
-/**
-* Like `generate_n` in the Range-v3 library, but this is only for use within OE-Lib. */
-inline constexpr auto generate =
-	[](auto generator, ptrdiff_t count)  { return counted(generate_iterator{std::move(generator)}, count); };
-}
 
-} // oel
+struct _generateFn
+{
+	//! Returns a view that generates `count` elements by calling the given generator function
+	/**
+	* Almost same as `generate_n` in the Range-v3 library. */
+	template< typename Generator >
+	constexpr auto operator()(Generator g, ptrdiff_t count) const
+		{
+			return counted( generate_iterator{std::move(g)}, count );
+		}
+#if __cpp_lib_concepts >= 201907
+
+	//! Returns an unbounded view that generates elements by calling the given generator function
+	/**
+	* Almost same as `generate` in the Range-v3 library. */
+	template< typename Generator >
+	constexpr auto operator()(Generator g) const
+		{
+			return subrange( generate_iterator{std::move(g)}, std::unreachable_sentinel );
+		}
+#endif
+};
+inline constexpr _generateFn generate;
+
+} // view
+
+}

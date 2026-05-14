@@ -75,25 +75,12 @@ template< typename Range, typename... None >
 constexpr auto end_(Range && r, None...)   -> decltype( end(r) )  { return end(r); }
 
 
-//! Return type of begin function (maybe found by ADL)
+//! Almost same as std::ranges::iterator_t
 template< typename Range >
 using iterator_t = decltype( oel::begin_(std::declval<Range &>()) );
-//! Return type of end function
+
 template< typename Range >
 using sentinel_t = decltype( oel::end_(std::declval<Range &>()) );
-
-//! Like std::ranges::borrowed_iterator_t, but doesn't require that Range has end()
-template< typename Range >
-using borrowed_iterator_t =
-#if OEL_STD_RANGES
-	std::conditional_t<
-		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
-		iterator_t<Range>,
-		std::ranges::dangling
-	>;
-#else
-	iterator_t<Range>;
-#endif
 
 #if __cpp_lib_concepts < 201907
 	template< typename Iterator >
@@ -138,17 +125,17 @@ namespace _detail
 	template< typename T, size_t N >
 	constexpr size_t Size(T(&)[N]) noexcept { return N; }
 
-	template< typename Range >
-	constexpr auto Size(Range && r) noexcept(noexcept( r.size() ))
-	->	decltype( r.size() ) { return r.size(); }
+	template< typename T >
+	constexpr auto Size(T && ob) noexcept(noexcept( ob.size() ))
+	->	decltype( ob.size() ) { return ob.size(); }
 
 	template
-	<	typename Range, typename... None,
+	<	typename R, typename... None,
 		enable_if<
-			!disable_sized_sentinel_for< sentinel_t<Range>, iterator_t<Range> >
+			!disable_sized_sentinel_for< sentinel_t<R>, iterator_t<R> >
 		> = 0
 	>
-	constexpr auto Size(Range && r, None...)
+	constexpr auto Size(R && r, None...)
 	->	decltype( oel::end_(r) - oel::begin_(r) )
 	{	return    oel::end_(r) - oel::begin_(r); }
 }

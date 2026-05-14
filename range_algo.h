@@ -7,7 +7,7 @@
 
 
 #include "dynarray.h"
-#include "util.h"  // for as_unsigned
+#include "util.h"  // as_unsigned, _uncountedBorrowedIteratorT
 #include "auxi/range_algo_detail.h"
 #include "view/counted.h"
 
@@ -109,11 +109,12 @@ struct copy_return
 * To move instead of copy, wrap source with view::move. (To mimic std::copy_n, use view::counted)  */
 template< typename SizedRange, typename RandomAccessIter >  inline
 auto unchecked_copy(SizedRange && source, RandomAccessIter dest)
-->	copy_return< borrowed_iterator_t<SizedRange> >
+->	copy_return< _uncountedBorrowedIteratorT<SizedRange> >
 	{
-		return{ _detail::Copy(oel::begin_(source), _detail::Size(source), dest) };
+		return{ _detail::Copy(iter_uncounted( oel::begin_(source) ),
+		                      _detail::Size(source),
+		                      dest) };
 	}
-
 //! Copies as many elements from source range as will fit in dest range
 /** @return `begin(source)` incremented by source size
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
@@ -121,14 +122,19 @@ auto unchecked_copy(SizedRange && source, RandomAccessIter dest)
 * Requires that source models std::ranges::sized_range and dest models std::ranges::random_access_range. */
 template< typename SizedRange, typename RandomAccessRange >
 auto copy_fit(SizedRange && source, RandomAccessRange && dest)
-->	copy_return< borrowed_iterator_t<SizedRange> >
+->	copy_return< _uncountedBorrowedIteratorT<SizedRange> >
 	{
 		auto       n        = as_unsigned(_detail::Size(source));
 		auto const destSize = as_unsigned(_detail::Size(dest));
 		if( n > destSize )
 			n = destSize;
 
-		return {_detail::Copy( oel::begin_(source), n, oel::begin_(dest) )};
+		return{
+			_detail::Copy
+			(	iter_uncounted(oel::begin_(source)),
+				n,
+				oel::begin_(dest)
+			) };
 	}
 
 } // oel

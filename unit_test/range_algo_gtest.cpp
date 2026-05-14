@@ -124,7 +124,6 @@ TEST(rangeTest, copyFit)
 	int test2[5];
 	constexpr int N = 4;
 	test2[N] = -7;
-
 	{
 		auto l = oel::copy_fit(test, view::counted(std::begin(test2), N)).in;
 		EXPECT_TRUE(std::equal(test.begin(), test.begin() + N, test2));
@@ -139,7 +138,7 @@ TEST(rangeTest, copyFit)
 	}
 	{
 		std::list<std::string> li{"aa", "bb"};
-		std::array<std::string, 2> strDest;
+		std::array<std::string, 4> strDest;
 		auto sLast = oel::copy_fit(view::move(li), strDest).in;
 		EXPECT_EQ("aa", strDest[0]);
 		EXPECT_EQ("bb", strDest[1]);
@@ -147,6 +146,15 @@ TEST(rangeTest, copyFit)
 		EXPECT_TRUE(std::next(li.begin())->empty());
 		EXPECT_TRUE(end(li) == sLast.base());
 	}
+	std::array<int, 3> dest;
+	auto f = [] { return 42; };
+	auto it = oel::copy_fit(view::generate(f, 3) | view::move, dest).in;
+	EXPECT_EQ(42, dest[0]);
+	EXPECT_EQ(42, dest[1]);
+	EXPECT_EQ(42, dest[2]);
+	static_assert(std::is_same_v< decltype(it), std::move_iterator< oel::generate_iterator< decltype(f) > > >);
+	using I = decltype( oel::copy_fit(view::generate(f, 3), dest).in );
+	static_assert(std::is_same_v< I, oel::generate_iterator< decltype(f) > >);
 }
 
 TEST(rangeTest, copyRangeMutableBeginSize)

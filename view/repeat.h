@@ -28,7 +28,7 @@ namespace _detail
 namespace view
 {
 
-//! Like `std::views::repeat(value, count)`, but only for use in OE-Lib
+//! Like `std::views::repeat(value, count)`, but more limited
 /**
 * If the type of value is expensive to copy, you should probably use view::generate with a lambda instead.
 * For example, `view::generate([&] { return value; }, count)`.

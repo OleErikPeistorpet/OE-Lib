@@ -59,12 +59,12 @@ inline constexpr auto as_unsigned =
 //! More generic than std::ssize, close to std::ranges::ssize
 /**
 * Ill-formed if `r.size()` is ill-formed and `begin(r)` cannot be subtracted from `end(r)` (SFINAE-friendly) */
-template< typename SizedRangeLike >
-constexpr auto ssize(SizedRangeLike && r)
-	noexcept(noexcept( _detail::Size(r) ))
-->	std::common_type_t< ptrdiff_t, decltype( as_signed(_detail::Size(r)) ) >
+template< typename T >
+constexpr auto ssize(T && ob)
+	noexcept(noexcept( _detail::Size(ob) ))
+->	std::common_type_t< ptrdiff_t, decltype( as_signed(_detail::Size(ob)) ) >
 	{
-		return std::common_type_t< ptrdiff_t, decltype( as_signed(_detail::Size(r)) ) >(_detail::Size(r));
+		return std::common_type_t< ptrdiff_t, decltype( as_signed(_detail::Size(ob)) ) >(_detail::Size(ob));
 	}
 
 
@@ -118,6 +118,37 @@ inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrit
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is not for users (implementation)
+
+
+//! Overloads unwrap std::counted_iterator
+template< typename Iterator >
+Iterator iter_uncounted(Iterator it)  { return it; }
+
+#if __cpp_lib_concepts >= 201907
+template< typename Iterator >
+Iterator iter_uncounted(std::counted_iterator<Iterator> it)  { return std::move(it).base(); }
+
+template< typename Iterator >
+auto     iter_uncounted(std::move_iterator< std::counted_iterator<Iterator> > it)
+	{
+		return std::move_iterator{std::move(it).base().base()};
+	}
+#endif
+
+//! Like std::ranges::borrowed_iterator_t, but strips away std::counted_iterator
+template< typename Range >
+using _uncountedBorrowedIteratorT =
+#if OEL_STD_RANGES
+	std::conditional_t<
+		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
+#endif
+		decltype( iter_uncounted( oel::begin_(std::declval<Range &>()) ) )
+#if OEL_STD_RANGES
+		, std::ranges::dangling
+	>;
+#else
+	;
+#endif
 
 
 //! Tells whether we can call member `reallocate(pointer, size_type)` on an instance of Alloc
