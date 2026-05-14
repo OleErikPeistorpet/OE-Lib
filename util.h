@@ -119,6 +119,37 @@ inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrit
 // The rest of the file is not for users (implementation)
 
 
+//! Overloads unwrap std::counted_iterator
+template< typename Iterator >
+Iterator iter_uncounted(Iterator it)  { return it; }
+
+#if __cpp_lib_concepts >= 201907
+template< typename Iterator >
+Iterator iter_uncounted(std::counted_iterator<Iterator> it)  { return std::move(it).base(); }
+
+template< typename Iterator >
+auto     iter_uncounted(std::move_iterator< std::counted_iterator<Iterator> > it)
+	{
+		return std::move_iterator{std::move(it).base().base()};
+	}
+#endif
+
+//! Like std::ranges::borrowed_iterator_t, but strips away std::counted_iterator
+template< typename Range >
+using _uncountedBorrowedIteratorT =
+#if OEL_STD_RANGES
+	std::conditional_t<
+		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
+#endif
+		decltype( iter_uncounted( oel::begin_(std::declval<Range &>()) ) )
+#if OEL_STD_RANGES
+		, std::ranges::dangling
+	>;
+#else
+	;
+#endif
+
+
 //! Tells whether we can call member `reallocate(pointer, size_type)` on an instance of Alloc
 template< typename Alloc >
 constexpr auto allocator_can_realloc()

@@ -362,6 +362,8 @@ void testTransformIterWithConceptOnly()
 }
 #endif
 
+#if !defined __GLIBCXX__ or __GNUC__ > 10 or !__cpp_lib_concepts
+
 constexpr StdArrInt2 generatedArray()
 {
 	StdArrInt2 res{};
@@ -382,6 +384,7 @@ constexpr void testViewGenerateConstexpr()
 	static_assert(res[0] == 1);
 	static_assert(res[1] == 2);
 }
+#endif
 
 struct Ints
 {

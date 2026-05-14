@@ -82,19 +82,6 @@ using iterator_t = decltype( oel::begin_(std::declval<Range &>()) );
 template< typename Range >
 using sentinel_t = decltype( oel::end_(std::declval<Range &>()) );
 
-//! Like std::ranges::borrowed_iterator_t, but doesn't require that Range has end()
-template< typename Range >
-using borrowed_iterator_t =
-#if OEL_STD_RANGES
-	std::conditional_t<
-		std::is_lvalue_reference_v<Range> or std::ranges::enable_borrowed_range< std::remove_cvref_t<Range> >,
-		iterator_t<Range>,
-		std::ranges::dangling
-	>;
-#else
-	iterator_t<Range>;
-#endif
-
 #if __cpp_lib_concepts < 201907
 	template< typename Iterator >
 	using iter_difference_t = typename std::iterator_traits<Iterator>::difference_type;

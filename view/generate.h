@@ -6,7 +6,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#if __cpp_lib_concepts < 201907
 #include "counted.h"
+#else
+#include "subrange.h"
+#endif
 #include "../auxi/detail_assignable.h"
 
 /** @file
@@ -63,11 +67,36 @@ public:
 
 namespace view
 {
-//! Returns a view that generates `count` elements by calling the given generator function
-/**
-* Like `generate_n` in the Range-v3 library, but this is only for use within OE-Lib. */
-inline constexpr auto generate =
-	[](auto generator, ptrdiff_t count)  { return counted(generate_iterator{std::move(generator)}, count); };
-}
 
-} // oel
+struct _generateFn
+{
+	//! Returns a view that generates `count` elements by calling the given generator function
+	/**
+	* Almost same as `generate_n` in the Range-v3 library. */
+	template< typename Generator >
+	constexpr auto operator()(Generator g, ptrdiff_t count) const
+		{
+		#if __cpp_lib_concepts < 201907
+			return counted( generate_iterator{std::move(g)}, count );
+		#else
+			return subrange(
+				std::counted_iterator{ generate_iterator{std::move(g)}, count },
+				std::default_sentinel );
+		#endif
+		}
+#if __cpp_lib_concepts >= 201907
+	//! Returns an unbounded view that generates elements by calling the given generator function
+	/**
+	* Almost same as `generate` in the Range-v3 library. */
+	template< typename Generator >
+	constexpr auto operator()(Generator g) const
+		{
+			return subrange( generate_iterator{std::move(g)}, std::unreachable_sentinel );
+		}
+#endif
+};
+inline constexpr _generateFn generate;
+
+} // view
+
+}

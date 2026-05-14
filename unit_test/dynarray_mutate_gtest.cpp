@@ -370,9 +370,10 @@ TEST_F(dynarrayTest, appendCase2)
 #if OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, appendSizeOverflow)
 {
-	dynarray<char> c(1);
+	using T = std::uint_least16_t;
+	dynarray<T> c(1);
 	EXPECT_THROW(
-		c.append_range(view::repeat('\0', SIZE_MAX)),
+		c.append_range(view::repeat(T{}, PTRDIFF_MAX)),
 		std::length_error );
 }
 #endif
@@ -919,7 +920,7 @@ TEST_F(dynarrayTest, greaterThanMax)
 	};
 
 	dynarray<Size2> d;
-	auto const n = std::numeric_limits<size_t>::max() / 2 + 1;
+	auto n = SIZE_MAX / sizeof(Size2) + 1;
 
 	EXPECT_THROW(d.reserve(SIZE_MAX), std::length_error);
 	EXPECT_TRUE(d.empty());
@@ -929,10 +930,13 @@ TEST_F(dynarrayTest, greaterThanMax)
 	EXPECT_TRUE(d.empty());
 	EXPECT_THROW(d.resize_for_overwrite(n), std::length_error);
 	EXPECT_TRUE(d.empty());
+
+	dynarray<int> di;
+	n = SIZE_MAX / sizeof(int) + 1;
 	EXPECT_THROW(
-		d.assign_range( view::repeat(Size2{}, n) ),
+		di.assign_range( view::repeat(int{}, n) ),
 		std::length_error );
-	EXPECT_TRUE(d.empty());
+	EXPECT_TRUE(di.empty());
 }
 #endif
 
