@@ -379,19 +379,16 @@ TEST_F(dynarrayTest, appendSizeOverflow)
 #if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, appendNonForwardRange)
 {
-	std::stringstream ss("1 2 3");
-
 	dynarrayTrackingAlloc<int> dest;
 
-	std::istream_iterator<int> it(ss), end{};
+	std::stringstream s0("1 2 3");
+	std::stringstream ss("1 2 3");
+	std::istream_iterator<int> i0(s0), it(ss), end{};
 
-	it = dest.append(view::counted(it, 0));
-	it = dest.append(view::counted(it, 2));
-	it = dest.append(view::counted(it, 0));
+	dest.append(view::counted(i0, 0));
+	dest.append(view::subrange(it, end));
+	dest.append(view::counted(i0, 0));
 
-	it = dest.append(view::subrange(it, end));
-
-	EXPECT_EQ(it, end);
 	EXPECT_EQ(3u, dest.size());
 	for (int i = 0; i < 3; ++i)
 		EXPECT_EQ(i + 1, dest[i]);
@@ -606,26 +603,29 @@ TEST_F(dynarrayTest, moveOnlyIterator)
 		std::istringstream ss{"1 2 3 4"};
 		auto v = std::views::istream<int>(ss);
 
-		auto it = dest.append(view::counted(v.begin(), 3));
+		dest.append(view::counted(v.begin(), 3));
 		EXPECT_EQ(3u, dest.size());
 		EXPECT_EQ(1, dest[0]);
 		EXPECT_EQ(2, dest[1]);
 		EXPECT_EQ(3, dest[2]);
 
-		it = dest.assign( view::subrange(std::move(it), v.end()) );
-		EXPECT_EQ(v.end(), it);
+		std::istringstream s2{"4"};
+		auto v2 = std::views::istream<int>(s2);
+		dest.assign(v2);
 		EXPECT_EQ(1u, dest.size());
 		EXPECT_EQ(4, dest[0]);
 	}
-	std::istringstream ss{"5 6 7 8"};
+	std::istringstream ss{"5 6 7"};
 	auto v = std::views::istream<int>(ss);
 
-	auto it = dest.assign(view::counted(v.begin(), 2));
+	dest.assign(view::counted(v.begin(), 2));
 	EXPECT_EQ(2u, dest.size());
 	EXPECT_EQ(5, dest[0]);
 	EXPECT_EQ(6, dest[1]);
 
-	dest.insert_range(dest.begin() + 1, view::counted(std::move(it), 2));
+	std::istringstream s2{"7 8 9"};
+	auto v2 = std::views::istream<int>(s2);
+	dest.insert_range(dest.begin() + 1, view::counted(v2.begin(), 2));
 	EXPECT_EQ(4u, dest.size());
 	EXPECT_EQ(5, dest[0]);
 	EXPECT_EQ(7, dest[1]);
@@ -952,34 +952,16 @@ TEST_F(dynarrayTest, misc)
 #endif
 	std::deque<size_t> dequeSrc{4, 5};
 
-	dynarray<size_t> dest0;
-	dest0.reserve(1);
-	dest0 = daSrc;
+	dynarray<size_t> dest;
+	dest.reserve(1);
+	dest = daSrc;
+	dest.append(daSrc);
+	dest.append(fASrc);
+	dest.append(dequeSrc);
 
-	dest0.append( view::counted(daSrc.cbegin(), ssize(daSrc)) );
-	dest0.append(view::counted(fASrc, 2));
-	auto srcEnd = dest0.append( view::counted(begin(dequeSrc), oel::ssize(dequeSrc)) );
-	EXPECT_TRUE(end(dequeSrc) == srcEnd);
-
-	dynarray<size_t> dest1;
-	dest1.append(daSrc);
-	dest1.append(fASrc);
-	dest1.append(dequeSrc);
-
-	auto cap = dest1.capacity();
-	dest1.pop_back();
-	dest1.pop_back();
-	dest1.shrink_to_fit();
-	EXPECT_GT(cap, dest1.capacity());
+	auto cap = dest.capacity();
+	dest.pop_back();
+	dest.pop_back();
+	dest.shrink_to_fit();
+	EXPECT_GT(cap, dest.capacity());
 }
-
-#if OEL_STD_RANGES
-void testDanglingReturn()
-{
-	dynarray<int> d;
-	auto i0 = d.assign(dynarray<int>{});
-	auto i1 = d.append(dynarray<int>{});
-	static_assert(std::is_same_v<decltype(i0), std::ranges::dangling>);
-	static_assert(std::is_same_v<decltype(i1), std::ranges::dangling>);
-}
-#endif

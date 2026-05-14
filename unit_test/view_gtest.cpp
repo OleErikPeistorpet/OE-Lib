@@ -253,12 +253,9 @@ TEST(viewTest, viewTransformSizedRange)
 	EXPECT_EQ(4, src[1]);
 
 	std::forward_list<int> const li{-2};
-	auto last = dest.append( view::counted(li.begin(), 1) | view::transform(Square{}) );
+	dest.append( view::counted(li.begin(), 1) | view::transform(Square{}) );
 	EXPECT_EQ(3U, dest.size());
 	EXPECT_EQ(4, dest[2]);
-	EXPECT_EQ(li.end(), last.base());
-
-	static_assert(std::is_same_v< decltype(last)::iterator_category, std::forward_iterator_tag >);
 }
 
 TEST(viewTest, viewTransformNonSizedRange)

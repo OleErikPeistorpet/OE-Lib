@@ -131,24 +131,21 @@ public:
 		}
 
 	//! Almost same as std::vector::assign_range (C++23)
-	/** @return Iterator `begin(source)` incremented by the number of elements in source
-	*
+	/**
 	* Any elements held before the call are either assigned to or destroyed. */
 	template< typename InputRange >
-	auto assign(InputRange && source) -> borrowed_iterator_t<InputRange>;
+	void assign(InputRange && source);
 
 	void assign(size_type count, const T & val)   { clear();  append(count, val); }
 
-	/**
-	* @brief Almost same as std::vector::append_range (C++23)
-	* @pre source shall not refer to any elements in this dynarray if reallocation happens.
-	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements
-	* @return Iterator `begin(source)` incremented by the number of elements in source  */
+	//! Almost same as std::vector::append_range (C++23)
+	/** @pre source shall not refer to any elements in this dynarray if reallocation happens.
+	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements  */
 	template< typename InputRange = std::initializer_list<T> >
-	auto append(InputRange && source) -> borrowed_iterator_t<InputRange>;
-	/**
-	* @brief Same as `std::vector::insert(end(), count, val)`
-	* @pre val shall not be a reference to an element of this dynarray if reallocation happens.
+	void append(InputRange && source);
+
+	//! Same as `std::vector::insert(end(), count, val)`
+	/** @pre val shall not be a reference to an element of this dynarray if reallocation happens.
 	*	Reallocation is caused by `capacity() - size() < count` */
 	void append(size_type count, const T & val);
 
@@ -440,18 +437,16 @@ private:
 
 
 	template< typename InputRange >
-	auto _emplBackRange(InputRange & src)
+	void _emplBackRange(InputRange & src)
 	{
 		auto it = adl_begin(src);
 		auto l  = adl_end(src);
 		for( ; it != l; ++it )
 			emplace_back(*it);
-
-		return it;
 	}
 
 	template< typename InputIter >
-	InputIter _doAssign(InputIter src, size_type const count)
+	void _doAssign(InputIter src, size_type const count)
 	{
 		_debugSizeUpdater guard{_m};
 
@@ -466,9 +461,8 @@ private:
 			else
 			{	_m.end = _m.data + count;
 			}
-			_detail::MemcpyCheck(src, count, _m.data);
 
-			return src + count;
+			_detail::MemcpyCheck(src, count, _m.data);
 		}
 		else
 		{	auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
@@ -506,12 +500,11 @@ private:
 				_alloTrait::construct(_m, _m.end, *src);
 				++src; ++_m.end;
 			}
-			return src;
 		}
 	}
 
 	template< typename InputIter >
-	InputIter _doAppend(InputIter src, size_type const count)
+	void _doAppend(InputIter src, size_type const count)
 	{
 		if( _spareCapacity() < count )
 			_growBy(count);
@@ -519,7 +512,6 @@ private:
 		if constexpr( can_memmove_with<T *, InputIter> )
 		{
 			_detail::MemcpyCheck(src, count, _m.end);
-			src += count;
 			_m.end += count;
 		}
 		else
@@ -541,8 +533,6 @@ private:
 			_m.end = dLast;
 		}
 		_debugSizeUpdater guard{_m};
-
-		return src;
 	}
 
 
@@ -701,18 +691,17 @@ inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 
 template< typename T, typename Alloc >
 template< typename InputRange >
-inline auto dynarray<T, Alloc>::append(InputRange && source)
-->	borrowed_iterator_t<InputRange>
+inline void dynarray<T, Alloc>::append(InputRange && source)
 {
 	if constexpr( _detail::rangeIsForwardOrSized<InputRange> )
 	{
-		return _doAppend(adl_begin(source), _detail::UDist(source));
+		_doAppend(adl_begin(source), _detail::UDist(source));
 	}
 	else
 	{	auto const oldSize = size();
 		OEL_TRY_
 		{
-			return _emplBackRange(source);
+			_emplBackRange(source);
 		}
 		OEL_CATCH_ALL
 		{
@@ -724,16 +713,15 @@ inline auto dynarray<T, Alloc>::append(InputRange && source)
 
 template< typename T, typename Alloc >
 template< typename InputRange >
-inline auto dynarray<T, Alloc>::assign(InputRange && source)
-->	borrowed_iterator_t<InputRange>
+inline void dynarray<T, Alloc>::assign(InputRange && source)
 {
 	if constexpr( _detail::rangeIsForwardOrSized<InputRange> )
 	{
-		return _doAssign(adl_begin(source), _detail::UDist(source));
+		_doAssign(adl_begin(source), _detail::UDist(source));
 	}
 	else
 	{	clear();
-		return _emplBackRange(source);
+		_emplBackRange(source);
 	}
 }
 
