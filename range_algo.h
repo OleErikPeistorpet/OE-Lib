@@ -103,10 +103,10 @@ struct copy_return
 /** @return `begin(source)` incremented by source size
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* Requires that `source.size()` or `end(source) - begin(source)` is valid, and that dest models random_access_iterator.
+* Requires that source models std::ranges::sized_range and that dest models random_access_iterator.
 * To move instead of copy, wrap source with view::move. (To mimic std::copy_n, use view::counted)  */
 template< typename SizedRange, typename RandomAccessIter >  inline
-auto copy_unsafe(SizedRange && source, RandomAccessIter dest)
+auto unchecked_copy(SizedRange && source, RandomAccessIter dest)
 ->	copy_return< borrowed_iterator_t<SizedRange> >
 	{
 		return{ _detail::Copy(oel::begin_(source), _detail::Size(source), dest) };
@@ -116,25 +116,10 @@ auto copy_unsafe(SizedRange && source, RandomAccessIter dest)
 /** @return `begin(source)` incremented by source size
 * @pre If the ranges overlap, behavior is undefined (uses memcpy when possible)
 *
-* Requires that dest models std::ranges::random_access_range. */
-template< typename InputRange, typename RandomAccessRange >
-auto copy_fit(InputRange && source, RandomAccessRange && dest)
-->	copy_return< borrowed_iterator_t<InputRange> >;
-
-} // namespace oel
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Just implementation
-
-
-template< typename InputRange, typename RandomAccessRange >
-auto oel::copy_fit(InputRange && source, RandomAccessRange && dest)
-->	copy_return< borrowed_iterator_t<InputRange> >
-{
-	if constexpr( range_is_sized<InputRange> )
+* Requires that source models std::ranges::sized_range and dest models std::ranges::random_access_range. */
+template< typename SizedRange, typename RandomAccessRange >
+auto copy_fit(SizedRange && source, RandomAccessRange && dest)
+->	copy_return< borrowed_iterator_t<SizedRange> >
 	{
 		auto       n        = as_unsigned(_detail::Size(source));
 		auto const destSize = as_unsigned(_detail::Size(dest));
@@ -143,14 +128,5 @@ auto oel::copy_fit(InputRange && source, RandomAccessRange && dest)
 
 		return {_detail::Copy( oel::begin_(source), n, oel::begin_(dest) )};
 	}
-	else
-	{	auto it = oel::begin_(source); auto const last = oel::end_(source);
-		auto di = oel::begin_(dest);   auto const dl   = oel::end_(dest);
-		while( it != last and di != dl )
-		{
-			*di = *it;
-			++di; ++it;
-		}
-		return {it};
-	}
-}
+
+} // oel

@@ -8,7 +8,6 @@
 
 #include "gtest/gtest.h"
 #include <list>
-#include <forward_list>
 #include <deque>
 #include <array>
 #include <valarray>
@@ -100,19 +99,29 @@ TEST(rangeTest, concatToDynarray)
 	EXPECT_EQ(7, result.get_allocator().id);
 }
 
-TEST(rangeTest, copyUnsafe)
+TEST(rangeTest, uncheckedCopy)
 {
-	std::valarray<int> src(2);
-	src[0] = 1;
-	src[1] = 2;
-	std::valarray<int> dest(2);
-	oel::copy_unsafe(src, begin(dest));
-	EXPECT_EQ(1, dest[0]);
-	EXPECT_EQ(2, dest[1]);
+	std::list<std::string> li{"aa", "bb"};
+	std::array<std::string, 2> strDest;
+	auto sLast = oel::unchecked_copy(view::move(li), strDest.begin()).in;
+	EXPECT_EQ("aa", strDest[0]);
+	EXPECT_EQ("bb", strDest[1]);
+	EXPECT_TRUE(li.begin()->empty());
+	EXPECT_TRUE(std::next(li.begin())->empty());
+	EXPECT_TRUE(end(li) == sLast.base());
 }
 
 TEST(rangeTest, copyFit)
 {
+	{
+		std::valarray<int> src(2);
+		src[0] = 1;
+		src[1] = 2;
+		std::valarray<int> dest(2);
+		oel::copy_fit(src, dest);
+		EXPECT_EQ(1, dest[0]);
+		EXPECT_EQ(2, dest[1]);
+	}
 	oel::dynarray<int> test = { 0, 1, 2, 3, 4 };
 	int test2[5];
 	constexpr int N = 4;
@@ -140,12 +149,6 @@ TEST(rangeTest, copyFit)
 		EXPECT_TRUE(std::next(li.begin())->empty());
 		EXPECT_TRUE(end(li) == sLast.base());
 	}
-	std::forward_list<std::string> li{"aa", "bb"};
-	std::array<std::string, 4> strDest;
-	auto it = oel::copy_fit(li, strDest).in;
-	EXPECT_EQ("aa", strDest[0]);
-	EXPECT_EQ("bb", strDest[1]);
-	EXPECT_EQ(li.end(), it);
 }
 
 TEST(rangeTest, copyRangeMutableBeginSize)
@@ -154,7 +157,7 @@ TEST(rangeTest, copyRangeMutableBeginSize)
 	int dest[1];
 	auto v = ToMutableBeginSizeView(src);
 
-	oel::copy_unsafe(v, std::begin(dest));
+	oel::unchecked_copy(v, std::begin(dest));
 	EXPECT_EQ(1, dest[0]);
 	dest[0] = 0;
 
