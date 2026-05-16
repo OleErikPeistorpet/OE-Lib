@@ -61,15 +61,26 @@ namespace _detail
 
 ////////////////////////////////////////////////////////////////////////////////
 
-using std::begin;  using std::end;
+//! Like std::ranges::begin, but for C++17
+template< typename Range >  OEL_ALWAYS_INLINE
+constexpr auto begin_(Range && r) -> decltype( std::begin(r) )  { return std::begin(r); }
+
+template< typename Range >  OEL_ALWAYS_INLINE
+constexpr auto end_(Range && r)   -> decltype( std::end(r) )  { return std::end(r); }
+
+template< typename Range, typename... None >
+constexpr auto begin_(Range && r, None...) -> decltype( begin(r) )  { return begin(r); }
+
+template< typename Range, typename... None >
+constexpr auto end_(Range && r, None...)   -> decltype( end(r) )  { return end(r); }
 
 
-//! Return type of begin function (found by ADL)
+//! Return type of begin function (maybe found by ADL)
 template< typename Range >
-using iterator_t = decltype( begin(std::declval<Range &>()) );
-//! Return type of end function (found by ADL)
+using iterator_t = decltype( oel::begin_(std::declval<Range &>()) );
+//! Return type of end function
 template< typename Range >
-using sentinel_t = decltype( end(std::declval<Range &>()) );
+using sentinel_t = decltype( oel::end_(std::declval<Range &>()) );
 
 //! Like std::ranges::borrowed_iterator_t, but doesn't require that Range has end()
 template< typename Range >
@@ -124,6 +135,9 @@ inline constexpr bool iter_is_random_access = iter_is<Iterator, std::random_acce
 
 namespace _detail
 {
+	template< typename T, size_t N >
+	constexpr size_t Size(T(&)[N]) noexcept { return N; }
+
 	template< typename Range >
 	constexpr auto Size(Range && r)
 	->	decltype( r.size() ) { return r.size(); }
@@ -135,8 +149,8 @@ namespace _detail
 		> = 0
 	>
 	constexpr auto Size(Range && r, None...)
-	->	decltype( end(r) - begin(r) )
-	{	return    end(r) - begin(r); }
+	->	decltype( oel::end_(r) - oel::begin_(r) )
+	{	return    oel::end_(r) - oel::begin_(r); }
 }
 
 

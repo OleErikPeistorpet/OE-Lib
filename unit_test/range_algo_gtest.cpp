@@ -61,7 +61,7 @@ TEST(rangeTest, eraseIf)
 	EXPECT_TRUE(expect == li);
 	erase_if(test1, isEven);
 	EXPECT_EQ(li.size(), test1.size());
-	EXPECT_TRUE(std::equal(begin(li), end(li), begin(test1)));
+	EXPECT_TRUE(std::equal( begin(li), end(li), test1.begin() ));
 }
 
 TEST(rangeTest, eraseAdjacentDup)
@@ -120,9 +120,9 @@ TEST(rangeTest, copyFit)
 
 	{
 		auto l = oel::copy_fit(test, view::counted(std::begin(test2), N)).in;
-		EXPECT_TRUE(std::equal(begin(test), begin(test) + N, test2));
+		EXPECT_TRUE(std::equal(test.begin(), test.begin() + N, test2));
 		EXPECT_EQ(-7, test2[N]);
-		EXPECT_EQ(begin(test) + N, l);
+		EXPECT_EQ(test.begin() + N, l);
 	}
 	{
 		ASSERT_EQ(4, test[N]);

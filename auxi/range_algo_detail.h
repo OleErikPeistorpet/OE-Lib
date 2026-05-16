@@ -43,7 +43,7 @@ namespace oel::_detail
 	{
 		_detail::EraseEnd
 		(	c,
-			std::remove_if(begin(c), end(c), std::move(p))
+			std::remove_if( oel::begin_(c), oel::end_(c), std::move(p) )
 		);
 	}
 
@@ -54,7 +54,7 @@ namespace oel::_detail
 	template< typename Container, typename... None >
 	constexpr void Unique(Container & c, None...)
 	{
-		_detail::EraseEnd( c, std::unique(begin(c), end(c)) );
+		_detail::EraseEnd( c, std::unique(oel::begin_(c), oel::end_(c)) );
 	}
 
 ////////////////////////////////////////////////////////////////////////////////

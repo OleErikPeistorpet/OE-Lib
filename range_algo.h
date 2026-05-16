@@ -40,8 +40,8 @@ auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
 
 		auto d = dynarray<T, Alloc>(reserve, sum, std::move(a));
 
-		auto nIt = begin(counts);
-		(..., d.append( view::counted(begin(sources), *nIt++) ));
+		auto * nIt = counts;
+		(..., d.append( view::counted(oel::begin_(sources), *nIt++) ));
 
 		return d;
 	}
@@ -109,7 +109,7 @@ template< typename SizedRange, typename RandomAccessIter >  inline
 auto copy_unsafe(SizedRange && source, RandomAccessIter dest)
 ->	copy_return< borrowed_iterator_t<SizedRange> >
 	{
-		return{ _detail::Copy(begin(source), _detail::Size(source), dest) };
+		return{ _detail::Copy(oel::begin_(source), _detail::Size(source), dest) };
 	}
 
 //! Copies as many elements from source range as will fit in dest range
@@ -136,7 +136,7 @@ inline constexpr auto append =
 		if constexpr( decltype( _detail::CanAppend(container, static_cast<Ref>(source)) )::value )
 			container.append( static_cast<Ref>(source) );
 		else
-			container.append( to_pointer_contiguous(begin(source)), _detail::Size(source) );
+			container.append( to_pointer_contiguous(oel::begin_(source)), _detail::Size(source) );
 	};
 
 } // namespace oel
@@ -159,11 +159,11 @@ auto oel::copy_fit(InputRange && source, RandomAccessRange && dest)
 		if( n > destSize )
 			n = destSize;
 
-		return {_detail::Copy( begin(source), n, begin(dest) )};
+		return {_detail::Copy( oel::begin_(source), n, oel::begin_(dest) )};
 	}
 	else
-	{	auto it = begin(source); auto const last = end(source);
-		auto di = begin(dest);   auto const dl = end(dest);
+	{	auto it = oel::begin_(source); auto const last = oel::end_(source);
+		auto di = oel::begin_(dest);   auto const dl   = oel::end_(dest);
 		while( it != last and di != dl )
 		{
 			*di = *it;

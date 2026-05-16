@@ -97,7 +97,7 @@ TEST(viewTest, subscript)
 TEST(viewTest, nestedEmpty)
 {
 	oel::dynarray<int> src{};
-	auto v = view::owning(view::subrange( begin(src), end(src) )) | view::move;
+	auto v = view::owning(view::subrange( src.begin(), src.end() )) | view::move;
 	EXPECT_TRUE(v.empty());
 }
 
@@ -418,6 +418,13 @@ TEST(viewTest, viewMoveEndDifferentType)
 	static_assert(oel::range_is_sized<decltype(v)>);
 	EXPECT_NE(v.begin(), v.end());
 	EXPECT_EQ(src + 1, v.end().base().se);
+}
+
+void testStdIteratorInOelViewNotAmbiguous()
+{
+	auto v0 = std::array<int, 1>{} | view::move;
+	auto v  = view::subrange(v0.begin(), v0.end());
+	using I = oel::iterator_t< decltype(v) >;
 }
 
 #if OEL_STD_RANGES

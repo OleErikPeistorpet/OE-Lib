@@ -167,7 +167,7 @@ void testPushBack2()
 	#endif
 		EXPECT_TRUE(
 			std::equal(
-				begin(da), end(da), begin(expected),
+				da.begin(), da.end(), begin(expected),
 				[](const T & a, double b) { return *a == b; } ) );
 	}
 	EXPECT_EQ(T::nConstructions, T::nDestruct);
@@ -343,7 +343,7 @@ TEST_F(dynarrayTest, appendCase2)
 	const double arrayA[] = {-1.6, -2.6, -3.6, -4.6};
 
 	dynarray<double> double_dynarr, double_dynarr2;
-	double_dynarr.append( view::counted(oel::begin(arrayA), oel::ssize(arrayA)) );
+	double_dynarr.append( view::counted(oel::begin_(arrayA), oel::ssize(arrayA)) );
 	double_dynarr.append(double_dynarr2);
 
 	{
@@ -548,33 +548,33 @@ TEST_F(dynarrayTest, insertTrivialAndCheckReturn)
 
 	int const values[]{-3, -1, 7, 8};
 
-	auto it = test.insert(begin(test), values[2]);
+	auto it = test.insert(test.begin(), values[2]);
 	EXPECT_EQ(test.data(), &*it);
 
-	it = test.insert(begin(test), values[0]);
+	it = test.insert(test.begin(), values[0]);
 	EXPECT_EQ(&test.front(), &*it);
 
-	it = test.insert(end(test), values[3]);
+	it = test.insert(test.end(), values[3]);
 	EXPECT_EQ(&test.back(), &*it);
 
-	it = test.insert(begin(test) + 1, values[1]);
+	it = test.insert(test.begin() + 1, values[1]);
 	EXPECT_EQ(&test[1], &*it);
 
-	EXPECT_TRUE( std::equal(std::begin(values), std::end(values), begin(test), end(test)) );
+	EXPECT_TRUE( std::equal(std::begin(values), std::end(values), test.begin(), test.end()) );
 }
 
 TEST_F(dynarrayTest, insertRefFromSelf)
 {
 	{	dynarrayTrackingAlloc<TrivialRelocat> test;
 
-		test.emplace(begin(test), 7);
+		test.emplace(test.begin(), 7);
 
-		test.insert(begin(test), test.back());
+		test.insert(test.begin(), test.back());
 
 		EXPECT_EQ(7, *test.front());
 
 		test.back() = TrivialRelocat{8};
-		test.insert(begin(test), test.back());
+		test.insert(test.begin(), test.back());
 
 		EXPECT_EQ(8, *test.front());
 	}
@@ -759,14 +759,14 @@ void testEraseOne()
 		d.emplace_back(i);
 
 	auto const s = d.size();
-	auto ret = d.erase(begin(d) + 1);
+	auto ret = d.erase(d.begin() + 1);
 	ret = d.erase(ret);
-	EXPECT_EQ(begin(d) + 1, ret);
+	EXPECT_EQ(d.begin() + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
 	EXPECT_EQ(5, static_cast<double>(d.back()));
 
-	ret = d.erase(end(d) - 1);
-	EXPECT_EQ(end(d), ret);
+	ret = d.erase(d.end() - 1);
+	EXPECT_EQ(d.end(), ret);
 	ASSERT_EQ(s - 3, d.size());
 	EXPECT_EQ(1, static_cast<double>(d.front()));
 }
@@ -795,10 +795,10 @@ void testErase()
 		d.emplace_back(i);
 
 	auto const s = d.size();
-	auto ret = d.erase(begin(d) + 2, begin(d) + 2);
+	auto ret = d.erase(d.begin() + 2, d.begin() + 2);
 	ASSERT_EQ(s, d.size());
 	ret = d.erase(ret - 1, ret + 1);
-	EXPECT_EQ(begin(d) + 1, ret);
+	EXPECT_EQ(d.begin() + 1, ret);
 	ASSERT_EQ(s - 2, d.size());
 	EXPECT_EQ(s, static_cast<double>(d.back()));
 }
@@ -820,9 +820,9 @@ TEST_F(dynarrayTest, eraseRange)
 
 TEST_F(dynarrayTest, eraseToEnd)
 {
-	oel::dynarray<int> li{1, 1, 2, 2, 2, 1, 3};
-	li.erase_to_end(std::remove(begin(li), end(li), 1));
-	EXPECT_EQ(4U, li.size());
+	oel::dynarray<int> di{1, 1, 2, 2, 2, 1, 3};
+	di.erase_to_end( std::remove(di.begin(), di.end(), 1) );
+	EXPECT_EQ(4U, di.size());
 }
 
 #if OEL_MEM_BOUND_DEBUG_LVL
@@ -854,7 +854,7 @@ void testUnorderedErase()
 	EXPECT_EQ(1U, d.size());
 	EXPECT_EQ(-2, *(*it));
 	d.unordered_erase(it);
-	EXPECT_EQ(end(d), it);
+	EXPECT_EQ(d.end(), it);
 }
 
 TEST_F(dynarrayTest, unorderedErase)
@@ -943,7 +943,7 @@ TEST_F(dynarrayTest, misc)
 	dynarray<size_t> daSrc(oel::reserve, 2);
 	daSrc.push_back(0);
 	daSrc.push_back(2);
-	daSrc.insert(begin(daSrc) + 1, 1);
+	daSrc.insert(daSrc.begin() + 1, 1);
 	ASSERT_EQ(3U, daSrc.size());
 
 #if OEL_HAS_EXCEPTIONS

@@ -138,8 +138,8 @@ namespace oel::_detail
 			return as_unsigned(_detail::Size(r));
 		}
 		else
-		{	auto    it = begin(r);
-			auto const l = end(r);
+		{	auto    it = oel::begin_(r);
+			auto const l = oel::end_(r);
 			using D = iter_difference_t< decltype(it) >;
 			std::make_unsigned_t<D> n{};
 			while( it != l )
