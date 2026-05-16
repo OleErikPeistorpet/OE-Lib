@@ -36,9 +36,9 @@ namespace _detail
 			else if constexpr( std::is_lvalue_reference_v<Range> )
 			{
 				if constexpr( range_is_sized<Range> )
-					return view::counted(begin(r), oel::ssize(r));
+					return view::counted(oel::begin_(r), oel::ssize(r));
 				else
-					return view::subrange(begin(r), end(r));
+					return view::subrange(oel::begin_(r), oel::end_(r));
 			}
 			else
 			{	return view::owning( static_cast<Range &&>(r) );

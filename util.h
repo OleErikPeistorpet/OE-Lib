@@ -114,15 +114,6 @@ inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrit
 
 
 
-//! Same as `begin(range)` with a previous `using std::begin;`. Mainly for use in classes with a member named begin
-inline constexpr auto adl_begin =
-	[](auto && range) -> decltype( begin(range) ) { return begin(range); };
-//! Same as `end(range)` with a previous `using std::end;`. Mainly for use in classes with a member named end
-inline constexpr auto adl_end =
-	[](auto && range) -> decltype( end(range) ) { return end(range); };
-
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // The rest of the file is not for users (implementation)

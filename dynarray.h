@@ -429,8 +429,8 @@ private:
 	template< typename InputRange >
 	void _emplBackRange(InputRange & src)
 	{
-		auto it = adl_begin(src);
-		auto l  = adl_end(src);
+		auto it = oel::begin_(src);
+		auto l  = oel::end_(src);
 		for( ; it != l; ++it )
 			emplace_back(*it);
 	}
@@ -611,7 +611,7 @@ typename dynarray<T, Alloc>::iterator
 	static_assert( _detail::rangeIsForwardOrSized<Range>,
 		"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
 
-	auto       first = adl_begin(source);
+	auto       first = oel::begin_(source);
 	auto const count = _detail::UDist(source);
 
 	size_t const bytesAfterPos{sizeof(T) * (_m.end - pPos)};
@@ -672,7 +672,7 @@ inline void dynarray<T, Alloc>::append(InputRange && source)
 {
 	if constexpr( _detail::rangeIsForwardOrSized<InputRange> )
 	{
-		_doAppend(adl_begin(source), _detail::UDist(source));
+		_doAppend(oel::begin_(source), _detail::UDist(source));
 	}
 	else
 	{	auto const oldSize = size();
@@ -694,7 +694,7 @@ inline void dynarray<T, Alloc>::assign(InputRange && source)
 {
 	if constexpr( _detail::rangeIsForwardOrSized<InputRange> )
 	{
-		_doAssign(adl_begin(source), _detail::UDist(source));
+		_doAssign(oel::begin_(source), _detail::UDist(source));
 	}
 	else
 	{	clear();
