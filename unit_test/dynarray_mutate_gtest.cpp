@@ -265,9 +265,8 @@ TEST_F(dynarrayTest, assignTrivialReloc)
 	}
 }
 
-// std::stringstream doesn't seem to work using libstdc++ with -fno-exceptions
-// Probably needs a -fno-exceptions build of libstdc++
-#if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
+// std::stringstream did not work using libstdc++ with -fno-exceptions
+//#if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, assignNonForwardRange)
 {
 	dynarrayTrackingAlloc<std::string> das;
@@ -277,7 +276,7 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 
 	EXPECT_EQ(0U, das.size());
 
-	std::stringstream ss{"My computer emits Hawking radiation"};
+	std::istringstream ss{"My computer emits Hawking radiation"};
 	std::istream_iterator<std::string> b{ss}, e;
 	das.assign(view::subrange(b, e));
 
@@ -317,7 +316,6 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 	copyDest = std::initializer_list<std::string>{};
 	EXPECT_TRUE(copyDest.empty());
 }
-#endif
 
 TEST_F(dynarrayTest, appendCase1)
 {
@@ -376,10 +374,10 @@ TEST_F(dynarrayTest, appendSizeOverflow)
 }
 #endif
 
-#if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
+//#if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, appendNonForwardRange)
 {
-	std::stringstream ss("1 2 3");
+	std::istringstream ss("1 2 3");
 
 	dynarrayTrackingAlloc<int> dest;
 
@@ -396,7 +394,6 @@ TEST_F(dynarrayTest, appendNonForwardRange)
 	for (int i = 0; i < 3; ++i)
 		EXPECT_EQ(i + 1, dest[i]);
 }
-#endif
 
 TEST_F(dynarrayTest, insertRTrivial)
 {
