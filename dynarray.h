@@ -154,7 +154,7 @@ public:
 	iterator insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
 
 	template< typename... Args >
-	iterator emplace(const_iterator pos, Args &&... elemInitArgs) &;
+	iterator emplace(const_iterator pos, Args &&... args) &;
 
 	//! Beware, passing an element of same dynarray is often unsafe (otherwise same as std::vector::emplace_back)
 	/** @pre args shall not refer to any element of this container, unless `size() < capacity()` */
@@ -181,11 +181,11 @@ public:
 	* Constant complexity (compared to linear in the distance between pos and `end()` for normal erase). */
 	void     unordered_erase(iterator pos);
 
-	iterator erase(iterator pos) &;
+	iterator erase(const_iterator pos) &;
 
-	iterator erase(iterator first, const_iterator last) &;
+	iterator erase(const_iterator first, const_iterator last) &;
 	//! Equivalent to `erase(first, end())`, but potentially faster and does not require assignable T
-	void     erase_to_end(iterator first) noexcept;
+	void     erase_to_end(const_iterator first) noexcept;
 
 	void     clear() noexcept   { erase_to_end(begin()); }
 
@@ -798,9 +798,9 @@ void dynarray<T, Alloc>::shrink_to_fit()
 }
 
 template< typename T, typename Alloc >
-void dynarray<T, Alloc>::erase_to_end(iterator first) noexcept
+void dynarray<T, Alloc>::erase_to_end(const_iterator first) noexcept
 {
-	T *const newEnd{to_pointer_contiguous(first)};
+	auto const newEnd = const_cast<T *>(to_pointer_contiguous(first));
 	OEL_ASSERT(_m.data <= newEnd and newEnd <= _m.end);
 
 	_detail::Destroy(newEnd, _m.end);
@@ -820,8 +820,8 @@ inline void dynarray<T, Alloc>::unordered_erase(iterator pos)
 		--_m.end;
 		_debugSizeUpdater guard{_m};
 
-		auto & mem = reinterpret_cast< _detail::RelocateWrap<T> & >(elem);
-		mem       = *reinterpret_cast< _detail::RelocateWrap<T> * >(_m.end); // relocate last element to pos
+		auto mem = reinterpret_cast< _detail::RelocateWrap<T> * >(&elem);
+		*mem    = *reinterpret_cast< _detail::RelocateWrap<T> * >(_m.end); // relocate last element to pos
 	}
 	else
 	{	*pos = std::move(back());
@@ -831,11 +831,11 @@ inline void dynarray<T, Alloc>::unordered_erase(iterator pos)
 
 template< typename T, typename Alloc >
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::erase(iterator pos) &
+	dynarray<T, Alloc>::erase(const_iterator pos) &
 {
 	_debugSizeUpdater guard{_m};
 
-	T *const ptr{to_pointer_contiguous(pos)};
+	auto const ptr = const_cast<T *>(to_pointer_contiguous(pos));
 	OEL_ASSERT(_m.data <= ptr and ptr < _m.end);
 	if constexpr( is_trivially_relocatable<T>::value )
 	{
@@ -851,36 +851,36 @@ typename dynarray<T, Alloc>::iterator
 	{	_m.end = std::move(ptr + 1, _m.end, ptr);
 		(*_m.end).~T();
 	}
-	return pos;
+	return _detail::MakeDynarrIter(_m, ptr);
 }
 
 template< typename T, typename Alloc >
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::erase(iterator first, const_iterator last) &
+	dynarray<T, Alloc>::erase(const_iterator first, const_iterator last) &
 {
 	_debugSizeUpdater guard{_m};
 
-	T *            dest{to_pointer_contiguous(first)};
+	auto const pFirst = const_cast<T *>(to_pointer_contiguous(first));
 	const T *const pLast{to_pointer_contiguous(last)};
-	OEL_ASSERT(_m.data <= dest and dest <= pLast and pLast <= _m.end);
+	OEL_ASSERT(_m.data <= pFirst and pFirst <= pLast and pLast <= _m.end);
 
 	if constexpr( is_trivially_relocatable<T>::value )
 	{
-		_detail::Destroy(dest, pLast);
+		_detail::Destroy(pFirst, pLast);
 		auto const nAfter = _m.end - pLast;
 		std::memmove( // relocate [last, end) to [first, first + nAfter)
-			static_cast<void *>(dest),
+			static_cast<void *>(pFirst),
 			static_cast<const void *>(pLast),
 			sizeof(T) * nAfter );
-		_m.end = dest + nAfter;
+		_m.end = pFirst + nAfter;
 	}
-	else if( dest < pLast ) // must avoid self-move-assigning the elements
+	else if( pFirst < pLast ) // must avoid self-move-assigning the elements
 	{
-		dest = std::move(const_cast<T *>(pLast), _m.end, dest);
+		auto const dest = std::move(const_cast<T *>(pLast), _m.end, pFirst);
 		_detail::Destroy(dest, _m.end);
 		_m.end = dest;
 	}
-	return first;
+	return _detail::MakeDynarrIter(_m, pFirst);
 }
 
 
