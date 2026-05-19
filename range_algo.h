@@ -13,7 +13,7 @@
 
 
 /** @file
-* @brief Efficient range-based erase, copy functions, concat_to_dynarray and non-member append
+* @brief Efficient range-based erase, copy functions and concat_to_dynarray
 *
 * Designed to interface with the standard library.
 */

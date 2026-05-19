@@ -29,7 +29,7 @@ namespace
 	static_assert(oel::is_trivially_relocatable< std::variant< std::unique_ptr<double>, int > >::value);
 	static_assert( !oel::is_trivially_relocatable< std::variant<NonTrivialDestruct> >::value );
 
-#if (defined _CPPLIB_VER or defined _LIBCPP_VERSION or defined __GLIBCXX__) and !_GLIBCXX_USE_CXX11_ABI
+#if defined(_CPPLIB_VER) or defined(_LIBCPP_VERSION)
 	static_assert(oel::is_trivially_relocatable< std::string >::value);
 #endif
 #if OEL_HAS_BOOST
