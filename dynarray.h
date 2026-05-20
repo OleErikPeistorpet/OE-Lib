@@ -87,9 +87,17 @@ public:
 	//! Default-initializes elements, can be significantly faster if T is scalar or has trivial default constructor
 	/**
 	* @copydetails resize_for_overwrite(size_type)  */
-	dynarray(size_type size, for_overwrite_t, Alloc a = Alloc{});
+	dynarray(size_type size, for_overwrite_t, Alloc a = Alloc{})   : _m(a)
+		{
+			_initReserve(size);
+			DefaultInit::call(_m, _m.reservEnd);
+		}
 	//! (Value-initializes elements, same as std::vector)
-	explicit dynarray(size_type size, Alloc a = Alloc{});
+	explicit dynarray(size_type size, Alloc a = Alloc{})   : _m(a)
+		{
+			_initReserve(size);
+			ValueInit::call(_m, _m.reservEnd);
+		}
 
 	template< typename InputRange >
 	dynarray(from_range_t, InputRange && r, Alloc a = Alloc{})   : _m(a) { append_range(r); }
@@ -141,8 +149,8 @@ public:
 	//! Default-initializes added elements, can be significantly faster if T is scalar or trivially constructible
 	/**
 	* Objects of scalar type get indeterminate values. http://en.cppreference.com/w/cpp/language/default_initialization  */
-	void resize_for_overwrite(size_type n)   { _doResize<_detail::DefaultInit>(n); }
-	void resize(size_type n)                 { _doResize<_detail::ValueInit>(n); }
+	void resize_for_overwrite(size_type n)   { _doResize<DefaultInit>(n); }
+	void resize(size_type n)                 { _doResize<ValueInit>(n); }
 
 	//! Almost same as std::vector::insert_range
 	/**
@@ -409,6 +417,40 @@ private:
 	}
 
 
+	struct ValueInit
+	{
+		static void call(_dataOwner &__restrict m, T *__restrict last)
+		{
+			_debugSizeUpdater guard{m};
+
+			if constexpr( std::is_trivially_default_constructible_v<T> )
+			{
+				void * p{m.end};  // silence -Wclass-memaccess
+				std::memset(p, 0, sizeof(T) * (last - m.end));
+				m.end = last;
+			}
+			else
+			{	for( ; m.end != last; ++m.end )
+					_alloTrait::construct(m, m.end);
+			}
+		}
+	};
+
+	struct DefaultInit
+	{
+		static void call(_dataOwner &__restrict m, T *__restrict last)
+		{
+			if constexpr( !std::is_trivially_default_constructible_v<T> )
+			{
+				ValueInit::call(m, last);
+			}
+			else
+			{	m.end = last;
+				(void) _debugSizeUpdater{m};
+			}
+		}
+	};
+
 	template< typename UninitFiller >
 	void _doResize(size_type const newSize)
 	{
@@ -416,12 +458,15 @@ private:
 
 		T *const newEnd = _m.data + newSize;
 		if( _m.end < newEnd )
-			UninitFiller::call(_m.end, newEnd, static_cast<allocator_type &>(_m));
+		{
+			UninitFiller::call(_m, newEnd);
+		}
 		else
-			_detail::Destroy(newEnd, _m.end);
+		{	_detail::Destroy(newEnd, _m.end);
+			_m.end = newEnd;
 
-		_debugSizeUpdater guard{_m};
-		_m.end = newEnd;
+			(void) _debugSizeUpdater{_m};
+		}
 	}
 
 
@@ -676,28 +721,6 @@ inline void dynarray<T, Alloc>::assign_range(InputRange && source)
 	}
 }
 
-
-template< typename T, typename Alloc >
-dynarray<T, Alloc>::dynarray(size_type n, for_overwrite_t, Alloc a)
- :	_m(a)
-{
-	_initReserve(n);
-	_detail::DefaultInit::call<allocator_type>(_m.data, _m.reservEnd, _m);
-
-	_m.end = _m.reservEnd;
-	(void) _debugSizeUpdater{_m};
-}
-
-template< typename T, typename Alloc >
-dynarray<T, Alloc>::dynarray(size_type n, Alloc a)
- :	_m(a)
-{
-	_initReserve(n);
-	_detail::ValueInit::call<allocator_type>(_m.data, _m.reservEnd, _m);
-
-	_m.end = _m.reservEnd;
-	(void) _debugSizeUpdater{_m};
-}
 
 template< typename T, typename Alloc >
 dynarray<T, Alloc>::dynarray(dynarray && other, Alloc a)

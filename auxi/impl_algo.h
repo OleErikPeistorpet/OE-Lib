@@ -79,48 +79,6 @@ namespace oel::_detail
 	#undef OEL_CHECK_NULL_MEMCPY
 
 
-	struct ValueInit
-	{
-		template< typename Alloc, typename T >
-		static void call(T *__restrict first, T *const last, [[maybe_unused]] Alloc a)
-		{
-			if constexpr( std::is_trivially_default_constructible_v<T> )
-			{
-				void * p{first};  // silence -Wclass-memaccess
-				std::memset(p, 0, sizeof(T) * (last - first));
-			}
-			else
-			{	T *const init = first;
-				OEL_TRY_
-				{
-					for( ; first != last; ++first )
-						std::allocator_traits<Alloc>::construct(a, first);
-				}
-				OEL_CATCH_ALL
-				{
-					_detail::Destroy(init, first);
-					OEL_RETHROW;
-				}
-			}
-		}
-	};
-
-	struct DefaultInit
-	{
-		template< typename Alloc, typename T >
-		static void call(T *__restrict first, T *const last, Alloc & a)
-		{
-			if constexpr( !std::is_trivially_default_constructible_v<T> )
-			{
-				ValueInit::call(first, last, a);
-			}
-			else
-			{	(void) first; (void) last; (void) a;
-			}
-		}
-	};
-
-
 
 	template< typename Range >
 	inline constexpr auto rangeIsForwardOrSized =
