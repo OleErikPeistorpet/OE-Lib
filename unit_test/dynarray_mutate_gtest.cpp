@@ -640,7 +640,7 @@ TEST_F(dynarrayTest, resize)
 	d.resize(S1);
 	ASSERT_EQ(S1, d.size());
 
-#if OEL_HAS_EXCEPTIONS
+#if OEL_HAS_EXCEPTIONS and !OEL_NEW_HANDLER
 	EXPECT_THROW(d.resize_for_overwrite(d.max_size()), std::bad_alloc);
 	EXPECT_EQ(S1, d.size());
 #endif
@@ -900,8 +900,16 @@ TEST_F(dynarrayTest, overAligned)
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 
 #if OEL_HAS_EXCEPTIONS
+	#if OEL_NEW_HANDLER
+
+	std::set_new_handler( []{
+			throw std::bad_alloc{};
+		} );
+	#endif
+
 	EXPECT_THROW(special.reserve(special.max_size()),     std::bad_alloc);
 	EXPECT_THROW(special.reserve(special.max_size() - 1), std::bad_alloc);
+
 	EXPECT_THROW(special.reserve(special.max_size() + 1), std::length_error);
 #endif
 }
