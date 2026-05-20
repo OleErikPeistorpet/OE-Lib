@@ -266,9 +266,8 @@ TEST_F(dynarrayTest, assignTrivialReloc)
 	}
 }
 
-// std::stringstream doesn't seem to work using libstdc++ with -fno-exceptions
-// Probably needs a -fno-exceptions build of libstdc++
-#if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
+// std::stringstream did not work using libstdc++ with -fno-exceptions
+//#if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, assignNonForwardRange)
 {
 	dynarrayTrackingAlloc<std::string> das;
@@ -278,7 +277,7 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 
 	EXPECT_EQ(0U, das.size());
 
-	std::stringstream ss{"My computer emits Hawking radiation"};
+	std::istringstream ss{"My computer emits Hawking radiation"};
 	std::istream_iterator<std::string> b{ss}, e;
 	das.assign_range(view::subrange(b, e));
 
@@ -318,7 +317,6 @@ TEST_F(dynarrayTest, assignNonForwardRange)
 	copyDest = std::initializer_list<std::string>{};
 	EXPECT_TRUE(copyDest.empty());
 }
-#endif
 
 TEST_F(dynarrayTest, appendCase1)
 {
@@ -377,13 +375,13 @@ TEST_F(dynarrayTest, appendSizeOverflow)
 }
 #endif
 
-#if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
+//#if !defined __GLIBCXX__ or OEL_HAS_EXCEPTIONS
 TEST_F(dynarrayTest, appendNonForwardRange)
 {
 	dynarrayTrackingAlloc<int> dest;
 
-	std::stringstream s0("1 2 3");
-	std::stringstream ss("1 2 3");
+	std::istringstream s0("1 2 3");
+	std::istringstream ss("1 2 3");
 	std::istream_iterator<int> i0(s0), it(ss), end{};
 
 	dest.append_range(view::counted(i0, 0));
@@ -394,7 +392,6 @@ TEST_F(dynarrayTest, appendNonForwardRange)
 	for (int i = 0; i < 3; ++i)
 		EXPECT_EQ(i + 1, dest[i]);
 }
-#endif
 
 TEST_F(dynarrayTest, insertRTrivial)
 {
@@ -644,7 +641,7 @@ TEST_F(dynarrayTest, resize)
 	d.resize(S1);
 	ASSERT_EQ(S1, d.size());
 
-#if OEL_HAS_EXCEPTIONS
+#if OEL_HAS_EXCEPTIONS and !OEL_NEW_HANDLER
 	EXPECT_THROW(d.resize_for_overwrite(d.max_size()), std::bad_alloc);
 	EXPECT_EQ(S1, d.size());
 #endif
@@ -904,8 +901,16 @@ TEST_F(dynarrayTest, overAligned)
 	EXPECT_EQ(0U, reinterpret_cast<std::uintptr_t>(&special.front()) % testAlignment);
 
 #if OEL_HAS_EXCEPTIONS
+	#if OEL_NEW_HANDLER
+
+	std::set_new_handler( []{
+			throw std::bad_alloc{};
+		} );
+	#endif
+
 	EXPECT_THROW(special.reserve(special.max_size()),     std::bad_alloc);
 	EXPECT_THROW(special.reserve(special.max_size() - 1), std::bad_alloc);
+
 	EXPECT_THROW(special.reserve(special.max_size() + 1), std::length_error);
 #endif
 }

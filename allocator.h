@@ -192,23 +192,20 @@ namespace _detail
 	{
 		auto const zeroSize = CheckZero ? (nBytes == 0) : false;
 	#if OEL_NEW_HANDLER
-		if( !zeroSize )
+		for( ;; )
 		{
-			for( ;; )
+			auto p = AllocFunc::call(nBytes, old...);
+			if( p or zeroSize )
 			{
-				auto p = AllocFunc::call(nBytes, old...);
-				if( p )
-					return p;
-
-				auto const handler = std::get_new_handler();
+				return p;
+			}
+			else
+			{	auto const handler = std::get_new_handler();
 				if( handler )
 					handler();
 				else
 					OEL_ABORT(allocFailMsg);
 			}
-		}
-		else
-		{	return nullptr;
 		}
 	#else
 		auto p = AllocFunc::call(nBytes, old...);

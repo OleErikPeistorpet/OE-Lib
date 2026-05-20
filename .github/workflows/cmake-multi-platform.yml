@@ -14,11 +14,16 @@ jobs:
       fail-fast: true
 
       matrix:
-        os: [ubuntu-22.04]
-        gcc_version: [9]
-        cpp_standard: [20]
+        os: [ubuntu-latest]
+        gcc_version: [15]
+        cxx_flags: [""]
+        cpp_standard: [23]
         mem_bound_debug: [off]
         include:
+          - os: ubuntu-22.04
+            gcc_version: 9
+            cxx_flags: -fno-exceptions
+            cpp_standard: 20
           - os: ubuntu-22.04
             gcc_version: 10
             cpp_standard: 20
@@ -30,18 +35,19 @@ jobs:
             gcc_version: 12
             cpp_standard: 23
             mem_bound_debug: on
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             gcc_version: 13
             cpp_standard: 17
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             gcc_version: 14
+            cxx_flags: -fno-exceptions
             cpp_standard: 23
             mem_bound_debug: on
-          - os: ubuntu-latest
-            gcc_version: 15
-            cpp_standard: 23
-          - os: macos-latest
+          - os: macos-14
             cpp_standard: 17
+          - os: macos-15
+            cxx_flags: -fno-exceptions
+            cpp_standard: 20
           - os: macos-latest
             cpp_standard: 23
             mem_bound_debug: on
@@ -64,6 +70,7 @@ jobs:
         cmake -B ${{ github.workspace }}/build
         -D CMAKE_BUILD_TYPE=Release
         -D CMAKE_CXX_STANDARD=${{ matrix.cpp_standard }}
+        -D CMAKE_CXX_FLAGS=${{ matrix.cxx_flags }}
         -D MEM_BOUND_DEBUG=${{ matrix.mem_bound_debug }}
         -S ${{ github.workspace }}/unit_test
 

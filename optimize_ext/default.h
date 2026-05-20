@@ -36,7 +36,7 @@ namespace boost
 
 
 // std::string in GNU library is not trivially relocatable (uses pointer to internal buffer)
-#if defined _CPPLIB_VER or defined _LIBCPP_VERSION
+#if (defined _CPPLIB_VER or defined _LIBCPP_VERSION) and !defined(OEL_NO_STRING)
 
 #include <string>
 
