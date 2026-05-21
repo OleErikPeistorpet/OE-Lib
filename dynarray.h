@@ -131,19 +131,18 @@ public:
 		}
 
 	//! Almost same as std::vector::assign_range (C++23)
-	/** @return Iterator `begin(source)` incremented by the number of elements in source
-	*
-	* Any elements held before the call are either assigned to or destroyed. */
+	/** @return Iterator `begin(source)` incremented by the number of elements in source  */
 	template< typename InputRange >
 	auto assign(InputRange && source) -> borrowed_iterator_t<InputRange>;
 
 	void assign(size_type count, const T & val)   { clear();  append(count, val); }
 
-	/**
-	* @brief Almost same as std::vector::append_range (C++23)
-	* @pre source shall not refer to any elements in this dynarray if reallocation happens.
+	//! Almost same as std::vector::append_range (C++23)
+	/** @pre source shall not refer to any elements in this dynarray if reallocation happens.
 	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements
-	* @return Iterator `begin(source)` incremented by the number of elements in source  */
+	* @return Iterator `begin(source)` incremented by the number of elements in source
+	*
+	* If an exception is thrown, the dynarray will keep all elements already appended during the operation. */
 	template< typename InputRange = std::initializer_list<T> >
 	auto append(InputRange && source) -> borrowed_iterator_t<InputRange>;
 	/**
@@ -248,8 +247,10 @@ public:
 	T &       front() noexcept        { return (*this)[0]; }
 	const T & front() const noexcept  { return (*this)[0]; }
 
-	T &       back() noexcept         { return *_detail::MakeDynarrIter           (_m, _m.end - 1); }
-	const T & back() const noexcept   { return *_detail::MakeDynarrIter<const T *>(_m, _m.end - 1); }
+	OEL_ALWAYS_INLINE
+	T &       back() noexcept         { return end()[-1]; }
+	OEL_ALWAYS_INLINE
+	const T & back() const noexcept   { return end()[-1]; }
 
 	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
 	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
@@ -669,7 +670,7 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 template< typename T, typename Alloc >
 inline void dynarray<T, Alloc>::append(size_type count, const T & val)
 {
-	if (_spareCapacity() < count)
+	if( _spareCapacity() < count )
 		_growBy(count);
 
 	auto const pos = _m.end;
