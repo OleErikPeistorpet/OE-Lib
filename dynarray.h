@@ -233,8 +233,10 @@ public:
 	T &       front() noexcept        { return (*this)[0]; }
 	const T & front() const noexcept  { return (*this)[0]; }
 
-	T &       back() noexcept         { return *_detail::MakeDynarrIter           (_m, _m.end - 1); }
-	const T & back() const noexcept   { return *_detail::MakeDynarrIter<const T *>(_m, _m.end - 1); }
+	OEL_ALWAYS_INLINE
+	T &       back() noexcept         { return end()[-1]; }
+	OEL_ALWAYS_INLINE
+	const T & back() const noexcept   { return end()[-1]; }
 
 	T &       operator[](size_type index) noexcept        { OEL_ASSERT(index < size());  return _m.data[index]; }
 	const T & operator[](size_type index) const noexcept  { OEL_ASSERT(index < size());  return _m.data[index]; }
