@@ -126,15 +126,14 @@ public:
 				OEL_ASSERT(a0 == a1);
 		}
 
-	//! Almost same as std::vector::assign_range (C++23)
-	/**
-	* Any elements held before the call are either assigned to or destroyed. */
 	template< typename InputRange >
 	void assign_range(InputRange && source);
 
 	//! Almost same as std::vector::append_range (C++23)
-	/** @pre source shall not refer to any elements in this dynarray if reallocation happens.
-	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements  */
+	/** @pre `source` shall not refer to any elements in this dynarray if reallocation happens.
+	*	Reallocation is caused by `capacity() - size() < n`, where `n` is number of source elements
+	*
+	* If an exception is thrown, the dynarray will keep all elements already appended during the operation. */
 	template< typename InputRange = std::initializer_list<T> >
 	void append_range(InputRange && source);
 
@@ -146,7 +145,8 @@ public:
 
 	//! Almost same as std::vector::insert_range
 	/**
-	* @param source must model std::ranges::forward_range or `source.size()` must be valid. */
+	* Requires that source models std::ranges::forward_range or that `source.size()` is valid,
+	* in addition to that T is trivially relocatable. */
 	template< typename Range >
 	iterator insert_range(const_iterator pos, Range && source) &;
 
@@ -157,12 +157,12 @@ public:
 	iterator emplace(const_iterator pos, Args &&... args) &;
 
 	//! Beware, passing an element of same dynarray is often unsafe (otherwise same as std::vector::emplace_back)
-	/** @pre args shall not refer to any element of this container, unless `size() < capacity()` */
+	/** @pre `args` shall not refer to any element of this container, unless `size() < capacity()` */
 	template< typename... Args >
 	T &  emplace_back(Args &&... args) &;
 
 	//! Beware, passing an element of same dynarray is often unsafe (otherwise same as std::vector::push_back)
-	/** @pre val shall not be a reference to an element of this container, unless `size() < capacity()` */
+	/** @pre `val` shall not be a reference to an element of this container, unless `size() < capacity()` */
 	void push_back(T && val)       { emplace_back(std::move(val)); }
 	//! @copydoc push_back(T &&)
 	void push_back(const T & val)  { emplace_back(val); }
