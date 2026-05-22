@@ -53,7 +53,7 @@ TEST(utilTest, constParam)
 {
 	using oel::_detail::ConstParam;
 
-	static_assert(std::is_same_v< ConstParam<double>, double >);
+	static_assert(std::is_same_v< ConstParam<double>, double const >);
 
 	static_assert(std::is_same_v< ConstParam<int[1]>, const int(&)[1] >);
 	// non-trivial copy, sizeof(double)
@@ -63,11 +63,11 @@ TEST(utilTest, constParam)
 		static_assert(std::is_same_v< ConstParam<A>, const A & >);
 	}
 	using A = std::array<std::size_t, 1>;
-	static_assert(std::is_same_v< ConstParam<A>, A >);
+	static_assert(std::is_same_v< ConstParam<A>, A const >);
 
 #if HAS_STD_PMR
 	using Alloc = std::pmr::polymorphic_allocator<int>;
-	static_assert(std::is_same_v< ConstParam<Alloc>, Alloc >);
+	static_assert(std::is_same_v< ConstParam<Alloc>, Alloc const >);
 #endif
 }
 

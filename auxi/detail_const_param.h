@@ -13,17 +13,14 @@ namespace oel::_detail
 {
 	template< typename T >
 	constexpr bool ShouldPassByValue()
-	{
-		if constexpr( std::is_function_v<T> ) // passing a function by value won't compile
-			return false;
-		// Note: arrays aren't copy/move constructible
+	{	// Note: arrays aren't copy/move constructible
 	#if defined _MSC_VER and (_M_IX86 or _M_X64)
-		else if constexpr( !std::is_trivially_copy_constructible_v<T> )
+		if constexpr( !std::is_trivially_copy_constructible_v<T> )
 			return false;
 		else
 			return sizeof(T) <= sizeof(void *) or std::is_scalar_v<T>;
 	#else
-		else if constexpr( sizeof(T) > 2 * sizeof(void *) )
+		if constexpr( sizeof(T) > 2 * sizeof(void *) )
 			return false;
 		else
 			return std::is_trivially_copy_constructible_v<T> and std::is_trivially_destructible_v<T>;
@@ -34,7 +31,7 @@ namespace oel::_detail
 	using ConstParam =
 		std::conditional_t
 		<	_detail::ShouldPassByValue<T>(),
-			T,
+			T const,
 			const T &
 		>;
 }

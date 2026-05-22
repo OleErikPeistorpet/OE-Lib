@@ -82,8 +82,8 @@ namespace oel::_detail
 	template< typename Alloc >
 	struct UninitFill
 	{
-		template< typename... Args, typename T >
-		static void call(T *__restrict first, T *const last, [[maybe_unused]] Alloc allo, Args const... args)
+		template< typename... Args, typename T > // Args should be _detail::ConstParam if present
+		static void call(T *__restrict first, T *const last, [[maybe_unused]] Alloc allo, Args... args)
 		{
 			if constexpr( std::is_trivially_default_constructible_v<T> and sizeof...(Args) == 0 )
 			{
