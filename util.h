@@ -101,15 +101,15 @@ struct for_overwrite_t
 };
 inline constexpr for_overwrite_t for_overwrite; //!< An instance of for_overwrite_t for convenience
 
-#if __cpp_lib_containers_ranges < 202202
+#if OEL_STD_RANGES and __cpp_lib_containers_ranges >= 202202
+	using std::from_range_t;
+	using std::from_range;
+#else
 	struct from_range_t
 	{
 		explicit from_range_t() = default;
 	};
 	inline constexpr from_range_t from_range;
-#else
-	using std::from_range_t;
-	using std::from_range;
 #endif
 
 

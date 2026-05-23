@@ -448,10 +448,13 @@ static_assert(std::input_iterator<IntGenIter>);
 TEST(viewTest, chainWithStd)
 {
 	auto f = [](int i) { return -i; };
-	int src[] {0, 1};
+	int src[] {0, 7};
 
 	void( src | view::move | std::views::drop_while([](int i) { return i <= 0; }) );
-	void( src | std::views::reverse | view::transform(f) | std::views::take(1) );
+
+	auto v = src | std::views::reverse | view::transform(f) | std::views::take(1);
+	EXPECT_EQ(-7, v[0]);
+
 	void( src | view::transform(f) | std::views::drop(1) | view::move );
 }
 #endif
