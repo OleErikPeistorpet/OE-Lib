@@ -33,7 +33,7 @@ namespace
 	static_assert(oel::is_trivially_relocatable< std::string >::value);
 #endif
 #if OEL_HAS_BOOST
-	static_assert(oel::is_trivially_relocatable< boost::circular_buffer<int, oel::allocator<int>> >());
+	static_assert(oel::is_trivially_relocatable< boost::circular_buffer< int, oel::allocator<int> > >::value);
 #endif
 
 	struct alignas(32) Foo { int a[24]; };
