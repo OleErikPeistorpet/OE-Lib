@@ -8,6 +8,9 @@
 
 #include "gtest/gtest.h"
 #include <deque>
+#if __cpp_lib_flat_set
+#include <flat_set>
+#endif
 
 #if HAS_STD_PMR
 
@@ -181,3 +184,18 @@ TEST(dynarrayOtherTest, withReferenceWrapper)
 	EXPECT_TRUE(refs.at(0) == refs.at(1));
 	EXPECT_TRUE(refs.at(1) != refs.at(2));
 }
+
+#if __cpp_lib_flat_set
+TEST(dynarrayOtherTest, stdFlatSet)
+{
+	int arr[3]{ 3, 1, 2 };
+	auto s = std::flat_set< int, std::less<>, dynarray<int> >(std::from_range, arr);
+	s.insert_range(arr);
+	EXPECT_EQ(3, s.size());
+
+	auto s2 = s;
+	auto it = s2.end() - 1;
+	swap(s, s2);
+	EXPECT_EQ(it, s.find(3));
+}
+#endif
