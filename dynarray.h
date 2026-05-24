@@ -664,9 +664,9 @@ inline T & dynarray<T, Alloc>::emplace_back(Args &&... args) &
 	if( _m.end == _m.reservEnd )
 #if __has_cpp_attribute(unlikely)
 		[[unlikely]]
-#endif
-	{	_growByOne();
-	}
+#endif	// braces here cause gcc 9 warning (Wattributes)
+		_growByOne();
+
 	_alloTrait::construct(_m, _m.end, static_cast<Args &&>(args)...);
 
 	_debugSizeUpdater guard{_m};
@@ -835,9 +835,15 @@ inline void dynarray<T, Alloc>::unordered_erase(iterator pos)
 
 		--_m.end;
 		_debugSizeUpdater guard{_m};
-
-		auto & mem = reinterpret_cast< _detail::RelocateWrap<T> & >(elem);
-		mem       = *reinterpret_cast< _detail::RelocateWrap<T> * >(_m.end); // relocate last element to pos
+#if defined __GNUC__ and !defined __clang__
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+		auto mem = reinterpret_cast< _detail::RelocateWrap<T> * >(&elem);
+		*mem    = *reinterpret_cast< _detail::RelocateWrap<T> * >(_m.end); // relocate last element to pos
+#if defined __GNUC__ and !defined __clang__
+	#pragma GCC diagnostic pop
+#endif
 	}
 	else
 	{	*pos = std::move(back());
