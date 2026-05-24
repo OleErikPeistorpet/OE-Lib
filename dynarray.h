@@ -112,19 +112,9 @@ public:
 
 	dynarray & operator =(std::initializer_list<T> il) &  { assign_range(il);  return *this; }
 
-	friend void swap(dynarray & a, dynarray & b) noexcept
-		{
-			using std::swap;
-			_internBase & x = a._m;  _internBase & y = b._m;
-			swap(x, y);
-
-			[[maybe_unused]] allocator_type & a0 = a._m;
-			[[maybe_unused]] allocator_type & a1 = b._m;
-			if constexpr( _alloTrait::propagate_on_container_swap::value )
-				swap(a0, a1);
-			else // Standard says this is undefined if allocators compare unequal
-				OEL_ASSERT(a0 == a1);
-		}
+	void        swap(dynarray & other) noexcept;
+	OEL_ALWAYS_INLINE
+	friend void swap(dynarray & a, dynarray & b) noexcept   { a.swap(b); }
 
 	template< typename InputRange >
 	void assign_range(InputRange && source);
@@ -760,6 +750,22 @@ dynarray<T, Alloc> &
 		assign_range(other);
 
 	return *this;
+}
+
+template< typename T, typename Alloc >
+void dynarray<T, Alloc>::swap(dynarray & other) noexcept
+{
+	using std::swap;
+	_internBase & x = _m;
+	_internBase & y = other._m;
+	swap(x, y);
+
+	[[maybe_unused]] allocator_type & a0 = _m;
+	[[maybe_unused]] allocator_type & a1 = other._m;
+	if constexpr( _alloTrait::propagate_on_container_swap::value )
+		swap(a0, a1);
+	else // Standard says this is undefined if allocators compare unequal
+		OEL_ASSERT(a0 == a1);
 }
 
 

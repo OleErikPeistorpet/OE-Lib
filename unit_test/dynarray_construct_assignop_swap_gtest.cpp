@@ -694,7 +694,7 @@ TEST_F(dynarrayConstructTest, swap)
 	EXPECT_EQ(2, r);
 	EXPECT_EQ(&a.back(), &r);
 
-	swap(b, a);
+	b.swap(a);
 	EXPECT_EQ(a.data(), p);
 	EXPECT_EQ(2, r);
 	EXPECT_EQ(&b.back(), &r);
