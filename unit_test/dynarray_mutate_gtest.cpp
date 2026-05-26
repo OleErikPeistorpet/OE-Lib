@@ -634,7 +634,7 @@ TEST_F(dynarrayTest, moveOnlyIterator)
 
 TEST_F(dynarrayTest, resize)
 {
-	dynarray<int, throwingAlloc<int>> d;
+	dynarray< int, throwingAlloc<int> > d;
 
 	size_t const S1 = 4;
 
@@ -741,7 +741,7 @@ TEST_F(dynarrayTest, statefulAlwaysEqualDefaultConstructibleAlloc)
 	mem;
 	StaticBufAlloc<> a{mem.use};
 
-	dynarray<NonPowerOfTwo, StaticBufAlloc<>> d(a);
+	dynarray< NonPowerOfTwo, StaticBufAlloc<> > d(a);
 	d.resize(d.max_size());
 
 	EXPECT_TRUE(Mem::isValid(mem.prefix));
@@ -943,7 +943,7 @@ TEST_F(dynarrayTest, greaterThanMax)
 
 TEST_F(dynarrayTest, noDefaultConstructAlloc)
 {
-	dynarray<int, noDefaultConstructAlloc<>> test(noDefaultConstructAlloc<>(0));
+	dynarray< int, noDefaultConstructAlloc<> > test(noDefaultConstructAlloc<>(0));
 	test.push_back(1);
 	EXPECT_EQ(1u, test.size());
 }

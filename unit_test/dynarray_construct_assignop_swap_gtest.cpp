@@ -53,8 +53,8 @@ void testConstInitCompile()
 
 void testNonConstexprCompile()
 {
-	static dynarray<int, NonConstexprAlloc<>> d;
-	[[maybe_unused]] auto d2 = dynarray<int, NonConstexprAlloc<>>(NonConstexprAlloc<>{});
+	static dynarray< int, NonConstexprAlloc<> > d;
+	[[maybe_unused]] auto d2 = dynarray< int, NonConstexprAlloc<> >(NonConstexprAlloc<>{});
 }
 
 TEST_F(dynarrayConstructTest, constructEmpty)
@@ -304,7 +304,7 @@ TEST_F(dynarrayConstructTest, constructRangeMutableBeginSize)
 TEST_F(dynarrayConstructTest, constructMoveOnlyIterator)
 {
 	std::istringstream words{"Falling Anywhere"};
-	auto d = dynarray(from_range, std::views::istream<std::string>(words));
+	dynarray d(from_range, std::views::istream<std::string>(words));
 	EXPECT_EQ(2u, d.size());
 	EXPECT_EQ("Falling", d[0]);
 	EXPECT_EQ("Anywhere", d[1]);
@@ -316,17 +316,17 @@ TEST_F(dynarrayConstructTest, copyConstruct)
 	using Al = StatefulAllocator<TrivialRelocat>;
 	auto x = dynarray< TrivialRelocat, Al >({TrivialRelocat{0.5}}, Al(-5));
 
-	auto y = dynarray(x);
+	dynarray y(x);
 	EXPECT_EQ(-5, y.get_allocator().id);
 	EXPECT_EQ(2, g_allocCount.nAllocations);
 
-	auto const z = dynarray(y, Al(7));
+	dynarray const z(y, Al(7));
 	EXPECT_EQ(0.5, *z.front());
 
-	auto const d = dynarray(std::move(z));
+	dynarray const d(std::move(z));
 	EXPECT_EQ(0.5, *d.front());
 
-	auto const e = dynarray(std::move(d), Al(9));
+	dynarray e(std::move(d), Al(9));
 	EXPECT_EQ(9, e.get_allocator().id);
 	EXPECT_EQ(5, g_allocCount.nAllocations);
 }

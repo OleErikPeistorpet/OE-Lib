@@ -178,7 +178,8 @@ TEST(dynarrayOtherTest, stdVariant)
 TEST(dynarrayOtherTest, withReferenceWrapper)
 {
 	dynarray<int> arr[]{ dynarray<int>(2), {0, 0}, {1, 3} };
-	dynarray< std::reference_wrapper<const dynarray<int>> > refs{arr[0], arr[1]};
+	using Ref = std::reference_wrapper< dynarray<int> const >;
+	dynarray<Ref> refs{arr[0], arr[1]};
 	refs.push_back(arr[2]);
 	EXPECT_EQ(3, refs.at(2).get().at(1));
 	EXPECT_TRUE(refs.at(0) == refs.at(1));
