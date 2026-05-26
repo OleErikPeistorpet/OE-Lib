@@ -449,11 +449,11 @@ private:
 				}
 				return src_;
 			};
+
 			T * newEnd;
 			if( capacity() < count )
 			{
 				auto const newData = _allocateChecked(count);
-				// Old elements might hold some limited resource, probably good to destroy them before constructing new
 				_detail::Destroy(_m.data, _m.end);
 				_resetData(newData, count);
 				_m.end = newData;
@@ -461,20 +461,21 @@ private:
 			}
 			else
 			{	newEnd = _m.data + count;
-				if( newEnd < _m.end )
-				{	// downsizing, assign new and destroy rest
-					src = cpy(std::move(src), _m.data, newEnd);
+				if( newEnd <= _m.end )
+				{	// enough elements, assign new and destroy rest
+					cpy(std::move(src), _m.data, newEnd);
 					erase_to_end(_detail::MakeDynarrIter(_m, newEnd));
+					return;
 				}
-				else // assign to old elements as far as we can
+				else // upsizing, assign to old elements as far as we can
 				{	src = cpy(std::move(src), _m.data, _m.end);
 				}
 			}
-			while( _m.end != newEnd )
-			{	// each iteration updates _m.end for exception safety
-				_alloTrait::construct(_m, _m.end, *src);
+			do	// each iteration updates _m.end for exception safety
+			{	_alloTrait::construct(_m, _m.end, *src);
 				++_m.end; ++src;
 			}
+			while( _m.end != newEnd );
 		}
 	}
 
