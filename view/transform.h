@@ -45,7 +45,7 @@ inline constexpr _transformFn transform;
 template< typename View, typename Func >
 struct _transformView
 {
-	_detail::TightPair< View, typename _detail::AssignableWrap<Func>::Type > _m;
+	_detail::TightPair< View, _detail::MakeAssignable<Func> > _m;
 
 	using _iter = transform_iterator< Func, iterator_t<View> >;
 

@@ -23,7 +23,7 @@ namespace _detail
 	{
 		using FnRef = const G &;
 
-		typename AssignableWrap<G>::Type f;
+		MakeAssignable<G> f;
 	};
 
 	template< typename G >
@@ -31,7 +31,7 @@ namespace _detail
 	{
 		using FnRef = G &;
 
-		typename AssignableWrap<G>::Type mutable f;
+		MakeAssignable<G> mutable f;
 	};
 }
 

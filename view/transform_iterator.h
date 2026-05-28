@@ -26,7 +26,7 @@ namespace _detail
 
 		static constexpr auto canCallConst = true;
 
-		TightPair< Iter, typename AssignableWrap<Func>::Type > m;
+		TightPair< Iter, MakeAssignable<Func> > m;
 	};
 
 	template< typename Func, typename Iter >
@@ -36,7 +36,7 @@ namespace _detail
 
 		static constexpr auto canCallConst = false;
 
-		TightPair< Iter, typename AssignableWrap<Func>::Type > mutable m;
+		TightPair< Iter, MakeAssignable<Func> > mutable m;
 	};
 }
 

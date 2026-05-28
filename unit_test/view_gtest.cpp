@@ -214,8 +214,16 @@ constexpr auto multBy2(StdArrInt2 a)
 	auto v = view::transform(a, mult2);
 
 	size_t i{};
+#if __cplusplus >= 202001 or (defined _MSVC_STL_VERSION and _HAS_CXX20)
+	auto src = v.begin();
+	decltype(src) it2;
+	res[i++] = *src++;
+	it2 = src;
+	res[i] = *it2;
+#else
 	for (auto val : v)
 		res[i++] = val;
+#endif
 
 	return res;
 }

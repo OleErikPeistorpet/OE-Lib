@@ -8,56 +8,70 @@
 
 #include "core_util.h"
 
+// Could this be inaccurate for some standard library implementations?
+#if __cpp_lib_constexpr_dynamic_alloc < 201907
+	#define OEL_HAS_STD_CONSTRUCT_AT  0
+#else
+	#define OEL_HAS_STD_CONSTRUCT_AT  1
+#endif
 
 namespace oel::_detail
 {
 	template< typename T,
 	          bool = std::is_move_assignable_v<T> >
-	class AssignableWrap
+	struct AssignableImpl
 	{
 		static_assert( std::is_trivially_copy_constructible_v<T> and std::is_trivially_destructible_v<T>,
 			"The user-supplied function must be move assignable, or trivially copy constructible and trivially destructible" );
 
-		union Impl
+		union Box
 		{
 			struct {} _none;
 			T _val;
 
-			constexpr Impl() noexcept : _none{} {}
-			constexpr Impl(const T & src) noexcept : _val(src) {}
+			OEL_ALWAYS_INLINE constexpr Box() noexcept : _none{} {}
 
-			Impl(const Impl &) = default;
+			constexpr Box(const T & src) noexcept : _val(src) {}
 
-			void operator =(const Impl & other) & noexcept
+			Box(const Box &) = default;
+
+		#if OEL_HAS_STD_CONSTRUCT_AT
+			constexpr
+		#endif
+			void operator =(const Box & other) & noexcept
 			{
-				::new(this) Impl(other);
+		#if OEL_HAS_STD_CONSTRUCT_AT
+				std::construct_at(this, other);
+		#else
+				::new(this) Box(other);
+		#endif
 			}
 
 			OEL_ALWAYS_INLINE constexpr operator const T &() const { return _val; }
 			OEL_ALWAYS_INLINE constexpr operator       T &()       { return _val; }
 		};
 
-		using EmptyType_7KQw = T;
+		using T_7KQw = T;
 
-		struct ImplEmpty : EmptyType_7KQw
+		struct BoxEmpty : public T
 		{
-			constexpr ImplEmpty(EmptyType_7KQw src) noexcept
-			 :	EmptyType_7KQw(src) {}
+			constexpr BoxEmpty(T_7KQw src) noexcept : T_7KQw(src) {}
 
-			ImplEmpty() = default;
-			ImplEmpty(const ImplEmpty &) = default;
+			BoxEmpty() = default;
+			BoxEmpty(const BoxEmpty &) = default;
 
-			OEL_ALWAYS_INLINE constexpr void operator =(const ImplEmpty &) & noexcept {}
+			OEL_ALWAYS_INLINE constexpr void operator =(const BoxEmpty &) & noexcept {}
 		};
 
-	public:
-		using Type = std::conditional_t< std::is_empty_v<T>, ImplEmpty, Impl >;
+		using Type = std::conditional_t< std::is_empty_v<T>, BoxEmpty, Box >;
 	};
 
 	template< typename T >
-	class AssignableWrap<T, true>
+	struct AssignableImpl<T, true>
 	{
-	public:
 		using Type = T;
 	};
+
+	template< typename T >
+	using MakeAssignable = typename AssignableImpl<T>::Type;
 }
