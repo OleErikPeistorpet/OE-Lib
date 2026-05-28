@@ -5,10 +5,9 @@
 
 
 /** @file
-* @brief A small subset of the functionality of views in the C++23 standard
+* @brief Views designed as input for dynarray, largely with the same API as std::views
 *
-* The goal is not to be a general range library,
-* but to provide input for dynarray and the oel::copy functions in a way that optimizes really well.
+* The goal is not to be a general range library, but to provide views that optimize really well.
 */
 
 #include "view/counted.h"

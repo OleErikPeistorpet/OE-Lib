@@ -163,7 +163,7 @@ namespace _detail
 
 		TightPair() = default;
 		constexpr TightPair(FirstType_7KQw f, EmptyType_7KQw s)
-		 :	EmptyType_7KQw{s}, first{std::move(f)}
+		 :	EmptyType_7KQw(s), first(std::move(f))
 		{}
 
 		OEL_ALWAYS_INLINE constexpr const EmptyType_7KQw & second() const { return *this; }
