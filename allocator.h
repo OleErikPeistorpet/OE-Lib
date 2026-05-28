@@ -184,7 +184,10 @@ namespace _detail
 	#endif
 	}
 
-	template< typename AllocFunc, bool CheckZero = true, typename... Ptr >
+	template< typename AllocFunc,
+		bool CheckZero = true,
+		typename... Ptr
+	>
 #ifdef _MSC_VER
 	__declspec(restrict)
 #endif

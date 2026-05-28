@@ -150,10 +150,10 @@ namespace oel::_detail
 	{
 		Alloc _a;
 
-		template< typename Range >
-		friend auto operator |(Range && r, ToDynarrPartial t)
+		template< typename R >
+		friend auto operator |(R && range, ToDynarrPartial t)
 		{
-			return dynarray(from_range, static_cast<Range &&>(r), std::move(t)._a);
+			return dynarray(from_range, static_cast<R &&>(range), std::move(t)._a);
 		}
 	};
 }

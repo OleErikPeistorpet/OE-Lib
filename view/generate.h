@@ -16,7 +16,9 @@ namespace oel
 {
 namespace _detail
 {
-	template< typename G, bool = std::is_invocable_v<const G &> >
+	template< typename G,
+	          bool = std::is_invocable_v<const G &>
+	>
 	struct GenerateIterBase
 	{
 		using FnRef = const G &;

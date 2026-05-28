@@ -306,11 +306,11 @@ private:
 		using B::reservEnd;
 
 		constexpr _dataOwner(_argAlloc_7KQw & a) noexcept
-		 :	B{}, _usedAlloc_7KQw{std::move(a)}
+		 :	B{}, _usedAlloc_7KQw(std::move(a))
 		{}
 
 		constexpr _dataOwner(_dataOwner && other) noexcept
-		 :	B{other}, _usedAlloc_7KQw{std::move(other)}
+		 :	B(other), _usedAlloc_7KQw(std::move(other))
 		{
 			other.reservEnd = other.end = other.data = nullptr;
 		}
