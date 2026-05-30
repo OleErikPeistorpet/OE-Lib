@@ -7,6 +7,7 @@
 
 
 #include "all.h"
+#include "../auxi/view_interface.h"
 
 /** @file
 */
@@ -16,6 +17,7 @@ namespace oel
 
 template< typename View >
 class _moveView
+ :	public view_interface< _moveView<View> >
 {
 	View _base;
 
@@ -44,12 +46,6 @@ public:
 	->	decltype( std::declval<V>().size() )  { return _base.size(); }
 
 	constexpr bool empty()   { return _base.empty(); }
-
-	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(iter_is_random_access< iterator_t<View> >)
-		{
-			return std::move_iterator{_base.begin()}[index];
-		}
 
 	constexpr View         base() &&                { return std::move(_base); }
 	constexpr const View & base() const & noexcept  { return _base; }
@@ -80,9 +76,6 @@ inline constexpr _moveFn move;
 
 } // oel
 
-
-template< typename V >
-inline constexpr bool oel::enable_view< oel::_moveView<V> > = true;
 
 #if OEL_STD_RANGES
 

@@ -6,7 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
-#include "../util.h" // for as_unsigned
+#include "../auxi/view_interface.h"
+#include "../util.h"  // for as_unsigned
 
 /** @file
 */
@@ -17,6 +18,7 @@ namespace oel::view
 //! Very similar to std::ranges::owning_view, but base() guards more against silent copies
 template< typename Range >
 class owning
+ :	public view_interface< owning<Range> >
 {
 	Range _r;
 
@@ -44,15 +46,7 @@ public:
 
 	constexpr bool  empty()   { return _r.empty(); }
 
-	OEL_ALWAYS_INLINE
-	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(requires{ _r[index]; })   { return _r[index]; }
-
 	constexpr Range base() &&   { return std::move(_r); }
 };
 
 }
-
-
-template< typename R >
-inline constexpr bool oel::enable_view< oel::view::owning<R> > = true;

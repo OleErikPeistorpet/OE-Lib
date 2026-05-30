@@ -8,6 +8,7 @@
 
 #include "all.h"
 #include "transform_iterator.h"
+#include "../auxi/view_interface.h"
 
 /** @file
 */
@@ -44,6 +45,7 @@ inline constexpr _transformFn transform;
 
 template< typename View, typename Func >
 struct _transformView
+ :	view_interface< _transformView<View, Func> >
 {
 	_detail::TightPair< View, _detail::MakeAssignable<Func> > _m;
 
@@ -74,13 +76,6 @@ struct _transformView
 
 	constexpr bool empty()   { return _m.first.empty(); }
 
-	constexpr decltype(auto) operator[](difference_type index)
-		OEL_REQUIRES(requires(View & v) { v[index]; })
-		{
-			const Func & f = _m.second();
-			return f(_m.first[index]);
-		}
-
 	constexpr View         base() &&                { return std::move(_m.first); }
 	constexpr const View & base() const & noexcept  { return _m.first; }
 };
@@ -101,8 +96,8 @@ namespace _detail
 		template< typename R >
 		friend constexpr auto operator |(R && range, TransformPartial t)
 		{
-			auto v = view::all(static_cast<R &&>(range));
-			return _transformView< decltype(v), F >{{std::move(v), std::move(t)._f}};
+			auto v = view::all( static_cast<R &&>(range) );
+			return _transformView< decltype(v), F >{ {}, {std::move(v), std::move(t)._f} };
 		}
 
 		template< typename R >
@@ -120,9 +115,6 @@ constexpr auto view::_transformFn::operator()(UnaryFunc f) const
 }
 
 } // oel
-
-template< typename V, typename F >
-inline constexpr bool oel::enable_view< oel::_transformView<V, F> > = true;
 
 #if OEL_STD_RANGES
 

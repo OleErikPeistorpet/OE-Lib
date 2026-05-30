@@ -90,7 +90,9 @@ TEST(viewTest, subscript)
 
 	EXPECT_EQ(7, v0[0]);
 	EXPECT_EQ(8, v1[1]);
+#if !OEL_STD_RANGES or __cpp_lib_move_iterator_concept >= 202207
 	EXPECT_EQ(7, v2[0]);
+#endif
 	EXPECT_EQ(8, v3[1]);
 }
 
@@ -99,6 +101,7 @@ TEST(viewTest, nestedEmpty)
 	oel::dynarray<int> src{};
 	auto v = view::owning(view::subrange( src.begin(), src.end() )) | view::move;
 	EXPECT_TRUE(v.empty());
+	EXPECT_TRUE(!v);
 }
 
 TEST(viewTest, viewSubrange)
@@ -113,6 +116,11 @@ TEST(viewTest, viewSubrange)
 	#if !STD_VIEW_REQUIRES_DEFAULT_CONSTRUCT
 	static_assert(std::ranges::view<V>);
 	#endif
+#endif
+#if __cpp_lib_concepts
+	static_assert(
+		sizeof( view::subrange<int *, std::default_sentinel_t> ) == sizeof(int *),
+		"Not critical, this assert can be removed" );
 #endif
 	static constexpr int src[3]{};
 	{
@@ -168,7 +176,7 @@ TEST(viewTest, viewTransformBasics)
 	static_assert(std::is_same_v< IEmptyLambda::iterator_category, std::random_access_iterator_tag >);
 	static_assert(std::is_same_v< decltype(itMoveOnly)::iterator_category, std::input_iterator_tag >);
 	static_assert(std::is_same_v< decltype(itMoveOnly++), void >);
-	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *), "Not critical, this assert can be removed");
+	static_assert(sizeof(IEmptyLambda) == sizeof(Elem *));
 #if OEL_STD_RANGES
 	static_assert(std::ranges::random_access_range< decltype(v) >);
 	static_assert(std::ranges::input_range< decltype(v2) >);
@@ -377,11 +385,14 @@ constexpr StdArrInt2 generatedArray()
 	StdArrInt2 res{};
 	int i{1};
 	auto v = view::generate([&i] { return i++; }, 2);
-	auto it = v.begin();
-	for (auto & val : res)
+	if (v)
 	{
-		val = *it;
-		it++;
+		auto it = v.begin();
+		for (auto & val : res)
+		{
+			val = *it;
+			it++;
+		}
 	}
 	return res;
 }

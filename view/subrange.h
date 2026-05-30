@@ -6,6 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#include "../auxi/view_interface.h"
 #include "../util.h"
 
 /** @file
@@ -19,6 +20,7 @@ namespace oel::view
 * If Sentinel is an empty type, `sizeof(subrange)` is equal to `sizeof(Iterator)`, unlike some standard implementations. */
 template< typename Iterator, typename Sentinel >
 class subrange
+ :	public view_interface< subrange<Iterator, Sentinel> >
 {
 	_detail::TightPair<Iterator, Sentinel> _m;
 
@@ -43,20 +45,14 @@ public:
 		}
 
 	constexpr bool empty() const   { return _m.first == _m.second(); }
-
-	OEL_ALWAYS_INLINE
-	constexpr decltype(auto) operator[](difference_type index) const
-		OEL_REQUIRES(iter_is_random_access<Iterator>)              { return _m.first[index]; }
 };
 
 }
 
 
-template< typename I, typename S >
-inline constexpr bool oel::enable_view< oel::view::subrange<I, S> > = true;
-
 #if OEL_STD_RANGES
 
 template< typename I, typename S >
 inline constexpr bool std::ranges::enable_borrowed_range< oel::view::subrange<I, S> > = true;
+
 #endif

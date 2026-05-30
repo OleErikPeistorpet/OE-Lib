@@ -111,13 +111,6 @@ inline constexpr bool iter_is_random_access = iter_is<Iterator, std::random_acce
 	using std::disable_sized_sentinel_for;
 #endif
 
-#if OEL_STD_RANGES
-	using std::ranges::enable_view;
-#else
-	template< typename >
-	inline constexpr bool enable_view = false;
-#endif
-
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace _detail
