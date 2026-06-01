@@ -61,6 +61,7 @@ inline constexpr auto as_unsigned =
 * Ill-formed if `r.size()` is ill-formed and `begin(r)` cannot be subtracted from `end(r)` (SFINAE-friendly) */
 template< typename SizedRangeLike >
 constexpr auto ssize(SizedRangeLike && r)
+	noexcept(noexcept( _detail::Size(r) ))
 ->	std::common_type_t< ptrdiff_t, decltype( as_signed(_detail::Size(r)) ) >
 	{
 		return std::common_type_t< ptrdiff_t, decltype( as_signed(_detail::Size(r)) ) >(_detail::Size(r));

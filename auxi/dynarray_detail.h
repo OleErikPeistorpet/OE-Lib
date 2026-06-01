@@ -42,9 +42,9 @@ namespace oel::_detail
 
 	inline constexpr DebugAllocationHeader headerNoAllocation{};
 
-	inline DebugAllocationHeader * DebugHeaderOf(void * p)
+	inline DebugAllocationHeader * DebugHeaderOf(void * data) noexcept
 	{
-		return static_cast<DebugAllocationHeader *>(p) - 1;
+		return static_cast<DebugAllocationHeader *>(data) - 1;
 	}
 
 	template< typename Alloc, typename Ptr >
@@ -111,7 +111,7 @@ namespace oel::_detail
 	struct DebugSizeInHeaderUpdater
 	{
 	#if OEL_MEM_BOUND_DEBUG_LVL == 0
-		OEL_ALWAYS_INLINE DebugSizeInHeaderUpdater(ContainerBase &) {}
+		OEL_ALWAYS_INLINE DebugSizeInHeaderUpdater(ContainerBase &) noexcept {}
 	#else
 		ContainerBase & container;
 
