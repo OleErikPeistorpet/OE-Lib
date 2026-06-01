@@ -139,7 +139,7 @@ namespace _detail
 	constexpr size_t Size(T(&)[N]) noexcept { return N; }
 
 	template< typename Range >
-	constexpr auto Size(Range && r)
+	constexpr auto Size(Range && r) noexcept(noexcept( r.size() ))
 	->	decltype( r.size() ) { return r.size(); }
 
 	template

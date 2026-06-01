@@ -66,57 +66,57 @@ struct dynarray_iterator
 		}
 
 	OEL_ALWAYS_INLINE
-	dynarray_iterator & operator++() &
+	dynarray_iterator & operator++() & noexcept
 		{
 			++_pElem;
 			return *this;
 		}
 	OEL_ALWAYS_INLINE
-	dynarray_iterator & operator--() &
+	dynarray_iterator & operator--() & noexcept
 		{
 			--_pElem;
 			return *this;
 		}
 
-	dynarray_iterator operator++(int) &
+	dynarray_iterator operator++(int) & noexcept
 		{	// post-increment
 			auto tmp = *this;
 			++_pElem;
 			return tmp;
 		}
-	dynarray_iterator operator--(int) &
+	dynarray_iterator operator--(int) & noexcept
 		{	// post-decrement
 			auto tmp = *this;
 			--_pElem;
 			return tmp;
 		}
 
-	dynarray_iterator & operator+=(difference_type offset) &
+	dynarray_iterator & operator+=(difference_type offset) & noexcept
 		{
 			_pElem += offset;
 			return *this;
 		}
-	dynarray_iterator & operator-=(difference_type offset) &
+	dynarray_iterator & operator-=(difference_type offset) & noexcept
 		{
 			_pElem -= offset;
 			return *this;
 		}
 
-	friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it)  { return it += offset; }
+	friend dynarray_iterator operator +(difference_type offset, dynarray_iterator it) noexcept  { return it += offset; }
 	[[nodiscard]]
-	friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset)
+	friend dynarray_iterator operator +(dynarray_iterator it, difference_type offset) noexcept
 		{
 			it._pElem += offset;
 			return it;
 		}
 	[[nodiscard]]
-	friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset)
+	friend dynarray_iterator operator -(dynarray_iterator it, difference_type offset) noexcept
 		{
 			it._pElem -= offset;
 			return it;
 		}
 
-	friend difference_type operator -(const dynarray_iterator & left, const dynarray_iterator & right)
+	friend difference_type operator -(const dynarray_iterator & left, const dynarray_iterator & right) noexcept
 		{
 			return left._pElem - right._pElem;
 		}
@@ -128,27 +128,27 @@ struct dynarray_iterator
 			return *tmp;
 		}
 
-	friend bool operator==(const dynarray_iterator & left, const dynarray_iterator & right)
+	friend bool operator==(const dynarray_iterator & left, const dynarray_iterator & right) noexcept
 		{
 			return left._pElem == right._pElem;
 		}
-	friend bool operator!=(const dynarray_iterator & left, const dynarray_iterator & right)
+	friend bool operator!=(const dynarray_iterator & left, const dynarray_iterator & right) noexcept
 		{
 			return left._pElem != right._pElem;
 		}
-	friend bool operator <(const dynarray_iterator & left, const dynarray_iterator & right)
+	friend bool operator <(const dynarray_iterator & left, const dynarray_iterator & right) noexcept
 		{
 			return left._pElem < right._pElem;
 		}
-	friend bool operator >(const dynarray_iterator & left, const dynarray_iterator & right)
+	friend bool operator >(const dynarray_iterator & left, const dynarray_iterator & right) noexcept
 		{
 			return left._pElem > right._pElem;
 		}
-	friend bool operator<=(const dynarray_iterator & left, const dynarray_iterator & right)
+	friend bool operator<=(const dynarray_iterator & left, const dynarray_iterator & right) noexcept
 		{
 			return left._pElem <= right._pElem;
 		}
-	friend bool operator>=(const dynarray_iterator & left, const dynarray_iterator & right)
+	friend bool operator>=(const dynarray_iterator & left, const dynarray_iterator & right) noexcept
 		{
 			return left._pElem >= right._pElem;
 		}
