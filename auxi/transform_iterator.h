@@ -75,13 +75,10 @@ public:
 	_transformIterator() = default;
 	constexpr _transformIterator(UnaryFunc f, Iterator it)   : _super{std::move(f), std::move(it)} {}
 
-	OEL_ALWAYS_INLINE
-	constexpr const Iterator & base() const & noexcept   { return it; }
 	constexpr Iterator         base() && noexcept
-		{
-			static_assert( std::is_nothrow_move_constructible_v<Iterator> );
-			return std::move(it);
-		}
+		requires std::is_nothrow_move_constructible_v<Iterator>  { return std::move(it); }
+	OEL_ALWAYS_INLINE
+	constexpr const Iterator & base() const & noexcept           { return it; }
 
 	constexpr reference operator*() const
 		{

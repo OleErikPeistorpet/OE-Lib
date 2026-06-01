@@ -53,15 +53,15 @@ public:
 	_zipTransformIterator() = default;
 	constexpr _zipTransformIterator(Func f, Iterators... it)   : _fn{std::move(f)}, _iters{std::move(it)...} {}
 
+	//! Return type is `std::tuple<Iterators...>`
+	constexpr auto base() && noexcept
+		requires std::is_nothrow_move_constructible_v< decltype(_iters) >
+		{
+			return std::move(_iters);
+		}
 	//! Return type is `const std::tuple<Iterators...> &`
 	OEL_ALWAYS_INLINE
 	constexpr const auto & base() const & noexcept   { return _iters; }
-	//! Return type is `std::tuple<Iterators...>`
-	constexpr auto         base() && noexcept
-		{
-			static_assert( std::is_nothrow_move_constructible_v< decltype(_iters) > );
-			return std::move(_iters);
-		}
 
 	constexpr reference operator*() const   { return _apply(_iSeq{}); }
 

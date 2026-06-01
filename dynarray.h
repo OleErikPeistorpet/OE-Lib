@@ -137,11 +137,9 @@ public:
 	void resize(size_type n)                 { _doResize<_detail::ValueInit>(n); }
 
 	//! Almost same as std::vector::insert_range
-	/**
-	* Requires that source models std::ranges::forward_range or that `source.size()` is valid,
-	* in addition to that T is trivially relocatable. */
-	template< typename Range >
-	iterator insert_range(const_iterator pos, Range && source) &;
+	template< typename R >
+		requires _detail::rangeIsForwardOrSized<R>
+	iterator insert_range(const_iterator pos, R && source) &;
 
 	iterator insert(const_iterator pos, T && val) &       { return emplace(pos, std::move(val)); }
 	iterator insert(const_iterator pos, const T & val) &  { return emplace(pos, val); }
@@ -588,15 +586,13 @@ typename dynarray<T, Alloc>::iterator
 }
 
 template< typename T, typename Alloc >
-template< typename Range >
+template< typename R >
+	requires _detail::rangeIsForwardOrSized<R>
 typename dynarray<T, Alloc>::iterator
-	dynarray<T, Alloc>::insert_range(const_iterator pos, Range && source) &
+	dynarray<T, Alloc>::insert_range(const_iterator pos, R && source) &
 {
 	OEL_DYNARR_INSERT_STEP1
 #undef OEL_DYNARR_INSERT_STEP1
-
-	static_assert( _detail::rangeIsForwardOrSized<Range>,
-		"insert_range requires that source models std::ranges::forward_range or that source.size() is valid" );
 
 	auto       first = iter_uncounted(ranges::begin(source));
 	auto const count = as_unsigned(ranges::distance(source));

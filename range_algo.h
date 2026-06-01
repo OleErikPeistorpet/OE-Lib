@@ -27,8 +27,8 @@ namespace oel
 * Has the same effect as `std::views::concat(sources...) | to_dynarray(a)`. */
 template< typename Alloc, typename... Ranges >
 auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
+	requires( ... and _detail::rangeIsForwardOrSized<Ranges> )
 	{
-		static_assert(( ... and _detail::rangeIsForwardOrSized<Ranges> ));
 		using T = std::common_type_t< ranges::range_value_t<Ranges>... >;
 
 		size_t const counts[]{ as_unsigned(ranges::distance(sources))... };
@@ -47,7 +47,6 @@ auto concat_to_dynarray_with_alloc(Alloc a, Ranges &&... sources)
 
 //! Concatenate multiple ranges into a dynarray using a single memory allocation
 /**
-* Requires that each of Ranges model std::ranges::forward_range or is a sized range.
 * Example:
 @code
 constexpr auto header = "v1\n"sv;
@@ -57,6 +56,7 @@ auto result = concat_to_dynarray(header, body());
 @endcode  */
 template< typename... Ranges >  inline
 auto concat_to_dynarray(Ranges &&... sources)
+	requires( ... and _detail::rangeIsForwardOrSized<Ranges> )
 	{
 		return oel::concat_to_dynarray_with_alloc(allocator<>{}, sources...);
 	}
