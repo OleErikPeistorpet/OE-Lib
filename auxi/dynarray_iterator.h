@@ -31,10 +31,6 @@ inline namespace debug
 template< typename Ptr >
 struct dynarray_iterator
 {
-	#define OEL_ITER_VALIDATE_DEREF  \
-		OEL_ASSERT( _header->id == _allocationId and _detail::HasValidIndex(_pElem, *_header) )
-
-
 	using iterator_category = std::random_access_iterator_tag;
 #if __cpp_lib_concepts
 	using iterator_concept  = std::contiguous_iterator_tag;
@@ -45,23 +41,23 @@ struct dynarray_iterator
 	using pointer         = Ptr;
 	using reference       = decltype( *Ptr{} );
 
-	using const_iterator = dynarray_iterator<const value_type *>;
+	using const_type = dynarray_iterator<const value_type *>;
 
 	OEL_ALWAYS_INLINE
-	operator const_iterator() const noexcept
+	operator const_type() const noexcept
 		{
 			return {_pElem, _header, _allocationId};
 		}
 
 	reference operator*() const
 		{
-			OEL_ITER_VALIDATE_DEREF;
+			_validateDeref();
 			return *_pElem;
 		}
 
 	pointer operator->() const
 		{
-			OEL_ITER_VALIDATE_DEREF;
+			_validateDeref();
 			return _pElem;
 		}
 
@@ -159,7 +155,11 @@ struct dynarray_iterator
 	const _detail::DebugAllocationHeader * _header;
 	std::uintptr_t _allocationId;  //!< Used to check if this iterator has been invalidated by deallocation
 
-	#undef OEL_ITER_VALIDATE_DEREF
+	void _validateDeref() const
+	{
+		auto index =_pElem - reinterpret_cast<const value_type *>(_header + 1);
+		OEL_ASSERT(_header->id == _allocationId and static_cast<size_t>(index) < _header->nObjects);
+	}
 };
 
 } // debug

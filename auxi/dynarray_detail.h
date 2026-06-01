@@ -37,7 +37,7 @@ namespace oel::_detail
 	struct DebugAllocationHeader
 	{
 		std::uintptr_t id;
-		ptrdiff_t      nObjects;
+		size_t   nObjects;
 	};
 
 	inline constexpr DebugAllocationHeader headerNoAllocation{};
@@ -45,13 +45,6 @@ namespace oel::_detail
 	inline DebugAllocationHeader * DebugHeaderOf(void * p)
 	{
 		return static_cast<DebugAllocationHeader *>(p) - 1;
-	}
-
-	template< typename T >
-	inline bool HasValidIndex(const T * arrayElem, const DebugAllocationHeader & h)
-	{
-		auto index = arrayElem - reinterpret_cast<const T *>(&h + 1);
-		return static_cast<size_t>(index) < static_cast<size_t>(h.nObjects);
 	}
 
 	template< typename Alloc, typename Ptr >
@@ -126,8 +119,8 @@ namespace oel::_detail
 		{
 			if( container.data )
 			{
-				auto h = _detail::DebugHeaderOf(container.data);
-				h->nObjects = container.end - container.data;
+				auto n = static_cast<size_t>(container.end - container.data);
+				_detail::DebugHeaderOf(container.data)->nObjects = n;
 			}
 		}
 	#endif
@@ -150,10 +143,10 @@ namespace oel::_detail
 	{
 		Alloc _a;
 
-		template< typename Range >
-		friend auto operator |(Range && r, ToDynarrPartial t)
+		template< typename R >
+		friend auto operator |(R && range, ToDynarrPartial t)
 		{
-			return dynarray(from_range, static_cast<Range &&>(r), std::move(t)._a);
+			return dynarray(from_range, static_cast<R &&>(range), std::move(t)._a);
 		}
 	};
 }
