@@ -1,3 +1,3 @@
-#include <dynarray.h>
+#include "dynarray.h"
 
 oel::dynarray<int> shouldGetStaticInit;
