@@ -317,6 +317,21 @@ TEST(viewTest, viewTransformAsOutput)
 	EXPECT_EQ(-2, test[1].second);
 }
 
+TEST(viewTest, viewTransformKeyValue)
+{
+	std::pair<int, int> arr[]{ {1, 2}, {3, 4} };
+	auto keys   = arr | view::transform(oel::key);
+	auto values = arr | view::move | view::transform(oel::value);
+
+	static_assert(std::is_same_v< decltype(*keys.begin()),   int & >);
+	static_assert(std::is_same_v< decltype(*values.begin()), int && >);
+
+	EXPECT_EQ( 1, *keys.begin() );
+	EXPECT_EQ( 2, *values.begin() );
+	EXPECT_EQ( 3, keys.end()[-1] );
+	EXPECT_EQ( 4, values.end()[-1] );
+}
+
 struct MoveOnlyIterWithForwardTag
 {
 	using iterator_category = std::forward_iterator_tag;
@@ -369,21 +384,6 @@ void testTransformIterWithConceptOnly()
 	static_assert(std::is_same_v< decltype(it++), I >);
 }
 #endif
-
-TEST(viewTest, viewElements)
-{
-	std::pair<int, int> arr[]{ {1, 2}, {3, 4} };
-	auto keys   = view::move(arr) | view::elements<0>;
-	auto values = view::elements<1>(arr) | view::move;
-
-	static_assert(std::is_same_v< decltype(*keys.begin()), int && >);
-	static_assert(std::is_same_v< decltype(*values.begin()), int && >);
-
-	EXPECT_EQ( 1, *keys.begin() );
-	EXPECT_EQ( 2, *values.begin() );
-	EXPECT_EQ( 3, *std::prev(keys.end()) );
-	EXPECT_EQ( 4, *std::prev(values.end()) );
-}
 
 constexpr StdArrInt2 generatedArray()
 {

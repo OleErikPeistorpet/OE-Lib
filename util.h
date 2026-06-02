@@ -88,10 +88,15 @@ using oel::index_valid;
 
 
 
-//! `key(t)` returns the first element of the tuple-like object `t`
-inline constexpr auto key   = _detail::Get<0>{};
-//! `value(t)` returns the second element of the tuple-like object `t`
-inline constexpr auto value = _detail::Get<1>{};
+//! `key(pair)` returns `pair.first`
+/**
+* Equivalent to `std::get<0>(pair)` for std::pair.
+* `view::transform(oel::key)` can be used to mimic std::views::keys. */
+inline constexpr auto key =
+	[](auto && pair) noexcept -> auto &&  { return decltype(pair)(pair).first; };
+//! `value(pair)` returns `pair.second` (see oel::key)
+inline constexpr auto value =
+	[](auto && pair) noexcept -> auto &&  { return decltype(pair)(pair).second; };
 
 
 
