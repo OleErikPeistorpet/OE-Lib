@@ -521,7 +521,7 @@ private:
 		return _insertReallocImpl(newCap, pos, count);
 	}
 
-	T * _emplaceRealloc(T * pos, T & destroyOnFail)
+	T * _emplaceRealloc(T * pos, T * destroyOnFail)
 	{
 		struct Guard
 		{
@@ -532,7 +532,7 @@ private:
 				if( destroy )
 					destroy-> ~T();
 			}
-		} exit{&destroyOnFail};
+		} exit{destroyOnFail};
 
 		pos = _insertReallocImpl(_calcCapAddOne(), pos, 1);
 		exit.destroy = nullptr;
@@ -569,7 +569,7 @@ typename dynarray<T, Alloc>::iterator
 		++_m.end;
 	}
 	else
-	{	pPos = _emplaceRealloc(pPos, reinterpret_cast<T &>(tmp));
+	{	pPos = _emplaceRealloc(pPos, reinterpret_cast<T *>(&tmp));
 	}
 	std::memcpy(static_cast<void *>(pPos), &tmp, sizeof(T)); // relocate the new element to pos
 
@@ -804,8 +804,8 @@ inline void dynarray<T, Alloc>::unordered_erase(iterator pos)
 	#pragma GCC diagnostic push
 	#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-		auto mem = reinterpret_cast< _detail::RelocateWrap<T> * >(&elem);
-		*mem    = *reinterpret_cast< _detail::RelocateWrap<T> * >(_m.end); // relocate last element to pos
+		auto & r = reinterpret_cast< _detail::RelocateWrap<T> & >(elem);
+		r        = reinterpret_cast< _detail::RelocateWrap<T> & >(*_m.end); // relocate last element to pos
 #if defined __GNUC__ and !defined __clang__
 	#pragma GCC diagnostic pop
 #endif
