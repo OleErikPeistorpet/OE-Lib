@@ -27,8 +27,9 @@ public:
 
 	constexpr Iterator begin()       { return _detail::MoveIfNotCopyable(_begin); }
 	//! Provided only if Iterator is random-access
-	template< typename I = Iterator,
-	          enable_if< iter_is_random_access<I> > = 0
+	template
+	<	typename I = Iterator,
+		enable_if< iter_is_random_access<I> > = 0
 	>
 	constexpr Iterator end() const   { return _begin + _size; }
 

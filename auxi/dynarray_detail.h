@@ -53,8 +53,8 @@ namespace oel::_detail
 	#if OEL_MEM_BOUND_DEBUG_LVL == 0
 		static constexpr size_t sizeForHeader{};
 	#else
-		static constexpr auto _valSize      = sizeof(typename Alloc::value_type);
-		static constexpr auto sizeForHeader = ( sizeof(DebugAllocationHeader) + (_valSize - 1) ) / _valSize;
+		static constexpr auto _valNBytes    = sizeof(typename Alloc::value_type);
+		static constexpr auto sizeForHeader = (sizeof(DebugAllocationHeader) + _valNBytes - 1) / _valNBytes;
 
 		static Ptr _addHeader(const Alloc & a, Ptr p)
 		{

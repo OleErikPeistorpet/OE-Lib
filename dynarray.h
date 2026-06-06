@@ -306,7 +306,7 @@ private:
 			{
 				::oel::_detail::Destroy(data, end);
 
-				auto cap = static_cast<::std::size_t>(reservEnd - data);
+				auto cap = static_cast<size_type>(reservEnd - data);
 				::oel::_detail::DebugAllocateWrapper<_usedAlloc_7KQw, value_type *>::dealloc(*this, data, cap);
 			}
 		}
@@ -836,7 +836,7 @@ typename dynarray<T, Alloc>::iterator
 	}
 	else
 	{	_m.end = std::move(ptr + 1, _m.end, ptr);
-		(*_m.end).~T();
+		_m.end-> ~T();
 	}
 	return _detail::MakeDynarrIter(_m, ptr);
 }
@@ -848,7 +848,7 @@ typename dynarray<T, Alloc>::iterator
 	_debugSizeUpdater guard{_m};
 
 	auto const pFirst = const_cast<T *>(to_pointer_contiguous(first));
-	const T *const pLast{to_pointer_contiguous(last)};
+	const T *const pLast = to_pointer_contiguous(last);
 	OEL_ASSERT(_m.data <= pFirst and pFirst <= pLast and pLast <= _m.end);
 
 	if constexpr( is_trivially_relocatable<T>::value )

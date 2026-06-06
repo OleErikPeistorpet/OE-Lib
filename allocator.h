@@ -184,11 +184,15 @@ namespace _detail
 	#endif
 	}
 
-	template< typename AllocFunc, bool CheckZero = true, typename... Ptr >
+	template
+	<	typename AllocFunc,
+		bool CheckZero = true,
+		typename... Ptr // should pass void * for fewer template instantiations
+	>
 #ifdef _MSC_VER
 	__declspec(restrict)
 #endif
-	void * AllocAndHandleFail(size_t const nBytes, Ptr const... old) // should pass void * for fewer template instantiations
+	void * AllocAndHandleFail(size_t const nBytes, Ptr const... old)
 	{
 		auto const zeroSize = CheckZero ? (nBytes == 0) : false;
 	#if OEL_NEW_HANDLER
