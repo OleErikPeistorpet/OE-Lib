@@ -70,11 +70,30 @@ TEST(utilTest, ssize)
 {
 	static_assert(oel::range_is_sized< DummyRange<int> >);
 
-	using test  = decltype( oel::ssize(DummyRange<unsigned short>{0}) );
-	using test2 = decltype( oel::ssize(DummyRange<std::uintmax_t>{0}) );
+	auto s = oel::ssize(DummyRange<unsigned short>{7});
+	EXPECT_EQ(7, s);
 
-	static_assert(std::is_same<test, std::ptrdiff_t>::value);
-	static_assert(std::is_same<test2, std::intmax_t>::value);
+	using T = decltype(s);
+	static_assert(std::is_same<T, std::ptrdiff_t>::value);
+}
+
+template< typename T >
+auto ssizeTHelper(int) -> decltype( oel::ssize(std::declval<T>()) );
+
+template< typename > void ssizeTHelper(long);
+
+template< typename T >
+using ssizeT = decltype( ssizeTHelper<T>(0) );
+
+static_assert(std::is_same_v< ssizeT< DummyRange<std::uintmax_t> >, std::intmax_t >);
+
+void testSsizeNoSizeMember()
+{
+	struct NoSize
+	{
+		int size() const = delete;
+	};
+	static_assert(std::is_same_v< ssizeT<NoSize>, void >);
 }
 
 TEST(utilTest, indexValid)
