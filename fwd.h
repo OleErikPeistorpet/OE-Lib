@@ -30,7 +30,7 @@
 *
 * Feel free to define it to something else, but note that it must never return. */
 #ifndef OEL_ABORT
-#define OEL_ABORT(message) (std::abort(), (void) message)
+#define OEL_ABORT(message) (::abort(), (void) message)
 #endif
 
 
