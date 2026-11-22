@@ -43,14 +43,15 @@ jobs:
             cxx_flags: -fno-exceptions
             cpp_standard: 23
             mem_bound_debug: on
-          - os: macos-14
-            cpp_standard: 17
-          - os: macos-15
-            cxx_flags: -fno-exceptions
-            cpp_standard: 20
-          - os: macos-latest
+          - os: ubuntu-latest
+            gcc_version: 15
             cpp_standard: 23
+          - os: macos-15
+            cpp_standard: 17
             mem_bound_debug: on
+          - os: macos-latest
+            cxx_flags: -fno-exceptions
+            cpp_standard: 23
 
     steps:
     - if: runner.os == 'Linux'
