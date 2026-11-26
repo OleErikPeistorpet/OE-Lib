@@ -30,13 +30,13 @@ namespace oel
 namespace _detail
 {
 	template< typename Iter >
-	typename std::iterator_traits<Iter>::iterator_category IterCat(int);
+	auto IterCat(int) -> typename std::iterator_traits<Iter>::iterator_category;
 
 	template< typename > std::input_iterator_tag IterCat(long);
 
 
 	template< typename Iter >
-	typename Iter::iterator_concept IterConcept(int);
+	auto IterConcept(int) -> typename Iter::iterator_concept;
 
 	template< typename > void IterConcept(long);
 
@@ -62,17 +62,23 @@ namespace _detail
 ////////////////////////////////////////////////////////////////////////////////
 
 //! Like std::ranges::begin, but for C++17
-template< typename Range >  OEL_ALWAYS_INLINE
-constexpr auto begin_(Range && r) -> decltype( std::begin(r) )  { return std::begin(r); }
+template< typename Range >
+constexpr auto begin_(Range && r) -> decltype( r.begin() )  { return r.begin(); }
 
-template< typename Range >  OEL_ALWAYS_INLINE
-constexpr auto end_(Range && r)   -> decltype( std::end(r) )  { return std::end(r); }
+template< typename Range >
+constexpr auto end_(Range && r)   -> decltype( r.end() )  { return r.end(); }
 
 template< typename Range, typename... None >
 constexpr auto begin_(Range && r, None...) -> decltype( begin(r) )  { return begin(r); }
 
 template< typename Range, typename... None >
 constexpr auto end_(Range && r, None...)   -> decltype( end(r) )  { return end(r); }
+
+template< typename T, size_t N >
+constexpr T * begin_(T(& arr)[N]) noexcept  { return arr; }
+
+template< typename T, size_t N >
+constexpr T * end_(T(& arr)[N]) noexcept  { return arr + N; }
 
 
 //! Almost same as std::ranges::iterator_t

@@ -173,6 +173,14 @@ TEST(utilTest, toPointerContiguous)
 #endif
 }
 
+TEST(utilTest, end_constArray)
+{
+	int const arr[3]{};
+	auto it = oel::end_(arr);
+	EXPECT_EQ(arr + 3, it);
+	static_assert(std::is_same_v< decltype(it), const int * >);
+}
+
 struct EmptyRandomAccessRange {};
 
 int * begin(EmptyRandomAccessRange) { return {}; }
