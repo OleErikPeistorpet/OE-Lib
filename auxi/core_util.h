@@ -41,6 +41,14 @@
 	#define OEL_ALWAYS_INLINE
 #endif
 
+#if __cpp_static_call_operator
+	#define OEL_STATIC_OP  static
+	#define OEL_CONST_OP
+#else
+	#define OEL_STATIC_OP
+	#define OEL_CONST_OP  const
+#endif
+
 
 #if defined _CPPUNWIND or defined __EXCEPTIONS
 	#define OEL_HAS_EXCEPTIONS        1

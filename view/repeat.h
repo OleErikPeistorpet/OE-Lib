@@ -35,7 +35,7 @@ namespace view
 *
 * https://en.cppreference.com/w/cpp/ranges/repeat_view  */
 inline constexpr auto repeat =
-	[](auto && value, ptrdiff_t count)
+	[](auto && value, ptrdiff_t count) OEL_STATIC_OP
 	{
 		using R = decltype(value);
 		return generate(

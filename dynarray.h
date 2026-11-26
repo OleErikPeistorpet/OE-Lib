@@ -440,7 +440,7 @@ private:
 			_detail::MemcpyCheck(src, count, _m.data);
 		}
 		else
-		{	auto cpy = [](InputIter src_, T *__restrict dest, T * dLast)
+		{	auto cpy = [](InputIter src_, T *__restrict dest, T * dLast) OEL_STATIC_OP
 			{
 				while( dest != dLast )
 				{

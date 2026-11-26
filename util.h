@@ -25,7 +25,7 @@
 * optimizes better than a function (as pointer) or pointer to member.
 */
 #define OEL_MEMBER_FN(func)  \
-	[](auto && ob_, auto &&... args_)  \
+	[](auto && ob_, auto &&... args_) OEL_STATIC_OP  \
 	->	decltype( decltype(ob_)(ob_).func( decltype(args_)(args_)... ) )  \
 		{  return decltype(ob_)(ob_).func( decltype(args_)(args_)... ); }
 
@@ -34,7 +34,7 @@
 * The call operator returns a forwarded reference, like std::invoke.
 */
 #define OEL_MEMBER_VAR(var)  \
-	[](auto && ob_) noexcept  \
+	[](auto && ob_) OEL_STATIC_OP noexcept  \
 	->	decltype( ( decltype(ob_)(ob_).var ) )  \
 		{  return ( decltype(ob_)(ob_).var ); }
 
@@ -44,13 +44,13 @@ namespace oel
 
 //! Passed val of integral or enumeration type, returns val cast to the corresponding signed integer type
 inline constexpr auto as_signed =
-	[](auto val) noexcept -> std::make_signed_t< decltype(val) >
+	[](auto val) OEL_STATIC_OP noexcept -> std::make_signed_t< decltype(val) >
 	{
 		return std::make_signed_t< decltype(val) >(val);
 	};
 //! Passed val of integral or enumeration type, returns val cast to the corresponding unsigned integer type
 inline constexpr auto as_unsigned =
-	[](auto val) noexcept -> std::make_unsigned_t< decltype(val) >
+	[](auto val) OEL_STATIC_OP noexcept -> std::make_unsigned_t< decltype(val) >
 	{
 		return std::make_unsigned_t< decltype(val) >(val);
 	};

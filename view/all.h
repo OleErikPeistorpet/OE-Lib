@@ -20,7 +20,7 @@ namespace _detail
 	struct All
 	{
 		template< typename Range >
-		constexpr auto operator()(Range && r) const
+		OEL_STATIC_OP constexpr auto operator()(Range && r) OEL_CONST_OP
 		{
 			using UnCVR = std::remove_cv_t< std::remove_reference_t<Range> >;
 			if constexpr( enable_view<UnCVR> )

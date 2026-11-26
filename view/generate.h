@@ -72,7 +72,7 @@ struct _generateFn
 	/**
 	* Almost same as `generate_n` in the Range-v3 library. */
 	template< typename Generator >
-	constexpr auto operator()(Generator g, ptrdiff_t count) const
+	OEL_STATIC_OP constexpr auto operator()(Generator g, ptrdiff_t count) OEL_CONST_OP
 		{
 			return counted( generate_iterator{std::move(g)}, count );
 		}
@@ -82,7 +82,7 @@ struct _generateFn
 	/**
 	* Almost same as `generate` in the Range-v3 library. */
 	template< typename Generator >
-	constexpr auto operator()(Generator g) const
+	OEL_STATIC_OP constexpr auto operator()(Generator g) OEL_CONST_OP
 		{
 			return subrange( generate_iterator{std::move(g)}, std::unreachable_sentinel );
 		}

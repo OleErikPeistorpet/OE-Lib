@@ -53,7 +53,7 @@ namespace view
 /**
 * Without C++20: If iterator is not random-access, the view has no `end()` and is meant only for use within OE-Lib. */
 inline constexpr auto counted =
-	[](auto iterator, auto n)
+	[](auto iterator, auto n) OEL_STATIC_OP
 	{
 	#if __cpp_lib_concepts >= 201907
 		if constexpr( !iter_is_random_access< decltype(iterator) > )

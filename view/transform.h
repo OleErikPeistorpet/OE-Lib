@@ -21,12 +21,12 @@ struct _transformFn
 {
 	//! Right-hand side of operator |
 	template< typename UnaryFunc >
-	constexpr auto operator()(UnaryFunc f) const;
+	OEL_STATIC_OP constexpr auto operator()(UnaryFunc f) OEL_CONST_OP;
 
 	template< typename Range, typename UnaryFunc >
-	constexpr auto operator()(Range && r, UnaryFunc f) const
+	OEL_STATIC_OP constexpr auto operator()(Range && r, UnaryFunc f) OEL_CONST_OP
 		{
-			return (*this)(std::move(f))( static_cast<Range &&>(r) );
+			return _transformFn{}(std::move(f))( static_cast<Range &&>(r) );
 		}
 };
 //! Similar to std::views::transform, same call signature
@@ -125,10 +125,10 @@ namespace _detail
 	};
 }
 
-template< typename UnaryFunc >
-constexpr auto view::_transformFn::operator()(UnaryFunc f) const
+template< typename Func >
+constexpr auto view::_transformFn::operator()(Func f) OEL_CONST_OP
 {
-	return _detail::TransformPartial<UnaryFunc>{
+	return _detail::TransformPartial<Func>{
 		#if OEL_HAS_STD_ADAPTOR_CLOSURE
 			{},
 		#endif

@@ -70,7 +70,7 @@ struct _moveFn
 
 	template< typename R >
 		OEL_RANGE_REQUIRES(std::ranges::viewable_range<R>)
-	constexpr auto operator()(R && range) const
+	OEL_STATIC_OP constexpr auto operator()(R && range) OEL_CONST_OP
 		{
 			return _moveView{all( static_cast<R &&>(range) )};
 		}
